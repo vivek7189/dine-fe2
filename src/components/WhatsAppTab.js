@@ -263,8 +263,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     if (!testPhone) return alert('Enter a phone number');
     setTestSending(true);
     try {
-      await apiClient.testWhatsAppMessage(restaurantId, testAsTemplate
-        ? { phoneNumber: testPhone, templateName: testMessage, templateLanguage: 'en_US' }
+      await apiClient.testWhatsAppMessage(restaurantId, (testAsTemplate || sharedNumber)
+        ? { phoneNumber: testPhone, templateName: sharedNumber ? 'hello_world' : testMessage, templateLanguage: 'en_US' }
         : { phoneNumber: testPhone, message: testMessage }
       );
       setStatusMsg({ type: 'success', text: 'Test message sent!' });
@@ -338,6 +338,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   }, [convoMessages]);
 
   // Filtered conversations based on search
+  // Connected through DineOpen's shared number (not the restaurant's own WhatsApp)
+  const sharedNumber = !!waSettings?.connected && waSettings?.settings?.mode !== 'restaurant';
   const filteredConversations = searchQuery.trim()
     ? conversations.filter(c =>
         (c.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -614,11 +616,18 @@ export default function WhatsAppTab({ selectedRestaurant }) {
               {waSettings?.connected && (
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>Send Test Message</h4>
+                  {sharedNumber ? (
+                    // Shared DineOpen number: the server only allows hello_world to your own phone
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>
+                      Sends the &quot;hello_world&quot; template to <b>your restaurant&apos;s registered phone or your own phone</b> to check the connection (up to 10 a day).
+                    </p>
+                  ) : (
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                     <button onClick={() => setTestAsTemplate(true)} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '500', cursor: 'pointer', backgroundColor: testAsTemplate ? '#25D366' : '#fff', color: testAsTemplate ? '#fff' : '#374151' }}>Template</button>
                     <button onClick={() => setTestAsTemplate(false)} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '500', cursor: 'pointer', backgroundColor: !testAsTemplate ? '#25D366' : '#fff', color: !testAsTemplate ? '#fff' : '#374151' }}>Text</button>
                     <span style={{ fontSize: '11px', color: '#9ca3af', alignSelf: 'center' }}>{testAsTemplate ? 'Templates can reach any customer' : 'Text only works within 24h of customer messaging you'}</span>
                   </div>
+                  )}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Phone (with country code)</label>
@@ -632,7 +641,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                     <div style={{ flex: 2 }}>
                       <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>{testAsTemplate ? 'Template Name' : 'Message'}</label>
                       <input
-                        value={testMessage}
+                        value={sharedNumber ? 'hello_world' : testMessage}
+                        readOnly={sharedNumber}
                         onChange={e => setTestMessage(e.target.value)}
                         placeholder={testAsTemplate ? 'hello_world' : 'Test message'}
                         style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
@@ -685,6 +695,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                   Refresh
                 </button>
               </div>
+              {sharedNumber && (
+                <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 8px' }}>
+                  Shared DineOpen number: only customers your restaurant has messaged (bills, order updates) appear here.
+                </p>
+              )}
               {/* Search */}
               <div style={{ position: 'relative' }}>
                 <FaSearch size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
