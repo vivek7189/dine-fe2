@@ -3671,10 +3671,12 @@ class ApiClient {
   }
 
   // Customer Management API methods
-  async getCustomers(restaurantId, page = 1, pageSize = 50, search = '', cursor = '') {
+  // dueOnly → only customers who owe money (biggest due first) + { dueCustomers, totalDue }
+  async getCustomers(restaurantId, page = 1, pageSize = 50, search = '', cursor = '', dueOnly = false) {
     let url = `/api/customers/${restaurantId}?page=${page}&pageSize=${pageSize}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
     if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
+    if (dueOnly) url += `&due=1`;
     return this.request(url);
   }
 

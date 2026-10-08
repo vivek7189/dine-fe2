@@ -914,6 +914,10 @@ const Customers = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [sortBy, setSortBy] = useState('lastOrderDate');
+  // "Has due" filter: only customers who owe money (server-side, all pages) + the total owed.
+  const [dueOnly, setDueOnly] = useState(false);
+  const dueOnlyRef = React.useRef(false);
+  const [dueSummary, setDueSummary] = useState(null); // { dueCustomers, totalDue }
   const [sortOrder, setSortOrder] = useState('desc');
   const [customerRestaurantFilter, setCustomerRestaurantFilter] = useState('current');
   const [customerDateFrom, setCustomerDateFrom] = useState('');
@@ -1668,7 +1672,7 @@ const Customers = () => {
       }
 
       // Check for cached data first (only for page 1 with no search)
-      if (useCache && page === 1 && !search) {
+      if (useCache && page === 1 && !search && !dueOnlyRef.current) {
         const cachedData = getCachedCustomersData(restaurantId);
         if (cachedData) {
           console.log('⚡ Loading cached customers data instantly...');
@@ -1702,8 +1706,10 @@ const Customers = () => {
       if (page === 1) pageCursorsRef.current = {};
       // Use cursor for efficient pagination if available (avoids Firestore offset reads)
       const cursor = !search ? (pageCursorsRef.current[page] || '') : '';
-      const response = await apiClient.getCustomers(restaurantId, page, PAGE_SIZE, search, cursor);
+      const dueFilter = dueOnlyRef.current;
+      const response = await apiClient.getCustomers(restaurantId, page, PAGE_SIZE, search, dueFilter ? '' : cursor, dueFilter);
       const freshCustomers = response.customers || [];
+      setDueSummary(dueFilter && response.totalDue != null ? { dueCustomers: response.dueCustomers || 0, totalDue: response.totalDue || 0 } : null);
       setCustomers(freshCustomers);
       setTotalCustomers(response.total || 0);
       setTotalPages(response.totalPages || 1);
@@ -1714,8 +1720,8 @@ const Customers = () => {
         pageCursorsRef.current[(response.page || page) + 1] = response.nextCursor;
       }
 
-      // Cache the data (page 1 with no search only)
-      if (page === 1 && !search) {
+      // Cache the data (page 1 with no search / due filter only)
+      if (page === 1 && !search && !dueFilter) {
         const dataToCache = {
           customers: freshCustomers,
           total: response.total || 0,
@@ -2003,7 +2009,7 @@ const Customers = () => {
       if (sortBy === 'lastOrderDate') {
         aValue = aValue ? new Date(aValue) : new Date(0);
         bValue = bValue ? new Date(bValue) : new Date(0);
-      } else if (sortBy === 'loyaltyPoints' || sortBy === 'totalOrders' || sortBy === 'totalSpent') {
+      } else if (sortBy === 'loyaltyPoints' || sortBy === 'totalOrders' || sortBy === 'totalSpent' || sortBy === 'outstandingBalance') {
         aValue = aValue || 0;
         bValue = bValue || 0;
       }
@@ -2764,6 +2770,26 @@ const Customers = () => {
                 )}
               </div>
 
+              {/* Has due — customers who owe money (all pages), biggest due first */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !dueOnly;
+                  dueOnlyRef.current = next;
+                  setDueOnly(next);
+                  if (next) { setSortBy('outstandingBalance'); setSortOrder('desc'); } else { setSortBy('lastOrderDate'); setDueSummary(null); }
+                  setCurrentPage(1);
+                  loadCustomers(false, 1, activeSearch);
+                }}
+                title="Show only customers who owe money"
+                style={{
+                  padding: isMobile ? '8px 10px' : '11px 14px', borderRadius: isMobile ? '8px' : '10px', fontSize: isMobile ? '12px' : '13px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                  border: dueOnly ? '1.5px solid #dc2626' : '1px solid #d1d5db', background: dueOnly ? '#fef2f2' : '#f9fafb', color: dueOnly ? '#b91c1c' : '#374151',
+                }}
+              >
+                {dueOnly ? '✓ ' : ''}Has due{dueOnly && dueSummary ? ` · ${dueSummary.dueCustomers} · ${formatCurrency(dueSummary.totalDue)}` : ''}
+              </button>
+
               {/* Sort - More Compact */}
               <div style={{ display: 'flex', gap: isMobile ? '4px' : '8px', alignItems: 'center' }}>
                 <select
@@ -2784,6 +2810,7 @@ const Customers = () => {
                   <option value="totalOrders">{t('customers.sort.orders')}</option>
                   <option value="totalSpent">{t('customers.sort.spent')}</option>
                   <option value="loyaltyPoints">Loyalty Points</option>
+                  <option value="outstandingBalance">Due amount</option>
                 </select>
                 
                 <button
