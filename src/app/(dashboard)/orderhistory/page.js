@@ -267,6 +267,11 @@ const OrderHistory = () => {
   // untick it they see everyone's RUNNING orders (closed orders stay their own — enforced server-side).
   const [salesScopeOwn, setSalesScopeOwn] = useState(false);
   const mineAutoAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!salesScopeOwn) return;
+    setDateFilterMode(m => (m === 'today' ? m : 'today')); // server shows their shift whatever is picked
+    setSummaryPeriod(p => (p === 'today' ? p : 'today'));
+  }, [salesScopeOwn]);
   const [kraUnfiledOnly, setKraUnfiledOnly] = useState(false); // Kenya: show only orders not yet on KRA
   const [dateFilterMode, setDateFilterMode] = useState('today');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all');
@@ -776,6 +781,7 @@ const OrderHistory = () => {
         const analyticsResponse = await apiClient.getAnalytics(restaurantId, analyticsPeriod, analyticsOptions);
         if (analyticsResponse?.success && analyticsResponse?.analytics) {
           setAnalyticsStats(analyticsResponse.analytics);
+          if (analyticsResponse.scope === 'own') setSalesScopeOwn(true);
         }
       } catch (analyticsErr) {
         console.error('Analytics stats fetch error (non-blocking):', analyticsErr);
@@ -2562,6 +2568,7 @@ const OrderHistory = () => {
       }
       const res = await apiClient.getDailySummary(restaurantId, options);
       if (res?.success) setSummaryData(res.summary);
+      if (res?.scope === 'own') setSalesScopeOwn(true);
     } catch (err) {
       console.error('Summary fetch error:', err);
     } finally {
@@ -3800,7 +3807,7 @@ const OrderHistory = () => {
           {activeView === 'summary' && (
             <div className="py-2 sm:py-3">
               <div className="flex items-center gap-1.5 flex-wrap">
-                {summaryPeriods.map(p => (
+                {(salesScopeOwn ? [{ key: 'today', label: 'Your shift' }] : summaryPeriods).map(p => (
                   <button
                     key={p.key}
                     onClick={() => handleSummaryPeriodChange(p.key)}
@@ -3956,12 +3963,12 @@ const OrderHistory = () => {
               )}
               {/* Date quick-filter chips */}
               <div className="flex flex-wrap gap-1 w-full mt-1">
-                {[
+                {(salesScopeOwn ? [{ value: 'today', label: 'Your shift' }] : [
                   { value: 'today', label: t('orderHistory.today') },
                   { value: 'yesterday', label: t('orderHistory.yesterday') },
                   { value: 'last7days', label: t('orderHistory.sevenDays') },
                   { value: 'last30days', label: t('orderHistory.thirtyDays') },
-                ].map(option => (
+                ]).map(option => (
                   <button
                     key={option.value}
                     onClick={() => setDateFilterMode(option.value)}
@@ -3974,14 +3981,14 @@ const OrderHistory = () => {
                     {option.label}
                   </button>
                 ))}
-                <button
+                {!salesScopeOwn && <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterModalOpen(true); }}
                   className={`p-1.5 rounded-lg border transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:bg-red-50 hover:text-red-500'}`}
                   title={t('orderHistory.customDateRange')}
                 >
                   <FaCalendarAlt className="text-sm" />
-                </button>
+                </button>}
               </div>
               {hasActiveFilters && (
                 <button type="button" onClick={() => { resetAllFilters(); setMobileFiltersOpen(false); }} className="flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg border border-red-200 shrink-0 transition-all mt-1">
@@ -4063,12 +4070,12 @@ const OrderHistory = () => {
               {/* Separator */}
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
               {/* Date quick-filter chips */}
-              {[
+              {(salesScopeOwn ? [{ value: 'today', label: 'Your shift' }] : [
                 { value: 'today', label: t('orderHistory.today') },
                 { value: 'yesterday', label: t('orderHistory.yesterday') },
                 { value: 'last7days', label: t('orderHistory.sevenDays') },
                 { value: 'last30days', label: t('orderHistory.thirtyDays') },
-              ].map(option => (
+              ]).map(option => (
                 <button
                   key={option.value}
                   onClick={() => setDateFilterMode(option.value)}
@@ -4087,14 +4094,14 @@ const OrderHistory = () => {
                 </span>
               )}
               {/* Calendar icon to open date modal */}
-              <button
+              {!salesScopeOwn && <button
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterModalOpen(true); }}
                 className={`p-1.5 rounded-lg border transition-all cursor-pointer ${dateFilterMode === 'custom' ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:bg-red-50 hover:text-red-500'}`}
                 title={t('orderHistory.customDateRange')}
               >
                 <FaCalendarAlt className="text-sm" />
-              </button>
+              </button>}
               {/* Separator */}
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
               <label className={`hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium whitespace-nowrap shrink-0 border ${myOrdersOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
