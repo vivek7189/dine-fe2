@@ -5,6 +5,10 @@
 // (waiterId) — unless the table has its own assigned server, which keeps priority.
 
 const KEY = (rid) => `dineopen_served_by_${rid}`;
+// Whether the restaurant has the setting on (Admin → POS → "Credit counter orders to a waiter",
+// off by default), as last loaded on this terminal — so a choice saved while it was on stops
+// crediting orders once it is switched off.
+const ON_KEY = (rid) => `dineopen_served_by_on_${rid}`;
 export const SERVED_BY_EVENT = 'servedByChanged';
 
 // Logins that type orders at the counter for someone else.
@@ -32,11 +36,29 @@ export function setServedBy(restaurantId, staff) {
   } catch { /* storage blocked */ }
 }
 
+// Called by the order panel once the restaurant's POS settings are loaded. Off → also forget the
+// saved choice.
+export function setServedByEnabled(restaurantId, on) {
+  if (!restaurantId || typeof window === 'undefined') return;
+  try {
+    if (on) localStorage.setItem(ON_KEY(restaurantId), '1');
+    else {
+      localStorage.removeItem(ON_KEY(restaurantId));
+      if (localStorage.getItem(KEY(restaurantId))) setServedBy(restaurantId, null);
+    }
+  } catch { /* storage blocked */ }
+}
+
+function servedByEnabled(restaurantId) {
+  try { return localStorage.getItem(ON_KEY(restaurantId)) === '1'; } catch { return false; }
+}
+
 // Stamp a new order with this terminal's "Served by" (unless the caller set one, or it's a
 // customer self-order). Only counter logins carry it — a waiter's own orders credit the waiter.
 export function stampServedBy(orderData) {
   if (!orderData || orderData.servedBy || orderData.orderType === 'customer_self_order') return orderData;
   if (!COUNTER_ROLES.has(currentUserRole())) return orderData;
+  if (!servedByEnabled(orderData.restaurantId)) return orderData;
   const sb = getServedBy(orderData.restaurantId);
   if (sb) orderData.servedBy = sb;
   return orderData;

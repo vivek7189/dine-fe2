@@ -1,10 +1,13 @@
 'use client';
 
-// Compact "Served by" chip for the POS order panel. Counter logins (owner / manager / cashier)
-// pick the waiter a counter order's sales go to; the choice is remembered on this terminal
-// (lib/servedBy) and sent with each new order. Hidden for other roles and customer pages.
+// "Served by" icon for the POS order panel (Admin → POS → "Credit counter orders to a waiter",
+// off by default). Counter logins (owner / manager / cashier) pick the waiter a counter order's
+// sales go to; the choice is remembered on this terminal (lib/servedBy) and sent with each new
+// order. A small icon next to the expand button — initials once someone is picked. Hidden when the
+// setting is off, for other roles, and when the restaurant has no staff to pick.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { FaUserTie } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
@@ -16,7 +19,7 @@ const tr = (key, fallback) => { const v = t(key); return v && v !== key ? v : fa
 const FLOOR_ROLES = ['waiter', 'captain', 'all rounder', 'all-rounder', 'server', 'steward', 'takeaway leader', 'parcel'];
 const rank = (role) => { const i = FLOOR_ROLES.indexOf(String(role || '').toLowerCase()); return i === -1 ? FLOOR_ROLES.length : i; };
 
-export default function ServedByPicker({ restaurantId, billingMode = false, isMobile = false }) {
+export default function ServedByPicker({ restaurantId, enabled = false, billingMode = false, isMobile = false }) {
   const [role, setRole] = useState('');
   const [chosen, setChosen] = useState(null);
   const [open, setOpen] = useState(false);
@@ -34,13 +37,13 @@ export default function ServedByPicker({ restaurantId, billingMode = false, isMo
     return () => window.removeEventListener(SERVED_BY_EVENT, onChange);
   }, [restaurantId]);
 
-  // Load the staff list the first time the menu opens.
+  // Load the staff list once (also tells us whether there is anyone to pick).
   useEffect(() => {
-    if (!open || staff !== null || !restaurantId) return;
+    if (!enabled || staff !== null || !restaurantId || !COUNTER_ROLES.has(role)) return;
     apiClient.getWaiters(restaurantId)
       .then((res) => setStaff(Array.isArray(res?.waiters) ? res.waiters.filter((s) => s && s.id && s.name) : []))
       .catch(() => setStaff([]));
-  }, [open, staff, restaurantId]);
+  }, [enabled, staff, restaurantId, role]);
 
   // Close on outside click.
   useEffect(() => {
@@ -62,31 +65,32 @@ export default function ServedByPicker({ restaurantId, billingMode = false, isMo
       .sort((a, b) => rank(a.role) - rank(b.role) || String(a.name).localeCompare(String(b.name)));
   }, [staff, q]);
 
-  if (!restaurantId || !COUNTER_ROLES.has(role)) return null;
+  if (!enabled || !restaurantId || !COUNTER_ROLES.has(role)) return null;
+  if (staff !== null && staff.length === 0 && !chosen) return null; // nobody to pick
 
   const pick = (s) => { setServedBy(restaurantId, s ? { id: s.id, name: s.name } : null); setOpen(false); setQ(''); };
-  const label = chosen ? chosen.name : tr('servedBy.none', 'No waiter');
-
-  const chipStyle = {
-    display: 'flex', alignItems: 'center', gap: 4, maxWidth: isMobile ? 110 : 160,
-    padding: isMobile ? '4px 6px' : '6px 10px', borderRadius: isMobile ? 4 : 6, cursor: 'pointer',
-    fontSize: isMobile ? 9 : 10, fontWeight: 700, whiteSpace: 'nowrap',
-    background: billingMode ? (chosen ? '#ecfdf5' : 'transparent') : (chosen ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)'),
-    color: billingMode ? (chosen ? '#047857' : '#334155') : 'white',
-    border: billingMode ? `1px solid ${chosen ? '#6ee7b7' : '#cbd5e1'}` : `1px ${chosen ? 'solid' : 'dashed'} rgba(255,255,255,${chosen ? 0.8 : 0.45})`,
+  const servedLabel = tr('servedBy.label', 'Served by');
+  const initials = chosen ? String(chosen.name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase() : '';
+  const size = isMobile ? 26 : 30;
+  const btnStyle = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: size, height: size, marginLeft: 8, padding: 0, borderRadius: 8, cursor: 'pointer',
+    fontSize: isMobile ? 10 : 11, fontWeight: 800, letterSpacing: 0.3, lineHeight: 1,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.18)', border: 'none',
+    background: chosen ? '#10b981' : (billingMode ? '#f1f5f9' : '#ffffff'),
+    color: chosen ? '#ffffff' : (billingMode ? '#475569' : '#dc2626'),
   };
 
   return (
     <div ref={boxRef} style={{ position: 'relative', flexShrink: 0 }}>
-      <button type="button" onClick={(e) => {
+      <button type="button" aria-label={chosen ? `${servedLabel}: ${chosen.name}` : servedLabel} onClick={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
         const width = 240;
-        setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8)) });
+        setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)) });
         setOpen((v) => !v);
-      }} style={chipStyle}
-        title={`${tr('servedBy.label', 'Served by')}: ${label} — ${tr('servedBy.hint', 'Remembered on this device. Sales go to this person in Staff Sales.')}`}>
-        <span aria-hidden>👤</span>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      }} style={btnStyle}
+        title={chosen ? `${servedLabel}: ${chosen.name}` : `${servedLabel} — ${tr('servedBy.choose', 'Choose waiter')}`}>
+        {chosen ? initials : <FaUserTie size={isMobile ? 12 : 14} />}
       </button>
       {open && pos && typeof document !== 'undefined' && createPortal(
         <div ref={menuRef} style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 100000, width: 240, background: 'white', color: '#111827',

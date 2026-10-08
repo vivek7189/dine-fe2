@@ -13547,6 +13547,21 @@ const Admin = () => {
                 </p>
               </div>
 
+              {/* Served by (MFC ask) — off by default */}
+              <div style={{ marginTop: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button type="button" onClick={() => setPosSettings(prev => ({ ...prev, servedByPicker: !prev.servedByPicker }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                    {posSettings.servedByPicker ? <FaToggleOn size={28} color="#ef4444" /> : <FaToggleOff size={28} color="#d1d5db" />}
+                  </button>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Credit counter orders to a waiter (&quot;Served by&quot;)</span>
+                </div>
+                <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0 38px' }}>
+                  {posSettings.servedByPicker
+                    ? 'Owner, manager and cashier logins see a small waiter icon on the order panel to pick who served the order — its sales count for that waiter in Staff Sales. Remembered on each terminal.'
+                    : 'Off: orders count for whoever placed them (or the table\'s assigned server).'}
+                </p>
+              </div>
+
               {/* Kitchen Notes / Special Instructions — #13 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
                 <button type="button" onClick={() => setPosSettings(prev => ({ ...prev, hideSpecialInstructions: !prev.hideSpecialInstructions }))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}>

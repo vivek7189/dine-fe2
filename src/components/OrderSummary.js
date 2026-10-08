@@ -15,6 +15,7 @@ import { inclusiveSplit, totalRate, inclusiveTaxSummary } from '../utils/inclusi
 import { attachInclusiveSplits } from '../utils/printTemplates/helpers';
 import { useTerminalLock } from '../contexts/TerminalLockContext';
 import ServedByPicker from './ServedByPicker';
+import { setServedByEnabled } from '../lib/servedBy';
 
 // Order-type tax gating (Phase 3). A tax with NO `orderTypes` (absent/empty)
 // applies to ALL order types — exactly today's behavior. When the list is set,
@@ -323,6 +324,14 @@ const OrderSummary = ({
   // After KOT+Bill prints, this holds the placed order so the cashier can record the tender.
   const [kotBillSettle, setKotBillSettle] = useState(null); // { orderId, amount } | null
   const [kotBillSettling, setKotBillSettling] = useState(false);
+
+  // "Served by" is a POS setting (off by default). Record it for this terminal once the settings are
+  // loaded (an empty object = not loaded yet), so new orders are only credited to a waiter when it's on.
+  const servedByOn = posSettings?.servedByPicker === true;
+  const posSettingsLoaded = !!posSettings && Object.keys(posSettings).length > 0;
+  useEffect(() => {
+    if (restaurantId && posSettingsLoaded) setServedByEnabled(restaurantId, servedByOn);
+  }, [restaurantId, posSettingsLoaded, servedByOn]);
   // Unified flag: disables ALL order buttons when any action is in progress
   const orderBusy = processing || placingOrder || savingOrder || editPreFillPending;
 
@@ -3334,6 +3343,8 @@ const OrderSummary = ({
                 {expanded ? <FaCompress size={16} /> : <FaExpand size={16} />}
               </button>
             )}
+            {/* Served by — counter logins pick whose sales this is (Admin → POS setting, off by default) */}
+            <ServedByPicker restaurantId={restaurantId} enabled={servedByOn} billingMode={billingMode} isMobile={isMobile} />
           </div>
           
           {/* Edit Mode Indicator - hidden in billing mode */}
@@ -3414,8 +3425,6 @@ const OrderSummary = ({
               );
             })()}
 
-            {/* Served by — counter logins pick whose sales this is (remembered on this terminal) */}
-            <ServedByPicker restaurantId={restaurantId} billingMode={billingMode} isMobile={isMobile} />
             
             {/* QR Code Button - Temporarily hidden
             {!isMobile && (
