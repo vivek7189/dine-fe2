@@ -263,6 +263,10 @@ const OrderHistory = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrderType, setSelectedOrderType] = useState('all');
   const [myOrdersOnly, setMyOrdersOnly] = useState(false);
+  // Staff who can't see all sales (server answers salesScope 'own'): "Mine" starts ON once; if they
+  // untick it they see everyone's RUNNING orders (closed orders stay their own — enforced server-side).
+  const [salesScopeOwn, setSalesScopeOwn] = useState(false);
+  const mineAutoAppliedRef = useRef(false);
   const [kraUnfiledOnly, setKraUnfiledOnly] = useState(false); // Kenya: show only orders not yet on KRA
   const [dateFilterMode, setDateFilterMode] = useState('today');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all');
@@ -746,6 +750,10 @@ const OrderHistory = () => {
       };
       const response = await apiClient.getOrders(restaurantId, filters);
       let filteredOrders = response.orders || [];
+      if (response.salesScope === 'own') {
+        setSalesScopeOwn(true);
+        if (!mineAutoAppliedRef.current) { mineAutoAppliedRef.current = true; if (!myOrdersOnly) setMyOrdersOnly(true); }
+      }
 
       filteredOrders.sort((a, b) => {
         let dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?._seconds ? new Date(a.createdAt._seconds * 1000) : new Date(a.createdAt));
@@ -3709,6 +3717,11 @@ const OrderHistory = () => {
 
           {/* Summary Stats — only in orders view; full cards or compact inline strip based on scroll */}
           {activeView === 'orders' && (<>
+          {salesScopeOwn && (
+            <div className="mb-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-[12px] text-indigo-800">
+              Showing <b>your own sales</b> — the totals are for your current shift. {myOrdersOnly ? <>Untick <b>Mine</b> to also see other staff&apos;s running (unbilled) orders.</> : <>Running orders of all staff are shown; billed orders are only yours.</>}
+            </div>
+          )}
           {/* Order summary — reconciled cards (Net Sales·payments / Total Sales / Open / Orders·breakdown). Live for all. */}
             <div className="pb-2 sm:pb-3">
               {/* Colorful metric tiles — colored backgrounds, BLACK values for readability */}
@@ -4085,7 +4098,7 @@ const OrderHistory = () => {
               {/* Separator */}
               <div className="hidden sm:block w-px h-5 bg-gray-200" />
               <label className={`hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium whitespace-nowrap shrink-0 border ${myOrdersOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
-                <input type="checkbox" checked={myOrdersOnly} onChange={(e) => setMyOrdersOnly(e.target.checked)} className="w-3 h-3 text-red-600 rounded focus:ring-red-500 border-gray-300" />
+                <input type="checkbox" checked={myOrdersOnly} onChange={(e) => { mineAutoAppliedRef.current = true; setMyOrdersOnly(e.target.checked); }} className="w-3 h-3 text-red-600 rounded focus:ring-red-500 border-gray-300" />
                 {t('orderHistory.mine')}
               </label>
               {/* Kenya eTIMS: quick filter to the KRA compliance backlog (orders not yet on KRA). */}

@@ -4,7 +4,7 @@
 // role, OFF until the owner switches it on. Enforced by the backend (utils/staffAccess.js) on web,
 // desktop and the dine-app. Owner / admin / co-owner / manager are never restricted.
 import { useEffect, useMemo, useState } from 'react';
-import { FaUserShield, FaClock, FaExchangeAlt, FaHistory } from 'react-icons/fa';
+import { FaUserShield, FaClock, FaExchangeAlt, FaHistory, FaChartLine } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { fmtDateTime } from '../../lib/restaurantTime';
 
@@ -70,6 +70,18 @@ export default function StaffAccessSettings({ restaurant, posSettings, setPosSet
     return { ...prev, staffAccess: { ...sa, roles: { ...rs, [r]: { ...(rs[r] || {}), ...patch } } } };
   });
 
+  // Sales visibility (posSettings.salesVisibility.allRoles) — independent of the rules switch.
+  const allSalesRoles = useMemo(() => {
+    const l = posSettings?.salesVisibility?.allRoles;
+    return Array.isArray(l) ? l.map(r => String(r).toLowerCase()) : [];
+  }, [posSettings?.salesVisibility?.allRoles]);
+  const toggleAllSalesRole = (r) => setPosSettings(prev => {
+    const sv = (prev && prev.salesVisibility) || {};
+    const cur = Array.isArray(sv.allRoles) ? sv.allRoles.map(x => String(x).toLowerCase()) : [];
+    const next = cur.includes(r) ? cur.filter(x => x !== r) : [...cur, r];
+    return { ...prev, salesVisibility: { ...sv, allRoles: next } };
+  });
+
   const roleList = useMemo(() => {
     const configured = Object.keys(cfg.roles || {});
     return [...new Set(['waiter', 'captain', 'cashier', ...roles.map(r => String(r).toLowerCase()), ...configured])]
@@ -119,6 +131,28 @@ export default function StaffAccessSettings({ restaurant, posSettings, setPosSet
           style={{ padding: '10px 24px', background: saving ? '#e5e7eb' : 'linear-gradient(135deg, #6366f1, #4f46e5)', color: saving ? '#9ca3af' : '#fff', border: 'none', borderRadius: '10px', fontWeight: 600, fontSize: '13px', cursor: saving ? 'not-allowed' : 'pointer' }}>
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
+      </div>
+
+      <div style={card}>
+        <p style={h}><FaChartLine color="#4f46e5" /> Who can see all orders &amp; sales</p>
+        <p style={sub}>
+          Owner, admin and manager always see every order and the restaurant&apos;s sales. Every other role sees only
+          <strong> their own</strong> billed orders and <strong>their shift&apos;s</strong> sales (orders they took, served or billed);
+          running orders stay visible to everyone so any cashier can bill them. Tick a role to let it see everything, like the owner.
+          Staff who already have the <em>Analytics</em> page also see everything.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {roleList.map(r => {
+            const on = allSalesRoles.includes(r);
+            return (
+              <button key={r} type="button" onClick={() => toggleAllSalesRole(r)} aria-pressed={on}
+                style={{ padding: '6px 14px', borderRadius: 999, fontSize: '12px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize', border: on ? '1px solid #4f46e5' : '1px solid #e5e7eb', background: on ? '#eef2ff' : '#fff', color: on ? '#4338ca' : '#6b7280' }}>
+                {on ? '✓ ' : ''}{r} {on ? '— sees all' : '— own only'}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ ...sub, margin: '10px 0 0' }}>Click <strong>Save Changes</strong> above to apply. Staff see the change on their next refresh.</p>
       </div>
 
       <div style={{ ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
