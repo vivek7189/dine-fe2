@@ -19,6 +19,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [testMessage, setTestMessage] = useState('hello_world');
   const [testAsTemplate, setTestAsTemplate] = useState(true);
   const [testSending, setTestSending] = useState(false);
+  const [testTarget, setTestTarget] = useState(null); // shared number: { available, masked }
   const [connectMode, setConnectMode] = useState('dineopen');
   const [statusMsg, setStatusMsg] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -260,11 +261,13 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
   // Send test message
   const handleTestMessage = async () => {
-    if (!testPhone) return alert('Enter a phone number');
+    if (!sharedNumber && !testPhone) return alert('Enter a phone number');
     setTestSending(true);
     try {
-      await apiClient.testWhatsAppMessage(restaurantId, (testAsTemplate || sharedNumber)
-        ? { phoneNumber: testPhone, templateName: sharedNumber ? 'hello_world' : testMessage, templateLanguage: 'en_US' }
+      await apiClient.testWhatsAppMessage(restaurantId, sharedNumber
+        ? {} // server sends hello_world to this login's own phone
+        : testAsTemplate
+        ? { phoneNumber: testPhone, templateName: testMessage, templateLanguage: 'en_US' }
         : { phoneNumber: testPhone, message: testMessage }
       );
       setStatusMsg({ type: 'success', text: 'Test message sent!' });
@@ -340,6 +343,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   // Filtered conversations based on search
   // Connected through DineOpen's shared number (not the restaurant's own WhatsApp)
   const sharedNumber = !!waSettings?.connected && waSettings?.settings?.mode !== 'restaurant';
+  useEffect(() => {
+    if (!sharedNumber || !restaurantId) { setTestTarget(null); return; }
+    apiClient.getWhatsAppTestTarget(restaurantId).then(r => setTestTarget(r || { available: false })).catch(() => setTestTarget({ available: false }));
+  }, [sharedNumber, restaurantId]);
   const filteredConversations = searchQuery.trim()
     ? conversations.filter(c =>
         (c.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -612,22 +619,29 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                 </div>
               )}
 
-              {/* Test Message (if connected) */}
-              {waSettings?.connected && (
+              {/* Test Message — shared number: one button to the login's own phone (hidden for email logins) */}
+              {waSettings?.connected && sharedNumber && testTarget?.available && (
+                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Test the connection</h4>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>
+                    Sends a short &quot;hello world&quot; WhatsApp to your own number <b>{testTarget.masked}</b> (the phone of your login). Up to 3 a day, 2 minutes apart.
+                  </p>
+                  <button onClick={handleTestMessage} disabled={testSending}
+                    style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#25D366', color: 'white', fontSize: '13px', fontWeight: '600', cursor: testSending ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    {testSending ? <FaSpinner size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <FaPaperPlane size={12} />}
+                    Send a test to my WhatsApp
+                  </button>
+                </div>
+              )}
+              {/* Test Message — restaurant's own number (unchanged) */}
+              {waSettings?.connected && !sharedNumber && (
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>Send Test Message</h4>
-                  {sharedNumber ? (
-                    // Shared DineOpen number: the server only allows hello_world to your own phone
-                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>
-                      Sends the &quot;hello_world&quot; template to <b>your restaurant&apos;s registered phone or your own phone</b> to check the connection (up to 10 a day).
-                    </p>
-                  ) : (
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                     <button onClick={() => setTestAsTemplate(true)} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '500', cursor: 'pointer', backgroundColor: testAsTemplate ? '#25D366' : '#fff', color: testAsTemplate ? '#fff' : '#374151' }}>Template</button>
                     <button onClick={() => setTestAsTemplate(false)} style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '500', cursor: 'pointer', backgroundColor: !testAsTemplate ? '#25D366' : '#fff', color: !testAsTemplate ? '#fff' : '#374151' }}>Text</button>
                     <span style={{ fontSize: '11px', color: '#9ca3af', alignSelf: 'center' }}>{testAsTemplate ? 'Templates can reach any customer' : 'Text only works within 24h of customer messaging you'}</span>
                   </div>
-                  )}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Phone (with country code)</label>
@@ -641,8 +655,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                     <div style={{ flex: 2 }}>
                       <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>{testAsTemplate ? 'Template Name' : 'Message'}</label>
                       <input
-                        value={sharedNumber ? 'hello_world' : testMessage}
-                        readOnly={sharedNumber}
+                        value={testMessage}
                         onChange={e => setTestMessage(e.target.value)}
                         placeholder={testAsTemplate ? 'hello_world' : 'Test message'}
                         style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}

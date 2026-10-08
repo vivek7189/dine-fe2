@@ -4116,6 +4116,11 @@ class ApiClient {
     });
   }
 
+  // Shared DineOpen number: is "Send a test to my WhatsApp" available for this login (+ masked number)
+  async getWhatsAppTestTarget(restaurantId) {
+    return this.request(`/api/automation/${restaurantId}/whatsapp/test-target`);
+  }
+
   async testWhatsAppMessage(restaurantId, { phoneNumber, message, templateName, templateLanguage }) {
     return this.request(`/api/automation/${restaurantId}/whatsapp/test`, {
       method: 'POST',
