@@ -107,7 +107,7 @@ export default function PayrollTab({
     const plannedMode = !pay && slip.paymentMode ? (paymentModes.find(m => m.id === slip.paymentMode) || {}).name || slip.paymentMode : null;
     const payHtml = pay ? `<div class="att">Paid by: ${escapeHtml(pay.modeName || pay.mode)}${pay.reference ? ' · Ref: ' + escapeHtml(pay.reference) : ''}</div>`
       : (plannedMode ? `<div class="att">Payment mode: ${escapeHtml(plannedMode)}</div>` : '');
-    const attHtml = att ? `<div class="att">Working days: ${att.workingDays ?? '-'} · Present: ${att.presentDays ?? '-'} · Paid leave: ${att.paidLeaveDays ?? '-'} · LOP days: ${att.lopDays ?? '-'}${att.hoursWorked != null ? ` · Hours worked: ${att.hoursWorked}` : ''} · OT hrs: ${att.overtimeHours ?? '-'}</div>` : '';
+    const attHtml = att ? `<div class="att">Working days: ${att.workingDays ?? '-'} · Present: ${att.presentDays ?? '-'}${att.creditedDays ? ` (incl. ${att.creditedDays} paid before attendance tracking from ${escapeHtml(att.trackingFrom || '')})` : ''} · Paid leave: ${att.paidLeaveDays ?? '-'} · LOP days: ${att.lopDays ?? '-'}${att.hoursWorked != null ? ` · Hours worked: ${att.hoursWorked}` : ''} · OT hrs: ${att.overtimeHours ?? '-'}</div>` : '';
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Payslip · ${escapeHtml(slip.staffName || 'Staff')}</title>
       <style>
         body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;max-width:640px;margin:24px auto;padding:0 16px;}

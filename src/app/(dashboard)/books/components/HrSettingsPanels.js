@@ -193,6 +193,12 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
   const [deductions, setDeductions] = useState(() => clone(settings.payroll.deductions));
   const [modes, setModes] = useState(() => clone(settings.payroll.paymentModes));
   const [lopFromAttendance, setLopFromAttendance] = useState(settings.payroll.lopFromAttendance !== false);
+  // "Attendance tracking starts from" — owner / admin only (the server ignores anyone else's change).
+  const [trackFrom, setTrackFrom] = useState(settings.payroll.attendanceStartDate || '');
+  const canSetTrackFrom = (() => {
+    try { return ['owner', 'admin', 'co-owner', 'super_admin'].includes(String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase()); }
+    catch (_) { return false; }
+  })();
   // Overtime: saved only once the owner touches it (unset = the older Attendance overtime setting keeps working).
   const ot0 = settings.payroll.overtime;
   const [otEnabled, setOtEnabled] = useState(ot0 ? ot0.enabled === true : false);
@@ -208,6 +214,7 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
     const h = Number(otHours), r = Number(otRate);
     if (otDirty && otEnabled && (!(h >= 1 && h <= 24) || !(r >= 0.5 && r <= 5))) { setErr('Basic hours: 1–24 · OT rate: 0.5–5×'); setSaving(false); return; }
     const payroll = { earnings, deductions, paymentModes: modes, lopFromAttendance };
+    if (canSetTrackFrom) payroll.attendanceStartDate = trackFrom || null;
     if (otDirty) payroll.overtime = { enabled: otEnabled, hoursPerDay: h || 8, rateMultiplier: r || 1.5 };
     try { await onSave({ payroll }); onClose(); }
     catch (e) { setErr(e?.message || 'Could not save settings.'); }
@@ -222,6 +229,23 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
           <span style={{ display: 'block', fontSize: 12, color: '#6b7280', marginTop: 2 }}>On: staff who clock in are paid for days present + paid leave (loss of pay for absent days). Staff who never clock in are paid in full. Off: everyone gets full salary unless you type days worked when generating a run.</span>
         </span>
       </label>
+      {lopFromAttendance && (
+        <div style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 14, marginTop: -6 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>Attendance tracking starts from</div>
+          <div style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 8px' }}>
+            Attendance is used only from this date — e.g. the day your biometric machine was installed. Working days
+            before it are paid as present (never cut as absent). Leave empty to use all attendance.
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input type="date" value={trackFrom} disabled={!canSetTrackFrom} onChange={e => setTrackFrom(e.target.value)}
+              style={{ padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, background: canSetTrackFrom ? '#fff' : '#f9fafb' }} />
+            {canSetTrackFrom && trackFrom && (
+              <button type="button" onClick={() => setTrackFrom('')} style={{ padding: '7px 12px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', fontSize: 12, cursor: 'pointer', color: '#6b7280' }}>Clear</button>
+            )}
+            {!canSetTrackFrom && <span style={{ fontSize: 11, color: '#9ca3af' }}>Only the owner or an admin can change this.</span>}
+          </div>
+        </div>
+      )}
       <div style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 14 }}>
         <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
           <input type="checkbox" checked={otEnabled} onChange={e => { setOtEnabled(e.target.checked); setOtDirty(true); }} style={{ marginTop: 3 }} />
