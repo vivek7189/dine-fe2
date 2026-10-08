@@ -29,6 +29,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      # Next.js build cache (like Vercel's): reuses the compiled pieces of files that did not change.
+      # Every deploy is still a complete new build; any changed file is recompiled.
+      - name: Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - name: Write build settings
         run: printf '%s\n' "$WEB_ENV" > .env.production
         env:
