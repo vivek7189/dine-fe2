@@ -205,6 +205,8 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
   const [otHours, setOtHours] = useState(String(ot0?.hoursPerDay ?? 8));
   const [otRate, setOtRate] = useState(String(ot0?.rateMultiplier ?? 1.5));
   const [otDirty, setOtDirty] = useState(false);
+  // Pay overtime only for days approved in Attendance (owner / admin only, like the start date).
+  const [otApprovedOnly, setOtApprovedOnly] = useState(settings.payroll.overtimeApprovedOnly === true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const save = async () => {
@@ -214,7 +216,7 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
     const h = Number(otHours), r = Number(otRate);
     if (otDirty && otEnabled && (!(h >= 1 && h <= 24) || !(r >= 0.5 && r <= 5))) { setErr('Basic hours: 1–24 · OT rate: 0.5–5×'); setSaving(false); return; }
     const payroll = { earnings, deductions, paymentModes: modes, lopFromAttendance };
-    if (canSetTrackFrom) payroll.attendanceStartDate = trackFrom || null;
+    if (canSetTrackFrom) { payroll.attendanceStartDate = trackFrom || null; payroll.overtimeApprovedOnly = otApprovedOnly; }
     if (otDirty) payroll.overtime = { enabled: otEnabled, hoursPerDay: h || 8, rateMultiplier: r || 1.5 };
     try { await onSave({ payroll }); onClose(); }
     catch (e) { setErr(e?.message || 'Could not save settings.'); }
@@ -273,6 +275,17 @@ export function PayrollSettingsPanel({ settings, onSave, onClose }) {
             <div style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'flex-end', maxWidth: 240 }}>Hourly pay = monthly salary ÷ working days ÷ basic hours.</div>
           </div>
         )}
+        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 12, paddingTop: 10, borderTop: '1px dashed #e5e7eb', cursor: canSetTrackFrom ? 'pointer' : 'default' }}>
+          <input type="checkbox" checked={otApprovedOnly} disabled={!canSetTrackFrom} onChange={e => setOtApprovedOnly(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>
+            <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#111827' }}>Pay overtime only for approved days</span>
+            <span style={{ display: 'block', fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+              The manager checks each day in Attendance → Today (&quot;Review day&quot;) and presses &quot;Save &amp; approve day&quot;. Payroll adds up the approved overtime of the month; days not approved pay no overtime.
+              Off: overtime is worked out from clock-in / clock-out (an approved day still uses the approved hours).
+            </span>
+            {!canSetTrackFrom && <span style={{ display: 'block', fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Only the owner or an admin can change this.</span>}
+          </span>
+        </label>
       </div>
       <NamedListEditor title="Allowances & earnings" hint="E.g. uniform allowance (monthly), gift or compensation (one-off on a payslip)." items={earnings} idField="key" onChange={setEarnings} suggestions={SUGGESTED_EARNINGS} color="#059669" />
       <NamedListEditor title="Deductions" hint="E.g. uniform recovery (monthly), penalty for misconduct or breakage (one-off on a payslip)." items={deductions} idField="key" onChange={setDeductions} suggestions={SUGGESTED_DEDUCTIONS} color="#dc2626" />

@@ -2327,8 +2327,13 @@ class ApiClient {
   async updateStaffAdvance(restaurantId, advanceId, data) {
     return this.request(`/api/staff-advances/${restaurantId}/${advanceId}`, { method: 'PATCH', body: data });
   }
-  async deleteStaffAdvance(restaurantId, advanceId) {
-    return this.request(`/api/staff-advances/${restaurantId}/${advanceId}`, { method: 'DELETE' });
+  // Remove = kept as "Removed" (with the reason) on the server, restorable — never erased.
+  async deleteStaffAdvance(restaurantId, advanceId, reason = '') {
+    const q = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return this.request(`/api/staff-advances/${restaurantId}/${advanceId}${q}`, { method: 'DELETE', body: { reason } });
+  }
+  async restoreStaffAdvance(restaurantId, advanceId) {
+    return this.request(`/api/staff-advances/${restaurantId}/${advanceId}`, { method: 'PATCH', body: { restore: true } });
   }
 
   // ── Staff bonuses (HR) ───────────────────────────────────────────────
@@ -2342,8 +2347,13 @@ class ApiClient {
   async updateStaffBonus(restaurantId, bonusId, data) {
     return this.request(`/api/staff-bonuses/${restaurantId}/${bonusId}`, { method: 'PATCH', body: data });
   }
-  async deleteStaffBonus(restaurantId, bonusId) {
-    return this.request(`/api/staff-bonuses/${restaurantId}/${bonusId}`, { method: 'DELETE' });
+  // Remove = kept as "Removed" (with the reason) on the server, restorable — never erased.
+  async deleteStaffBonus(restaurantId, bonusId, reason = '') {
+    const q = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return this.request(`/api/staff-bonuses/${restaurantId}/${bonusId}${q}`, { method: 'DELETE', body: { reason } });
+  }
+  async restoreStaffBonus(restaurantId, bonusId) {
+    return this.request(`/api/staff-bonuses/${restaurantId}/${bonusId}`, { method: 'PATCH', body: { restore: true } });
   }
 
   // ── Staff appraisals (HR) ────────────────────────────────────────────

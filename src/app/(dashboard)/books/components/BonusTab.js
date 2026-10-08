@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaGift, FaTimes, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaGift, FaTimes, FaTrash, FaPen, FaUndo } from 'react-icons/fa';
+import RemoveRecordDialog from './RemoveRecordDialog';
 
 /**
  * BonusTab — record staff bonuses/incentives; payroll adds them to net pay.
@@ -15,6 +16,9 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ staffId: '', amount: '', bonusType: 'incentive', reason: '' });
+  const [showRemoved, setShowRemoved] = useState(false);
+  const [editing, setEditing] = useState(null);    // { id, amount, bonusType, reason }
+  const [removing, setRemoving] = useState(null);  // bonus being removed (two-step dialog)
 
   const fmt = (n) => (formatCurrency ? formatCurrency(n) : `₹${Number(n || 0).toLocaleString()}`);
 
@@ -22,14 +26,28 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
     if (!restaurantId) return;
     setLoading(true); setError('');
     try {
-      const res = await apiClient.getStaffBonuses(restaurantId);
+      const res = await apiClient.getStaffBonuses(restaurantId, showRemoved ? { includeRemoved: '1' } : {});
       setBonuses(res.bonuses || []);
       setSummary(res.summary || { count: 0, pending: 0 });
     } catch (e) { setError(e?.message || 'Could not load bonuses.'); }
     finally { setLoading(false); }
-  }, [restaurantId, apiClient]);
+  }, [restaurantId, apiClient, showRemoved]);
 
   useEffect(() => { load(); }, [load]);
+
+  const saveEdit = async () => {
+    if (!(Number(editing.amount) > 0)) { setError('Enter a positive amount.'); return; }
+    setSaving(true); setError('');
+    try {
+      await apiClient.updateStaffBonus(restaurantId, editing.id, { amount: Number(editing.amount), bonusType: editing.bonusType, reason: editing.reason || null });
+      setEditing(null); await load();
+    } catch (e) { setError(e?.message || 'Could not save the change.'); }
+    finally { setSaving(false); }
+  };
+  const restore = async (bn) => {
+    try { await apiClient.restoreStaffBonus(restaurantId, bn.id); await load(); }
+    catch (e) { setError(e?.message || 'Could not restore.'); }
+  };
 
   const staffOf = (id) => (staffList || []).find(x => (x.id || x.staffId) === id);
 
@@ -56,8 +74,7 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
   const act = async (bn, patch, confirmMsg) => {
     if (confirmMsg && typeof window !== 'undefined' && !window.confirm(confirmMsg)) return;
     try {
-      if (patch === 'delete') await apiClient.deleteStaffBonus(restaurantId, bn.id);
-      else await apiClient.updateStaffBonus(restaurantId, bn.id, patch);
+      await apiClient.updateStaffBonus(restaurantId, bn.id, patch);
       await load();
     } catch (e) { setError(e?.message || 'Action failed.'); }
   };
@@ -67,6 +84,7 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
     paid:      { bg: '#eff6ff', color: '#1d4ed8', label: 'Paid' },
     cancelled: { bg: '#f3f4f6', color: '#6b7280', label: 'Cancelled' },
     pending:   { bg: '#fffbeb', color: '#b45309', label: 'Pending' },
+    removed:   { bg: '#fef2f2', color: '#b91c1c', label: 'Removed' },
   };
   const TYPES = [
     { id: 'incentive', name: 'Incentive' },
@@ -90,6 +108,9 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
             <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>PENDING PAYOUT</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#1d4ed8' }}>{fmt(summary.pending)}</div>
           </div>
+          <label style={{ fontSize: 12, color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+            <input type="checkbox" checked={showRemoved} onChange={e => setShowRemoved(e.target.checked)} /> Show removed
+          </label>
           <button onClick={() => setShowForm(v => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 10, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
             <FaPlus size={11} /> New Bonus
           </button>
@@ -137,25 +158,70 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
             const s = staffOf(bn.staffId);
             const typeName = (TYPES.find(t => t.id === bn.bonusType) || {}).name || bn.bonusType || 'Bonus';
             return (
-              <div key={bn.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div key={bn.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, opacity: bn.status === 'removed' ? 0.6 : 1 }}>
                 <div style={{ minWidth: 160 }}>
                   <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{bn.staffName || (s && (s.name || s.staffName)) || 'Staff'}</div>
                   <div style={{ fontSize: 11, color: '#9ca3af' }}>{typeName}{bn.reason ? ` · ${bn.reason}` : ''}{bn.appliedMonth ? ` · paid ${bn.appliedMonth}` : ''}</div>
+                  {bn.status === 'removed' && <div style={{ fontSize: 11, color: '#b91c1c' }}>Removed{bn.removedBy ? ` by ${bn.removedBy}` : ''} · {bn.removeReason || 'no reason'}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
                   <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: '#9ca3af' }}>BONUS</div><div style={{ fontWeight: 800, color: '#1d4ed8' }}>{fmt(bn.amount)}</div></div>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: ss.bg, color: ss.color }}>{ss.label}</span>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {(bn.status === 'approved' || bn.status === 'pending') && (
-                      <button title="Cancel" onClick={() => act(bn, { status: 'cancelled' }, 'Cancel this bonus? It will not be paid.')} style={iconBtn('#6b7280')}><FaTimes size={11} /></button>
+                    {bn.status === 'removed' ? (
+                      <button title="Restore" onClick={() => restore(bn)} style={{ ...iconBtn('#047857'), width: 'auto', padding: '0 10px', gap: 4, fontSize: 12, fontWeight: 700 }}><FaUndo size={10} /> Restore</button>
+                    ) : (
+                      <>
+                        {(bn.status === 'approved' || bn.status === 'pending') && (
+                          <button title="Edit" onClick={() => setEditing({ id: bn.id, amount: String(bn.amount ?? ''), bonusType: bn.bonusType || 'other', reason: bn.reason || '', name: bn.staffName || (s && (s.name || s.staffName)) || 'Staff' })} style={iconBtn('#1d4ed8')}><FaPen size={10} /></button>
+                        )}
+                        {(bn.status === 'approved' || bn.status === 'pending') && (
+                          <button title="Cancel" onClick={() => act(bn, { status: 'cancelled' }, 'Cancel this bonus? It will not be paid.')} style={iconBtn('#6b7280')}><FaTimes size={11} /></button>
+                        )}
+                        {bn.status !== 'paid' && (
+                          <button title="Remove" onClick={() => setRemoving(bn)} style={iconBtn('#b91c1c')}><FaTrash size={10} /></button>
+                        )}
+                      </>
                     )}
-                    <button title="Delete" onClick={() => act(bn, 'delete', 'Delete this bonus record permanently?')} style={iconBtn('#b91c1c')}><FaTrash size={10} /></button>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {editing && (
+        <div onClick={() => !saving && setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, background: '#fff', borderRadius: 14, padding: 18 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10 }}>Edit bonus · {editing.name}</div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Bonus amount
+              <input type="number" min="0" value={editing.amount} onChange={e => setEditing({ ...editing, amount: e.target.value })} style={inp} />
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginTop: 8 }}>Type
+              <select value={editing.bonusType} onChange={e => setEditing({ ...editing, bonusType: e.target.value })} style={inp}>
+                {TYPES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginTop: 8 }}>Reason
+              <input value={editing.reason} onChange={e => setEditing({ ...editing, reason: e.target.value })} style={inp} />
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditing(null)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={saveEdit} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: saving ? '#93c5fd' : '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {removing && (
+        <RemoveRecordDialog
+          title="Remove this bonus?"
+          rows={[['Staff', removing.staffName || (staffOf(removing.staffId)?.name) || 'Staff'], ['Amount', fmt(removing.amount)], ['Type', (TYPES.find(t => t.id === removing.bonusType) || {}).name || removing.bonusType || 'Bonus']]}
+          effect={`${fmt(removing.amount)} will NOT be added to this person's pay.`}
+          onClose={() => setRemoving(null)}
+          onConfirm={async (reason) => { await apiClient.deleteStaffBonus(restaurantId, removing.id, reason); setRemoving(null); await load(); }}
+        />
       )}
     </div>
   );

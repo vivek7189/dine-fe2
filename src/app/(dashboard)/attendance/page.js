@@ -15,7 +15,7 @@ import {
   FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaPlus, FaChevronLeft,
   FaChevronRight, FaSave, FaTrash, FaEdit, FaUserClock, FaMapMarkerAlt
 } from 'react-icons/fa';
-import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
+import { fmtTime, fmtDate, restaurantToday, ymd } from '../../../lib/restaurantTime';
 
 // Leaflet doesn't support SSR — dynamic import
 const StaffTrackingMap = dynamic(() => import('../../../components/StaffTrackingMap'), { ssr: false });
@@ -209,6 +209,13 @@ export default function AttendancePage() {
   const [todayData, setTodayData] = useState({ attendance: [], staffCount: 0, presentCount: 0, absentCount: 0, lateCount: 0, onLeaveCount: 0 });
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualForm, setManualForm] = useState({ staffId: '', date: toISODate(new Date()), status: 'present', clockIn: '', clockOut: '', notes: '' });
+  // Daily review (owner / manager): approve each day's overtime so payroll adds up approved days.
+  // reviewDate '' = today's screen; another date loads that day's records into reviewRows.
+  const [reviewDate, setReviewDate] = useState('');
+  const [reviewRows, setReviewRows] = useState(null);
+  const [otEdits, setOtEdits] = useState({});
+  const [savingReview, setSavingReview] = useState(false);
+  const [otRule, setOtRule] = useState(null);         // { enabled, approvedOnly } from the server (admins)
 
   // Calendar tab
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -320,6 +327,7 @@ export default function AttendancePage() {
     try {
       const res = await attendanceApi.getTodayAttendance(restaurantId);
       const attendance = res?.attendance || [];
+      if (res?.otRule) setOtRule(res.otRule);
       // The server's team-wide counts (staff see only their own row, so a recount here was wrong for them).
       const presentCount = res?.presentCount ?? attendance.filter(a => a.status === 'present').length;
       const absentCount = res?.absentCount ?? attendance.filter(a => a.status === 'absent').length;
@@ -358,6 +366,59 @@ export default function AttendancePage() {
       setLoading(false);
     }
   }, [restaurantId, calendarMonth, selectedStaffFilter]);
+
+  const todayKey = ymd(restaurantToday());
+  const pastReview = !!reviewDate && reviewDate !== todayKey;
+
+  const loadReviewDay = useCallback(async () => {
+    if (!restaurantId || !reviewDate || reviewDate === ymd(restaurantToday())) { setReviewRows(null); return; }
+    setReviewRows(null);
+    try {
+      const res = await attendanceApi.getAttendanceHistory(restaurantId, { startDate: reviewDate, endDate: reviewDate });
+      setReviewRows(res?.records || []);
+      if (res?.otRule) setOtRule(res.otRule);
+    } catch (err) {
+      showToast(err.message || 'Could not load that day', 'error');
+      setReviewRows([]);
+    }
+  }, [restaurantId, reviewDate]);
+
+  useEffect(() => { setOtEdits({}); loadReviewDay(); }, [loadReviewDay]);
+
+  // Overtime shown for a row: what was typed, else the approved hours, else the automatic hours by
+  // the payroll rule (otAutoHours from the server; older servers: the record's own overtime).
+  const otValue = (a) => {
+    const id = a.id || a._id;
+    if (otEdits[id] !== undefined) return otEdits[id];
+    const v = a.otApprovedHours != null && a.otApprovedHours !== '' ? a.otApprovedHours : (a.otAutoHours ?? a.overtimeHours);
+    return v != null && v !== '' ? String(Math.round(Number(v) * 100) / 100) : '0';
+  };
+
+  const saveReview = async (rows) => {
+    const byDate = {};
+    for (const a of rows) {
+      const id = a.id || a._id;
+      if (!id || !a.clockIn || !a.date) continue;
+      const txt = String(otValue(a)).trim();
+      const n = txt === '' ? 0 : Number(txt);
+      if (!Number.isFinite(n) || n < 0 || n > 24) { showToast(`Overtime for ${a.staffName || 'a staff member'} must be 0–24 hours`, 'error'); return; }
+      (byDate[a.date] = byDate[a.date] || []).push({ recordId: id, overtimeHours: n });
+    }
+    const dates = Object.keys(byDate);
+    if (!dates.length) { showToast('No clock-ins to approve on this day', 'info'); return; }
+    setSavingReview(true);
+    try {
+      let updated = 0;
+      for (const d of dates) updated += (await attendanceApi.reviewDay(restaurantId, d, byDate[d]))?.updated || 0;
+      showToast(`Day approved ✓ (${updated} staff)`, 'success');
+      setOtEdits({});
+      if (pastReview) await loadReviewDay(); else await loadToday();
+    } catch (err) {
+      showToast(err.message || 'Could not save the review', 'error');
+    } finally {
+      setSavingReview(false);
+    }
+  };
 
   const loadLeave = useCallback(async () => {
     if (!restaurantId) return;
@@ -877,7 +938,11 @@ export default function AttendancePage() {
 
   function renderTodayTab() {
     const dateStr = fmtDate(new Date(), 'en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); // restaurant's today
-    const attendance = isAdmin ? todayData.attendance : todayData.attendance.filter(a => a.staffId === userId);
+    const attendance = isAdmin
+      ? (pastReview ? (reviewRows || []) : todayData.attendance)
+      : todayData.attendance.filter(a => a.staffId === userId);
+    const reviewedCount = attendance.filter(a => a.clockIn && a.otReviewedAt).length;
+    const workedCount = attendance.filter(a => a.clockIn).length;
 
     return (
       <div>
@@ -956,14 +1021,46 @@ export default function AttendancePage() {
 
         {/* Staff Attendance Table */}
         <div style={{ ...cardStyle, overflowX: 'auto' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '0 0 16px 0' }}>Staff Attendance</h3>
-          {attendance.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>No attendance records for today</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', margin: '0 0 16px 0' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
+              Staff Attendance{pastReview ? ` · ${fmtDate(reviewDate + 'T12:00:00', 'en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+            </h3>
+            {isAdmin && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Review day
+                  <input type="date" value={reviewDate || todayKey} max={todayKey}
+                    onChange={e => setReviewDate(e.target.value && e.target.value !== todayKey ? e.target.value : '')}
+                    style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px' }} />
+                </label>
+                {workedCount > 0 && (
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: reviewedCount === workedCount ? '#15803d' : '#b45309' }}>
+                    {reviewedCount === workedCount ? '✓ Day approved' : `${reviewedCount}/${workedCount} approved`}
+                  </span>
+                )}
+                <button style={{ ...btnPrimary, opacity: savingReview || !workedCount ? 0.6 : 1 }} disabled={savingReview || !workedCount}
+                  onClick={() => saveReview(attendance)}>
+                  {savingReview ? 'Saving…' : 'Save & approve day'}
+                </button>
+              </div>
+            )}
+          </div>
+          {isAdmin && workedCount > 0 && (
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '-8px 0 12px 0' }}>
+              Check each person&apos;s overtime (hours) and press &quot;Save &amp; approve day&quot;. Payroll adds up the approved overtime of every day in the month.
+              {otRule && !otRule.enabled && <span style={{ color: '#b45309' }}> Overtime pay is off — turn it on in Books → Payroll → Settings.</span>}
+              {otRule?.enabled && otRule.approvedOnly && <span style={{ color: '#b45309' }}> Only approved days are paid overtime.</span>}
+            </p>
+          )}
+          {isAdmin && pastReview && reviewRows === null ? (
+            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>Loading…</p>
+          ) : attendance.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>{pastReview ? 'No attendance records for this day' : 'No attendance records for today'}</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                  {['Staff Name', 'Role', 'Clock In', 'Clock Out', 'Status', 'Hours', 'Late By'].map(h => (
+                  {['Staff Name', 'Role', 'Clock In', 'Clock Out', 'Status', 'Hours', 'Late By', ...(isAdmin ? ['Overtime (h)'] : [])].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
@@ -987,7 +1084,11 @@ export default function AttendancePage() {
                       </td>
                       <td style={{ padding: '12px', color: '#6b7280' }}>{displayRole}</td>
                       <td style={{ padding: '12px' }}>{formatTime(a.clockIn)}</td>
-                      <td style={{ padding: '12px' }}>{formatTime(a.clockOut)}</td>
+                      <td style={{ padding: '12px' }}>
+                        {a.clockIn && !a.clockOut && a.date && a.date < todayKey
+                          ? <span title="Clocked in but never clocked out — fix it with Manual Entry" style={{ color: '#b91c1c', fontWeight: 700, fontSize: '12px', background: '#fef2f2', padding: '3px 8px', borderRadius: '6px' }}>No clock-out</span>
+                          : formatTime(a.clockOut)}
+                      </td>
                       <td style={{ padding: '12px' }}>
                         <span style={{
                           padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
@@ -1001,6 +1102,20 @@ export default function AttendancePage() {
                           ? (Number(a.lateBy) > 0 ? (Number(a.lateBy) >= 60 ? `${Math.floor(Number(a.lateBy) / 60)}h ${Number(a.lateBy) % 60}m` : `${Number(a.lateBy)}m`) : '-')
                           : lateBy(a.clockIn, settingsForm.workingHours?.start || '09:00')}
                       </td>
+                      {isAdmin && (
+                        <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                          {a.clockIn ? (
+                            <>
+                              <input type="number" min="0" max="24" step="0.25" inputMode="decimal" value={otValue(a)}
+                                onChange={e => { const id = a.id || a._id; const v = e.target.value; setOtEdits(o => ({ ...o, [id]: v })); }}
+                                style={{ width: '70px', padding: '5px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                              {a.otReviewedAt && otEdits[a.id || a._id] === undefined && (
+                                <span title={`Approved${a.otReviewedBy ? ` by ${a.otReviewedBy}` : ''}`} style={{ marginLeft: '6px', color: '#15803d', fontWeight: 700 }}>✓</span>
+                              )}
+                            </>
+                          ) : <span style={{ color: '#9ca3af' }}>-</span>}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

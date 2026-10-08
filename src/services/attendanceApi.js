@@ -57,6 +57,14 @@ export function getAttendanceHistory(restaurantId, { startDate, endDate, staffId
   return fetchWithAuth(`${base(restaurantId)}/history${query ? `?${query}` : ''}`);
 }
 
+// POST /review-day — owner/manager approves one day: the overtime to pay per record (null = automatic)
+export function reviewDay(restaurantId, date, entries) {
+  return fetchWithAuth(`${base(restaurantId)}/review-day`, {
+    method: 'POST',
+    body: JSON.stringify({ date, entries }),
+  });
+}
+
 // GET /summary?month=YYYY-MM
 export function getAttendanceSummary(restaurantId, month) {
   const params = new URLSearchParams();
