@@ -142,11 +142,13 @@ export function middleware(request) {
     return NextResponse.redirect(url, 308);
   }
 
-  // --- Geo detection: read Vercel's x-vercel-ip-country header and set cookie ---
-  // This header is provided free by Vercel Edge Network on every request.
-  // On local dev, the header is absent so the cookie is never set (client falls back to timezone).
+  // --- Geo detection: the visitor's country header → cookie ---
+  // Vercel sends x-vercel-ip-country; on the AWS box behind Cloudflare's proxy it's cf-ipcountry.
+  // Without either (local dev, DNS-only Cloudflare) no cookie is set and the client falls back to
+  // the browser timezone / language (lib/detectCountry).
   let response = null;
-  const geoCountry = request.headers.get('x-vercel-ip-country');
+  const rawGeo = request.headers.get('x-vercel-ip-country') || request.headers.get('cf-ipcountry') || '';
+  const geoCountry = /^[A-Za-z]{2}$/.test(rawGeo) && !/^(XX|T1)$/i.test(rawGeo) ? rawGeo : null;
   if (geoCountry) {
     response = NextResponse.next();
     response.cookies.set('geo_country', geoCountry.toUpperCase(), {

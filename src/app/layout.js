@@ -85,7 +85,8 @@ export default function RootLayout({ children }) {
             <WebsiteChatbot />
           </LoadingProvider>
         </PostHogProvider>
-        <Analytics />
+        {/* Vercel Analytics only on Vercel (the AWS copy has no /_vercel/insights endpoint) */}
+        {process.env.VERCEL === '1' && <Analytics />}
         {/* <script
           src="https://fixflow-fe.vercel.app/sdk.js"
           data-api-key="ff_9938c164292e9424678ed4d33e9ed7b672d18a648e81cb9903304fbe46849916"
