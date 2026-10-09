@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../lib/api';
 import StaffProfile from './StaffProfile';
+import MyMeetingsView from './meetings/MyMeetingsView';
 import { useCurrency } from '../contexts/CurrencyContext';
 
 const escapeHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -101,6 +102,7 @@ export default function MyPayView() {
         </div>
       )}
       {!data && !error && <div style={card}><span style={muted}>Loading…</span></div>}
+      <MyMeetingsView embedded />
 
       {data && (
         <>

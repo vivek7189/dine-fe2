@@ -4571,6 +4571,35 @@ class ApiClient {
     });
   }
 
+  // ── Staff meetings (Books → Meetings; staff: My meetings) ──
+  async getStaffMeetings(restaurantId) {
+    this.invalidateCache(`/api/staff-meetings/${restaurantId}`);
+    return this.request(`/api/staff-meetings/${restaurantId}`);
+  }
+  async getMyMeetings(restaurantId) {
+    this.invalidateCache(`/api/staff-meetings/${restaurantId}/mine`);
+    return this.request(`/api/staff-meetings/${restaurantId}/mine`);
+  }
+  async createStaffMeeting(restaurantId, data) {
+    return this.request(`/api/staff-meetings/${restaurantId}`, { method: 'POST', body: data });
+  }
+  async updateStaffMeeting(restaurantId, id, data) {
+    return this.request(`/api/staff-meetings/${restaurantId}/${id}`, { method: 'PATCH', body: data });
+  }
+  async publishMeetingMinutes(restaurantId, id) {
+    return this.request(`/api/staff-meetings/${restaurantId}/${id}/publish`, { method: 'POST', body: {} });
+  }
+  async remindStaffMeeting(restaurantId, id) {
+    return this.request(`/api/staff-meetings/${restaurantId}/${id}/remind`, { method: 'POST', body: {} });
+  }
+  async cancelStaffMeeting(restaurantId, id, reason) {
+    return this.request(`/api/staff-meetings/${restaurantId}/${id}/cancel`, { method: 'POST', body: { reason } });
+  }
+  async acknowledgeMeeting(restaurantId, id) {
+    try { return await this.request(`/api/staff-meetings/${restaurantId}/${id}/ack`, { method: 'POST', body: {} }); }
+    finally { this.invalidateCache(`/api/staff-meetings/${restaurantId}/mine`); }
+  }
+
   // ── My Pay (a staff member's own pay records) ──
   async getMyPay(restaurantId) {
     this.invalidateCache(`/api/my-pay/${restaurantId}`);

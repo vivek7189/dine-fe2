@@ -27,6 +27,7 @@ import {
   FaHistory,
   FaSearch,
   FaTimes,
+  FaHandshake,
 } from 'react-icons/fa';
 import { getCachedCalendarAccess } from '../../../lib/calendar';
 
@@ -38,6 +39,14 @@ const features = [
     icon: FaCashRegister,
     gradient: 'linear-gradient(135deg, #059669, #10b981)',
     href: '/my-pay',
+  },
+  {
+    id: 'my-meetings',
+    name: 'My Meetings',
+    description: 'Meetings you are invited to, minutes to read, your goals & targets',
+    icon: FaHandshake,
+    gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+    href: '/my-meetings',
   },
   {
     id: 'calendar',

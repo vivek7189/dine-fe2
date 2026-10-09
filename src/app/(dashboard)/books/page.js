@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt, FaGift, FaStar } from 'react-icons/fa';
+import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt, FaGift, FaStar, FaHandshake } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useBooks from './hooks/useBooks';
 import OverviewTab from './components/OverviewTab';
@@ -14,6 +14,7 @@ import PayrollTab from './components/PayrollTab';
 import AdvancesTab from './components/AdvancesTab';
 import BonusTab from './components/BonusTab';
 import AppraisalsTab from './components/AppraisalsTab';
+import MeetingsTab from './components/MeetingsTab';
 import GSTReportsTab from './components/GSTReportsTab';
 import TaxSummaryTab from './components/TaxSummaryTab';
 import LedgerTab from './components/LedgerTab';
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'advances', name: 'Advances', icon: FaMoneyBillWave },
   { id: 'bonus', name: 'Bonus', icon: FaGift },
   { id: 'appraisals', name: 'Appraisals', icon: FaStar },
+  { id: 'meetings', name: 'Meetings', icon: FaHandshake },
   { id: 'gst', name: 'GST Reports', icon: FaFileInvoice },
   { id: 'ledger', name: 'Ledger', icon: FaListAlt },
 ];
@@ -204,6 +206,14 @@ export default function BooksPage() {
             staffList={books.staffList}
             isMobile={books.isMobile}
             formatCurrency={formatCurrency}
+          />
+        )}
+        {activeTab === 'meetings' && (
+          <MeetingsTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            staffList={books.staffList}
+            isMobile={books.isMobile}
           />
         )}
         {activeTab === 'gst' && !isIndia && (
