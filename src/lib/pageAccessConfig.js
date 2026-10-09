@@ -9,7 +9,7 @@ import { FEATURE_OPS } from './permissions';
 // ─── All permission-gated pages ───
 export const PAGE_ACCESS_CONFIG = [
   // Main nav pages
-  { key: 'dashboard', label: 'Dashboard / Billing', icon: 'FaCashRegister', category: 'main' },
+  { key: 'dashboard', label: 'POS screen (take orders)', icon: 'FaCashRegister', category: 'main' },
   { key: 'history', label: 'Order History', icon: 'FaClipboardList', category: 'main' },
   { key: 'tables', label: 'Tables', icon: 'FaChair', category: 'main' },
   { key: 'menu', label: 'Menu', icon: 'FaUtensils', category: 'main' },
@@ -17,7 +17,7 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'inventory', label: 'Inventory', icon: 'FaBoxes', category: 'main' },
   { key: 'customers', label: 'Customers', icon: 'FaUsers', category: 'main' },
   { key: 'analytics', label: 'Analytics', icon: 'FaChartBar', category: 'main' },
-  { key: 'completeBill', label: 'Billing / Register', icon: 'FaCreditCard', category: 'main' },
+  { key: 'completeBill', label: 'Complete bill (take payment)', icon: 'FaCreditCard', category: 'main' },
   { key: 'invoice', label: 'Invoice', icon: 'FaFileInvoice', category: 'main' },
   { key: 'offers', label: 'Offers', icon: 'FaTag', category: 'main' },
   { key: 'admin', label: 'Admin Settings', icon: 'FaCog', category: 'main' },

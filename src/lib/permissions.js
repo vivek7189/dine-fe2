@@ -112,9 +112,14 @@ export function canPerform(user, pageAccess, feature, operation, waiterAppConfig
     return false;
   }
 
-  // Legacy standalone boolean fallbacks
-  if (feature === 'orders' && operation === 'completeBill' && pageAccess?.completeBill !== undefined) {
-    return !!pageAccess.completeBill;
+  // Complete bill: the staff switch "Complete bill (take payment)" (top-level completeBill) OR
+  // Orders → Complete bill — either one ticked allows it (an old switch left off no longer hides a
+  // permission ticked in Orders, and vice versa). Same rule as the backend (permissions/legacy.js).
+  if (feature === 'orders' && operation === 'completeBill') {
+    const top = pageAccess?.completeBill;
+    const nested = pageAccess?.orders && typeof pageAccess.orders === 'object' ? pageAccess.orders.completeBill : undefined;
+    if (top === true || nested === true) return true;
+    if (top !== undefined || nested !== undefined) return false;
   }
   if (feature === 'tables' && operation === 'reset' && pageAccess?.resetTables !== undefined) {
     return !!pageAccess.resetTables;
