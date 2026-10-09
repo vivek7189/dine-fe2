@@ -11,6 +11,7 @@ export default function TeamTab({ restaurantId, staff, setStaff, isMobile }) {
   const [editingStaff, setEditingStaff] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [sortDir, setSortDir] = useState('asc'); // name A→Z / Z→A
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', role: 'employee', startDate: new Date().toISOString().split('T')[0] });
 
@@ -19,7 +20,7 @@ export default function TeamTab({ restaurantId, staff, setStaff, isMobile }) {
     const matchSearch = !searchTerm || s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone?.includes(searchTerm);
     const matchRole = filterRole === 'all' || s.role === filterRole;
     return matchSearch && matchRole;
-  });
+  }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }) * (sortDir === 'asc' ? 1 : -1));
 
   const roles = [...new Set(activeStaff.map(s => s.role).filter(Boolean))];
 
@@ -113,6 +114,10 @@ export default function TeamTab({ restaurantId, staff, setStaff, isMobile }) {
                 fontSize: '12px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize'
               }}>{r}</button>
             ))}
+            <button onClick={() => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))} title="Change the order of the list" style={{
+              padding: '6px 14px', borderRadius: '20px', border: '1px solid #e5e7eb', backgroundColor: 'white',
+              color: '#374151', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
+            }}>{sortDir === 'asc' ? 'A → Z' : 'Z → A'}</button>
           </div>
         </div>
         <button onClick={openAdd} style={{

@@ -32,6 +32,28 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
   const [editError, setEditError] = useState('');
 
   const activeStaff = (staff || []).filter(s => s.status === 'active');
+  // Order and role filter for the list (MFC: A→Z / Z→A, show one role e.g. waiters or cleaners)
+  const [sortDir, setSortDir] = useState('asc');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const roleKey = (r) => String(r || '').trim().toLowerCase();
+  const roleCounts = activeStaff.reduce((m, s) => { const k = roleKey(s.role) || 'no role'; m[k] = (m[k] || 0) + 1; return m; }, {});
+  const listStaff = activeStaff
+    .filter(s => roleFilter === 'all' || (roleKey(s.role) || 'no role') === roleFilter)
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }) * (sortDir === 'asc' ? 1 : -1));
+  const toolbar = (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+      <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+        style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #e5e7eb', background: 'white', fontSize: '13px', textTransform: 'capitalize' }}>
+        <option value="all">All roles ({activeStaff.length})</option>
+        {Object.keys(roleCounts).sort().map(r => <option key={r} value={r}>{r} ({roleCounts[r]})</option>)}
+      </select>
+      <button type="button" onClick={() => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))} title="Change the order of the list"
+        style={{ padding: '7px 12px', borderRadius: '9px', border: '1px solid #e5e7eb', background: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+        {sortDir === 'asc' ? 'Name A → Z' : 'Name Z → A'}
+      </button>
+      {roleFilter !== 'all' && <span style={{ fontSize: '12px', color: '#6b7280' }}>Showing {listStaff.length} of {activeStaff.length}</span>}
+    </div>
+  );
 
   useEffect(() => {
     loadAvailability();
@@ -136,7 +158,8 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
   if (isMobile) {
     return (
       <div>
-        {activeStaff.map(member => {
+        {toolbar}
+        {listStaff.map(member => {
           const rc = getRoleColor(member.role);
           const avail = availability[member.id] || DEFAULT_AVAILABILITY;
           return (
@@ -277,6 +300,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
   // Desktop: table/grid view
   return (
     <div>
+      {toolbar}
       <div style={{
         backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'auto'
@@ -300,7 +324,7 @@ export default function AvailabilityTab({ restaurantId, staff, isMobile, onAvail
             </tr>
           </thead>
           <tbody>
-            {activeStaff.map(member => {
+            {listStaff.map(member => {
               const rc = getRoleColor(member.role);
               const avail = availability[member.id] || DEFAULT_AVAILABILITY;
               return (
