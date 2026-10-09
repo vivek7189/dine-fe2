@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaStar, FaRegStar, FaTrash, FaChevronDown, FaChevronUp, FaCog, FaIdCard } from 'react-icons/fa';
+import { FaPlus, FaStar, FaRegStar, FaTrash, FaChevronDown, FaChevronUp, FaCog, FaIdCard, FaUndo } from 'react-icons/fa';
+import RemoveRecordDialog from './RemoveRecordDialog';
 import useHrSettings, { DEFAULT_CRITERIA, templateForRole } from '../hooks/useHrSettings';
 import { AppraisalSettingsPanel } from './HrSettingsPanels';
 import StaffProfilesModal from './StaffProfilesModal';
@@ -33,6 +34,8 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
   const [expanded, setExpanded] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfiles, setShowProfiles] = useState(false); // staff HR profiles (personal, next of kin, health, experience)
+  const [showRemoved, setShowRemoved] = useState(false);
+  const [removing, setRemoving] = useState(null);   // review being removed (two-step dialog, like bonuses / advances)
   const { settings: hr, save: saveHr } = useHrSettings(restaurantId, apiClient);
   const templates = hr.appraisal.templates;
   const recommendations = hr.appraisal.recommendations;
@@ -44,12 +47,12 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
     if (!restaurantId) return;
     setLoading(true); setError('');
     try {
-      const res = await apiClient.getStaffAppraisals(restaurantId);
+      const res = await apiClient.getStaffAppraisals(restaurantId, showRemoved ? { includeRemoved: '1' } : {});
       setAppraisals(res.appraisals || []);
       setSummary(res.summary || { count: 0, avgRating: null });
     } catch (e) { setError(e?.message || 'Could not load appraisals.'); }
     finally { setLoading(false); }
-  }, [restaurantId, apiClient]);
+  }, [restaurantId, apiClient, showRemoved]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -89,10 +92,9 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
     finally { setSaving(false); }
   };
 
-  const del = async (a) => {
-    if (typeof window !== 'undefined' && !window.confirm('Delete this appraisal permanently?')) return;
-    try { await apiClient.deleteStaffAppraisal(restaurantId, a.id); await load(); }
-    catch (e) { setError(e?.message || 'Delete failed.'); }
+  const restore = async (a) => {
+    try { await apiClient.restoreStaffAppraisal(restaurantId, a.id); await load(); }
+    catch (e) { setError(e?.message || 'Could not restore.'); }
   };
 
   const setRating = (key, val) => setForm(f => ({ ...f, ratings: { ...f.ratings, [key]: val } }));
@@ -114,6 +116,9 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
             <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>AVG RATING</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#b45309' }}>{summary.avgRating != null ? `${summary.avgRating} / 5` : '—'}</div>
           </div>
+          <label style={{ fontSize: 12, color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+            <input type="checkbox" checked={showRemoved} onChange={e => setShowRemoved(e.target.checked)} /> Show removed
+          </label>
           <button onClick={() => setShowProfiles(true)} title="Personal details, next of kin, health and experience" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }}>
             <FaIdCard size={12} /> Staff profiles
           </button>
@@ -196,18 +201,21 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
           {appraisals.map(a => {
             const isOpen = expanded === a.id;
             return (
-              <div key={a.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
+              <div key={a.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', opacity: a.status === 'removed' ? 0.6 : 1 }}>
                 <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, cursor: 'pointer' }} onClick={() => setExpanded(isOpen ? null : a.id)}>
                   <div style={{ minWidth: 160 }}>
                     <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{a.staffName || (staffOf(a.staffId) || {}).name || 'Staff'}</div>
                     <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.period || '—'}{a.templateName ? ` · ${a.templateName}` : ''}{a.reviewerName ? ` · by ${a.reviewerName}` : ''}</div>
+                    {a.status === 'removed' && <div style={{ fontSize: 11, color: '#b91c1c' }}>Removed{a.removedBy ? ` by ${a.removedBy}` : ''} · {a.removeReason || 'no reason'}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Stars value={a.overallRating} /><span style={{ fontWeight: 800, color: '#b45309', fontSize: 13 }}>{a.overallRating != null ? a.overallRating : '—'}</span></div>
                     {a.recommendation && a.recommendation !== 'none' && (
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8' }}>{recName(a.recommendation, a.recommendationLabel)}</span>
                     )}
-                    <button title="Delete" onClick={(e) => { e.stopPropagation(); del(a); }} style={iconBtn('#b91c1c')}><FaTrash size={10} /></button>
+                    {a.status === 'removed'
+                      ? <button title="Restore" onClick={(e) => { e.stopPropagation(); restore(a); }} style={{ ...iconBtn('#047857'), width: 'auto', padding: '0 10px', gap: 4, fontSize: 12, fontWeight: 700 }}><FaUndo size={10} /> Restore</button>
+                      : <button title="Remove" onClick={(e) => { e.stopPropagation(); setRemoving(a); }} style={iconBtn('#b91c1c')}><FaTrash size={10} /></button>}
                     {isOpen ? <FaChevronUp size={12} color="#9ca3af" /> : <FaChevronDown size={12} color="#9ca3af" />}
                   </div>
                 </div>
@@ -230,6 +238,21 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
             );
           })}
         </div>
+      )}
+
+      {removing && (
+        <RemoveRecordDialog
+          title="Remove this appraisal?"
+          rows={[
+            ['Staff', removing.staffName || (staffOf(removing.staffId) || {}).name || 'Staff'],
+            ['Period', removing.period || '—'],
+            ['Rating', removing.overallRating != null ? `${removing.overallRating} / 5` : '—'],
+            ['Reviewed by', removing.reviewerName || '—'],
+          ]}
+          effect="It stays on record as Removed (with your name and the reason) and can be restored from “Show removed”. It no longer counts in the average rating or shows in the staff member’s My Pay."
+          onConfirm={async (reason) => { await apiClient.deleteStaffAppraisal(restaurantId, removing.id, reason); setRemoving(null); await load(); }}
+          onClose={() => setRemoving(null)}
+        />
       )}
 
       {showSettings && (

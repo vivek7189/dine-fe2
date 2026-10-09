@@ -2367,8 +2367,13 @@ class ApiClient {
   async updateStaffAppraisal(restaurantId, appraisalId, data) {
     return this.request(`/api/staff-appraisals/${restaurantId}/${appraisalId}`, { method: 'PATCH', body: data });
   }
-  async deleteStaffAppraisal(restaurantId, appraisalId) {
-    return this.request(`/api/staff-appraisals/${restaurantId}/${appraisalId}`, { method: 'DELETE' });
+  // Remove = kept as "Removed" (who / when / why), restorable — never erased
+  async deleteStaffAppraisal(restaurantId, appraisalId, reason = '') {
+    const q = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return this.request(`/api/staff-appraisals/${restaurantId}/${appraisalId}${q}`, { method: 'DELETE', body: { reason } });
+  }
+  async restoreStaffAppraisal(restaurantId, appraisalId) {
+    return this.request(`/api/staff-appraisals/${restaurantId}/${appraisalId}`, { method: 'PATCH', body: { restore: true } });
   }
 
   // Terminal-lock PIN
