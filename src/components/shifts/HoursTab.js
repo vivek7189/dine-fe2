@@ -34,7 +34,7 @@ export default function HoursTab({ restaurantId, isMobile }) {
         <button onClick={() => move(-1)} style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer' }}><FaChevronLeft size={11} /></button>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{start} → {end}</div>
         <button onClick={() => move(1)} style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer' }}><FaChevronRight size={11} /></button>
-        <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: isMobile ? 0 : '8px' }}>Scheduled = published shifts minus breaks · Worked = Attendance clock-in to clock-out</span>
+        <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: isMobile ? 0 : '8px' }}>Scheduled = published shifts minus breaks · Worked = Attendance clock-in to clock-out · Missed a punch-out? Fix it with <b>Edit</b> on the Attendance page (managers: last 48 h)</span>
       </div>
       {error && <div style={{ marginBottom: '12px', padding: '10px 14px', borderRadius: '12px', background: '#fef2f2', color: '#b91c1c', fontSize: '13px' }}>{error}</div>}
       <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', overflowX: 'auto' }}>
@@ -50,8 +50,9 @@ export default function HoursTab({ restaurantId, isMobile }) {
                   <td style={td}>{r.shifts}</td>
                   <td style={td}>{fmt(r.scheduledHours)}</td>
                   <td style={td}>{r.daysWorked ? fmt(r.workedHours) : <span style={{ color: '#9ca3af' }}>no clock-ins</span>}</td>
-                  <td style={{ ...td, fontWeight: 700, color: !r.daysWorked ? '#9ca3af' : r.difference > 0.25 ? '#b45309' : r.difference < -0.25 ? '#dc2626' : '#16a34a' }}>
-                    {!r.daysWorked ? '—' : `${r.difference > 0 ? '+' : ''}${fmt(r.difference)}${r.difference > 0.25 ? ' overtime' : r.difference < -0.25 ? ' short' : ''}`}
+                  {/* Not on the rota this week → nothing to compare with (every hour showed as "overtime") */}
+                  <td style={{ ...td, fontWeight: 700, color: !r.daysWorked || !r.shifts ? '#9ca3af' : r.difference > 0.25 ? '#b45309' : r.difference < -0.25 ? '#dc2626' : '#16a34a' }}>
+                    {!r.daysWorked ? '—' : !r.shifts ? <span style={{ fontWeight: 500 }}>not on rota</span> : `${r.difference > 0 ? '+' : ''}${fmt(r.difference)}${r.difference > 0.25 ? ' overtime' : r.difference < -0.25 ? ' short' : ''}`}
                   </td>
                   <td style={td}>{r.lateDays || 0}</td>
                 </tr>

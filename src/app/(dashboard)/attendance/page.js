@@ -212,6 +212,10 @@ export default function AttendancePage() {
   // Daily review (owner / manager): approve each day's overtime so payroll adds up approved days.
   // reviewDate '' = today's screen; another date loads that day's records into reviewRows.
   const [reviewDate, setReviewDate] = useState('');
+  // Edit a day's clock-in / clock-out (e.g. a missed punch-out). Managers: last 48 h only (server-enforced).
+  const [timeEdit, setTimeEdit] = useState(null); // { id, staffId, date, status, clockIn: 'HH:mm', clockOut: 'HH:mm' }
+  const [savingTime, setSavingTime] = useState(false);
+  const [staffSort, setStaffSort] = useState('asc'); // manual-entry staff list order
   const [reviewRows, setReviewRows] = useState(null);
   const [otEdits, setOtEdits] = useState({});
   const [savingReview, setSavingReview] = useState(false);
@@ -634,6 +638,29 @@ export default function AttendancePage() {
     }
   };
 
+  const ownerLevel = ['owner', 'co-owner'].includes(String(userRole || '').toLowerCase());
+  // Managers may change only the last 48 hours (measured from the end of that day) — the server enforces it too.
+  const canEditDay = (date) => ownerLevel || (date && Date.now() - (Date.parse(String(date) + 'T00:00:00Z') + 864e5) <= 48 * 3600e3);
+  const hhmm = (v) => { if (!v) return ''; const t = fmtTime(v, 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
+  const saveTimeEdit = async () => {
+    if (!timeEdit) return;
+    if (!timeEdit.clockIn) return showToast('Enter the clock-in time', 'error');
+    setSavingTime(true);
+    try {
+      const staff = staffList.find(s => s._id === timeEdit.staffId || s.id === timeEdit.staffId);
+      await attendanceApi.addManualEntry(restaurantId, {
+        staffId: timeEdit.staffId, date: timeEdit.date, status: timeEdit.status || 'present',
+        clockIn: timeEdit.clockIn, clockOut: timeEdit.clockOut || null,
+        staffName: staff?.name || timeEdit.staffName || '', role: staff?.role || timeEdit.role || '',
+      });
+      showToast('Times updated ✓', 'success');
+      setTimeEdit(null);
+      if (pastReview) await loadReviewDay(); else await loadToday();
+    } catch (err) {
+      showToast(err.message || 'Could not update the times', 'error');
+    } finally { setSavingTime(false); }
+  };
+
   const handleManualEntry = async () => {
     if (!manualForm.staffId || !manualForm.date) return showToast('Staff and date are required', 'error');
     try {
@@ -979,10 +1006,18 @@ export default function AttendancePage() {
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '0 0 16px 0' }}>Manual Attendance Entry</h3>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px' }}>
               <div>
-                <label style={labelStyle}>Staff *</label>
+                <label style={{ ...labelStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Staff *</span>
+                  <button type="button" onClick={() => setStaffSort(v => (v === 'asc' ? 'desc' : 'asc'))}
+                    title="Change the order of the staff list"
+                    style={{ border: '1px solid #e5e7eb', background: '#fff', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#374151' }}>
+                    {staffSort === 'asc' ? 'A → Z' : 'Z → A'}
+                  </button>
+                </label>
                 <select style={selectStyle} value={manualForm.staffId} onChange={e => setManualForm(p => ({ ...p, staffId: e.target.value }))}>
                   <option value="">Select Staff</option>
-                  {staffList.map(s => <option key={s._id} value={s._id}>{s.name} ({s.role})</option>)}
+                  {[...staffList].sort((x, y) => String(x.name || '').localeCompare(String(y.name || ''), undefined, { sensitivity: 'base' }) * (staffSort === 'asc' ? 1 : -1))
+                    .map(s => <option key={s._id} value={s._id}>{s.name} ({s.role})</option>)}
                 </select>
               </div>
               <div>
@@ -1060,7 +1095,7 @@ export default function AttendancePage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                  {['Staff Name', 'Role', 'Clock In', 'Clock Out', 'Status', 'Hours', 'Late By', ...(isAdmin ? ['Overtime (h)'] : [])].map(h => (
+                  {['Staff Name', 'Role', 'Clock In', 'Clock Out', 'Status', 'Hours', 'Late By', ...(isAdmin ? ['Overtime (h)', ''] : [])].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
@@ -1083,9 +1118,15 @@ export default function AttendancePage() {
                         )}
                       </td>
                       <td style={{ padding: '12px', color: '#6b7280' }}>{displayRole}</td>
-                      <td style={{ padding: '12px' }}>{formatTime(a.clockIn)}</td>
                       <td style={{ padding: '12px' }}>
-                        {a.clockIn && !a.clockOut && a.date && a.date < todayKey
+                        {timeEdit && timeEdit.id === (a.id || a._id)
+                          ? <input type="time" value={timeEdit.clockIn} onChange={e => setTimeEdit(t => ({ ...t, clockIn: e.target.value }))} style={{ padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                          : formatTime(a.clockIn)}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {timeEdit && timeEdit.id === (a.id || a._id)
+                          ? <input type="time" value={timeEdit.clockOut} onChange={e => setTimeEdit(t => ({ ...t, clockOut: e.target.value }))} style={{ padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                          : a.clockIn && !a.clockOut && a.date && a.date < todayKey
                           ? <span title="Clocked in but never clocked out — fix it with Manual Entry" style={{ color: '#b91c1c', fontWeight: 700, fontSize: '12px', background: '#fef2f2', padding: '3px 8px', borderRadius: '6px' }}>No clock-out</span>
                           : formatTime(a.clockOut)}
                       </td>
@@ -1114,6 +1155,24 @@ export default function AttendancePage() {
                               )}
                             </>
                           ) : <span style={{ color: '#9ca3af' }}>-</span>}
+                        </td>
+                      )}
+                      {isAdmin && (
+                        <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                          {timeEdit && timeEdit.id === (a.id || a._id) ? (
+                            <>
+                              <button onClick={saveTimeEdit} disabled={savingTime} style={{ ...btnPrimary, padding: '5px 10px', fontSize: '12px' }}>{savingTime ? '…' : 'Save'}</button>
+                              <button onClick={() => setTimeEdit(null)} disabled={savingTime} style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px', marginLeft: '6px' }}>Cancel</button>
+                            </>
+                          ) : a.clockIn && a.date ? (
+                            <button
+                              onClick={() => setTimeEdit({ id: a.id || a._id, staffId: a.staffId, staffName: a.staffName, role: a.role, date: a.date, status: a.status, clockIn: hhmm(a.clockIn), clockOut: hhmm(a.clockOut) })}
+                              disabled={!canEditDay(a.date)}
+                              title={canEditDay(a.date) ? 'Change clock-in / clock-out (e.g. a missed punch-out)' : 'Managers can change only the last 48 hours — ask the owner'}
+                              style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px', opacity: canEditDay(a.date) ? 1 : 0.45, cursor: canEditDay(a.date) ? 'pointer' : 'not-allowed' }}>
+                              <FaEdit size={11} style={{ marginRight: '4px', verticalAlign: '-1px' }} />Edit
+                            </button>
+                          ) : null}
                         </td>
                       )}
                     </tr>
