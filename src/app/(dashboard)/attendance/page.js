@@ -207,6 +207,7 @@ export default function AttendancePage() {
   const [expandedId, setExpandedId] = useState(null);   // Today table: row showing its day timeline
   const [sessionEdit, setSessionEdit] = useState(null); // record being edited in the session editor
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [listFilter, setListFilter] = useState(null);   // Today: show only present | absent | late | leave (summary boxes)
   const [staffSort, setStaffSort] = useState('asc'); // manual-entry staff list order
   const [reviewRows, setReviewRows] = useState(null);
   const [otEdits, setOtEdits] = useState({});
@@ -331,6 +332,7 @@ export default function AttendancePage() {
       const onLeaveCount = attendance.filter(a => a.status === 'on-leave' || a.status === 'leave').length;
       setTodayData({
         attendance,
+        absentStaff: res?.absentStaff || null,
         staffCount: res?.staffCount ?? staffList.length,
         presentCount,
         absentCount,
@@ -974,7 +976,17 @@ export default function AttendancePage() {
     const reviewedCount = attendance.filter(a => a.clockIn && a.otReviewedAt).length;
     const workedCount = attendance.filter(a => a.clockIn).length;
     const attentionCount = attendance.filter(needsAttention).length;
-    const shown = attentionOnly ? attendance.filter(needsAttention) : attendance;
+    const isLeaveRow = (a) => ['leave', 'on-leave', 'on_leave', 'paid_leave'].includes(String(a.status || '').toLowerCase());
+    const isLateRow = (a) => a.status === 'late' || Number(a.lateBy) > 0;
+    const isPresentRow = (a) => !!a.clockIn && !isLeaveRow(a) && a.status !== 'absent';
+    const byFilter = { present: isPresentRow, late: isLateRow, leave: isLeaveRow, absent: (a) => a.status === 'absent' };
+    let shown = attentionOnly ? attendance.filter(needsAttention) : attendance;
+    if (listFilter && byFilter[listFilter]) shown = shown.filter(byFilter[listFilter]);
+    // Absentees: active staff with no clock-in / leave today (from the server, same as the count)
+    const absentPeople = listFilter === 'absent'
+      ? (todayData.absentStaff || staffList.filter(st => !attendance.some(a => a.staffId === (st.id || st._id)) || attendance.some(a => a.staffId === (st.id || st._id) && a.status === 'absent'))
+        .map(st => ({ id: st.id || st._id, name: st.name, role: st.role })))
+      : [];
 
     return (
       <div>
@@ -983,16 +995,22 @@ export default function AttendancePage() {
           <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 16px 0' }}>{dateStr}</p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px' }}>
             {[
-              { label: 'Present', count: todayData.presentCount, color: '#22c55e', bg: '#f0fdf4' },
-              { label: 'Absent', count: todayData.absentCount, color: '#ef4444', bg: '#fef2f2' },
-              { label: 'Late', count: todayData.lateCount, color: '#eab308', bg: '#fefce8' },
-              { label: 'On Leave', count: todayData.onLeaveCount, color: '#3b82f6', bg: '#eff6ff' },
-            ].map(card => (
-              <div key={card.label} style={{ ...cardStyle, background: card.bg, textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: card.color }}>{card.count}</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>{card.label}</div>
-              </div>
-            ))}
+              { key: 'present', label: 'Present', count: todayData.presentCount, color: '#22c55e', bg: '#f0fdf4' },
+              { key: 'absent', label: 'Absent', count: todayData.absentCount, color: '#ef4444', bg: '#fef2f2' },
+              { key: 'late', label: 'Late', count: todayData.lateCount, color: '#eab308', bg: '#fefce8' },
+              { key: 'leave', label: 'On Leave', count: todayData.onLeaveCount, color: '#3b82f6', bg: '#eff6ff' },
+            ].map(card => {
+              const on = listFilter === card.key;
+              return (
+                <button key={card.label} type="button" disabled={!isAdmin}
+                  onClick={() => { setReviewDate(''); setAttentionOnly(false); setListFilter(on ? null : card.key); }}
+                  title={isAdmin ? (on ? 'Show everyone' : `Show the ${card.label.toLowerCase()} list`) : undefined}
+                  style={{ ...cardStyle, background: card.bg, textAlign: 'center', cursor: isAdmin ? 'pointer' : 'default', border: on ? `2px solid ${card.color}` : cardStyle.border, boxShadow: on ? `0 0 0 3px ${card.bg}` : cardStyle.boxShadow, font: 'inherit' }}>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: card.color }}>{card.count}</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>{card.label}{isAdmin && card.count > 0 ? (on ? ' · showing ✓' : ' · view list') : ''}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1064,6 +1082,7 @@ export default function AttendancePage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', margin: '0 0 16px 0' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
               Staff Attendance{pastReview ? ` · ${fmtDate(reviewDate + 'T12:00:00', 'en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+              {listFilter && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: '#b91c1c' }}>· {({ present: 'Present', absent: 'Absent', late: 'Late', leave: 'On leave' })[listFilter]} only <button onClick={() => setListFilter(null)} style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>show everyone</button></span>}
             </h3>
             {isAdmin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1100,10 +1119,31 @@ export default function AttendancePage() {
               {otRule?.enabled && otRule.approvedOnly && <span style={{ color: '#b45309' }}> Only approved days are paid overtime.</span>}
             </p>
           )}
-          {isAdmin && pastReview && reviewRows === null ? (
+          {listFilter === 'absent' ? (
+            absentPeople.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>No one is absent today 🎉</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead><tr style={{ borderBottom: '2px solid #e5e7eb' }}>{['Staff Name', 'Role', ''].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {absentPeople.map(p => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '12px', fontWeight: 600 }}>{p.name || '-'}</td>
+                      <td style={{ padding: '12px', color: '#6b7280' }}>{p.role || '-'}</td>
+                      <td style={{ padding: '12px', textAlign: 'right' }}>
+                        <button onClick={() => { setManualForm(f => ({ ...f, staffId: p.id, date: todayKey, status: 'present' })); setShowManualEntry(true); if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          title="Forgot to punch in? Add their time — or mark leave / absent"
+                          style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px' }}><FaPlus size={10} style={{ marginRight: '4px' }} />Add entry</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          ) : isAdmin && pastReview && reviewRows === null ? (
             <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>Loading…</p>
-          ) : attendance.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>{pastReview ? 'No attendance records for this day' : 'No attendance records for today'}</p>
+          ) : shown.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>{listFilter ? 'No one in this list today' : pastReview ? 'No attendance records for this day' : 'No attendance records for today'}</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
