@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
 import BiometricSettings from '../../../components/BiometricSettings';
+import { dayView, StateBadge, ExceptionChips, DayDetail, SessionEditor, needsAttention, fmtMins } from '../../../components/attendance/AttendanceDay';
+import AttendanceRules from '../../../components/attendance/AttendanceRules';
 import * as attendanceApi from '../../../services/attendanceApi';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -44,18 +46,6 @@ function toISODate(d) {
 
 function toMonthStr(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-}
-
-function diffHours(clockIn, clockOut) {
-  if (!clockIn || !clockOut) return '-';
-  const cin = new Date(clockIn);
-  const cout = new Date(clockOut);
-  if (isNaN(cin.getTime()) || isNaN(cout.getTime())) return '-';
-  const ms = cout - cin;
-  if (ms <= 0) return '-';
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  return `${h}h ${m}m`;
 }
 
 function lateBy(clockIn, expectedStart) {
@@ -213,8 +203,10 @@ export default function AttendancePage() {
   // reviewDate '' = today's screen; another date loads that day's records into reviewRows.
   const [reviewDate, setReviewDate] = useState('');
   // Edit a day's clock-in / clock-out (e.g. a missed punch-out). Managers: last 48 h only (server-enforced).
-  const [timeEdit, setTimeEdit] = useState(null); // { id, staffId, date, status, clockIn: 'HH:mm', clockOut: 'HH:mm' }
   const [savingTime, setSavingTime] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);   // Today table: row showing its day timeline
+  const [sessionEdit, setSessionEdit] = useState(null); // record being edited in the session editor
+  const [attentionOnly, setAttentionOnly] = useState(false);
   const [staffSort, setStaffSort] = useState('asc'); // manual-entry staff list order
   const [reviewRows, setReviewRows] = useState(null);
   const [otEdits, setOtEdits] = useState({});
@@ -403,6 +395,8 @@ export default function AttendancePage() {
     for (const a of rows) {
       const id = a.id || a._id;
       if (!id || !a.clockIn || !a.date) continue;
+      // still working / on a break / missing punch-out: nothing to approve yet (the server skips them too)
+      if (dayView(a).state !== 'done') continue;
       const txt = String(otValue(a)).trim();
       const n = txt === '' ? 0 : Number(txt);
       if (!Number.isFinite(n) || n < 0 || n > 24) { showToast(`Overtime for ${a.staffName || 'a staff member'} must be 0–24 hours`, 'error'); return; }
@@ -414,7 +408,8 @@ export default function AttendancePage() {
     try {
       let updated = 0;
       for (const d of dates) updated += (await attendanceApi.reviewDay(restaurantId, d, byDate[d]))?.updated || 0;
-      showToast(`Day approved ✓ (${updated} staff)`, 'success');
+      const waiting = rows.filter(a => a.clockIn && dayView(a).state !== 'done').length;
+      showToast(`Day approved ✓ (${updated} staff)${waiting ? ` · ${waiting} not finished yet (still working / missing punch-out)` : ''}`, 'success');
       setOtEdits({});
       if (pastReview) await loadReviewDay(); else await loadToday();
     } catch (err) {
@@ -423,6 +418,13 @@ export default function AttendancePage() {
       setSavingReview(false);
     }
   };
+
+  // Today's screen follows clock-ins / breaks / machine punches from other terminals and the app.
+  useEffect(() => {
+    if (activeTab !== 'today' || pastReview || !restaurantId) return undefined;
+    const id = setInterval(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') loadToday(); }, 60000);
+    return () => clearInterval(id);
+  }, [activeTab, pastReview, restaurantId, loadToday]);
 
   const loadLeave = useCallback(async () => {
     if (!restaurantId) return;
@@ -641,23 +643,24 @@ export default function AttendancePage() {
   const ownerLevel = ['owner', 'co-owner'].includes(String(userRole || '').toLowerCase());
   // Managers may change only the last 48 hours (measured from the end of that day) — the server enforces it too.
   const canEditDay = (date) => ownerLevel || (date && Date.now() - (Date.parse(String(date) + 'T00:00:00Z') + 864e5) <= 48 * 3600e3);
-  const hhmm = (v) => { if (!v) return ''; const t = fmtTime(v, 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }); return /^\d{2}:\d{2}$/.test(t) ? t : ''; };
-  const saveTimeEdit = async () => {
-    if (!timeEdit) return;
-    if (!timeEdit.clockIn) return showToast('Enter the clock-in time', 'error');
+  // Session editor (owner / manager): the whole day as sessions — a missed punch-out, a forgotten break,
+  // a split shift. The server re-works hours, breaks, late and overtime from them.
+  const saveSessions = async (sessions, reason) => {
+    if (!sessionEdit) return;
     setSavingTime(true);
     try {
-      const staff = staffList.find(s => s._id === timeEdit.staffId || s.id === timeEdit.staffId);
+      const a = sessionEdit;
+      const staff = staffList.find(st => st._id === a.staffId || st.id === a.staffId);
       await attendanceApi.addManualEntry(restaurantId, {
-        staffId: timeEdit.staffId, date: timeEdit.date, status: timeEdit.status || 'present',
-        clockIn: timeEdit.clockIn, clockOut: timeEdit.clockOut || null,
-        staffName: staff?.name || timeEdit.staffName || '', role: staff?.role || timeEdit.role || '',
+        staffId: a.staffId, date: a.date, status: ['late', 'half_day', 'half-day'].includes(String(a.status || '')) ? a.status : 'present',
+        sessions, reason: reason || null,
+        staffName: staff?.name || a.staffName || '', role: staff?.role || a.role || '',
       });
-      showToast('Times updated ✓', 'success');
-      setTimeEdit(null);
+      showToast('Day updated ✓', 'success');
+      setSessionEdit(null);
       if (pastReview) await loadReviewDay(); else await loadToday();
     } catch (err) {
-      showToast(err.message || 'Could not update the times', 'error');
+      showToast(err.message || 'Could not update the day', 'error');
     } finally { setSavingTime(false); }
   };
 
@@ -970,6 +973,8 @@ export default function AttendancePage() {
       : todayData.attendance.filter(a => a.staffId === userId);
     const reviewedCount = attendance.filter(a => a.clockIn && a.otReviewedAt).length;
     const workedCount = attendance.filter(a => a.clockIn).length;
+    const attentionCount = attendance.filter(needsAttention).length;
+    const shown = attentionOnly ? attendance.filter(needsAttention) : attendance;
 
     return (
       <div>
@@ -1080,9 +1085,17 @@ export default function AttendancePage() {
               </div>
             )}
           </div>
+          {isAdmin && attentionCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '-6px 0 12px 0', flexWrap: 'wrap' }}>
+              <button onClick={() => setAttentionOnly(v => !v)} style={{ padding: '5px 12px', borderRadius: '999px', border: `1px solid ${attentionOnly ? '#b91c1c' : '#fecaca'}`, background: attentionOnly ? '#fee2e2' : '#fff', color: '#b91c1c', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
+                ⚠ Needs attention ({attentionCount}){attentionOnly ? ' · showing' : ''}
+              </button>
+              <span style={{ fontSize: '12px', color: '#6b7280' }}>Missing punch-out, auto clock-out, long break, not on rota… — open a row to see and fix it.</span>
+            </div>
+          )}
           {isAdmin && workedCount > 0 && (
             <p style={{ fontSize: '12px', color: '#6b7280', margin: '-8px 0 12px 0' }}>
-              Check each person&apos;s overtime (hours) and press &quot;Save &amp; approve day&quot;. Payroll adds up the approved overtime of every day in the month.
+              Check each person&apos;s overtime (hours) and press &quot;Save &amp; approve day&quot; — days still in progress are approved once finished. Payroll adds up the approved overtime of every day in the month.
               {otRule && !otRule.enabled && <span style={{ color: '#b45309' }}> Overtime pay is off — turn it on in Books → Payroll → Settings.</span>}
               {otRule?.enabled && otRule.approvedOnly && <span style={{ color: '#b45309' }}> Only approved days are paid overtime.</span>}
             </p>
@@ -1095,48 +1108,55 @@ export default function AttendancePage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                  {['Staff Name', 'Role', 'Clock In', 'Clock Out', 'Status', 'Hours', 'Late By', ...(isAdmin ? ['Overtime (h)', ''] : [])].map(h => (
+                  {['Staff Name', 'Role', 'First In', 'Last Out', 'Breaks', 'Worked', 'Status', 'Late By', ...(isAdmin ? ['Overtime (h)', ''] : [])].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {attendance.map((a, i) => {
+                {shown.map((a, i) => {
                   const sc = STATUS_COLORS[a.status] || STATUS_COLORS.present;
+                  const v = dayView(a);
+                  const rowId = a.id || a._id || String(i);
+                  const expanded = expandedId === rowId;
                   // Resolve name/role from staffList if not in attendance record
                   const staff = staffList.find(s => s._id === a.staffId || s.id === a.staffId);
                   const displayName = a.staffName || staff?.name || '-';
                   const displayRole = a.role || staff?.role || '-';
                   return (
-                    <tr key={a._id || a.id || i} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <Fragment key={rowId}>
+                    <tr style={{ borderBottom: expanded ? 'none' : '1px solid #f3f4f6', transition: 'background 0.15s', cursor: v.state !== 'none' ? 'pointer' : 'default', background: expanded ? '#f9fafb' : 'transparent' }}
+                      onClick={(e) => { if (v.state === 'none' || e.target.closest('input,button')) return; setExpandedId(expanded ? null : rowId); }}
+                      onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = '#f9fafb'; }}
+                      onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = 'transparent'; }}>
                       <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                        {v.state !== 'none' && <span style={{ color: '#9ca3af', fontSize: '10px', marginRight: '6px' }}>{expanded ? '▼' : '▶'}</span>}
                         {displayName}
                         {a.source === 'biometric' && (
                           <span title="Punched via biometric device" style={{ marginLeft: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', background: '#eef2ff', color: '#4f46e5', verticalAlign: 'middle' }}>📟 Biometric</span>
                         )}
                       </td>
                       <td style={{ padding: '12px', color: '#6b7280' }}>{displayRole}</td>
-                      <td style={{ padding: '12px' }}>
-                        {timeEdit && timeEdit.id === (a.id || a._id)
-                          ? <input type="time" value={timeEdit.clockIn} onChange={e => setTimeEdit(t => ({ ...t, clockIn: e.target.value }))} style={{ padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
-                          : formatTime(a.clockIn)}
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{formatTime(v.firstIn)}</td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                        {v.state === 'missing_out' || (!v.hasCalc && a.clockIn && !a.clockOut && a.date && a.date < todayKey)
+                          ? <span title="Clocked in but never clocked out — open the row to add the time" style={{ color: '#b91c1c', fontWeight: 700, fontSize: '12px', background: '#fef2f2', padding: '3px 8px', borderRadius: '6px' }}>No clock-out</span>
+                          : v.state === 'working' || v.state === 'on_break' ? <span style={{ color: '#9ca3af' }}>–</span> : formatTime(v.lastOut)}
+                      </td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap', color: v.breaks.length ? '#92400e' : '#9ca3af' }}>
+                        {v.breaks.length ? `${v.breaks.length} · ${fmtMins(v.breaks.reduce((x, b) => x + (b.minutes || 0), 0))}` : '-'}
+                      </td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                        {v.state === 'none' ? '-' : fmtMins(v.workedMin)}{v.state === 'working' || v.state === 'on_break' ? <span style={{ color: '#6b7280', fontWeight: 400 }}> so far</span> : ''}
                       </td>
                       <td style={{ padding: '12px' }}>
-                        {timeEdit && timeEdit.id === (a.id || a._id)
-                          ? <input type="time" value={timeEdit.clockOut} onChange={e => setTimeEdit(t => ({ ...t, clockOut: e.target.value }))} style={{ padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
-                          : a.clockIn && !a.clockOut && a.date && a.date < todayKey
-                          ? <span title="Clocked in but never clocked out — fix it with Manual Entry" style={{ color: '#b91c1c', fontWeight: 700, fontSize: '12px', background: '#fef2f2', padding: '3px 8px', borderRadius: '6px' }}>No clock-out</span>
-                          : formatTime(a.clockOut)}
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {v.state !== 'none' && v.state !== 'done' ? <StateBadge view={v} /> : (
+                            <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
+                          )}
+                          <ExceptionChips exceptions={v.exceptions.filter(e => e.code !== 'MISSING_OUT')} />
+                        </div>
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                          backgroundColor: sc.bg, color: sc.color,
-                        }}>{sc.label}</span>
-                      </td>
-                      <td style={{ padding: '12px' }}>{diffHours(a.clockIn, a.clockOut)}</td>
                       <td style={{ padding: '12px', color: a.status === 'late' ? '#854d0e' : '#6b7280' }}>
                         {/* Server's lateBy (restaurant clock, against the rota shift when there is one); older rows without it: the work start time */}
                         {a.lateBy != null
@@ -1159,16 +1179,11 @@ export default function AttendancePage() {
                       )}
                       {isAdmin && (
                         <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
-                          {timeEdit && timeEdit.id === (a.id || a._id) ? (
-                            <>
-                              <button onClick={saveTimeEdit} disabled={savingTime} style={{ ...btnPrimary, padding: '5px 10px', fontSize: '12px' }}>{savingTime ? '…' : 'Save'}</button>
-                              <button onClick={() => setTimeEdit(null)} disabled={savingTime} style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px', marginLeft: '6px' }}>Cancel</button>
-                            </>
-                          ) : a.clockIn && a.date ? (
+                          {a.clockIn && a.date ? (
                             <button
-                              onClick={() => setTimeEdit({ id: a.id || a._id, staffId: a.staffId, staffName: a.staffName, role: a.role, date: a.date, status: a.status, clockIn: hhmm(a.clockIn), clockOut: hhmm(a.clockOut) })}
+                              onClick={() => setSessionEdit(a)}
                               disabled={!canEditDay(a.date)}
-                              title={canEditDay(a.date) ? 'Change clock-in / clock-out (e.g. a missed punch-out)' : 'Managers can change only the last 48 hours — ask the owner'}
+                              title={canEditDay(a.date) ? 'Change the day\'s times — a missed punch-out, a break, a second shift' : 'Managers can change only the last 48 hours — ask the owner'}
                               style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px', opacity: canEditDay(a.date) ? 1 : 0.45, cursor: canEditDay(a.date) ? 'pointer' : 'not-allowed' }}>
                               <FaEdit size={11} style={{ marginRight: '4px', verticalAlign: '-1px' }} />Edit
                             </button>
@@ -1176,10 +1191,22 @@ export default function AttendancePage() {
                         </td>
                       )}
                     </tr>
+                    {expanded && (
+                      <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td colSpan={isAdmin ? 10 : 8} style={{ padding: '0 12px 12px' }}>
+                          <DayDetail record={a} canEdit={isAdmin && canEditDay(a.date)} onEdit={() => setSessionEdit(a)} />
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>
             </table>
+          )}
+          {sessionEdit && (
+            <SessionEditor record={sessionEdit} staffName={sessionEdit.staffName} saving={savingTime}
+              onCancel={() => setSessionEdit(null)} onSave={saveSessions} />
           )}
         </div>
       </div>
@@ -1296,7 +1323,7 @@ export default function AttendancePage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                    {['Staff Name', 'Status', 'Clock In', 'Clock Out', 'Hours'].map(h => (
+                    {['Staff Name', 'Status', 'First In', 'Last Out', 'Worked'].map(h => (
                       <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
@@ -1311,9 +1338,13 @@ export default function AttendancePage() {
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
                         </td>
-                        <td style={{ padding: '10px 12px' }}>{formatTime(a.clockIn)}</td>
-                        <td style={{ padding: '10px 12px' }}>{formatTime(a.clockOut)}</td>
-                        <td style={{ padding: '10px 12px' }}>{diffHours(a.clockIn, a.clockOut)}</td>
+                        <td style={{ padding: '10px 12px' }}>{formatTime(dayView(a).firstIn)}</td>
+                        <td style={{ padding: '10px 12px' }}>{dayView(a).state === 'missing_out' ? <span style={{ color: '#b91c1c', fontWeight: 700, fontSize: '12px' }}>No clock-out</span> : formatTime(dayView(a).state === 'done' ? dayView(a).lastOut : null)}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          {dayView(a).state === 'none' ? '-' : fmtMins(dayView(a).workedMin)}
+                          {dayView(a).breaks.length > 0 && <span style={{ color: '#92400e', fontSize: '11px' }}> · {dayView(a).breaks.length} break{dayView(a).breaks.length > 1 ? 's' : ''}</span>}
+                          {' '}<ExceptionChips exceptions={dayView(a).exceptions.filter(e => e.code !== 'MISSING_OUT')} />
+                        </td>
                       </tr>
                     );
                   })}
@@ -1824,6 +1855,9 @@ export default function AttendancePage() {
             {savingSettings ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
+
+        {/* Attendance rules — breaks, repeat taps, missing punch-out, late, overtime (own save) */}
+        <AttendanceRules restaurantId={restaurantId} userRole={userRole} showToast={showToast} />
       </div>
     );
   }

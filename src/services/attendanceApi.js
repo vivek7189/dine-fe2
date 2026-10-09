@@ -178,3 +178,24 @@ export function saveTrackingConfig(restaurantId, config) {
     body: JSON.stringify(config),
   });
 }
+
+// POST /break-start · /break-end — start / end a break (unpaid unless the shop's rules say otherwise)
+export function breakStart(restaurantId, { staffId, location }) {
+  return fetchWithAuth(`${base(restaurantId)}/break-start`, { method: 'POST', body: JSON.stringify({ staffId, location, src: 'web' }) });
+}
+export function breakEnd(restaurantId, { staffId, location }) {
+  return fetchWithAuth(`${base(restaurantId)}/break-end`, { method: 'POST', body: JSON.stringify({ staffId, location, src: 'web' }) });
+}
+
+// GET / PUT /rules — attendance rules (breaks, repeat taps, missing punch-out, late, overtime, rounding)
+export function getAttendanceRules(restaurantId) {
+  return fetchWithAuth(`${base(restaurantId)}/rules`);
+}
+export function saveAttendanceRules(restaurantId, rules) {
+  return fetchWithAuth(`${base(restaurantId)}/rules`, { method: 'PUT', body: JSON.stringify({ rules }) });
+}
+
+// POST /recalculate — re-work days with the current rules: { from, to, staffId?, apply? } (preview unless apply)
+export function recalculateAttendance(restaurantId, body) {
+  return fetchWithAuth(`${base(restaurantId)}/recalculate`, { method: 'POST', body: JSON.stringify(body) });
+}

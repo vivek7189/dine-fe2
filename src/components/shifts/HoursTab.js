@@ -34,7 +34,7 @@ export default function HoursTab({ restaurantId, isMobile }) {
         <button onClick={() => move(-1)} style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer' }}><FaChevronLeft size={11} /></button>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{start} → {end}</div>
         <button onClick={() => move(1)} style={{ padding: '7px 10px', borderRadius: '9px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer' }}><FaChevronRight size={11} /></button>
-        <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: isMobile ? 0 : '8px' }}>Scheduled = published shifts minus breaks · Worked = Attendance clock-in to clock-out · Missed a punch-out? Fix it with <b>Edit</b> on the Attendance page (managers: last 48 h)</span>
+        <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: isMobile ? 0 : '8px' }}>Scheduled = published shifts minus breaks · Worked = net time from Attendance (unpaid breaks excluded) · Missed a punch-out? Fix it with <b>Edit</b> on the Attendance page (managers: last 48 h)</span>
       </div>
       {error && <div style={{ marginBottom: '12px', padding: '10px 14px', borderRadius: '12px', background: '#fef2f2', color: '#b91c1c', fontSize: '13px' }}>{error}</div>}
       <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', overflowX: 'auto' }}>
