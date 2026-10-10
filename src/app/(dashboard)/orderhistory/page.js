@@ -263,6 +263,9 @@ const OrderHistory = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrderType, setSelectedOrderType] = useState('all');
   const [myOrdersOnly, setMyOrdersOnly] = useState(false);
+  // Source filter: all | customer (QR / app / WhatsApp / delivery) | staff — + running customer-order count (MFC)
+  const [originFilter, setOriginFilter] = useState('all');
+  const [customerRunning, setCustomerRunning] = useState(0);
   // Staff who can't see all sales (server answers salesScope 'own'): "Mine" starts ON once; if they
   // untick it they see everyone's RUNNING orders (closed orders stay their own — enforced server-side).
   const [salesScopeOwn, setSalesScopeOwn] = useState(false);
@@ -576,6 +579,9 @@ const OrderHistory = () => {
   /** Returns a small chip config for order source: Staff, Online order (public page), or Dine App. Place near status chip. */
   const getOrderSourceChip = (order) => {
     const src = order.orderSource;
+    // Server's origin (utils/orderOrigin) — one rule for chip, filter and "Mine"
+    if (order.origin === 'qr' && src !== 'online_order') return { label: 'Online order', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+    if (order.origin === 'whatsapp') return { label: 'WhatsApp', className: 'bg-green-50 text-green-700 border-green-200' };
     const staff = order.staffInfo;
     const notes = [order.notes, staff?.kitchenNotes].filter(Boolean).join(' ').toLowerCase();
     const looksLikePublicOnline = staff?.waiterName === 'Customer Self-Order' && (notes.includes('public online') || notes.includes('online order'));
@@ -685,7 +691,7 @@ const OrderHistory = () => {
   }, [dateFilterMode, customStartDate, customEndDate, restaurant]);
 
   // Check if any non-default filters are active
-  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || selectedPaymentStatus !== 'all' || filterSubRestaurant !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || searchTerm.trim();
+  const hasActiveFilters = selectedStatus !== 'all' || selectedOrderType !== 'all' || selectedPaymentMethod !== 'all' || selectedPaymentStatus !== 'all' || filterSubRestaurant !== 'all' || dateFilterMode !== 'today' || myOrdersOnly || originFilter !== 'all' || searchTerm.trim();
 
   const activeFilterCount = [
     selectedStatus !== 'all',
@@ -695,6 +701,7 @@ const OrderHistory = () => {
     filterSubRestaurant !== 'all',
     dateFilterMode !== 'today',
     myOrdersOnly,
+    originFilter !== 'all',
   ].filter(Boolean).length;
 
   // Reset all filters to defaults
@@ -706,6 +713,7 @@ const OrderHistory = () => {
     setFilterSubRestaurant('all');
     setDateFilterMode('today');
     setMyOrdersOnly(false);
+    setOriginFilter('all');
     setSearchTerm('');
     setDisplaySearchTerm('');
     setCustomStartDate('');
@@ -716,7 +724,7 @@ const OrderHistory = () => {
     if (!restaurantId) return;
 
     // Create cache key based on filters
-    const cacheKey = `${currentPage}_${selectedStatus}_${selectedOrderType}_${myOrdersOnly}_${dateFilterMode}_${selectedPaymentMethod}_${selectedPaymentStatus}_${searchTerm.trim()}_${customStartDate}_${customEndDate}`;
+    const cacheKey = `${currentPage}_${selectedStatus}_${selectedOrderType}_${myOrdersOnly}_${originFilter}_${dateFilterMode}_${selectedPaymentMethod}_${selectedPaymentStatus}_${searchTerm.trim()}_${customStartDate}_${customEndDate}`;
     
     // Check for cached data first
     if (useCache) {
@@ -750,10 +758,16 @@ const OrderHistory = () => {
         paymentMethod: selectedPaymentMethod !== 'all' ? selectedPaymentMethod : undefined,
         paymentStatus: selectedPaymentStatus !== 'all' ? selectedPaymentStatus : undefined,
         myOrdersOnly: myOrdersOnly ? user?.id : undefined,
+        origin: originFilter !== 'all' ? originFilter : undefined,
         search: searchTerm.trim() || undefined,
         ...dateRange
       };
       const response = await apiClient.getOrders(restaurantId, filters);
+      // Running customer orders (badge on "Customer orders"): the server sends the count with filtered
+      // lists; otherwise ask for it (1 row) — never blocks the page.
+      if (typeof response.customerRunning === 'number') setCustomerRunning(response.customerRunning);
+      else apiClient.getOrders(restaurantId, { page: 1, limit: 1, origin: 'customer', ...dateRange })
+        .then(r => { if (typeof r?.customerRunning === 'number') setCustomerRunning(r.customerRunning); }).catch(() => {});
       let filteredOrders = response.orders || [];
       // Own-sales users (e.g. cashiers): the server already limits billed orders to their own and shows
       // every running order — "Mine" is NOT ticked for them any more (it hid customers' QR orders, MFC).
@@ -825,7 +839,7 @@ const OrderHistory = () => {
       setBackgroundLoading(false);
       window.dispatchEvent(new CustomEvent('orderhistoryBackgroundLoading', { detail: { loading: false } }));
     }
-  }, [restaurantId, currentPage, limit, selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate, user?.id, getDateRange]);
+  }, [restaurantId, currentPage, limit, selectedStatus, selectedOrderType, myOrdersOnly, originFilter, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate, user?.id, getDateRange]);
 
   useEffect(() => {
     const loadUserAndRestaurant = async () => {
@@ -1207,7 +1221,7 @@ const OrderHistory = () => {
   }, [restaurantId, printSettings?.orderHistoryPollingEnabled, printSettings?.orderHistoryPollingIntervalSec]);
 
   // Reset to page 1 only when filters change (not when currentPage changes – that was breaking Next/Prev)
-  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
+  useEffect(() => { setCurrentPage(1); }, [selectedStatus, selectedOrderType, myOrdersOnly, originFilter, searchTerm, dateFilterMode, selectedPaymentMethod, selectedPaymentStatus, customStartDate, customEndDate]);
 
   // Scroll-aware collapsing header — only for orders view (other views have no stat cards)
   // Uses wide hysteresis + cooldown to prevent layout-thrashing flicker
@@ -4107,6 +4121,21 @@ const OrderHistory = () => {
                 <input type="checkbox" checked={myOrdersOnly} onChange={(e) => { mineAutoAppliedRef.current = true; setMyOrdersOnly(e.target.checked); }} className="w-3 h-3 text-red-600 rounded focus:ring-red-500 border-gray-300" />
                 {t('orderHistory.mine')}
               </label>
+              {/* Source: customer orders (QR / app / WhatsApp / delivery) vs staff orders — customer orders
+                  belong to nobody until billed, so everyone who handles orders sees them (MFC) */}
+              <div className="flex items-center gap-1 shrink-0" role="group" aria-label="Order source">
+                {[['all', 'All'], ['customer', 'Customer orders'], ['staff', 'Staff orders']].map(([k, label]) => (
+                  <button key={k} type="button" onClick={() => setOriginFilter(k)}
+                    title={k === 'customer' ? 'QR scan, customer app, WhatsApp and delivery-app orders' : k === 'staff' ? 'Orders taken by staff (POS, waiter app, desktop)' : 'All orders'}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap border transition-all ${originFilter === k ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>
+                    {label}
+                    {k === 'customer' && customerRunning > 0 && (
+                      <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold inline-flex items-center justify-center ${originFilter === k ? 'bg-white text-indigo-700' : 'bg-indigo-600 text-white'}`}
+                        title={`${customerRunning} customer order${customerRunning === 1 ? '' : 's'} not billed yet`}>{customerRunning}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
               {/* Kenya eTIMS: quick filter to the KRA compliance backlog (orders not yet on KRA). */}
               {kraEnabled && (
                 <label className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs font-medium whitespace-nowrap shrink-0 border ${kraUnfiledOnly ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`} title="Show only orders not yet reported to KRA">
