@@ -4628,6 +4628,10 @@ class ApiClient {
     try { return await this.request(`/api/liquor/${restaurantId}/setup`, { method: 'POST', body: { items } }); }
     finally { this.invalidateCache(`/api/inventory/${restaurantId}`); }
   }
+  async setupLiquorAuto(restaurantId, menuItemIds) {
+    try { return await this.request(`/api/liquor/${restaurantId}/setup-auto`, { method: 'POST', body: menuItemIds ? { menuItemIds } : {} }); }
+    finally { this.invalidateCache(`/api/inventory/${restaurantId}`); }
+  }
   async countLiquor(restaurantId, inventoryItemId, bottles, note) {
     try { return await this.request(`/api/liquor/${restaurantId}/count`, { method: 'POST', body: { inventoryItemId, bottles, note } }); }
     finally { this.invalidateCache(`/api/inventory/${restaurantId}`); }

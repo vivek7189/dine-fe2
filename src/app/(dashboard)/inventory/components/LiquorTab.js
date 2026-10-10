@@ -30,11 +30,13 @@ function bottlesText(ml, bottleMl) {
 // the editor's starting rows for an item: its saved links, else what the size names say
 function draftFor(item, settings) {
   const sizes = item.sizes || [];
-  const bottleSizes = sizes.map(z => z.link?.kind === 'bottle' ? z.link.bottleMl : z.suggestion?.kind === 'bottle' ? z.suggestion.ml : null).filter(Boolean);
+  const bottleSizes = sizes.map(z => z.link?.kind === 'bottle' ? z.link.bottleMl : z.proposal?.mode === 'bottle' ? z.proposal.bottleMl : z.suggestion?.kind === 'bottle' ? z.suggestion.ml : null).filter(Boolean);
   const biggest = bottleSizes.length ? Math.max(...bottleSizes) : settings.defaultBottleMl;
   return sizes.map(z => {
     const l = z.link;
     if (l) return { variantName: z.variantName, price: z.price, mode: l.kind, bottleMl: l.kind === 'bottle' ? String(l.bottleMl) : '', fromBottleMl: l.kind === 'pour' ? String(l.bottleMl) : String(biggest), pours: String(l.pours || 1), pourMl: l.followsSetting === false ? String(l.ml) : '', openingBottles: '' };
+    const pr = z.proposal;
+    if (pr) return { variantName: z.variantName, price: z.price, mode: pr.mode, bottleMl: pr.bottleMl ? String(pr.bottleMl) : String(settings.defaultBottleMl), fromBottleMl: String(pr.fromBottleMl || biggest), pours: String(pr.pours || 1), pourMl: pr.pourMl ? String(pr.pourMl) : '', openingBottles: '', check: !!pr.check };
     const g = z.suggestion;
     if (g?.kind === 'bottle') return { variantName: z.variantName, price: z.price, mode: 'bottle', bottleMl: String(g.ml || settings.defaultBottleMl), fromBottleMl: String(biggest), pours: '1', pourMl: '', openingBottles: '' };
     if (g?.kind === 'pour') return { variantName: z.variantName, price: z.price, mode: 'pour', bottleMl: '', fromBottleMl: String(biggest), pours: String(g.mult || 1), pourMl: '', openingBottles: '' };
@@ -109,17 +111,12 @@ export default function LiquorTab({ restaurantId, isMobile, canUpdate, formatCur
   };
   // one click: every spirit not set up yet, from what its size names say (counts can be entered later)
   const setupAll = async () => {
-    const todo = items.filter(i => !i.setUp).map(i => ({ menuItemId: i.menuItemId, sizes: payloadOf(draftFor(i, settings)) }))
-      .filter(x => x.sizes.some(z => z.mode !== 'off'));
-    if (!todo.length) { setBulkAsk(false); return; }
     setBusy('bulk'); setError('');
     try {
-      let ok = 0, failed = 0;
-      for (let i = 0; i < todo.length; i += 40) {
-        const res = await apiClient.setupLiquor(restaurantId, todo.slice(i, i + 40));
-        (res.results || []).forEach(x => (x.ok ? ok++ : failed++));
-      }
-      onMessage?.(`${ok} liquor item${ok === 1 ? '' : 's'} set up${failed ? `, ${failed} need a look` : ''}. Now count the bottles on the shelf (Count).`);
+      const r = await apiClient.setupLiquorAuto(restaurantId);
+      const failed = (r.results || []).filter(x => !x.ok).length;
+      const check = (r.toCheck || []).length;
+      onMessage?.(`${r.setUp || 0} liquor item${r.setUp === 1 ? '' : 's'} set up${failed ? `, ${failed} failed` : ''}${check ? ` — ${check} had no size in the name: check them (Edit)` : ''}. Now count the bottles on the shelf (Count).`);
       setBulkAsk(false); await load();
     } catch (e) { setError(e?.message || 'Could not set them up.'); }
     finally { setBusy(null); }
@@ -199,7 +196,7 @@ export default function LiquorTab({ restaurantId, isMobile, canUpdate, formatCur
               <div key={i.menuItemId} style={{ border: `1px solid ${open ? C.purple : '#f1f5f9'}`, borderRadius: 12, padding: '10px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{i.name}</div>
+                    <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{i.name}{i.needsCheck && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: C.amber, background: '#fffbeb', borderRadius: 999, padding: '1px 8px' }}>check size</span>}</div>
                     <div style={{ fontSize: 12, color: C.gray }}>
                       {i.category} · {i.sizes.map(z => `${String(z.variantName || i.name).replace(i.name, '').replace(/^\s*[-–·]\s*/, '') || 'Bottle'}${z.price ? ` ${formatCurrency ? formatCurrency(z.price) : z.price}` : ''}${z.link ? (z.link.kind === 'pour' ? ` (${z.link.pours > 1 ? `${z.link.pours} tots` : 'tot'} from ${fmtMl(z.link.bottleMl)})` : ' (bottle)') : ''}`).join(' · ')}
                     </div>
@@ -251,7 +248,7 @@ export default function LiquorTab({ restaurantId, isMobile, canUpdate, formatCur
                       return (
                         <div key={idx} style={{ border: '1px solid #ede9fe', borderRadius: 10, padding: 10, background: '#fcfbff' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <b style={{ fontSize: 13.5 }}>{r.variantName || i.name}{r.price ? <span style={{ color: C.gray, fontWeight: 500 }}> · {formatCurrency ? formatCurrency(r.price) : r.price}</span> : null}</b>
+                            <b style={{ fontSize: 13.5 }}>{r.check && <span title="No size in the name — please check" style={{ color: C.amber, marginRight: 4 }}>⚠</span>}{r.variantName || i.name}{r.price ? <span style={{ color: C.gray, fontWeight: 500 }}> · {formatCurrency ? formatCurrency(r.price) : r.price}</span> : null}</b>
                             <div style={{ display: 'flex', gap: 6 }}>
                               {[['bottle', 'Bottle'], ['pour', 'Tot / peg'], ['off', 'Not counted']].map(([k, t]) => <button key={k} type="button" onClick={() => setRow({ mode: k })} style={chip(r.mode === k)}>{t}</button>)}
                             </div>
