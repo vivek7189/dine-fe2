@@ -22,9 +22,11 @@ import { useEffect, useRef } from 'react';
 import apiClient from '../lib/api';
 import { isServerApp, getLocalServerUrl, setLocalServerUrl } from '../lib/localServer';
 import { reconnectLan } from '../lib/lanRealtime';
+import { subscribeNetworkStatus } from '../hooks/useNetworkStatus';
 
 const LOOPBACK = 'http://127.0.0.1:3003';
-const PROBE_INTERVAL_MS = 5000;   // how often we check reachability
+const PROBE_INTERVAL_MS = 5000;   // check spacing while a change is being confirmed
+const MAX_OFFLINE_PROBE_MS = 30000; // while offline, back off up to this
 const STABLE_MS = 10000;          // the new state must hold this long before we switch (dead-band)
 const PROBE_TIMEOUT_MS = 3000;
 
@@ -86,8 +88,9 @@ export default function OfflineFallback() {
       } finally { switching.current = false; }
     };
 
+    // Returns whether the cloud answered (null when skipped).
     const tick = async () => {
-      if (stopped || switching.current) return;
+      if (stopped || switching.current) return null;
       const committedState = getLocalServerUrl() ? 'offline' : 'online';
       const cloudUp = await reachable(cloudTarget(), PROBE_TIMEOUT_MS);
       const rawState = cloudUp ? 'online' : 'offline';
@@ -95,7 +98,7 @@ export default function OfflineFallback() {
       if (rawState === committedState) {
         candidate.current = { state: null, since: 0 };
         publish({ mode: committedState, cloudUp, pending: null });
-        return;
+        return cloudUp;
       }
       // Reality differs from our current mode → run the hysteresis timer before switching.
       const now = Date.now();
@@ -105,18 +108,50 @@ export default function OfflineFallback() {
         candidate.current = { state: null, since: 0 };
         await commit(rawState === 'offline');
       }
+      return cloudUp;
     };
 
-    tick(); // initial read
-    const id = setInterval(tick, PROBE_INTERVAL_MS);
-    const nudge = () => { tick(); }; // OS event → probe sooner (still debounced by the same logic)
+    // ── WHEN to check — no constant polling of our server ──
+    // ONLINE with requests working → no checks at all: real API requests already prove the cloud is up.
+    // A check run starts only on a hint that something changed: the OS 'offline'/'online' event, or a
+    // real API request failing with no answer (subscribeNetworkStatus, fed by api.js). It runs every
+    // 5s just long enough to pass the same dead-band (STABLE_MS) as before, then stops once confirmed
+    // online. While OFFLINE it backs off 5s → 10s → 20s → 30s: those checks can't reach our server
+    // anyway, so they cost it nothing — the first one that gets through is what brings the app back.
+    let timer = null;
+    let offlineDelay = PROBE_INTERVAL_MS;
+    const schedule = (ms) => {
+      if (stopped) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(run, ms);
+    };
+    const run = async () => {
+      timer = null;
+      if (stopped) return;
+      const cloudUp = await tick();
+      if (stopped) return;
+      if (candidate.current.state) { schedule(PROBE_INTERVAL_MS); return; } // finishing the dead-band
+      // Keep checking (backing off) while offline OR while the cloud is down but we couldn't switch
+      // yet (e.g. the local server was still starting) — only a confirmed-online cloud goes idle.
+      if (getLocalServerUrl() || cloudUp !== true) {
+        schedule(offlineDelay);
+        offlineDelay = Math.min(offlineDelay * 2, MAX_OFFLINE_PROBE_MS);
+        return;
+      }
+      offlineDelay = PROBE_INTERVAL_MS;                                         // online + confirmed → idle
+    };
+    const nudge = () => { offlineDelay = PROBE_INTERVAL_MS; schedule(0); };
+
+    schedule(0); // one check at start-up
     window.addEventListener('online', nudge);
     window.addEventListener('offline', nudge);
+    const unsubscribe = subscribeNetworkStatus((online) => { if (!online) nudge(); });
     return () => {
       stopped = true;
-      clearInterval(id);
+      if (timer) clearTimeout(timer);
       window.removeEventListener('online', nudge);
       window.removeEventListener('offline', nudge);
+      unsubscribe();
     };
   }, []);
 

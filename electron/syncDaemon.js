@@ -37,6 +37,9 @@ let isPaused = false;
 let isOnline = false;
 let wakeResolve = null;
 let consecutiveFailures = 0;
+// Set when a real push/pull request got no answer at all (network down / timeout) during the
+// current cycle; any HTTP response means the network is fine.
+let networkErrorThisCycle = false;
 let lastPullTimestamp = 0;
 let authToken = null;
 
@@ -158,6 +161,18 @@ function logSyncAction(action, endpoint, details) {
 
 // ─── Connectivity ───────────────────────────────────────────────────────────
 
+// The OS says DEFINITELY offline (Electron net.isOnline() === false is reliable; true is not).
+function osSaysOffline() {
+  try {
+    const { net } = require('electron');
+    return !!net && typeof net.isOnline === 'function' && net.isOnline() === false;
+  } catch {
+    return false;
+  }
+}
+
+// One reachability check. Only used when we are not already sure we're online (see runLoop) —
+// while push/pull requests are answering, they ARE the proof, so no separate check is sent.
 async function checkConnectivity() {
   try {
     const controller = new AbortController();
@@ -193,6 +208,7 @@ async function fetchFromCloud(endpoint) {
     return await resp.json();
   } catch {
     clearTimeout(timeout);
+    networkErrorThisCycle = true;
     return null;
   }
 }
@@ -300,11 +316,20 @@ async function pushChanges() {
       }
     } catch (err) {
       clearTimeout(timeout);
+      hadError = true;
+      // No answer. One quick check tells which it was: if our server is unreachable the NETWORK is
+      // down — don't spend this change's retry (it isn't the change's fault) and stop the batch; the
+      // queue is sent once we are confirmed online again. If the server answers, this request itself
+      // failed → count a retry exactly as before.
+      if (!(await checkConnectivity())) {
+        logSyncAction('push_network_error', endpoint, `${err.message} (offline — will resend)`);
+        networkErrorThisCycle = true;
+        break;
+      }
       db.prepare(
         'UPDATE change_log SET retry_count = retry_count + 1, sync_error = ? WHERE id = ?'
       ).run(`Network error: ${err.message}`, id);
       logSyncAction('push_network_error', endpoint, err.message);
-      hadError = true;
     }
 
     // Check if max retries exceeded
@@ -427,6 +452,7 @@ async function pullUpdates() {
         }
       } else if (data === null) {
         hadError = true;
+        if (networkErrorThisCycle) break; // network down → don't try the remaining endpoints
       }
     } catch (err) {
       logSyncAction('pull_error', entity.endpoint(restaurantId), `${entity.type}: ${err.message}`);
@@ -522,9 +548,22 @@ async function runLoop() {
       if (!isRunning) break;
     }
 
-    // Check connectivity
-    isOnline = await checkConnectivity();
-    if (!isOnline) continue;
+    // Online/offline WITHOUT polling our server every cycle:
+    //  • the OS says definitely offline → offline, nothing sent;
+    //  • we were online and the last cycle's real requests answered → still online, no check sent;
+    //  • otherwise (start-up, or the last cycle had a network error) → one check before sending
+    //    anything. While truly offline that check can't reach our server, so it costs it nothing.
+    // Pushes only run once online is confirmed, as before, so queued offline changes don't spend
+    // their retries while the network is down.
+    if (osSaysOffline()) {
+      isOnline = false;
+      continue;
+    }
+    if (!isOnline) {
+      isOnline = await checkConnectivity();
+      if (!isOnline) continue;
+    }
+    networkErrorThisCycle = false;
 
     // PUSH local changes to the cloud
     let pushResult = 'ok';
@@ -549,6 +588,9 @@ async function runLoop() {
     } else {
       consecutiveFailures = 0;
     }
+
+    // A request got no answer → treat as offline; the next cycle re-checks before sending again.
+    if (networkErrorThisCycle) isOnline = false;
   }
 }
 

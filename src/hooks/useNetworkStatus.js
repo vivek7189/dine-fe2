@@ -47,6 +47,13 @@ export function reportNetworkSuccess() {
   }
 }
 
+// Listen to the shared status (fed by real API request results above) outside React —
+// e.g. the local-server app's online/offline switcher. Returns an unsubscribe function.
+export function subscribeNetworkStatus(fn) {
+  globalListeners.push(fn);
+  return () => { globalListeners = globalListeners.filter((f) => f !== fn); };
+}
+
 export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(globalIsOnline);
   const [lastOnlineAt, setLastOnlineAt] = useState(Date.now());
