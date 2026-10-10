@@ -2,6 +2,7 @@ import { track, trackOnce, identifyUser, resetAnalytics, trackApiError } from '.
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
+import { offlineEditBlocked } from './offlineEditLock';
 import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride, getPublicBackend } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 import { getStableTerminalId } from '../utils/terminalId';
@@ -309,6 +310,10 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}, isRetry = false) {
+    // Offline app on its local server: refuse menu / owner-setting saves with a clear message
+    // (they'd be lost or conflict on reconnect). Never blocks in the online app or on the web.
+    const _offlineLock = offlineEditBlocked(endpoint, options.method, options.body);
+    if (_offlineLock) throw new Error(_offlineLock);
     // Keep the cached base in sync with the session's resolved home. getApiBase() is the
     // single source of truth (local-server → override → per-user/session pin → default);
     // the localStorage pin can change AFTER this singleton was constructed (e.g. the login

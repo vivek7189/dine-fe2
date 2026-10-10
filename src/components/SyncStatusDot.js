@@ -18,7 +18,7 @@ export default function SyncStatusDot() {
   // Connectivity state published by OfflineFallback: { mode:'online'|'offline', cloudUp, pending }.
   const [conn, setConn] = useState({ mode: 'online', cloudUp: true, pending: null });
   // API-sync worker status (Phase 1.4/1.5/6): { pendingUp, running, enabled, deadLetter, authExpired, diskCritical } from local.
-  const [sync, setSync] = useState({ pendingUp: 0, running: false, enabled: false, deadLetter: 0, authExpired: false, diskCritical: false, diskFreeMb: null });
+  const [sync, setSync] = useState({ pendingUp: 0, running: false, enabled: false, deadLetter: 0, authExpired: false, diskCritical: false, diskFreeMb: null, setupProgress: null });
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function SyncStatusDot() {
     const pollSync = async () => {
       try {
         const r = await fetch('http://127.0.0.1:3003/api/local-server/api-sync-status', { cache: 'no-store' });
-        if (r.ok && alive) { const j = await r.json(); setSync({ pendingUp: j.pendingUp || 0, running: !!j.running, enabled: !!j.enabled, deadLetter: j.deadLetter || 0, authExpired: !!j.authExpired, diskCritical: !!j.diskCritical, diskFreeMb: (j.diskFreeMb == null ? null : j.diskFreeMb) }); }
+        if (r.ok && alive) { const j = await r.json(); setSync({ pendingUp: j.pendingUp || 0, running: !!j.running, enabled: !!j.enabled, deadLetter: j.deadLetter || 0, authExpired: !!j.authExpired, diskCritical: !!j.diskCritical, diskFreeMb: (j.diskFreeMb == null ? null : j.diskFreeMb), setupProgress: j.setupProgress || null }); }
       } catch (_) { /* local server momentarily busy — keep last */ }
     };
     pollSync();
@@ -72,6 +72,7 @@ export default function SyncStatusDot() {
     : checking ? 'checking'
     : (conn.mode === 'online' && sync.authExpired) ? 'authexpired'
     : (conn.pending && conn.pending !== conn.mode) ? 'reconnecting'
+    : (conn.mode === 'online' && sync.setupProgress) ? 'settingup'
     : (conn.mode === 'online' && sync.pendingUp > 0) ? 'syncing'
     : (conn.mode === 'online' && sync.deadLetter > 0) ? 'warn'
     : conn.mode === 'offline' ? 'offline' : 'online';
@@ -80,6 +81,7 @@ export default function SyncStatusDot() {
     checking:     { dot: '#2563EB', label: 'Checking…' },
     authexpired:  { dot: '#DC2626', label: '⚠ Sign-in needed' },
     reconnecting: { dot: '#2563EB', label: 'Reconnecting…' },
+    settingup:    { dot: '#2563EB', label: setupLabel(sync.setupProgress) },
     syncing:      { dot: '#2563EB', label: `Syncing ${sync.pendingUp}…` },
     warn:         { dot: '#DC2626', label: `⚠ ${sync.deadLetter} unsynced` },
     offline:      { dot: '#C98A2B', label: sync.pendingUp > 0 ? `Offline · ${sync.pendingUp} queued` : 'Offline' },
@@ -95,6 +97,7 @@ export default function SyncStatusDot() {
         : state === 'offline' ? 'Working on the local server — your orders are saved and will sync when the internet is back. Tap to re-check.'
         : state === 'syncing' ? `Syncing ${sync.pendingUp} order(s) to the cloud…`
         : state === 'warn' ? `${sync.deadLetter} record(s) couldn’t sync to the cloud yet — retrying automatically. Tap to re-check.`
+        : state === 'settingup' ? 'Copying this restaurant to this PC so it can keep working without internet. You can keep selling meanwhile.'
         : state === 'reconnecting' ? 'Connection is changing — will switch once it stays stable. Tap to force now.'
         : 'Online — connected to the cloud (your whole account). Tap to re-check / re-sync.'}
       style={S.wrap}
@@ -103,6 +106,15 @@ export default function SyncStatusDot() {
       <span style={S.label}>{conf.label}</span>
     </button>
   );
+}
+
+// "Setting up offline copy · customers 2,000 / 3,348" (orders have no fixed total: "orders 1,116").
+const LIST_NAMES = { customers: 'customers', inventory: 'stock', orders: 'orders', pos_payments: 'payments' };
+function setupLabel(p) {
+  if (!p) return 'Setting up offline copy…';
+  const n = (x) => Number(x || 0).toLocaleString();
+  const what = LIST_NAMES[p.list] || p.list;
+  return `Setting up offline copy · ${what} ${n(p.fetched)}${p.total ? ` / ${n(p.total)}` : ''}`;
 }
 
 const S = {
