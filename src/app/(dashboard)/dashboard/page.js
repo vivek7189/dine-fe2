@@ -4667,8 +4667,9 @@ function RestaurantPOSContent() {
         console.log('🏨 Room order created for room:', roomNumber, '- Backend will handle check-in linking');
       }
 
-      // Update table status if table is selected
-      if (selectedTable && selectedTable.id) {
+      // Complete billing creates the order already COMPLETED — the table stays free (marking it
+      // occupied here left it "Occupied" after the bill was done; nothing freed it — MFC).
+      if (selectedTable && selectedTable.id && String(orderData.status || '').toLowerCase() !== 'completed') {
         await apiClient.updateTableStatus(selectedTable.id, 'occupied', orderId, selectedRestaurant?.id);
       }
 
