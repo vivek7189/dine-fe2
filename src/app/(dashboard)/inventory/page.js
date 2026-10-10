@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck, FaWineBottle, FaPlus, FaGlassWhiskey } from 'react-icons/fa';
+import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck, FaWineBottle, FaPlus, FaBoxOpen } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -124,8 +124,8 @@ export default function InventoryManagement() {
     apiClient.getLiquor(rid).then(d => setHasLiquor((d?.items || []).length > 0)).catch(() => {});
   }, [inventory.currentRestaurant?.id, outletType]);
   const tabs = useMemo(() => [
-    ...(outletType !== 'warehouse' ? [{ id: 'sold', name: 'Sold as is', icon: FaWineBottle }] : []),
-    ...(hasLiquor ? [{ id: 'liquor', name: 'Liquor', icon: FaGlassWhiskey }] : []),
+    ...(outletType !== 'warehouse' ? [{ id: 'sold', name: 'Sold as is', icon: FaBoxOpen }] : []),
+    ...(hasLiquor ? [{ id: 'liquor', name: 'Liquor', icon: FaWineBottle }] : []),
     { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
     { id: 'stock', name: 'Stock', icon: FaBoxes },
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),

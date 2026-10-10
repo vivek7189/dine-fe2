@@ -28,7 +28,11 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
   }, [restaurantId]);
   useEffect(() => { load(); }, [load, refreshKey]);
 
-  const items = data?.items || [];
+  // Spirits & wine are counted by bottle in the Liquor tab — not here (unless already tracked here).
+  const allItems = data?.items || [];
+  const isLiquorItem = (i) => i.liquor || (i.liquorCategory && !i.tracked);
+  const items = allItems.filter(i => !isLiquorItem(i));
+  const liquorCount = allItems.length - items.length;
   const stockOf = (i) => Number(i.linked ? i.linked.currentStock : i.stockQuantity) || 0;
   const lowOf = (i) => (i.lowStockThreshold != null ? Number(i.lowStockThreshold) : (i.linked ? i.linked.minStock : 0)) || 0;
   const shown = useMemo(() => {
@@ -62,6 +66,12 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
             Things you sell exactly as you buy them — Coke, water, chips, beer. Tick <b>Track</b> and enter how many you have: every sale reduces it, and at 0 it shows “out of stock”.
             Dishes made from ingredients (biryani, dosa) use <b>Recipes</b> instead.
           </div>
+          {liquorCount > 0 && (
+            <div style={{ marginTop: 6, fontSize: 12.5, color: '#6d28d9' }}>
+              {liquorCount} spirit{liquorCount === 1 ? '' : 's'} &amp; wine{liquorCount === 1 ? '' : 's'} are counted by bottle in the Liquor tab
+              {onOpenLiquor && <button type="button" onClick={() => onOpenLiquor(null)} style={{ marginLeft: 6, border: 'none', background: 'none', color: '#6d28d9', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 12.5 }}>Open Liquor →</button>}
+            </div>
+          )}
         </div>
         {data && <div style={{ fontSize: 12.5, color: '#374151' }}><b>{data.counts.tracked}</b> tracked · <b style={{ color: data.counts.outOfStock ? '#b91c1c' : '#374151' }}>{data.counts.outOfStock}</b> out of stock</div>}
       </div>
