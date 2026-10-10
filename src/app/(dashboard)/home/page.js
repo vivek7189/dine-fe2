@@ -20,6 +20,7 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import UpdateBanner from '../../../components/UpdateBanner';
 import StaffAlertsCard from '../../../components/StaffAlertsCard';
+import MeetingsHomeCard from '../../../components/meetings/MeetingsHomeCard';
 import UpcomingEventsCard from '../../../components/calendar/UpcomingEventsCard';
 import GetStartedCard from '../../../components/GetStartedCard';
 import { useDineBot } from '../../../components/DineBotProvider';
@@ -504,6 +505,9 @@ export default function HomePage() {
         <StaffAlertsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null} isMobile={isMobile}
           canEditSettings={['owner', 'admin', 'co-owner'].includes(String(user?.role || '').toLowerCase())} />
       )}
+
+      {/* Staff meetings: next meeting / minutes to read (anyone invited; hidden when nothing) */}
+      <MeetingsHomeCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null} />
 
       {/* Upcoming festivals / holidays / own events (hidden when the calendar isn't available) */}
       <UpcomingEventsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null} />

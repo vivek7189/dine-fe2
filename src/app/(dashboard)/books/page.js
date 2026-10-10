@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt, FaGift, FaStar, FaHandshake } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -51,6 +51,19 @@ export default function BooksPage() {
   const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Meetings tab badge: upcoming meetings + past ones still waiting for their minutes (MFC)
+  const [meetingCount, setMeetingCount] = useState(0);
+  useEffect(() => {
+    if (!books.restaurantId || !books.apiClient?.getStaffMeetings) return;
+    let alive = true;
+    books.apiClient.getStaffMeetings(books.restaurantId).then(r => {
+      if (!alive) return;
+      const now = Date.now();
+      setMeetingCount((r.meetings || []).filter(m => m.status === 'scheduled' && (new Date(m.scheduledAt).getTime() > now || !m.minutesPublishedAt)).length);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [books.restaurantId, books.apiClient, activeTab]);
 
   // Read tab from URL on mount
   const urlTab = searchParams.get('tab');
@@ -149,6 +162,9 @@ export default function BooksPage() {
               }}>
                 <Icon size={isMobile ? 12 : 14} />
                 {tab.name}
+                {tab.id === 'meetings' && meetingCount > 0 && (
+                  <span title="Upcoming meetings / waiting for minutes" style={{ marginLeft: 6, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: activeTab === 'meetings' ? '#fff' : '#4f46e5', color: activeTab === 'meetings' ? '#4f46e5' : '#fff', fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{meetingCount}</span>
+                )}
               </button>
             );
           })}

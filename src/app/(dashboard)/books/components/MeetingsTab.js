@@ -32,6 +32,7 @@ const blankForm = () => {
 
 export default function MeetingsTab({ restaurantId, apiClient, staffList = [], isMobile }) {
   const [meetings, setMeetings] = useState([]);
+  const [reach, setReach] = useState({}); // staffId → { app, phone: ok|missing|invalid|shared }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
@@ -48,7 +49,7 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
   const load = useCallback(async () => {
     if (!restaurantId) return;
     setLoading(true); setError('');
-    try { const r = await apiClient.getStaffMeetings(restaurantId); setMeetings(r.meetings || []); }
+    try { const r = await apiClient.getStaffMeetings(restaurantId); setMeetings(r.meetings || []); setReach(r.reach || {}); }
     catch (e) { setError(e?.message || 'Could not load meetings.'); }
     finally { setLoading(false); }
   }, [restaurantId, apiClient]);
@@ -127,7 +128,7 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {shown.map(m => (
               <MeetingCard key={m.id} m={m} open={openId === m.id} onToggle={() => setOpenId(openId === m.id ? null : m.id)}
-                restaurantId={restaurantId} apiClient={apiClient} roles={roles} staff={staff} isMobile={isMobile}
+                restaurantId={restaurantId} apiClient={apiClient} roles={roles} staff={staff} isMobile={isMobile} reach={reach}
                 onChanged={async (text) => { if (text) flash(text); await load(); }} onError={setError} sentText={sentText} />
             ))}
           </div>
@@ -164,7 +165,9 @@ function Audience({ value, onChange, roles, staff }) {
   );
 }
 
-function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff, isMobile, onChanged, onError, sentText }) {
+const PHONE_ISSUE = { missing: 'no phone number', invalid: 'phone number too short', shared: 'same phone number as another staff member' };
+
+function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff, isMobile, onChanged, onError, sentText, reach = {} }) {
   const [att, setAtt] = useState(m.attendance || {});
   const [minutes, setMinutes] = useState(m.minutes || '');
   const [decisions, setDecisions] = useState(m.decisions || '');
@@ -176,6 +179,9 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
 
   const invitees = m.invitees || [];
   const acks = m.acks || {};
+  // Who can't be reached: no phone app with notifications AND no usable WhatsApp number
+  const unreachable = invitees.filter(i => { const r = reach[i.staffId]; return r && !r.app && r.phone !== 'ok'; });
+  const n = m.notified || {};
   const acked = invitees.filter(i => acks[i.staffId]).length;
   const past = new Date(m.scheduledAt).getTime() < Date.now();
   const published = m.status === 'completed' && m.minutesPublishedAt;
@@ -216,13 +222,33 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
       {open && (
         <div style={{ padding: '0 12px 14px', borderTop: '1px solid #f3f4f6' }}>
           {m.agenda && <p style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap', margin: '10px 0' }}><b>Agenda:</b> {m.agenda}</p>}
+          {n.sent != null && (
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '8px 0' }}>
+              Sent to {n.sent} staff: <b>{n.push || 0}</b> on the phone app, <b>{n.whatsapp || 0}</b> on WhatsApp
+              {n.remindedAt ? ` · reminder ${new Date(n.remindedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}.
+              {' '}Staff also see it on Home and in My Meetings.
+            </p>
+          )}
+          {unreachable.length > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', fontSize: 12, color: '#92400e', margin: '8px 0' }}>
+              <b>{unreachable.length} can&apos;t get the message</b> (not on the phone app, and WhatsApp needs their own correct number) — fix their phone in Staff, or tell them in person:
+              <div style={{ marginTop: 4 }}>{unreachable.map(i => `${i.name || i.staffId} (${PHONE_ISSUE[reach[i.staffId].phone] || 'no number'})`).join(' · ')}</div>
+            </div>
+          )}
           {m.cancelledReason && <p style={{ fontSize: 13, color: '#b91c1c' }}>Cancelled: {m.cancelledReason}</p>}
 
           <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', margin: '10px 0 6px' }}>Attendance{published ? ' & who has read the minutes' : ''}</div>
           <div style={{ display: 'grid', gap: 6 }}>
             {invitees.map(i => (
               <div key={i.staffId} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
-                <span style={{ minWidth: isMobile ? 120 : 180, fontWeight: 600 }}>{i.name || i.staffId}<span style={{ color: '#9ca3af', fontWeight: 400 }}>{i.role ? ` · ${i.role}` : ''}</span></span>
+                <span style={{ minWidth: isMobile ? 120 : 180, fontWeight: 600 }}>{i.name || i.staffId}<span style={{ color: '#9ca3af', fontWeight: 400 }}>{i.role ? ` · ${i.role}` : ''}</span>
+                  {reach[i.staffId] && (
+                    <span title={`${reach[i.staffId].app ? 'Gets phone-app notifications' : 'Not on the phone app'} · WhatsApp: ${reach[i.staffId].phone === 'ok' ? 'number OK' : PHONE_ISSUE[reach[i.staffId].phone]}`}
+                      style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: reach[i.staffId].app || reach[i.staffId].phone === 'ok' ? '#047857' : '#b45309' }}>
+                      {reach[i.staffId].app ? '📱' : ''}{reach[i.staffId].phone === 'ok' ? '💬' : '⚠'}
+                    </span>
+                  )}
+                </span>
                 {editable && ATT.map(([k, l, c]) => <button key={k} type="button" onClick={() => setAtt(a => ({ ...a, [i.staffId]: a[i.staffId] === k ? undefined : k }))} style={{ ...chip(att[i.staffId] === k, c), padding: '3px 9px' }}>{l}</button>)}
                 {published && (acks[i.staffId]
                   ? <span style={{ color: '#047857', fontSize: 12, fontWeight: 700 }}><FaCheck size={10} /> read {new Date(acks[i.staffId].at).toLocaleDateString()}</span>
