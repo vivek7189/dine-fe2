@@ -30,6 +30,7 @@ import { SortableContext, useSortable, arrayMove, rectSortingStrategy, verticalL
 import { CSS } from '@dnd-kit/utilities';
 import AvailabilityScheduleEditor from './components/AvailabilityScheduleEditor';
 import { describeSchedule, itemAvailability } from '@/lib/menuSchedule';
+import Link from 'next/link';
 
 
 // Liquor categories (same idea as the server's utils/liquor.js) + "1 L" / "750 ml" bottle labels
@@ -7105,7 +7106,7 @@ const MenuManagement = () => {
                                   ? `${(Number(variant.stockLink.pours) || 1) > 1 ? `${variant.stockLink.pours} tots` : 'tot'}${variant.stockLink.followsSetting === false ? ` ${variant.stockLink.ml} ml` : ''} poured from the ${fmtBottleMl(variant.stockLink.bottleMl)} bottle`
                                   : `one ${fmtBottleMl(variant.stockLink.bottleMl)} bottle`}</span>
                               : <span>Not counted in liquor stock yet</span>}
-                            <a href="/inventory?tab=liquor" style={{ color: '#6d28d9', fontWeight: 600 }}>{variant.stockLink ? 'Liquor stock →' : 'Set up →'}</a>
+                            <Link href="/inventory?tab=liquor" style={{ color: '#6d28d9', fontWeight: 600 }}>{variant.stockLink ? 'Liquor stock →' : 'Set up →'}</Link>
                           </div>
                         )}
                       </div>
