@@ -147,6 +147,13 @@ jobs:
         # GitHub publish target on CI and fails asking for GH_TOKEN.
         run: npx electron-builder --config electron-builder.unified.yml --win --x64 --publish never
 
+      # --publish never writes no update manifest, so the installed app's "Check for updates"
+      # found nothing. Write server.yml (what the app looks for in the -server release).
+      - name: Write update manifest (server.yml)
+        working-directory: frontend
+        shell: bash
+        run: node scripts/write-server-update-manifest.js dist-electron-unified win "${{ needs.setup.outputs.version }}"
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
@@ -155,6 +162,7 @@ jobs:
             frontend/dist-electron-unified/*.exe
             frontend/dist-electron-unified/*.exe.blockmap
             frontend/dist-electron-unified/server.yml
+          if-no-files-found: error
           retention-days: 30
 
   # ── macOS (signed + notarized) ───────────────────────────────────────────────
@@ -239,6 +247,10 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: npx electron-builder --config electron-builder.unified.yml --mac --publish never
+
+      - name: Write update manifest (server-mac.yml)
+        working-directory: frontend
+        run: node scripts/write-server-update-manifest.js dist-electron-unified mac "${{ needs.setup.outputs.version }}"
 
       - name: Upload macOS installers
         uses: actions/upload-artifact@v4
