@@ -2,7 +2,12 @@
 
 import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { orderDisplayNumber } from '../../utils/orderNumber';
-import { resolveItemTierPrice, resolveOrderTypeRuleId } from '../../utils/variantPricing';
+import { resolveItemTierPrice, resolveOrderTypeRuleId, resolveVariantTierPrice } from '../../utils/variantPricing';
+import { createPortal } from 'react-dom';
+
+// Sizes of a menu item (1 Litre / 375 ML / Tot, Half / Full…) and a cart line's key (item + size)
+const sizesOf = (it) => (Array.isArray(it?.variants) ? it.variants.filter(v => v && v.name) : []);
+const lineKeyOf = (ci) => `${ci.id}::${ci.selectedVariant?.name || ''}`;
 import { resolveAdditionalCharges } from '../../utils/additionalCharges';
 import { calculatePerItemTax } from '../../utils/taxEngine';
 
@@ -252,6 +257,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Full category objects (id/name/taxGroupId) — per-category tax groups for the bill (server parity)
   const [menuCategoryObjs, setMenuCategoryObjs] = useState([]);
   const [cart, setCart] = useState([]);
+  const [sizeFor, setSizeFor] = useState(null); // item whose sizes (1 L / Tot / Half…) the customer is choosing
   const [customerInfo, setCustomerInfo] = useState({
     phone: '',
     seatNumber: tableNumberProp || '',
@@ -719,36 +725,52 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }
   }, [cart, applicableOffers, hasAutoApplied, customerAppSettings?.offerSettings?.autoApplyBestOffer, customerAppSettings?.offerSettings?.allowMultipleOffers, customerAppSettings?.offerSettings?.maxOffersAllowed]);
 
-  // Cart functions
-  const addToCart = (item) => {
+  // Cart functions. An item with sizes (1 Litre / 375 ML / Tot, Half / Full…) opens the size picker;
+  // each size is its own cart line (key = item + size) and is sent as selectedVariant, priced like the POS.
+  const qtyOf = (itemId) => cart.filter(ci => ci.id === itemId).reduce((n, ci) => n + ci.quantity, 0);
+  const addToCart = (item, variant = null) => {
     if (customerAppSettings?.pageSettings?.publicMenuOnly === true) return;
     // Menu timings: outside its hours an item can't be added (the backend refuses it too)
     if (item && item.availableNow === false) {
       showMenuNotice(`${item.name} is not available right now${item.availableText ? ` · available ${item.availableText}` : ''}`);
       return;
     }
+    const src = (menu || []).find(m => m.id === item.id) || item;
+    const chosen = variant || item.selectedVariant || null;
+    if (!chosen && sizesOf(src).length) { setSizeFor(src); return; }
+    const line = chosen
+      ? (() => {
+          const def = sizesOf(src).find(v => v.name === chosen.name) || chosen;
+          const price = resolveVariantTierPrice(def, activePricingRuleId, restaurant?.multiPricing?.rules);
+          const base = src.basePrice ?? src.price;
+          return { ...src, price, basePrice: base, selectedVariant: { name: def.name, price } };
+        })()
+      : item;
+    const key = lineKeyOf(line);
     setCart(prev => {
-      const existingItem = prev.find(cartItem => cartItem.id === item.id);
+      const existingItem = prev.find(cartItem => lineKeyOf(cartItem) === key);
       if (existingItem) {
         return prev.map(cartItem =>
-          cartItem.id === item.id
+          lineKeyOf(cartItem) === key
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...line, quantity: 1 }];
     });
   };
 
-  const removeFromCart = (itemId) => {
+  // itemOrLine: a cart line (removes that size) or a menu item id (removes its last-added line)
+  const removeFromCart = (itemOrLine) => {
     setCart(prev => {
-      const existingItem = prev.find(item => item.id === itemId);
+      const key = typeof itemOrLine === 'object' && itemOrLine ? lineKeyOf(itemOrLine)
+        : (() => { const lines = prev.filter(ci => ci.id === itemOrLine); return lines.length ? lineKeyOf(lines[lines.length - 1]) : null; })();
+      if (!key) return prev;
+      const existingItem = prev.find(ci => lineKeyOf(ci) === key);
       if (existingItem && existingItem.quantity > 1) {
-        return prev.map(item =>
-          item.id === itemId ? { ...item, quantity: item.quantity - 1 } : item
-        );
+        return prev.map(ci => (lineKeyOf(ci) === key ? { ...ci, quantity: ci.quantity - 1 } : ci));
       }
-      return prev.filter(item => item.id !== itemId);
+      return prev.filter(ci => lineKeyOf(ci) !== key);
     });
   };
 
@@ -986,6 +1008,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // so restaurants without multi-pricing get the exact same numbers as before.
   const pricedMenu = useMemo(
     () => (menu || []).map(item => {
+      const sizes = Array.isArray(item.variants) ? item.variants.filter(v => v && v.name) : [];
+      if (sizes.length) {
+        const prices = sizes.map(v => resolveVariantTierPrice(v, activePricingRuleId, restaurant?.multiPricing?.rules));
+        return { ...item, price: Math.min(...prices), basePrice: item.price, fromPrice: prices.some(p => p !== prices[0]) };
+      }
       const resolved = resolveItemTierPrice(item, item.price, activePricingRuleId, restaurant?.multiPricing?.rules);
       return resolved !== item.price ? { ...item, price: resolved, basePrice: item.price } : item;
     }),
@@ -1000,6 +1027,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       const next = prev.map(ci => {
         const src = (menu || []).find(m => m.id === ci.id);
         if (!src) return ci;
+        if (ci.selectedVariant) {
+          const def = (src.variants || []).find(v => v && v.name === ci.selectedVariant.name);
+          const vp = def ? resolveVariantTierPrice(def, activePricingRuleId, restaurant?.multiPricing?.rules) : ci.price;
+          if (vp === ci.price) return ci;
+          changed = true;
+          return { ...ci, price: vp, selectedVariant: { ...ci.selectedVariant, price: vp } };
+        }
         const resolved = resolveItemTierPrice(src, src.price, activePricingRuleId, restaurant?.multiPricing?.rules);
         if (resolved === ci.price) return ci;
         changed = true;
@@ -1258,7 +1292,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        shortCode: item.shortCode
+        shortCode: item.shortCode,
+        ...(item.selectedVariant ? { selectedVariant: { name: item.selectedVariant.name, price: item.selectedVariant.price } } : {}),
       })),
       totalAmount: getCartSubtotal(),
       orderType: (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType),
@@ -2341,7 +2376,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     item={item}
                     onAddToCart={addToCart}
                     onRemoveFromCart={removeFromCart}
-                    cartQuantity={cart.find(ci => ci.id === item.id)?.quantity || 0}
+                    cartQuantity={qtyOf(item.id)}
                     getCategoryColor={getCategoryColor}
                     cs={cs}
                     globalHideImages={restaurant?.posSettings?.hideMenuImages === true}
@@ -2351,6 +2386,33 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             </div>
           );
         })()}
+        {sizeFor && typeof document !== 'undefined' && createPortal(
+          <div onClick={(e) => { if (e.target === e.currentTarget) setSizeFor(null); }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 10050, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '20px 20px 0 0', padding: '18px 18px calc(18px + env(safe-area-inset-bottom, 0px))', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#1f2937' }}>{sizeFor.name}</h3>
+                <button type="button" onClick={() => setSizeFor(null)} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, border: 'none', background: '#f1f5f9', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>Choose a size</div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {sizesOf(sizeFor).map(v => {
+                  const p = resolveVariantTierPrice(v, activePricingRuleId, restaurant?.multiPricing?.rules);
+                  const label = String(v.name).toLowerCase().startsWith(String(sizeFor.name).toLowerCase()) ? (String(v.name).slice(String(sizeFor.name).length).replace(/^[\s\-–:·]+/, '') || v.name) : v.name;
+                  const inCart = cart.find(ci => ci.id === sizeFor.id && ci.selectedVariant?.name === v.name)?.quantity || 0;
+                  return (
+                    <button key={v.name} type="button" onClick={() => { addToCart(sizeFor, v); setSizeFor(null); }}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', border: '1.5px solid #e5e7eb', background: 'white', cursor: 'pointer', textAlign: 'left', fontSize: '15px' }}>
+                      <span style={{ fontWeight: 600, color: '#1f2937' }}>{label}{inCart ? <span style={{ marginLeft: 8, fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>{inCart} in cart</span> : null}</span>
+                      <span style={{ fontWeight: 800, color: '#1f2937', whiteSpace: 'nowrap' }}>{cs}{Number(p || 0).toFixed(2)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
         {Object.keys(groupedMenu).length > 0 ? (
           Object.entries(groupedMenu).map(([category, items]) => (
             <div key={category} id={`category-${category}`} style={{ marginTop: '20px', scrollMarginTop: '180px' }}>
@@ -2378,7 +2440,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     item={item}
                     onAddToCart={addToCart}
                     onRemoveFromCart={removeFromCart}
-                    cartQuantity={cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
+                    cartQuantity={qtyOf(item.id)}
                     getCategoryColor={getCategoryColor}
                     cs={cs}
                     globalHideImages={restaurant?.posSettings?.hideMenuImages === true}
@@ -2891,7 +2953,7 @@ const FeaturedCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
           {item.name}
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-          <span style={{ fontSize: '15px', fontWeight: 800, color: '#1f2937' }}>{cs}{Number(item.price || 0).toFixed(0)}</span>
+          <span style={{ fontSize: '15px', fontWeight: 800, color: '#1f2937' }}>{item.fromPrice ? <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>from </span> : null}{cs}{Number(item.price || 0).toFixed(0)}</span>
           {cartQuantity > 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', borderRadius: '8px', overflow: 'hidden', height: '30px', background: '#22c55e' }}>
               <button onClick={() => onRemoveFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#fff', width: '26px', height: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaMinus size={9} /></button>
@@ -3039,7 +3101,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         {/* Price + ADD button row — pushed to bottom */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
           <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>
-            {cs}{Number(item.price || 0).toFixed(2)}
+            {item.fromPrice ? <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>from </span> : null}{cs}{Number(item.price || 0).toFixed(2)}
           </span>
 
           {cartQuantity > 0 ? (
@@ -3349,7 +3411,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.id} style={{
+              <div key={lineKeyOf(item)} style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -3359,11 +3421,11 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
                 marginBottom: '8px'
               }}>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {item.selectedVariant.name}</span> : null}</h4>
                   <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{cs}{Number(item.price || 0).toFixed(2)} each</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button onClick={() => removeFromCart(item.id)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
+                  <button onClick={() => removeFromCart(item)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
                     <FaMinus size={10} color="#64748b" />
                   </button>
                   <span style={{ fontSize: '14px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
@@ -4378,7 +4440,7 @@ const CheckoutView = ({
                                   borderBottom: idx < order.items.length - 1 ? '1px dashed #e2e8f0' : 'none'
                                 }}>
                                   <div style={{ fontSize: '13px', color: '#374151' }}>
-                                    {item.name} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
+                                    {item.name}{item.selectedVariant?.name ? ` · ${item.selectedVariant.name}` : ''} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
                                   </div>
                                   <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
                                     {cs}{Number(item.total ?? (item.price * item.quantity)).toFixed(2)}
@@ -4567,7 +4629,7 @@ const CheckoutView = ({
                   <FaShoppingCart size={16} /> Your Order ({getCartItemCount()} items)
                 </h3>
                 {cart.map(item => (
-                  <div key={item.id} style={{
+                  <div key={lineKeyOf(item)} style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -4577,11 +4639,11 @@ const CheckoutView = ({
                     marginBottom: '8px'
                   }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {item.selectedVariant.name}</span> : null}</div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>{cs}{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button onClick={() => removeFromCart(item.id)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
+                      <button onClick={() => removeFromCart(item)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
                         <FaMinus size={10} color="#6b7280" />
                       </button>
                       <span style={{ fontWeight: '600', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
