@@ -13,6 +13,7 @@ export default function StockTab({
   setShowAddModal, handleEditItem, handleDeleteItem,
   getStatusColor, dashboardStats, inventoryItems, todayUsageSummary = [],
   onViewHistory,
+  onReceive,
   permissions = { read: true, add: true, update: true, delete: true },
   currentRestaurant,
 }) {
@@ -233,6 +234,12 @@ export default function StockTab({
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    {permissions.update && onReceive && (
+                      <button onClick={() => onReceive(item)} title="Add stock (received)" style={{
+                        padding: '6px 9px', border: 'none', borderRadius: 6, background: '#059669', color: '#fff',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700,
+                      }}><FaPlus size={10} /> Stock</button>
+                    )}
                     <button onClick={() => onViewHistory?.(item)} style={{
                       padding: 6, border: '1px solid #dbeafe', borderRadius: 6,
                       background: '#fff', cursor: 'pointer', display: 'flex',
@@ -424,6 +431,12 @@ export default function StockTab({
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, background: '#fff', zIndex: 1, borderLeft: '1px solid #f3f4f6' }}>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                        {permissions.update && onReceive && (
+                          <button onClick={() => onReceive(item)} title="Add stock (received)"
+                            style={{ ...actionBtnStyle, background: '#059669', borderColor: '#059669', color: '#fff', width: 'auto', padding: '0 9px', gap: 4, fontSize: 12, fontWeight: 700 }}>
+                            <FaPlus size={10} /> Stock
+                          </button>
+                        )}
                         <button onClick={() => onViewHistory?.(item)}
                           style={{ ...actionBtnStyle, borderColor: '#dbeafe' }} title="History"
                         >

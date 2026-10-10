@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck } from 'react-icons/fa';
+import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck, FaWineBottle, FaPlus } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -25,9 +24,11 @@ import InventoryModals from './components/InventoryModals';
 import WasteModals from './components/WasteModals';
 import SmartImportModal from './components/SmartImportModal';
 import LinkRecipeModal from './components/LinkRecipeModal';
+import SoldAsIsTab from './components/SoldAsIsTab';
+import ReceiveStockModal from './components/ReceiveStockModal';
 
 // Always-visible 3-step explainer: what inventory is, how dishes connect, what happens on a sale.
-function HowItWorks({ isMobile, onAddItem, onLinkDish, canAdd }) {
+function HowItWorks({ isMobile, onAddItem, onLinkDish, onSoldAsIs, canAdd }) {
   const [open, setOpen] = useState(true);
   useEffect(() => { try { if (localStorage.getItem('inv_howto_closed') === '1') setOpen(false); } catch {} }, []);
   const toggle = () => setOpen(o => { const n = !o; try { localStorage.setItem('inv_howto_closed', n ? '0' : '1'); } catch {} return n; });
@@ -44,14 +45,14 @@ function HowItWorks({ isMobile, onAddItem, onLinkDish, canAdd }) {
         <>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
             <div style={card}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>1</span><b style={{ fontSize: 13.5, color: '#111827' }}>Add what you buy</b></div>
-              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Chicken, rice, milk, oil, Coke bottles… with how much you have.</span>
-              {canAdd && <button type="button" style={act} onClick={onAddItem}>+ Add inventory item</button>}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>1</span><b style={{ fontSize: 13.5, color: '#111827' }}>Things you sell as they are</b></div>
+              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Coke, water, chips, beer: open <b>Sold as is</b>, tick <b>Track</b> and enter how many you have. When stock comes in, press <b>Receive stock</b>.</span>
+              {onSoldAsIs && <button type="button" style={act} onClick={onSoldAsIs}>Open Sold as is</button>}
             </div>
             <div style={card}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>2</span><b style={{ fontSize: 13.5, color: '#111827' }}>Link each dish</b></div>
-              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Pick a menu item and say what one plate uses (e.g. Biryani = 200 g chicken + 150 g rice).</span>
-              {canAdd && <button type="button" style={act} onClick={onLinkDish}>Link a dish</button>}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>2</span><b style={{ fontSize: 13.5, color: '#111827' }}>Dishes made from ingredients (optional)</b></div>
+              <span style={{ fontSize: 12.5, color: '#4b5563' }}>Add what you buy (chicken, rice…), then link the dish: e.g. Biryani = 200 g chicken + 150 g rice.</span>
+              {canAdd && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}><button type="button" style={act} onClick={onAddItem}>+ Add ingredient</button><button type="button" style={act} onClick={onLinkDish}>Link a dish</button></div>}
             </div>
             <div style={card}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={num}>3</span><b style={{ fontSize: 13.5, color: '#111827' }}>Sell as usual</b></div>
@@ -59,13 +60,8 @@ function HowItWorks({ isMobile, onAddItem, onLinkDish, canAdd }) {
             </div>
           </div>
           <div style={{ marginTop: 10, padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, fontSize: 12.5, color: '#78350f', lineHeight: 1.55 }}>
-            <b>Important — items you sell as-is</b> (Coke, water bottle, chips packet, beer): they do <b>not</b> reduce inventory just because the names match.
-            Open the item on the <b>Menu</b> page and tick <b>Track inventory</b> (no recipe needed), or link it in <b>Link dishes</b>.
-            Any menu item that is not linked does not change inventory when sold.
-            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Link href="/menu" style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #d97706', color: '#92400e', fontWeight: 700, fontSize: 12, textDecoration: 'none', background: '#fff' }}>Go to Menu</Link>
-              {canAdd && <button type="button" onClick={onLinkDish} style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #d97706', color: '#92400e', fontWeight: 700, fontSize: 12, background: '#fff', cursor: 'pointer' }}>Link a dish</button>}
-            </div>
+            A menu item only reduces stock when it is <b>tracked</b> (Sold as is) or has a <b>recipe</b> — a matching name alone does nothing.
+            Tracking re-uses a stock item with the same name, so you never get two “Coke” items.
           </div>
         </>
       )}
@@ -118,6 +114,7 @@ export default function InventoryManagement() {
   // Dynamic tabs based on outlet type (warehouse/kitchen get extra tabs, recipes hidden for warehouse)
   const outletType = inventory.currentRestaurant?.outletType || 'outlet';
   const tabs = useMemo(() => [
+    ...(outletType !== 'warehouse' ? [{ id: 'sold', name: 'Sold as is', icon: FaWineBottle }] : []),
     { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
     { id: 'stock', name: 'Stock', icon: FaBoxes },
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
@@ -136,6 +133,12 @@ export default function InventoryManagement() {
   ], [outletType]);
 
   const validTabIds = useMemo(() => tabs.map(t => t.id), [tabs]);
+  // A tab this outlet doesn't have (e.g. "Sold as is" on a warehouse) → its first tab
+  useEffect(() => { if (activeTab && !validTabIds.includes(activeTab) && !searchParams.get('tab')) setActiveTab(validTabIds[0]); }, [activeTab, validTabIds]);
+  // Receive stock sheet (header button, Sold as is rows, Stock rows)
+  const [receive, setReceive] = useState({ open: false, preset: null });
+  const [soldRefresh, setSoldRefresh] = useState(0);
+  const openReceive = (preset = null) => setReceive({ open: true, preset });
 
   // Read tab from URL on mount
   useEffect(() => {
@@ -216,9 +219,17 @@ export default function InventoryManagement() {
               Smart inventory management
             </p>
           </div>
-          {permissions.add && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
+          {(permissions.add || permissions.update) && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {permissions.update && (
+                <button onClick={() => openReceive(null)} style={{
+                  padding: '10px 18px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none', borderRadius: '10px',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+                }}>
+                  <FaPlus size={12} /> Receive stock
+                </button>
+              )}
+              {permissions.add && <button
                 onClick={() => inventory.setShowAddModal(true)}
                 style={{
                   padding: '10px 18px',
@@ -231,9 +242,9 @@ export default function InventoryManagement() {
                 }}
               >
                 <FaMagic size={14} />
-                Smart Import
-              </button>
-              <button
+                Add items
+              </button>}
+              {permissions.add && <button
                 onClick={() => inventory.setShowQuickOrderModal(true)}
                 style={{
                   padding: '10px 18px',
@@ -247,7 +258,7 @@ export default function InventoryManagement() {
               >
                 <FaClipboardList size={14} />
                 Log External Order
-              </button>
+              </button>}
             </div>
           )}
         </div>
@@ -287,7 +298,7 @@ export default function InventoryManagement() {
 
         {outletType !== 'warehouse' && (
           <HowItWorks isMobile={isMobile} canAdd={!!permissions?.add}
-            onAddItem={() => inventory.setShowAddModal(true)} onLinkDish={() => openLinkDish()} />
+            onAddItem={() => inventory.setShowAddModal(true)} onLinkDish={() => openLinkDish()} onSoldAsIs={() => setActiveTab('sold')} />
         )}
 
         {/* Tab Navigation */}
@@ -340,8 +351,21 @@ export default function InventoryManagement() {
           />
         )}
 
+        {activeTab === 'sold' && (
+          <SoldAsIsTab
+            restaurantId={inventory.currentRestaurant?.id}
+            isMobile={isMobile}
+            canUpdate={!!permissions.update}
+            formatCurrency={formatCurrency}
+            refreshKey={soldRefresh}
+            onReceive={(p) => openReceive(p)}
+            onMessage={(m) => inventory.setSuccess(m)}
+          />
+        )}
+
         {activeTab === 'stock' && (
           <StockTab
+            onReceive={(item) => openReceive({ kind: 'stock', item })}
             sortedItems={inventory.sortedItems}
             categories={inventory.categories}
             searchTerm={inventory.searchTerm}
@@ -523,6 +547,15 @@ export default function InventoryManagement() {
 
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} />
+      <ReceiveStockModal
+        open={receive.open}
+        preset={receive.preset}
+        restaurantId={inventory.currentRestaurant?.id}
+        inventoryItems={inventory.inventoryItems}
+        currencySymbol={typeof getCurrencySymbol === 'function' ? getCurrencySymbol() : ''}
+        onClose={() => setReceive({ open: false, preset: null })}
+        onDone={(msg) => { inventory.setSuccess(msg); setSoldRefresh(x => x + 1); inventory.loadInventoryData?.(); }}
+      />
       <LinkRecipeModal
         open={linkDish.open}
         preselectMenuItemId={linkDish.menuItemId}

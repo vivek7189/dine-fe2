@@ -9,7 +9,7 @@ export default function useInventory() {
   const hasLoadedOnce = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('sold'); // "Sold as is" first (falls back to the first tab where it isn't shown)
   const [procurementSubTab, setProcurementSubTab] = useState('suppliers');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -1498,7 +1498,7 @@ export default function useInventory() {
     quickStockItems, setQuickStockItems,
 
     // Handlers
-    handleAddItem, handleEditItem, handleUpdateItem, handleDeleteItem, confirmDeleteItem, handleViewHistory,
+    handleAddItem, handleEditItem, handleUpdateItem, handleDeleteItem, confirmDeleteItem, handleViewHistory, loadInventoryData,
     deleteConfirmModal, setDeleteConfirmModal,
     handleQuickStockUpdate, handleAddSupplier, handleDeleteSupplier,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,

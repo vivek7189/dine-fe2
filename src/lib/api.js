@@ -2911,6 +2911,19 @@ class ApiClient {
     return this.request(`/api/inventory/${restaurantId}/${itemId}/batches`);
   }
 
+  // ── Inventory → "Sold as is" (1 menu item = 1 stock item) + Receive stock ──
+  async getSoldAsIs(restaurantId) {
+    this.invalidateCache(`/api/inventory/${restaurantId}/sold-as-is`);
+    return this.request(`/api/inventory/${restaurantId}/sold-as-is`);
+  }
+  async trackSoldAsIs(restaurantId, items) {
+    try { return await this.request(`/api/inventory/${restaurantId}/sold-as-is/track`, { method: 'POST', body: { items } }); }
+    finally { this.invalidateCache(`/api/inventory/${restaurantId}`); this.invalidateCache('/api/menus'); }
+  }
+  async receiveStock(restaurantId, itemId, data) {
+    try { return await this.request(`/api/inventory/${restaurantId}/${itemId}/receive`, { method: 'POST', body: data }); }
+    finally { this.invalidateCache(`/api/inventory/${restaurantId}`); }
+  }
   async getItemStockHistory(restaurantId, itemId) {
     return this.request(`/api/inventory/${restaurantId}/${itemId}/history`);
   }
