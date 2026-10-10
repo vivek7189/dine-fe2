@@ -207,7 +207,8 @@ export default function AttendancePage() {
   const [expandedId, setExpandedId] = useState(null);   // Today table: row showing its day timeline
   const [sessionEdit, setSessionEdit] = useState(null); // record being edited in the session editor
   const [attentionOnly, setAttentionOnly] = useState(false);
-  const [listFilter, setListFilter] = useState(null);   // Today: show only present | absent | late | leave (summary boxes)
+  const [listFilter, setListFilter] = useState(null);
+  const [tableSort, setTableSort] = useState({ key: null, dir: 'asc' }); // Today table + lists: tap a column header to sort (MFC)   // Today: show only present | absent | late | leave (summary boxes)
   const [staffSort, setStaffSort] = useState('asc'); // manual-entry staff list order
   const [reviewRows, setReviewRows] = useState(null);
   const [otEdits, setOtEdits] = useState({});
@@ -987,6 +988,46 @@ export default function AttendancePage() {
       ? (todayData.absentStaff || staffList.filter(st => !attendance.some(a => a.staffId === (st.id || st._id)) || attendance.some(a => a.staffId === (st.id || st._id) && a.status === 'absent'))
         .map(st => ({ id: st.id || st._id, name: st.name, role: st.role })))
       : [];
+    // Sort by the tapped column (again = reverse). Empty values (not clocked out yet, no late) go last either way.
+    const staffOf = (a) => staffList.find(st => st._id === a.staffId || st.id === a.staffId);
+    const timeMs = (t) => { if (!t) return null; const d = new Date(t && t.toDate ? t.toDate() : (t && t._seconds ? t._seconds * 1000 : t)); return isNaN(d) ? null : d.getTime(); };
+    const sortVal = (a, key) => {
+      if (key === 'name') return String(a.staffName || a.name || staffOf(a)?.name || '').toLowerCase() || null;
+      if (key === 'role') return String(a.role || staffOf(a)?.role || '').toLowerCase() || null;
+      if (!('clockIn' in a) && !('calc' in a) && !a.status) return null; // absentee rows: name / role only
+      const v = dayView(a);
+      if (key === 'firstIn') return timeMs(v.firstIn);
+      if (key === 'lastOut') return v.state === 'working' || v.state === 'on_break' || v.state === 'missing_out' ? null : timeMs(v.lastOut);
+      if (key === 'breaks') return v.breaks.length ? v.breaks.reduce((x, b) => x + (b.minutes || 0), 0) : null;
+      if (key === 'worked') return v.state === 'none' ? null : v.workedMin;
+      if (key === 'status') return String(v.state !== 'none' && v.state !== 'done' ? v.state : (a.status || '')).toLowerCase() || null;
+      if (key === 'lateBy') return Number(a.lateBy) > 0 ? Number(a.lateBy) : null;
+      if (key === 'ot') return a.clockIn ? (Number(otValue(a)) || 0) : null;
+      return null;
+    };
+    const sortRows = (rows) => {
+      if (!tableSort.key) return rows;
+      const m = tableSort.dir === 'desc' ? -1 : 1;
+      return [...rows].sort((x, y) => {
+        const a = sortVal(x, tableSort.key), b = sortVal(y, tableSort.key);
+        if (a == null && b == null) return 0;
+        if (a == null) return 1;
+        if (b == null) return -1;
+        return (typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' })) * m;
+      });
+    };
+    shown = sortRows(shown);
+    const absentSorted = sortRows(absentPeople);
+    const SortTh = ({ label, k, pad = '10px 12px' }) => {
+      const on = k && tableSort.key === k;
+      return (
+        <th style={{ padding: pad, textAlign: 'left', fontWeight: 600, color: on ? '#b91c1c' : '#6b7280', fontSize: '12px', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: k ? 'pointer' : 'default', userSelect: 'none' }}
+          title={k ? `Sort by ${label.toLowerCase()} — tap again to reverse` : undefined}
+          onClick={k ? () => setTableSort(t => (t.key === k ? { key: k, dir: t.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'asc' })) : undefined}>
+          {label}{k && <span style={{ marginLeft: '4px', fontSize: '10px', opacity: on ? 1 : 0.35 }}>{on ? (tableSort.dir === 'asc' ? '▲' : '▼') : '⇅'}</span>}
+        </th>
+      );
+    };
 
     return (
       <div>
@@ -1124,9 +1165,9 @@ export default function AttendancePage() {
               <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>No one is absent today 🎉</p>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                <thead><tr style={{ borderBottom: '2px solid #e5e7eb' }}>{['Staff Name', 'Role', ''].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
+                <thead><tr style={{ borderBottom: '2px solid #e5e7eb' }}><SortTh label="Staff Name" k="name" /><SortTh label="Role" k="role" /><SortTh label="" /></tr></thead>
                 <tbody>
-                  {absentPeople.map(p => (
+                  {absentSorted.map(p => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '12px', fontWeight: 600 }}>{p.name || '-'}</td>
                       <td style={{ padding: '12px', color: '#6b7280' }}>{p.role || '-'}</td>
@@ -1148,8 +1189,8 @@ export default function AttendancePage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                  {['Staff Name', 'Role', 'First In', 'Last Out', 'Breaks', 'Worked', 'Status', 'Late By', ...(isAdmin ? ['Overtime (h)', ''] : [])].map(h => (
-                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: '12px', textTransform: 'uppercase' }}>{h}</th>
+                  {[['Staff Name', 'name'], ['Role', 'role'], ['First In', 'firstIn'], ['Last Out', 'lastOut'], ['Breaks', 'breaks'], ['Worked', 'worked'], ['Status', 'status'], ['Late By', 'lateBy'], ...(isAdmin ? [['Overtime (h)', 'ot'], ['', null]] : [])].map(([h, k]) => (
+                    <SortTh key={h || 'actions'} label={h} k={k} />
                   ))}
                 </tr>
               </thead>
