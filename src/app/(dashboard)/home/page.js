@@ -360,9 +360,12 @@ export default function HomePage() {
     return (
       <>
         <GetStartedCard />
-        <OpenOrdersAlert currencySymbol={currencySymbol} style={{ margin: isMobile ? '12px 12px 0' : '20px 24px 0' }} />
-        <UpcomingEventsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null}
-          style={{ margin: isMobile ? '12px 12px 0' : '20px 24px 0' }} />
+        {/* Festival chip + open-orders chip side by side (each hides itself when empty) */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: isMobile ? '12px 12px 0' : '20px 24px 0' }}>
+          <UpcomingEventsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null}
+            style={{ marginBottom: 0, maxWidth: '100%' }} />
+          <OpenOrdersAlert currencySymbol={currencySymbol} />
+        </div>
         <HeadquartersContent embedded />
       </>
     );

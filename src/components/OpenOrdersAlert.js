@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../lib/api';
+import { FaHourglassHalf } from 'react-icons/fa';
 
-// Owner / admin Home: open orders CARRIED OVER from earlier days ("forgotten tabs"), across the
-// outlets they own. Today's running tables are normal service, so they never trigger it. Hidden
-// when nothing is waiting. Tap → Open Orders page for that outlet (settle / cancel / delete).
+// Owner / admin Home: a small chip for open orders CARRIED OVER from earlier days ("forgotten
+// tabs"), across the outlets they own. Today's running tables are normal service, so they never
+// trigger it. Hidden when nothing is waiting. Tap → Open Orders page (settle / cancel / delete).
 const MAX_OUTLETS = 30;
 
 async function summaryFor(rid) {
@@ -54,35 +55,21 @@ export default function OpenOrdersAlert({ style, currencySymbol = '' }) {
   const total = rows.reduce((s, r) => s + r.agedCount, 0);
   const amount = rows.reduce((s, r) => s + r.agedAmount, 0);
   const oldest = Math.max(...rows.map(r => r.oldestDays));
-  const go = (rid) => router.push(`/open-orders?restaurantId=${encodeURIComponent(rid)}`);
   const money = (n) => `${currencySymbol || ''}${Math.round(n).toLocaleString()}`;
+  const tip = `${total} open order${total !== 1 ? 's' : ''} from earlier days (oldest ${oldest} day${oldest !== 1 ? 's' : ''}) — not counted in sales.`
+    + (rows.length > 1 ? '\n' + rows.map(r => `${r.name || 'Outlet'}: ${r.agedCount}`).join('\n') : '');
 
+  // Small pill (sits next to the festival chip). Opens the outlet with the most waiting;
+  // the Open Orders page has an outlet picker for the rest.
   return (
-    <div style={{ borderRadius: 14, border: '1px solid #fde68a', background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', padding: '14px 18px', ...style }}>
-      <div onClick={() => go(rows[0].id)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 11, background: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>⚠️</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#92400e' }}>
-              {total} open order{total !== 1 ? 's' : ''} from earlier days · {money(amount)}
-            </div>
-            <div style={{ fontSize: 12, color: '#a16207' }}>
-              Oldest {oldest} day{oldest !== 1 ? 's' : ''}. Not counted in sales — settle, cancel or delete them.
-            </div>
-          </div>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#b45309', whiteSpace: 'nowrap' }}>Review →</div>
-      </div>
-      {rows.length > 1 && (
-        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {rows.map(r => (
-            <button key={r.id} type="button" onClick={() => go(r.id)}
-              style={{ border: '1px solid #fcd34d', background: '#fff', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#92400e', cursor: 'pointer' }}>
-              {r.name || 'Outlet'} · {r.agedCount}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <button type="button" className="animate-in" title={tip}
+      onClick={() => router.push(`/open-orders?restaurantId=${encodeURIComponent(rows[0].id)}`)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%', padding: '6px 12px', borderRadius: 999,
+        border: '1px solid #fcd34d', background: '#fffbeb', color: '#92400e', fontSize: 13, cursor: 'pointer', textAlign: 'left', ...style }}>
+      <FaHourglassHalf color="#d97706" style={{ flexShrink: 0 }} />
+      <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{total} open order{total !== 1 ? 's' : ''}</span>
+      <span style={{ fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>· {money(amount)} · from earlier days</span>
+      <span style={{ color: '#b45309', flexShrink: 0 }}>→</span>
+    </button>
   );
 }
