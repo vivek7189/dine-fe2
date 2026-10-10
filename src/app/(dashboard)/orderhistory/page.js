@@ -755,10 +755,9 @@ const OrderHistory = () => {
       };
       const response = await apiClient.getOrders(restaurantId, filters);
       let filteredOrders = response.orders || [];
-      if (response.salesScope === 'own') {
-        setSalesScopeOwn(true);
-        if (!mineAutoAppliedRef.current) { mineAutoAppliedRef.current = true; if (!myOrdersOnly) setMyOrdersOnly(true); }
-      }
+      // Own-sales users (e.g. cashiers): the server already limits billed orders to their own and shows
+      // every running order — "Mine" is NOT ticked for them any more (it hid customers' QR orders, MFC).
+      if (response.salesScope === 'own') setSalesScopeOwn(true);
 
       filteredOrders.sort((a, b) => {
         let dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?._seconds ? new Date(a.createdAt._seconds * 1000) : new Date(a.createdAt));
@@ -3726,7 +3725,7 @@ const OrderHistory = () => {
           {activeView === 'orders' && (<>
           {salesScopeOwn && (
             <div className="mb-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-[12px] text-indigo-800">
-              Showing <b>your own sales</b> — the totals are for your current shift. {myOrdersOnly ? <>Untick <b>Mine</b> to also see other staff&apos;s running (unbilled) orders.</> : <>Running orders of all staff are shown; billed orders are only yours.</>}
+              Showing <b>your own sales</b> — the totals are for your current shift. {myOrdersOnly ? <>Untick <b>Mine</b> to also see other staff&apos;s running (unbilled) orders — customers&apos; QR orders always show.</> : <>Running orders of all staff and customers&apos; QR orders are shown; billed orders are only yours.</>}
             </div>
           )}
           {/* Order summary — reconciled cards (Net Sales·payments / Total Sales / Open / Orders·breakdown). Live for all. */}
