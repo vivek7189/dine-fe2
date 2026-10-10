@@ -13662,6 +13662,28 @@ const Admin = () => {
                 </button>
                 <span style={{ fontSize: '13px', color: '#374151' }}>Show Price on KOT</span>
               </div>
+              {/* Kitchen screen "Done" + who may close / cancel from the kitchen (defaults = how it always worked) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '13px', color: '#374151', minWidth: '210px' }}>Kitchen screen “Done” button</span>
+                  <select value={posSettings.kitchenDoneAction || 'auto'}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, kitchenDoneAction: e.target.value }))}
+                    style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
+                    <option value="auto">Automatic — closes the bill if they can take payment, else marks served</option>
+                    <option value="complete">Always closes the bill</option>
+                    <option value="served">Only marks served (cashier closes the bill)</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '13px', color: '#374151', minWidth: '210px' }}>Closing / cancelling from the kitchen</span>
+                  <select value={posSettings.kitchenStatusRule || 'log'}
+                    onChange={(e) => setPosSettings(prev => ({ ...prev, kitchenStatusRule: e.target.value }))}
+                    style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
+                    <option value="log">Allowed for kitchen staff (recorded)</option>
+                    <option value="permission">Needs “Complete bill” / “Cancel” permission</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Divider */}

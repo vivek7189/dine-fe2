@@ -49,7 +49,7 @@ const TABS = [
   { key: 'new', label: t('kot.tabNew'), statuses: ['pending', 'confirmed'], color: '#f59e0b', activeColor: '#f59e0b' },
   { key: 'cooking', label: t('kot.tabCooking'), statuses: ['preparing'], color: '#3b82f6', activeColor: '#3b82f6' },
   { key: 'ready', label: t('kot.tabReady'), statuses: ['ready'], color: '#22c55e', activeColor: '#22c55e' },
-  { key: 'done', label: t('kot.tabDone'), statuses: ['completed'], color: '#6b7280', activeColor: '#6b7280' },
+  { key: 'done', label: t('kot.tabDone'), statuses: ['completed', 'served'], color: '#6b7280', activeColor: '#6b7280' },
 ];
 
 // ─── Status Colors for Cards ───
@@ -625,7 +625,20 @@ const KitchenOrderTicket = () => {
     // After 5 seconds, persist to backend
     undoTimeoutRef.current = setTimeout(async () => {
       try {
-        await apiClient.completeOrder(orderId);
+        // Admin → KOT "Kitchen Done": 'auto' (default) closes the bill as before; if this person may
+        // not take payment (server says no), the order is marked SERVED instead of failing. 'complete'
+        // = always close the bill (old behaviour), 'served' = kitchen never closes the bill.
+        const doneAction = currentRestaurant?.posSettings?.kitchenDoneAction || 'auto';
+        if (doneAction === 'served') {
+          await apiClient.updateKotStatus(orderId, 'served');
+        } else {
+          try {
+            await apiClient.completeOrder(orderId);
+          } catch (e) {
+            if (doneAction !== 'auto' || e?.status !== 403) throw e;
+            await apiClient.updateKotStatus(orderId, 'served');
+          }
+        }
         setTimeout(() => loadKotData(false), 1000);
       } catch (error) {
         console.error('Error completing order:', error);

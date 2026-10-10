@@ -16,6 +16,7 @@ const RULES = [
   { key: 'requireClockIn', label: 'Must clock in', hint: 'Can’t take or see orders until clocked in' },
   { key: 'blockOnLeave', label: 'Block on leave', hint: 'Approved leave today → can’t clock in or work' },
   { key: 'lockAfterShift', label: 'Lock after shift', hint: 'Locked once their rota shift (+ grace) is over' },
+  { key: 'lockAfterShiftRota', label: 'Lock by rota (no clock-in)', hint: 'Without “Must clock in”: locked once today’s rota shift (+ grace) is over; a manager’s PIN unlocks. Not on the rota today = not locked' },
 ];
 
 const PRESETS = {
@@ -200,10 +201,12 @@ export default function StaffAccessSettings({ restaurant, posSettings, setPosSet
                         {RULES.map(rule => {
                           const on = rule.key === 'blockOnLeave' ? (rc.requireClockIn === true && rc.blockOnLeave !== false) : rc[rule.key] === true;
                           const needsClock = rule.key === 'blockOnLeave' || rule.key === 'lockAfterShift';
+                          // the rota lock is for roles WITHOUT clock-in (with clock-in, "Lock after shift" applies)
+                          const disabled = (needsClock && rc.requireClockIn !== true) || (rule.key === 'lockAfterShiftRota' && rc.requireClockIn === true);
                           return (
                             <td key={rule.key} style={{ padding: '10px 8px', textAlign: 'center' }}>
                               <div style={{ display: 'inline-flex' }}>
-                                <Toggle on={on} disabled={needsClock && rc.requireClockIn !== true} label={`${rule.label} — ${r}`}
+                                <Toggle on={on && !(rule.key === 'lockAfterShiftRota' && rc.requireClockIn === true)} disabled={disabled} label={`${rule.label} — ${r}`}
                                   onClick={() => setRole(r, { [rule.key]: !on })} />
                               </div>
                             </td>
