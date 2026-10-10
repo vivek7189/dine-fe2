@@ -117,6 +117,7 @@ export function getAllAccessKeys() {
 export const NAV_ID_TO_ACCESS_KEY = {
   'pos': 'dashboard',
   'orders': 'history',
+  'open-orders': 'history',
   'tables': 'tables',
   'customers': 'customers',
   'menu': 'menu',

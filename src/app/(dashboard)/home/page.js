@@ -24,6 +24,7 @@ import { canAccessRoute, getEffectivePageAccess } from '../../../lib/pageAccessC
 import MeetingsHomeCard from '../../../components/meetings/MeetingsHomeCard';
 import UpcomingEventsCard from '../../../components/calendar/UpcomingEventsCard';
 import GetStartedCard from '../../../components/GetStartedCard';
+import OpenOrdersAlert from '../../../components/OpenOrdersAlert';
 import { useDineBot } from '../../../components/DineBotProvider';
 
 // Safe hooks that return no-ops when providers are missing (e.g. mobile embed)
@@ -359,6 +360,7 @@ export default function HomePage() {
     return (
       <>
         <GetStartedCard />
+        <OpenOrdersAlert currencySymbol={currencySymbol} style={{ margin: isMobile ? '12px 12px 0' : '20px 24px 0' }} />
         <UpcomingEventsCard restaurantId={typeof window !== 'undefined' ? (localStorage.getItem('selectedRestaurantId') || user?.restaurantId) : null}
           style={{ margin: isMobile ? '12px 12px 0' : '20px 24px 0' }} />
         <HeadquartersContent embedded />

@@ -9,6 +9,7 @@ import {
   FaUsers,
   FaCog,
   FaClipboardList,
+  FaHourglassHalf,
   FaChair,
   FaSignOutAlt,
   FaPrint,
@@ -128,6 +129,36 @@ export default function Sidebar({ isDashboardPage = false }) {
     window.addEventListener('calendarAccessChanged', onChange);
     return () => window.removeEventListener('calendarAccessChanged', onChange);
   }, [selectedRestaurant?.id]);
+
+  // "Open orders" badge = orders carried over from earlier days (today's running tables don't
+  // count). Same 60s cache as the Home card; the endpoint itself is Redis-cached.
+  const [openAged, setOpenAged] = useState(0);
+  useEffect(() => {
+    const role = String(user?.role || '').toLowerCase();
+    let rid = null;
+    try { rid = localStorage.getItem('selectedRestaurantId') || user?.restaurantId || null; } catch { /* ignore */ }
+    if (!rid || !['owner', 'admin', 'manager'].includes(role)) { setOpenAged(0); return; }
+    let alive = true;
+    const load = async (fresh = false) => {
+      const key = 'openSummary_' + rid;
+      try {
+        if (!fresh) {
+          const c = JSON.parse(localStorage.getItem(key) || 'null');
+          if (c && Date.now() - c.t < 60 * 1000) { if (alive) setOpenAged(c.s?.agedCount || 0); return; }
+        }
+        const res = await apiClient.getOpenOrders(rid);
+        if (res?.summary) {
+          try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), s: res.summary })); } catch { /* ignore */ }
+          if (alive) setOpenAged(res.summary.agedCount || 0);
+        }
+      } catch { /* badge is optional */ }
+    };
+    load();
+    const onChange = () => load(true);
+    window.addEventListener('open-orders-changed', onChange);
+    const iv = setInterval(() => load(), 5 * 60 * 1000);
+    return () => { alive = false; window.removeEventListener('open-orders-changed', onChange); clearInterval(iv); };
+  }, [selectedRestaurant?.id, user?.role, user?.restaurantId]);
 
   // Navigation is ready immediately if we have cached data
   const [isNavigationReady, setIsNavigationReady] = useState(() => {
@@ -313,6 +344,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     // --- Core POS ---
     { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? t('nav.barPOS') : t('nav.dashboardBilling'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    { id: 'open-orders', name: 'Open orders', icon: FaHourglassHalf, href: '/open-orders', color: '#d97706', roles: ['owner', 'admin', 'manager'], badge: openAged },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'admin', 'manager', 'waiter'] },
     { id: 'tables', name: t('nav.tables'), icon: FaChair, href: '/tables', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'waiter'] },
     // --- Management ---
@@ -697,6 +729,11 @@ export default function Sidebar({ isDashboardPage = false }) {
                           >
                             {item.name}
                           </span>
+                        )}
+                        {item.badge > 0 && (
+                          isCollapsed
+                            ? <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 999, background: '#dc2626' }} />
+                            : <span style={{ marginLeft: 'auto', minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{item.badge > 99 ? '99+' : item.badge}</span>
                         )}
                         {/* Tooltip for collapsed state */}
                         {isCollapsed && (

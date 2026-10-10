@@ -38,6 +38,7 @@ export default function TableBillingModal({
   whatsappConnected = false,
   onRefreshTables,
   onOptimisticTableUpdate,
+  title = null, // header override (e.g. Open Orders billing an order that has no table)
 }) {
   const [order, setOrder] = useState(null);
   // Pricing rule of THIS order (not the dashboard's current zone/order-type rule): the order's
@@ -418,7 +419,7 @@ export default function TableBillingModal({
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-                {table?.name || table?.number || 'Table'} — Bill
+                {title || `${table?.name || table?.number || 'Table'} — Bill`}
               </div>
               {order && (
                 <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
