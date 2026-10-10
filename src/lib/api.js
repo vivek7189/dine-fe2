@@ -4616,6 +4616,28 @@ class ApiClient {
   }
 
   // ── My Pay (a staff member's own pay records) ──
+  // Repairs + suggestions from staff (/api/staff-requests): staff send + see their own; managers see all.
+  async createStaffRequest(restaurantId, data) {
+    try { return await this.request(`/api/staff-requests/${restaurantId}`, { method: 'POST', body: data }); }
+    finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
+  }
+  async getMyStaffRequests(restaurantId) {
+    this.invalidateCache(`/api/staff-requests/${restaurantId}/mine`);
+    return this.request(`/api/staff-requests/${restaurantId}/mine`);
+  }
+  async withdrawStaffRequest(restaurantId, id) {
+    try { return await this.request(`/api/staff-requests/${restaurantId}/${id}/withdraw`, { method: 'PATCH', body: {} }); }
+    finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
+  }
+  async getStaffRequests(restaurantId) {
+    this.invalidateCache(`/api/staff-requests/${restaurantId}`);
+    return this.request(`/api/staff-requests/${restaurantId}`);
+  }
+  async updateStaffRequest(restaurantId, id, data) {
+    try { return await this.request(`/api/staff-requests/${restaurantId}/${id}`, { method: 'PATCH', body: data }); }
+    finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
+  }
+
   async getMyPay(restaurantId) {
     this.invalidateCache(`/api/my-pay/${restaurantId}`);
     return this.request(`/api/my-pay/${restaurantId}`);

@@ -34,6 +34,8 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'books', label: 'Books & Accounting', icon: 'FaBook', category: 'more' },
   { key: 'feedback', label: 'Feedback', icon: 'FaCommentDots', category: 'more' },
   { key: 'calendar', label: 'Event Calendar', icon: 'FaCalendarAlt', category: 'more' },
+  // the staff member's OWN salary, advances, bonuses, appraisals (off unless ticked)
+  { key: 'myPay', label: 'My Pay (own salary, advance, bonus, appraisal)', icon: 'FaMoneyBillWave', category: 'more' },
 ];
 
 // ─── Route segment → pageAccess key mapping ───

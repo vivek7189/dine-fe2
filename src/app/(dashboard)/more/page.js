@@ -28,8 +28,13 @@ import {
   FaSearch,
   FaTimes,
   FaHandshake,
+  FaTools,
+  FaLightbulb,
+  FaUserClock,
 } from 'react-icons/fa';
 import { getCachedCalendarAccess } from '../../../lib/calendar';
+import { getEffectivePageAccess, accessValueOn } from '../../../lib/pageAccessConfig';
+import apiClient from '../../../lib/api';
 
 const features = [
   {
@@ -47,6 +52,30 @@ const features = [
     icon: FaHandshake,
     gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)',
     href: '/my-meetings',
+  },
+  {
+    id: 'my-shifts',
+    name: 'My Shifts & Leave',
+    description: 'Your shifts, swaps and open shifts, apply for leave, your availability',
+    icon: FaUserClock,
+    gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)',
+    href: '/my-shifts',
+  },
+  {
+    id: 'repairs',
+    name: 'Repair works',
+    description: 'Report something broken and see when it is fixed',
+    icon: FaTools,
+    gradient: 'linear-gradient(135deg, #b45309, #d97706)',
+    href: '/staff-requests?kind=repair',
+  },
+  {
+    id: 'suggestions',
+    name: 'Suggestions & feedback',
+    description: 'Share an idea or a problem with the owner — with or without your name',
+    icon: FaLightbulb,
+    gradient: 'linear-gradient(135deg, #ca8a04, #eab308)',
+    href: '/staff-requests?kind=suggestion',
   },
   {
     id: 'calendar',
@@ -242,11 +271,24 @@ const features = [
   },
 ];
 
+// Staff's own cards (always shown to staff) …
+const STAFF_SELF = new Set(['my-pay', 'my-meetings', 'my-shifts', 'calendar', 'repairs', 'suggestions']);
+// … and the access a staff member needs for each management card (reports → Analytics).
+const STAFF_CARD_ACCESS = {
+  shifts: ['admin'], register: ['completeBill'], 'shifts-cash': ['shifts'], dineai: ['dineai', 'analytics'],
+  'phone-agent': ['analytics'], 'whatsapp-ordering': ['analytics'], 'social-media': ['analytics'],
+  'hotel-pms': ['hotel'], hotel: ['hotel'], 'google-reviews': ['admin'], spaces: ['admin'], parking: ['parking'],
+  bookings: ['bookings'], feedback: ['feedback', 'admin'], 'recipe-cost-sheet': ['inventory'],
+  'hourly-report': ['analytics'], 'menu-engineering': ['analytics'], 'reprint-log': ['analytics'], 'staff-sales': ['analytics'],
+  'promotion-report': ['analytics'], 'split-bills': ['analytics'], 'comp-report': ['analytics'], 'audit-trail': ['analytics'],
+};
+
 export default function MorePage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
   const [search, setSearch] = useState('');
+  const [openRequests, setOpenRequests] = useState({ repair: 0, suggestion: 0 }); // managers: waiting repairs / suggestions
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
@@ -258,6 +300,16 @@ export default function MorePage() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Owner / admin / manager: how many repairs + suggestions are waiting (badge on those cards)
+  useEffect(() => {
+    try {
+      const role = String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase();
+      const rid = localStorage.getItem('selectedRestaurantId');
+      if (!rid || !['owner', 'admin', 'co-owner', 'manager'].includes(role)) return;
+      apiClient.getStaffRequests(rid).then(r => { if (r?.open) setOpenRequests(r.open); }).catch(() => {});
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -282,7 +334,25 @@ export default function MorePage() {
     calendarDenied = !['owner', 'admin', 'manager'].includes(role)
       && getCachedCalendarAccess(localStorage.getItem('selectedRestaurantId'))?.state === 'denied';
   } catch {}
-  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id) && (f.id !== 'my-pay' || myPayAllowed) && (f.id !== 'calendar' || !calendarDenied));
+  // Staff (any role but owner / admin / manager) get a short list (asked by MFC): their own things —
+  // meetings, shifts & leave, event calendar, repairs, suggestions, My Pay when allowed — plus only the
+  // management pages their access actually includes. Owner / admin / manager see everything as before.
+  let staffView = false;
+  let ownerView = false;   // owner / admin: no shifts of their own
+  let pa = null;
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    const r = String(u.role || '').toLowerCase();
+    staffView = !!r && !['owner', 'admin', 'co-owner', 'manager'].includes(r);
+    ownerView = ['owner', 'admin', 'co-owner'].includes(r);
+    pa = getEffectivePageAccess(u);
+    if (!ownerView && pa && accessValueOn(pa.myPay)) myPayAllowed = true; // the My Pay tick in Staff access
+  } catch {}
+  const grants = (f) => (STAFF_CARD_ACCESS[f.id] || []).some(k => pa && accessValueOn(pa[k]));
+  const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id)
+    && (f.id !== 'my-pay' || myPayAllowed) && (f.id !== 'calendar' || !calendarDenied)
+    && (f.id !== 'my-shifts' || !ownerView)
+    && (!staffView || STAFF_SELF.has(f.id) || grants(f)));
   // Search: every typed word must appear in the card's name or description ("staff sales", "audit")
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const visibleFeatures = words.length
@@ -392,6 +462,7 @@ export default function MorePage() {
       }}>
         {visibleFeatures.map((feature, index) => {
           const Icon = feature.icon;
+          const waiting = feature.id === 'repairs' ? openRequests.repair : feature.id === 'suggestions' ? openRequests.suggestion : 0;
           return (
             <div
               key={feature.id}
@@ -427,6 +498,7 @@ export default function MorePage() {
                 margin: '0 0 6px 0',
               }}>
                 {feature.name}
+                {waiting > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#ef4444', color: '#fff', verticalAlign: 'middle' }}>{waiting} waiting</span>}
               </h3>
               <p style={{
                 fontSize: '13px',
