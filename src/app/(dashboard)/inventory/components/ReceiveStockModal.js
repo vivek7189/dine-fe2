@@ -8,6 +8,7 @@
 // A double press / retry adds only once (requestId).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaBox, FaUtensils } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 
@@ -86,13 +87,14 @@ export default function ReceiveStockModal({ open, onClose, restaurantId, invento
     }
   };
 
-  if (!open) return null;
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+  if (!open || typeof document === 'undefined') return null;
+  // Portal to <body> so the dim layer also covers the left nav.
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '92vh', overflow: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
         <div style={{ padding: '14px 18px', background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '16px 16px 0 0' }}>
           <b style={{ fontSize: 16 }}>{menuItem ? 'Start tracking' : 'Receive stock'}</b>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: 8, width: 30, height: 30, cursor: 'pointer' }}><FaTimes /></button>
+          <button type="button" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: 8, width: 30, height: 30, cursor: 'pointer' }}><FaTimes /></button>
         </div>
         <div style={{ padding: 18, display: 'grid', gap: 12 }}>
           {!pick ? (
@@ -173,5 +175,5 @@ export default function ReceiveStockModal({ open, onClose, restaurantId, invento
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

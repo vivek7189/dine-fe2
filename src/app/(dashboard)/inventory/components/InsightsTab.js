@@ -1,4 +1,5 @@
 'use client';
+import { createPortal } from 'react-dom';
 
 import { FaRobot, FaChartLine, FaExclamationTriangle, FaRecycle, FaDownload, FaTimes, FaBoxes, FaClock, FaWarehouse, FaClipboardList } from 'react-icons/fa';
 import { printDocument } from '../../../../utils/printBridge';
@@ -269,9 +270,9 @@ export default function InsightsTab({
       </section>
 
       {/* Report Modal */}
-      {reportData && (
+      {reportData && typeof document !== 'undefined' && createPortal(
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
+          position: 'fixed', inset: 0, zIndex: 10002,
           backgroundColor: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '20px',
@@ -337,7 +338,8 @@ export default function InsightsTab({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

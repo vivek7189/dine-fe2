@@ -315,7 +315,50 @@ function SectionHeader({ icon, title }) {
 }
 
 // ─── Manual Item Form (shared between Add & Edit) ───────────────────────────
-function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false }) {
+// Same normalisation the server uses to re-use a stock item: case, spaces, punctuation ignored.
+const normItemName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9\u0080-\uffff]+/g, ' ').trim();
+
+// While typing a new item's name, show stock items that already exist so the user adds stock to
+// them (or edits them) instead of creating a second "Tomato". Nothing found → carry on adding new.
+function ExistingItemSuggestions({ name, inventoryItems, onAddStock, onEdit }) {
+  const q = normItemName(name);
+  if (q.length < 2 || !inventoryItems?.length) return null;
+  const words = q.split(' ');
+  const scored = [];
+  for (const it of inventoryItems) {
+    const n = normItemName(it.name);
+    if (!n) continue;
+    const score = n === q ? 0 : n.startsWith(q) ? 1 : n.split(' ').some(w => w.startsWith(q)) ? 2 : words.every(w => n.includes(w)) ? 3 : -1;
+    if (score >= 0) scored.push({ it, score });
+  }
+  if (!scored.length) {
+    return <span style={{ fontSize: 11.5, color: '#6b7280' }}>Not in your stock yet — this will be added as a new item.</span>;
+  }
+  scored.sort((a, b) => a.score - b.score || String(a.it.name).localeCompare(String(b.it.name)));
+  const exact = scored[0].score === 0;
+  return (
+    <div style={{ marginTop: 6, border: `1px solid ${exact ? '#fcd34d' : '#e5e7eb'}`, borderRadius: 10, background: exact ? '#fffbeb' : '#f9fafb', overflow: 'hidden' }}>
+      <div style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, color: exact ? '#92400e' : '#374151' }}>
+        {exact ? 'This item is already in your stock — add to it instead of making a second one:' : 'Already in your stock:'}
+      </div>
+      {scored.slice(0, 5).map(({ it }) => (
+        <div key={it.id || it._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderTop: '1px solid #eef0f2', background: '#fff' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
+            <div style={{ fontSize: 11.5, color: '#6b7280' }}>{fmtQty(it.currentStock)} {it.unit || ''} in stock{it.category ? ` · ${it.category}` : ''}</div>
+          </div>
+          {onAddStock && <button type="button" onClick={() => onAddStock(it)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add stock</button>}
+          {onEdit && <button type="button" onClick={() => onEdit(it)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>}
+        </div>
+      ))}
+      <div style={{ padding: '6px 10px', fontSize: 11.5, color: '#6b7280', borderTop: '1px solid #eef0f2' }}>
+        {exact ? 'Still a different item? Change the name a little (e.g. “Tomato puree”) and add it.' : 'None of these? Carry on below to add it as a new item.'}
+      </div>
+    </div>
+  );
+}
+
+function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false, inventoryItems, onAddStock, onEditExisting }) {
   // Add form shows only what is needed to start; the rest sits under "More options".
   const [more, setMore] = useState(!simple);
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
@@ -351,6 +394,7 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
       <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
         <label style={labelStyle}>Item name *</label>
         <FocusInput value={formData.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Chicken, Basmati Rice, Milk" />
+        {simple && <ExistingItemSuggestions name={formData.name} inventoryItems={inventoryItems} onAddStock={onAddStock} onEdit={onEditExisting} />}
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Counted in (unit) *</label>
@@ -475,7 +519,7 @@ function AddEditItemModal(props) {
     showAddModal, setShowAddModal, showEditModal, setShowEditModal,
     formData, setFormData, categories, suppliers, editingItem,
     handleAddItem, handleUpdateItem, getModalStyles, getModalContentStyles,
-    currentRestaurant, loadInventoryData, error,
+    currentRestaurant, loadInventoryData, error, inventoryItems, handleEditItem, onReceiveExisting,
   } = props;
   const footerError = error ? <span style={{ flex: 1, alignSelf: 'center', color: '#b91c1c', fontSize: '13px', fontWeight: 600 }}>{error}</span> : null;
 
@@ -569,7 +613,10 @@ function AddEditItemModal(props) {
 
         {/* Tab content */}
         {addTab === 'manual' && (
-          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} simple />
+          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} simple
+            inventoryItems={inventoryItems}
+            onAddStock={onReceiveExisting ? (it) => { close(); onReceiveExisting(it); } : null}
+            onEditExisting={handleEditItem ? (it) => { close(); handleEditItem(it); } : null} />
         )}
 
         {addTab === 'invoice' && (

@@ -7,6 +7,7 @@
 // Saves through POST /api/recipes/:rid with menuItemId, which replaces the dish's existing recipe
 // (no duplicates) and marks it as the owner's recipe.
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaSearch, FaPlus, FaTrash, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
 import apiClient from '@/lib/api';
 
@@ -25,7 +26,7 @@ const defaultUnitFor = (u) => { const c = canon(u); return c === 'kg' ? 'g' : c 
 const emptyLine = () => ({ key: Math.random().toString(36).slice(2), inventoryItemId: '', name: '', quantity: '', unit: '', type: 'inventory' });
 
 const S = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', backdropFilter: 'blur(4px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
   box: { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 620, maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,.25)' },
   input: { width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' },
   btn: (primary) => ({
@@ -206,16 +207,17 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
     } finally { setBusy(false); }
   };
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
   const perPlate = (keep.servings || 1) > 1 ? `${keep.servings} plates` : 'one plate';
 
-  return (
+  // Portal to <body> so the dim layer also covers the left nav.
+  return createPortal(
     <div style={S.overlay} onMouseDown={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
       <div style={S.box}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#111827' }}>Link a dish to inventory</h3>
-            <button type="button" onClick={onClose} disabled={busy} aria-label="Close" style={{ border: 'none', background: '#f3f4f6', borderRadius: 8, width: 32, height: 32, cursor: 'pointer' }}><FaTimes /></button>
+            <button type="button" onClick={onClose} disabled={busy} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, border: 'none', background: '#f3f4f6', borderRadius: 8, width: 32, height: 32, cursor: 'pointer' }}><FaTimes /></button>
           </div>
           <StepDots step={step} />
         </div>
@@ -377,5 +379,5 @@ export default function LinkRecipeModal({ open, onClose, restaurantId, inventory
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

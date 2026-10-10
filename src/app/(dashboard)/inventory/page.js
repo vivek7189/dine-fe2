@@ -546,7 +546,7 @@ export default function InventoryManagement() {
       </div>
 
       {/* All Modals */}
-      <InventoryModals {...inventory} formatCurrency={formatCurrency} />
+      <InventoryModals {...inventory} formatCurrency={formatCurrency} onReceiveExisting={(item) => openReceive({ kind: 'stock', item })} />
       <ReceiveStockModal
         open={receive.open}
         preset={receive.preset}

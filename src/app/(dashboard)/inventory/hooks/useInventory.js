@@ -21,7 +21,17 @@ export default function useInventory() {
   const [dashboardStats, setDashboardStats] = useState(null);
 
   // Modal states
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddModal, setShowAddModalRaw] = useState(false);
+  // Opening "Add" right after editing an item must not start from that item's values
+  // (baseStock is only set by handleEditItem). A half-typed new item is kept as before.
+  const setShowAddModal = (open) => {
+    if (open) setFormData(prev => (prev && prev.baseStock !== undefined ? {
+      name: '', category: '', unit: '', currentStock: 0, minStock: 0, maxStock: 0,
+      costPerUnit: 0, supplier: '', description: '', barcode: '', mfgDate: '', expiryDays: '', expiryDate: '', expiryMethod: 'days', location: '',
+      purchaseUnit: '', conversionFactor: 1,
+    } : prev));
+    setShowAddModalRaw(open);
+  };
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [showAddPurchaseOrderModal, setShowAddPurchaseOrderModal] = useState(false);
