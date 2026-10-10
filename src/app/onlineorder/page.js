@@ -8,6 +8,11 @@ import { createPortal } from 'react-dom';
 // Sizes of a menu item (1 Litre / 375 ML / Tot, Half / Full…) and a cart line's key (item + size)
 const sizesOf = (it) => (Array.isArray(it?.variants) ? it.variants.filter(v => v && v.name) : []);
 const lineKeyOf = (ci) => `${ci.id}::${ci.selectedVariant?.name || ''}`;
+// "JW Black Label - 1 Litter" on item "JW Black Label" → "1 Litter" (size label without the brand)
+const sizeLabel = (itemName, sizeName) => {
+  const n = String(sizeName || ''); const b = String(itemName || '');
+  return (b && n.toLowerCase().startsWith(b.toLowerCase()) ? n.slice(b.length).replace(/^[\s\-–:·]+/, '') : '') || n;
+};
 import { resolveAdditionalCharges } from '../../utils/additionalCharges';
 import { calculatePerItemTax } from '../../utils/taxEngine';
 
@@ -2398,7 +2403,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
               <div style={{ display: 'grid', gap: '8px' }}>
                 {sizesOf(sizeFor).map(v => {
                   const p = resolveVariantTierPrice(v, activePricingRuleId, restaurant?.multiPricing?.rules);
-                  const label = String(v.name).toLowerCase().startsWith(String(sizeFor.name).toLowerCase()) ? (String(v.name).slice(String(sizeFor.name).length).replace(/^[\s\-–:·]+/, '') || v.name) : v.name;
+                  const label = sizeLabel(sizeFor.name, v.name);
                   const inCart = cart.find(ci => ci.id === sizeFor.id && ci.selectedVariant?.name === v.name)?.quantity || 0;
                   return (
                     <button key={v.name} type="button" onClick={() => { addToCart(sizeFor, v); setSizeFor(null); }}
@@ -3421,7 +3426,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
                 marginBottom: '8px'
               }}>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {item.selectedVariant.name}</span> : null}</h4>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {sizeLabel(item.name, item.selectedVariant.name)}</span> : null}</h4>
                   <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{cs}{Number(item.price || 0).toFixed(2)} each</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -4440,7 +4445,7 @@ const CheckoutView = ({
                                   borderBottom: idx < order.items.length - 1 ? '1px dashed #e2e8f0' : 'none'
                                 }}>
                                   <div style={{ fontSize: '13px', color: '#374151' }}>
-                                    {item.name}{item.selectedVariant?.name ? ` · ${item.selectedVariant.name}` : ''} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
+                                    {item.name}{item.selectedVariant?.name ? ` · ${sizeLabel(item.name, item.selectedVariant.name)}` : ''} <span style={{ color: '#9ca3af' }}>x{item.quantity}</span>
                                   </div>
                                   <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
                                     {cs}{Number(item.total ?? (item.price * item.quantity)).toFixed(2)}
@@ -4639,7 +4644,7 @@ const CheckoutView = ({
                     marginBottom: '8px'
                   }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {item.selectedVariant.name}</span> : null}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {sizeLabel(item.name, item.selectedVariant.name)}</span> : null}</div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>{cs}{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
