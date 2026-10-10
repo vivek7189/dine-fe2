@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck, FaWineBottle, FaPlus } from 'react-icons/fa';
+import { FaLink, FaBoxes, FaClipboardList, FaShoppingCart, FaChartLine, FaBolt, FaCheckCircle, FaTimesCircle, FaHistory, FaRecycle, FaMagic, FaTruck, FaIndustry, FaRoute, FaBalanceScale, FaClipboardCheck, FaWineBottle, FaPlus, FaGlassWhiskey } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { resolveFeaturePermissions } from '@/lib/permissions';
 import useInventory from './hooks/useInventory';
@@ -25,6 +25,8 @@ import WasteModals from './components/WasteModals';
 import SmartImportModal from './components/SmartImportModal';
 import LinkRecipeModal from './components/LinkRecipeModal';
 import SoldAsIsTab from './components/SoldAsIsTab';
+import LiquorTab from './components/LiquorTab';
+import apiClient from '../../../lib/api';
 import ReceiveStockModal from './components/ReceiveStockModal';
 
 // Always-visible 3-step explainer: what inventory is, how dishes connect, what happens on a sale.
@@ -113,8 +115,17 @@ export default function InventoryManagement() {
 
   // Dynamic tabs based on outlet type (warehouse/kitchen get extra tabs, recipes hidden for warehouse)
   const outletType = inventory.currentRestaurant?.outletType || 'outlet';
+  // Liquor tab only where the menu has spirits / wine (or liquor is already set up)
+  const [hasLiquor, setHasLiquor] = useState(() => searchParams.get('tab') === 'liquor'); // a ?tab=liquor link keeps the tab while checking
+  const [liquorFocus, setLiquorFocus] = useState(null);
+  useEffect(() => {
+    const rid = inventory.currentRestaurant?.id;
+    if (!rid || outletType === 'warehouse') return;
+    apiClient.getLiquor(rid).then(d => setHasLiquor((d?.items || []).length > 0)).catch(() => {});
+  }, [inventory.currentRestaurant?.id, outletType]);
   const tabs = useMemo(() => [
     ...(outletType !== 'warehouse' ? [{ id: 'sold', name: 'Sold as is', icon: FaWineBottle }] : []),
+    ...(hasLiquor ? [{ id: 'liquor', name: 'Liquor', icon: FaGlassWhiskey }] : []),
     { id: 'dashboard', name: 'Dashboard', icon: FaBolt },
     { id: 'stock', name: 'Stock', icon: FaBoxes },
     ...(outletType !== 'warehouse' ? [{ id: 'recipes', name: 'Recipes', icon: FaClipboardList }] : []),
@@ -130,7 +141,7 @@ export default function InventoryManagement() {
     ] : []),
     { id: 'insights', name: 'AI Insights', icon: FaChartLine },
     { id: 'waste', name: 'Waste', icon: FaRecycle },
-  ], [outletType]);
+  ], [outletType, hasLiquor]);
 
   const validTabIds = useMemo(() => tabs.map(t => t.id), [tabs]);
   // A tab this outlet doesn't have (e.g. "Sold as is" on a warehouse) → its first tab
@@ -359,6 +370,18 @@ export default function InventoryManagement() {
             formatCurrency={formatCurrency}
             refreshKey={soldRefresh}
             onReceive={(p) => openReceive(p)}
+            onMessage={(m) => inventory.setSuccess(m)}
+            onOpenLiquor={(id) => { setLiquorFocus(id); setActiveTab('liquor'); }}
+          />
+        )}
+
+        {activeTab === 'liquor' && (
+          <LiquorTab
+            restaurantId={inventory.currentRestaurant?.id}
+            isMobile={isMobile}
+            canUpdate={!!permissions.update}
+            formatCurrency={formatCurrency}
+            focusMenuItemId={liquorFocus}
             onMessage={(m) => inventory.setSuccess(m)}
           />
         )}

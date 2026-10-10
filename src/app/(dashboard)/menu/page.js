@@ -31,6 +31,10 @@ import { CSS } from '@dnd-kit/utilities';
 import AvailabilityScheduleEditor from './components/AvailabilityScheduleEditor';
 import { describeSchedule, itemAvailability } from '@/lib/menuSchedule';
 
+
+// Liquor categories (same idea as the server's utils/liquor.js) + "1 L" / "750 ml" bottle labels
+const LIQUOR_CAT_RE = /(whisk|scotch|bourbon|vodka|gin|rum|tequil|brandy|cognac|liqu|spirit|wine|champagne|cask)/i;
+const fmtBottleMl = (ml) => (Number(ml) >= 1000 && Number(ml) % 100 === 0 ? `${Number(ml) / 1000} L` : `${ml} ml`);
 // Timings pill on menu cards: "🕐 12 PM–3 PM", red "Not available now · 12 PM–3 PM" while closed.
 // Includes the category's timing (e.g. a Breakfast category 7–11 AM) — same rule the POS and backend use.
 const timingForItem = (item, categories) => {
@@ -7091,6 +7095,17 @@ const MenuManagement = () => {
                                 />
                               </div>
                             ))}
+                          </div>
+                        )}
+                        {/* Liquor: what this size takes from bottle stock (set in Inventory → Liquor; a menu edit keeps it) */}
+                        {editingItem && variant.name && (variant.stockLink || LIQUOR_CAT_RE.test(String(formData.category || ''))) && (
+                          <div style={{ fontSize: '11px', color: variant.stockLink ? '#6d28d9' : '#9ca3af', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            {variant.stockLink
+                              ? <span>Stock: {variant.stockLink.kind === 'pour'
+                                  ? `${(Number(variant.stockLink.pours) || 1) > 1 ? `${variant.stockLink.pours} tots` : 'tot'}${variant.stockLink.followsSetting === false ? ` ${variant.stockLink.ml} ml` : ''} poured from the ${fmtBottleMl(variant.stockLink.bottleMl)} bottle`
+                                  : `one ${fmtBottleMl(variant.stockLink.bottleMl)} bottle`}</span>
+                              : <span>Not counted in liquor stock yet</span>}
+                            <a href="/inventory?tab=liquor" style={{ color: '#6d28d9', fontWeight: 600 }}>{variant.stockLink ? 'Liquor stock →' : 'Set up →'}</a>
                           </div>
                         )}
                       </div>

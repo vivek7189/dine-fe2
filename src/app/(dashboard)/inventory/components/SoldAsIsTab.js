@@ -12,7 +12,7 @@ const fmt = (n) => (Math.round((Number(n) || 0) * 1000) / 1000).toLocaleString()
 const chip = (on) => ({ padding: '6px 12px', borderRadius: 999, border: `1px solid ${on ? '#059669' : '#e5e7eb'}`, background: on ? '#ecfdf5' : '#fff', color: on ? '#047857' : '#4b5563', fontSize: 12.5, fontWeight: on ? 700 : 500, cursor: 'pointer' });
 const smallInp = { width: 90, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13 };
 
-export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatCurrency, onReceive, refreshKey, onMessage }) {
+export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatCurrency, onReceive, refreshKey, onMessage, onOpenLiquor }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [q, setQ] = useState('');
@@ -105,12 +105,17 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
             const st = stockOf(i), lo = lowOf(i), out = i.tracked && st <= 0, isLow = i.tracked && !out && lo > 0 && st <= lo;
             return (
               <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '10px 12px', border: '1px solid #f1f5f9', borderRadius: 10, background: out ? '#fff7f7' : '#fff' }}>
-                {canUpdate && !i.tracked && <input type="checkbox" checked={!!selected[i.id]} onChange={() => toggleSel(i)} aria-label={`Select ${i.name}`} />}
+                {canUpdate && !i.tracked && !i.liquor && <input type="checkbox" checked={!!selected[i.id]} onChange={() => toggleSel(i)} aria-label={`Select ${i.name}`} />}
                 <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{i.name}</div>
-                  <div style={{ fontSize: 12, color: '#6b7280' }}>{i.category}{i.price ? ` · ${formatCurrency ? formatCurrency(i.price) : i.price}` : ''}{i.hasRecipe ? ' · has a recipe' : ''}{i.variants ? ` · ${i.variants} sizes share one count` : ''}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>{i.category}{i.price ? ` · ${formatCurrency ? formatCurrency(i.price) : i.price}` : ''}{i.hasRecipe ? ' · has a recipe' : ''}{i.variants && !i.liquor ? ` · ${i.variants} sizes share one count` : ''}</div>
                 </div>
-                {i.tracked ? (
+                {i.liquor ? (
+                  <>
+                    <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 700, minWidth: 110, textAlign: 'right' }}>Liquor · counted by bottle</span>
+                    {onOpenLiquor && <button type="button" onClick={() => onOpenLiquor(i.id)} style={{ padding: '7px 12px', borderRadius: 9, border: '1.5px solid #7c3aed', background: '#fff', color: '#6d28d9', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Open</button>}
+                  </>
+                ) : i.tracked ? (
                   <>
                     <div style={{ minWidth: 110, textAlign: 'right' }}>
                       <div style={{ fontWeight: 800, fontSize: 15, color: out ? '#b91c1c' : isLow ? '#b45309' : '#047857' }}>{fmt(st)} {i.linked?.unit || i.stockUnit || 'pcs'}</div>

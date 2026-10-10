@@ -4616,6 +4616,23 @@ class ApiClient {
   }
 
   // ── My Pay (a staff member's own pay records) ──
+  // Liquor (bar) stock: per bottle size, tots / pegs poured from bottles (/api/liquor)
+  async getLiquor(restaurantId) {
+    this.invalidateCache(`/api/liquor/${restaurantId}`);
+    return this.request(`/api/liquor/${restaurantId}`);
+  }
+  async saveLiquorSettings(restaurantId, data) {
+    return this.request(`/api/liquor/${restaurantId}/settings`, { method: 'PUT', body: data });
+  }
+  async setupLiquor(restaurantId, items) {
+    try { return await this.request(`/api/liquor/${restaurantId}/setup`, { method: 'POST', body: { items } }); }
+    finally { this.invalidateCache(`/api/inventory/${restaurantId}`); }
+  }
+  async countLiquor(restaurantId, inventoryItemId, bottles, note) {
+    try { return await this.request(`/api/liquor/${restaurantId}/count`, { method: 'POST', body: { inventoryItemId, bottles, note } }); }
+    finally { this.invalidateCache(`/api/inventory/${restaurantId}`); }
+  }
+
   // Repairs + suggestions from staff (/api/staff-requests): staff send + see their own; managers see all.
   async createStaffRequest(restaurantId, data) {
     try { return await this.request(`/api/staff-requests/${restaurantId}`, { method: 'POST', body: data }); }
