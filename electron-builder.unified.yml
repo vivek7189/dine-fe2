@@ -94,3 +94,5 @@ nsis:
   oneClick: false
   perMachine: true
   allowToChangeInstallationDirectory: true
+  # Stop the bundled local database on uninstall/reinstall (offline build only — see the file).
+  include: installer/server.nsh

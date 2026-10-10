@@ -20,7 +20,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
-const { fork } = require('child_process');
+const { fork, execFile } = require('child_process');
 const { pathToFileURL } = require('url');
 
 const PG_PORT = 5433;
@@ -31,6 +31,7 @@ const BACKEND_PORT = 3003;
 let pgInstance = null;
 let backendProc = null;
 let quitting = false;
+let started = false;
 let isRestarting = false;
 let lastDbUrl = null;
 let backendRestarts = 0;
@@ -185,6 +186,8 @@ function startBackend(databaseUrl) {
   };
   lastDbUrl = databaseUrl;
   backendProc = fork(entry, [], { cwd: backendDir(), env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+  // Remember its pid so a later launch can stop it if this app dies without a clean quit.
+  try { fs.writeFileSync(backendPidFile(), String(backendProc.pid)); } catch (_) {}
   backendProc.stdout.on('data', (d) => log(d));
   backendProc.stderr.on('data', (d) => log(d));
 
@@ -246,6 +249,11 @@ async function startLocalServer({ onLog } = {}) {
   if (onLog) logSink = onLog;
   if (backendProc) return { alreadyRunning: true, port: BACKEND_PORT, ips: lanIPs() };
   quitting = false;
+  started = true;
+  // A previous run that crashed / was force-closed can leave its database and backend running
+  // (they are separate processes). They hold port 5433/3003 and the data folder, so the new start
+  // would fail — stop those leftovers first (only OUR processes, matched by their install path).
+  try { await stopLeftoverProcesses(); } catch (e) { log(`⚠️ Leftover check: ${e.message}`); }
   const dbUrl = await startPostgres();
   startBackend(dbUrl);
   startWatchdog();
@@ -254,12 +262,116 @@ async function startLocalServer({ onLog } = {}) {
   return { healthy, port: BACKEND_PORT, ips: lanIPs(), dataDir: pgDataDir() };
 }
 
-async function stopLocalServer() {
+// Stop the backend + database and WAIT until both have exited (bounded by timeoutMs), so the
+// app can quit/restart without leaving them running. Safe to call more than once.
+async function stopLocalServer({ timeoutMs = 8000 } = {}) {
   quitting = true;
   if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = null; }
-  try { if (backendProc) { backendProc.kill(); backendProc = null; } } catch (_) {}
-  try { if (pgInstance) { await pgInstance.stop(); pgInstance = null; } } catch (_) {}
+  // Backend and database are stopped together (not one after the other) so a quit finishes
+  // quickly — the Windows installer/uninstaller only gives a closing app about a second.
+  const proc = backendProc;
+  backendProc = null;
+  const pg = pgInstance;
+  pgInstance = null;
+  const work = Promise.all([
+    (async () => {
+      if (proc && proc.exitCode == null && proc.signalCode == null) {
+        await new Promise((resolve) => {
+          const t = setTimeout(resolve, 3000);
+          proc.once('exit', () => { clearTimeout(t); resolve(); });
+          try { proc.kill(); } catch (_) { clearTimeout(t); resolve(); }
+        });
+      }
+      try { fs.unlinkSync(backendPidFile()); } catch (_) {}
+    })(),
+    (async () => { if (pg) { try { await pg.stop(); } catch (_) {} } })(),
+  ]);
+  const timedOut = await Promise.race([
+    work.then(() => false),
+    new Promise((r) => setTimeout(() => r(true), timeoutMs)),
+  ]);
+  if (timedOut) {
+    log('⚠️ Local server did not stop in time — forcing it.');
+    try { await stopLeftoverProcesses(); } catch (_) {}
+  }
   log('🛑 Local server stopped.');
+}
+
+/** True once this app has booted the local server (only ever in the "DineOpen POS Server" build). */
+function isStarted() { return started; }
+
+// ── Leftover processes from an earlier run ───────────────────────────────────
+function backendPidFile() { return path.join(dataRoot(), 'backend.pid'); }
+
+function readPid(file) {
+  try {
+    const n = parseInt(String(fs.readFileSync(file, 'utf8')).split('\n')[0].trim(), 10);
+    return n > 0 ? n : null;
+  } catch { return null; }
+}
+
+function pidAlive(pid) {
+  try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; }
+}
+
+// The full program path of a running process ('' if unknown / not running).
+function processPath(pid) {
+  return new Promise((resolve) => {
+    const done = (err, out) => resolve(err ? '' : String(out || '').trim());
+    if (process.platform === 'win32') {
+      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+        `(Get-Process -Id ${Number(pid)} -ErrorAction SilentlyContinue).Path`], { timeout: 8000, windowsHide: true }, done);
+    } else {
+      execFile('ps', ['-p', String(Number(pid)), '-o', 'command='], { timeout: 5000 }, done);
+    }
+  });
+}
+
+function killPidTree(pid) {
+  return new Promise((resolve) => {
+    if (process.platform === 'win32') {
+      execFile('taskkill', ['/pid', String(Number(pid)), '/t', '/f'], { timeout: 10000, windowsHide: true }, () => resolve());
+    } else {
+      try { process.kill(pid, 'SIGINT'); } catch (_) {} // Postgres "fast shutdown"
+      resolve();
+    }
+  });
+}
+
+async function waitGone(pid, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (!pidAlive(pid)) return true;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return !pidAlive(pid);
+}
+
+// Stops ONLY processes that belong to this app: the backend (runs as this app's own exe) and
+// the database (the bundled embedded-postgres binary). Anything else — e.g. a restaurant's own
+// PostgreSQL install, or a reused pid — is left alone because its path won't match.
+async function stopLeftoverProcesses() {
+  const ownExe = (() => { try { return path.resolve(process.execPath).toLowerCase(); } catch { return ''; } })();
+  const backendPid = readPid(backendPidFile());
+  if (backendPid && backendPid !== process.pid && pidAlive(backendPid)) {
+    const p = (await processPath(backendPid)).toLowerCase();
+    if (p && ownExe && (p === ownExe || p.includes(ownExe))) {
+      log(`🧹 Stopping a leftover local backend (pid ${backendPid}).`);
+      await killPidTree(backendPid);
+      if (!(await waitGone(backendPid, 5000)) && process.platform !== 'win32') { try { process.kill(backendPid, 'SIGKILL'); } catch (_) {} }
+    }
+  }
+  try { fs.unlinkSync(backendPidFile()); } catch (_) {}
+
+  const pgPid = readPid(path.join(pgDataDir(), 'postmaster.pid'));
+  if (pgPid && pgPid !== process.pid && pidAlive(pgPid)) {
+    const p = (await processPath(pgPid)).toLowerCase().replace(/\\/g, '/');
+    if (p.includes('embedded-postgres') && p.includes('postgres')) {
+      log(`🧹 Stopping a leftover local database (pid ${pgPid}).`);
+      await killPidTree(pgPid);
+      if (!(await waitGone(pgPid, 15000)) && process.platform !== 'win32') { try { process.kill(pgPid, 'SIGKILL'); } catch (_) {} }
+    }
+  }
 }
 
 function getBoundRestaurantId() {
@@ -270,6 +382,7 @@ function getBoundRestaurantId() {
 module.exports = {
   startLocalServer,
   stopLocalServer,
+  isStarted,
   isServerModeEnabled,
   setServerMode,
   getTerminalNumber,

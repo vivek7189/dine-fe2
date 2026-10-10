@@ -583,6 +583,26 @@ app.on('activate', () => {
   }
 });
 
+// Local-server build only: hold the quit until the embedded database + backend have really
+// stopped. They are separate processes, and quitting without waiting left them running after
+// the window closed (and after an uninstall). localServer.isStarted() is false in the normal
+// cloud app — it never boots the local server — so there this handler does nothing at all.
+let _localServerStopDone = false;
+app.on('before-quit', (e) => {
+  if (_localServerStopDone || !localServer.isStarted()) return;
+  e.preventDefault();
+  _localServerStopDone = true;
+  localServer.stopLocalServer({ timeoutMs: 8000 }).catch(() => {}).finally(() => app.quit());
+});
+
+// app.exit() skips before-quit/will-quit, so stop the local server first when it is running.
+// When it isn't (always the case in the normal cloud app) this is exactly app.exit(code).
+function exitApp(code) {
+  if (!localServer.isStarted()) return app.exit(code);
+  _localServerStopDone = true;
+  localServer.stopLocalServer({ timeoutMs: 8000 }).catch(() => {}).finally(() => app.exit(code));
+}
+
 app.on('will-quit', () => {
   // Clean up offline engine when the app is fully quitting (Cmd+Q on Mac, or close on Windows/Linux)
   shutdownOfflineEngine();
@@ -1662,7 +1682,7 @@ ipcMain.handle('electron:restartApp', async () => {
         const { spawn } = require('child_process');
         spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' }).unref();
         console.log('[AutoUpdater] Update script launched, quitting app...');
-        setTimeout(() => app.exit(0), 500);
+        setTimeout(() => exitApp(0), 500);
         return { restarting: true };
       } catch (err) {
         console.error('[AutoUpdater] macOS manual install failed:', err);
@@ -1675,7 +1695,7 @@ ipcMain.handle('electron:restartApp', async () => {
   console.log('[AutoUpdater] No update downloaded, just relaunching...');
   setTimeout(() => {
     app.relaunch();
-    app.exit(0);
+    exitApp(0);
   }, 500);
   return { restarting: true };
 });
