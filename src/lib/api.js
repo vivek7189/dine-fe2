@@ -1174,9 +1174,11 @@ class ApiClient {
       if (!posSettings) posSettings = user.restaurant?.posSettings || null;
       const map = posSettings?.roleLandingEnabled ? (posSettings?.roleLandingPages || null) : null;
       if (map && role && typeof map[role] === 'string') {
-        const dest = map[role];
+        // '/orders' (older setting) = Order History, which lives at /orderhistory ('/orders' opened the
+        // online-ordering page instead).
+        const dest = map[role] === '/orders' ? '/orderhistory' : map[role];
         // Only allow known internal dashboard paths (no external/open redirect).
-        const ALLOWED = ['/home', '/dashboard', '/tables', '/orders', '/menu', '/kot', '/customers', '/analytics', '/inventory', '/bookings'];
+        const ALLOWED = ['/home', '/dashboard', '/tables', '/orderhistory', '/menu', '/kot', '/customers', '/analytics', '/inventory', '/bookings'];
         if (ALLOWED.includes(dest)) return dest;
       }
     } catch {}

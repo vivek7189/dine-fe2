@@ -65,7 +65,7 @@ export default function OrderNotificationBell({
   const handleNotificationClick = (notification) => {
     onMarkAsRead?.(notification.id);
     setIsOpen(false);
-    router.push('/orders');
+    router.push('/orderhistory'); // Order History ('/orders' is the online-ordering page)
   };
 
   return (

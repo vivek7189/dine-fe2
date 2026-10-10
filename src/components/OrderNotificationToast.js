@@ -25,7 +25,7 @@ function ToastItem({ notification, onDismiss, index }) {
   }, []);
 
   const handleClick = () => {
-    router.push('/orders');
+    router.push('/orderhistory'); // Order History ('/orders' is the online-ordering page)
     onDismiss(notification.id);
   };
 

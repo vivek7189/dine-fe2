@@ -48,7 +48,7 @@ import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
 import { useLoading } from '../contexts/LoadingContext';
 import { isElectron } from '../utils/platform';
-import { NAV_ID_TO_ACCESS_KEY, WAITER_ENFORCEABLE_KEYS, DEFAULT_ON_ACCESS_KEYS, defaultOnAccessAllowed } from '../lib/pageAccessConfig';
+import { NAV_ID_TO_ACCESS_KEY, NAV_ALT_ACCESS_KEYS, WAITER_ENFORCEABLE_KEYS, DEFAULT_ON_ACCESS_KEYS, defaultOnAccessAllowed, accessValueOn } from '../lib/pageAccessConfig';
 import { getCachedCalendarAccess, probeCalendarAccess } from '../lib/calendar';
 
 export default function Sidebar({ isDashboardPage = false }) {
@@ -161,6 +161,7 @@ export default function Sidebar({ isDashboardPage = false }) {
             if (parsedUser.role && parsedUser.role !== 'owner' && parsedUser.role !== 'admin') {
               setPageAccess(accessData.pageAccess);
               localStorage.setItem('navPageAccess', JSON.stringify(accessData.pageAccess));
+              localStorage.setItem('navPageAccessUser', String(parsedUser.id || parsedUser.userId || ''));
             }
             // Set and cache notAllowedPages for all users
             const notAllowed = accessData.notAllowedPages || [];
@@ -385,15 +386,17 @@ export default function Sidebar({ isDashboardPage = false }) {
       return !!accessValue;
     }
 
+    // Subscription & billing page — owner / admin only (it was shown to anyone who can take payment,
+    // then said "Access denied").
+    if (item.id === 'billing') return false;
+
     // All other roles (manager, employee, cashier, sales, custom) — pageAccess is the authority
     if (pageAccess) {
       const accessKey = NAV_ID_TO_ACCESS_KEY[item.id];
       if (!accessKey) return true; // no access mapping = always visible (e.g. home, profile)
-      const accessValue = pageAccess[accessKey];
-      if (typeof accessValue === 'object' && accessValue !== null) {
-        return Object.values(accessValue).some(Boolean);
-      }
-      return !!accessValue;
+      if (accessValueOn(pageAccess[accessKey])) return true;
+      // Books / Feedback / DineAI also open with their own tick
+      return (NAV_ALT_ACCESS_KEYS[item.id] || []).some(k => accessValueOn(pageAccess[k]));
     }
 
     return false;

@@ -142,3 +142,58 @@ export const NAV_ID_TO_ACCESS_KEY = {
   'feedback': 'admin',
   'calendar': 'calendar',
 };
+
+
+// ─── One access rule for route guard, Sidebar, Home tiles and page buttons ───
+// Pages that ALSO open with their own tick (owners tick "Books" for an accountant without Admin).
+// Either key allows the page — widening only, nobody loses access. (Shifts rota deliberately not
+// here: the "Shifts" tick is Shifts & Cash, it must not open the staff rota.)
+export const ROUTE_ALT_ACCESS_KEYS = { '/books': ['books'], '/feedback': ['feedback'], '/dineai': ['dineai'] };
+export const NAV_ALT_ACCESS_KEYS = { books: ['books'], feedback: ['feedback'], dineai: ['dineai'] };
+
+// Is a pageAccess value "on"? (object = any sub-permission on)
+export function accessValueOn(v) {
+  if (typeof v === 'object' && v !== null) return Object.values(v).some(Boolean);
+  return !!v;
+}
+
+// Latest permissions: the copy the Sidebar refreshes from the server (navPageAccess) — so a change
+// the owner makes mid-shift applies without logging out — else the login copy on the user.
+export function getEffectivePageAccess(user) {
+  if (typeof window !== 'undefined' && user) {
+    try {
+      // only this user's copy (a shared counter PC: the previous person's copy must never apply)
+      const uid = String(user.id || user.userId || '');
+      if (uid && localStorage.getItem('navPageAccessUser') === uid) {
+        const fresh = JSON.parse(localStorage.getItem('navPageAccess') || 'null');
+        if (fresh && typeof fresh === 'object') return fresh;
+      }
+    } catch (_) { /* fall back */ }
+  }
+  return (user && user.pageAccess) || null;
+}
+
+// May this user open this route? (Same rules as before; used by the layout guard and Home tiles.)
+export function canAccessRoute(pathname, user, pageAccess) {
+  if (!user || !user.role) return false;
+  // Owner and admin bypass pageAccess (consistent with Sidebar)
+  if (['owner', 'admin'].includes(user.role)) return true;
+  // Always-accessible pages
+  if (ALWAYS_ACCESSIBLE.some(p => pathname === p || pathname.startsWith(p + '/'))) return true;
+  const routeSegment = '/' + String(pathname || '').split('/').filter(Boolean)[0];
+  const accessKey = ROUTE_TO_ACCESS_KEY[routeSegment];
+  if (!accessKey) return true; // Unknown routes default to accessible (profile, etc.)
+  // Newer pages (e.g. Calendar): allowed unless explicitly turned off, for every staff role.
+  if (DEFAULT_ON_ACCESS_KEYS.has(accessKey)) return defaultOnAccessAllowed(pageAccess, accessKey);
+  // Waiters: only owner-restrictable on the pages they normally have, and only when explicitly set.
+  if (user.role === 'waiter') {
+    if (!WAITER_ENFORCEABLE_KEYS.has(accessKey)) return true;
+    if (!pageAccess) return true;
+    const v = pageAccess[accessKey];
+    if (v === undefined || v === null) return true;
+    return accessValueOn(v);
+  }
+  if (!pageAccess) return false;
+  if (accessValueOn(pageAccess[accessKey])) return true;
+  return (ROUTE_ALT_ACCESS_KEYS[routeSegment] || []).some(k => accessValueOn(pageAccess[k]));
+}

@@ -15,6 +15,7 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { canPerform } from '../../../lib/permissions';
+import { getEffectivePageAccess } from '../../../lib/pageAccessConfig';
 import { 
   FaUsers, 
   FaPlus, 
@@ -1018,7 +1019,7 @@ const Customers = () => {
 
   // Permission gating
   const custUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-  const custPageAccess = custUserData.pageAccess;
+  const custPageAccess = getEffectivePageAccess(custUserData); // latest permissions, else login copy
   const canAddCustomer = canPerform(custUserData, custPageAccess, 'customers', 'add');
   const canEditCustomer = canPerform(custUserData, custPageAccess, 'customers', 'update');
   const canDeleteCustomer = canPerform(custUserData, custPageAccess, 'customers', 'delete');

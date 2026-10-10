@@ -91,6 +91,7 @@ import CategorySubRow from '../../../components/CategorySubRow';
 import { useSyncEngine } from '../../../hooks/useSyncEngine';
 import { setCachedData, getCachedData, saveEssentialData, getEssentialData } from '../../../lib/offlineDb';
 import { canPerform } from '../../../lib/permissions';
+import { getEffectivePageAccess } from '../../../lib/pageAccessConfig';
 import { useHubEvents } from '../../../hooks/useHubEvents';
 import { useDineBot } from '../../../components/DineBotProvider';
 import { parseScaleBarcode, isScaleBarcode } from '../../../utils/scaleBarcode';
@@ -138,8 +139,10 @@ function RestaurantPOSContent() {
 
   // Permission gating
   const dashUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-  const canCompleteBill = canPerform(dashUserData, dashUserData.pageAccess, 'orders', 'completeBill');
-  const dashCanDeleteTable = canPerform(dashUserData, dashUserData.pageAccess, 'tables', 'delete');
+  // latest permissions (owner's change applies without logging out), else the login copy
+  const dashPageAccess = getEffectivePageAccess(dashUserData);
+  const canCompleteBill = canPerform(dashUserData, dashPageAccess, 'orders', 'completeBill');
+  const dashCanDeleteTable = canPerform(dashUserData, dashPageAccess, 'tables', 'delete');
 
   // Core state
   const [selectedCategory, setSelectedCategory] = useState('all-items');

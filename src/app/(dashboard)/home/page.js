@@ -20,6 +20,7 @@ import { setCachedData, getCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import UpdateBanner from '../../../components/UpdateBanner';
 import StaffAlertsCard from '../../../components/StaffAlertsCard';
+import { canAccessRoute, getEffectivePageAccess } from '../../../lib/pageAccessConfig';
 import MeetingsHomeCard from '../../../components/meetings/MeetingsHomeCard';
 import UpcomingEventsCard from '../../../components/calendar/UpcomingEventsCard';
 import GetStartedCard from '../../../components/GetStartedCard';
@@ -338,15 +339,14 @@ export default function HomePage() {
     if (user.role === 'owner' || user.role === 'admin') return true;
     const idMap = { dashboard: 'pos', history: 'orders', tables: 'tables', menu: 'menu', analytics: 'analytics', inventory: 'inventory', kot: 'kot', admin: 'admin', customers: 'customers' };
     if (notAllowedPages?.includes(idMap[key] || key)) return false;
-    if (user.role === 'waiter') return ['dashboard', 'tables', 'history', 'kot'].includes(key);
-    if (['employee', 'manager', 'cashier', 'sales'].includes(user.role)) {
-      if (pageAccess) {
-        const accessMap = { dashboard: 'dashboard', history: 'history', tables: 'tables', menu: 'menu', analytics: 'analytics', inventory: 'inventory', kot: 'kot', admin: 'admin', customers: 'customers' };
-        return accessMap[key] ? !!pageAccess[accessMap[key]] : false;
-      }
-      return ['dashboard', 'tables', 'history', 'menu'].includes(key);
-    }
-    return false;
+    // Same rule as the page guard (lib/pageAccessConfig.canAccessRoute) — so custom roles (biller,
+    // director, chef …) get the tiles their access allows (they got none: MFC).
+    const routeOf = { dashboard: '/dashboard', history: '/orderhistory', tables: '/tables', menu: '/menu', analytics: '/analytics', inventory: '/inventory', kot: '/kot', admin: '/admin', customers: '/customers' };
+    const pa = pageAccess || getEffectivePageAccess(user);
+    // Waiters keep their usual tiles (POS, Tables, Orders, Kitchen) — minus any the owner turned off.
+    if (user.role === 'waiter') return ['dashboard', 'tables', 'history', 'kot'].includes(key) && canAccessRoute(routeOf[key], user, pa);
+    if (!pa) return ['employee', 'manager', 'cashier', 'sales'].includes(user.role) && ['dashboard', 'tables', 'history', 'menu'].includes(key);
+    return !!routeOf[key] && canAccessRoute(routeOf[key], user, pa);
   };
 
   // Owner and admin (co-owner) both see the full Headquarters dashboard.

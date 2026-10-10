@@ -9,6 +9,7 @@ import apiClient from '../../../lib/api';
 import { useNotification } from '../../../components/Notification.js';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { canPerform } from '../../../lib/permissions';
+import { getEffectivePageAccess } from '../../../lib/pageAccessConfig';
 import { getCachedTablesData, setCachedTablesData } from '../../../utils/dashboardCache';
 import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
@@ -821,7 +822,7 @@ const TableManagement = () => {
 
   const scrollContainerRef = useRef(null);
   const userData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-  const userPageAccess = userData.pageAccess;
+  const userPageAccess = getEffectivePageAccess(userData); // latest permissions, else login copy
   const canAddTable = canPerform(userData, userPageAccess, 'tables', 'add');
   const canEditTable = canPerform(userData, userPageAccess, 'tables', 'update');
   const canDeleteTable = canPerform(userData, userPageAccess, 'tables', 'delete');
@@ -1558,8 +1559,8 @@ const TableManagement = () => {
     finally { setSavingFloorOrder(false); }
   };
 
-  // ── Rearrange tables within a floor (drag-drop) — owner/admin/cashier only ──
-  const canRearrangeTables = ['owner', 'admin', 'cashier'].includes((userData.role || '').toLowerCase());
+  // ── Rearrange tables within a floor (drag-drop) — owner/admin/cashier, or "Tables → manage" ──
+  const canRearrangeTables = ['owner', 'admin', 'cashier'].includes((userData.role || '').toLowerCase()) || canEditTableConfig;
 
   const openRearrange = () => {
     // Default to the currently-viewed floor, else the first floor.

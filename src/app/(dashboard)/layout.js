@@ -30,50 +30,14 @@ import apiClient from '../../lib/api';
 import { preferLoopbackIfLocal } from '../../lib/localServer';
 import { reconnectLan } from '../../lib/lanRealtime';
 import { initPrintDiagnostics } from '../../lib/printDiagnostics';
-import { ROUTE_TO_ACCESS_KEY, ALWAYS_ACCESSIBLE, WAITER_ENFORCEABLE_KEYS, DEFAULT_ON_ACCESS_KEYS, defaultOnAccessAllowed } from '../../lib/pageAccessConfig';
+import { canAccessRoute } from '../../lib/pageAccessConfig';
 import { rolesAllowsPath } from '../../lib/rolesRouteMap';
 import ManagerPinPrompt from '../../components/ManagerPinPrompt';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
 import { DineBotProvider } from '../../components/DineBotProvider';
 
-function checkRouteAccess(pathname, user, pageAccess) {
-  if (!user || !user.role) return false;
-
-  // Owner and admin bypass pageAccess (consistent with Sidebar)
-  if (['owner', 'admin'].includes(user.role)) return true;
-
-  // Always-accessible pages
-  if (ALWAYS_ACCESSIBLE.some(p => pathname === p || pathname.startsWith(p + '/'))) return true;
-
-  // Find the matching route access key
-  const routeSegment = '/' + pathname.split('/').filter(Boolean)[0];
-  const accessKey = ROUTE_TO_ACCESS_KEY[routeSegment];
-  if (!accessKey) return true; // Unknown routes default to accessible (profile, etc.)
-
-  // Newer pages (e.g. Calendar): allowed unless explicitly turned off, for every staff role.
-  if (DEFAULT_ON_ACCESS_KEYS.has(accessKey)) return defaultOnAccessAllowed(pageAccess, accessKey);
-
-  // Waiters historically bypassed pageAccess entirely. Now HONOR the owner's setting, but ONLY for
-  // pages a waiter normally has (WAITER_ENFORCEABLE_KEYS) and only when explicitly set — so a waiter
-  // is restricted only on pages the owner deliberately turned off. Pages shown to waiters solely via
-  // the legacy bypass (KOT, Admin, ...) stay visible exactly as before → zero impact by default.
-  if (user.role === 'waiter') {
-    if (!WAITER_ENFORCEABLE_KEYS.has(accessKey)) return true; // legacy-bypass pages: unchanged
-    if (!pageAccess) return true;
-    const v = pageAccess[accessKey];
-    if (v === undefined || v === null) return true; // not configured → allow (unchanged behaviour)
-    if (typeof v === 'object') return Object.values(v).some(Boolean);
-    return !!v;
-  }
-
-  if (!pageAccess) return false;
-
-  const accessValue = pageAccess[accessKey];
-  if (typeof accessValue === 'object' && accessValue !== null) {
-    return Object.values(accessValue).some(Boolean);
-  }
-  return !!accessValue;
-}
+// One rule shared with Sidebar / Home tiles (lib/pageAccessConfig.canAccessRoute).
+const checkRouteAccess = canAccessRoute;
 
 function DashboardLayoutContent({ children }) {
   const [isMobile, setIsMobile] = useState(false);

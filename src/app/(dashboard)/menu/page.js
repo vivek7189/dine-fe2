@@ -21,6 +21,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import { queueOfflineOrder, generateIdempotencyKey } from '../../../lib/syncEngine';
 import { getOfflineEngineEnabled } from '../../../hooks/useSyncEngine';
 import { canPerform } from '../../../lib/permissions';
+import { getEffectivePageAccess } from '../../../lib/pageAccessConfig';
 import { isLocalServerMode } from '../../../lib/localServer';
 import OfflineBanner from '../../../components/OfflineBanner';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
@@ -2565,7 +2566,7 @@ const MenuManagement = () => {
 
   // Permission gating
   const menuUserData = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })();
-  const menuPageAccess = menuUserData.pageAccess;
+  const menuPageAccess = getEffectivePageAccess(menuUserData); // latest permissions, else login copy
   const canAddMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'add', currentRestaurant?.posSettings?.waiterAppConfig);
   const canEditMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'update', currentRestaurant?.posSettings?.waiterAppConfig);
   const canDeleteMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'delete', currentRestaurant?.posSettings?.waiterAppConfig);

@@ -142,7 +142,7 @@ import { getAllCountriesWithCurrency, getCurrencyByCountryCode } from '../../../
 import { getTaxRegime, TAX_FREE_PRESET } from '../../../config/taxRegimes';
 import EtimsSettings from '../../../components/EtimsSettings';
 import { FEATURE_OPS, OP_LABELS, ADMIN_TAB_LABELS, ADMIN_TAB_ID_TO_KEY, resolveFeaturePermissions } from '@/lib/permissions';
-import { PAGE_ACCESS_CONFIG, withDefaultOnAccess } from '@/lib/pageAccessConfig';
+import { PAGE_ACCESS_CONFIG, withDefaultOnAccess, getEffectivePageAccess } from '@/lib/pageAccessConfig';
 import { getPrintFontSizes, getPrintFontFamily, PRINT_FONTS, getContentWidthRange } from '../../../utils/printFontSizes';
 import { KOT_TEMPLATE_LIST, BILL_TEMPLATE_LIST, renderKOT, renderBill } from '../../../utils/printTemplates/index';
 import { splitIndiaGst } from '../../../utils/printTemplates/helpers';
@@ -195,9 +195,11 @@ const AdminTabSkeleton = ({ variant = 'single' }) => (
 );
 
 // Tax & Business Identity Combined Component
-const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading, currentUserRole }) => {
+const TaxAndBusinessIdentity = ({ restaurants, selectedRestaurant, setSelectedRestaurant, initialLoading, currentUserRole, roleOptions }) => {
   const { showSuccess, showError, NotificationContainer: TaxNotifications } = useNotification();
-  const allRoles = ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
+  // Built-in roles + this restaurant's own staff roles (biller, director …) — custom roles couldn't be
+  // picked for "Who can apply manual discounts?" (MFC).
+  const allRoles = Array.isArray(roleOptions) && roleOptions.length ? roleOptions : ['owner', 'manager', 'admin', 'waiter', 'cashier', 'employee'];
   // Discount WhatsApp-OTP approval settings are owner/admin-only (the server enforces this too).
   const canManageDiscountOtp = ['owner', 'admin'].includes(String(currentUserRole || '').toLowerCase());
   const currencySymbol = selectedRestaurant?.currencySettings?.currencySymbol
@@ -6647,7 +6649,7 @@ const Admin = () => {
         
         // Allow owners, admin roles, and staff with any admin tab permission
         const hasAdminPageAccess = ['owner', 'admin'].includes(user.role) || (() => {
-          const pa = user.pageAccess?.admin;
+          const pa = getEffectivePageAccess(user)?.admin; // latest permissions, else login copy
           if (typeof pa === 'object' && pa !== null) return Object.values(pa).some(Boolean);
           return !!pa;
         })();
@@ -13302,10 +13304,10 @@ const Admin = () => {
                     <span style={{ fontSize: '12px', color: '#374151', fontWeight: 600 }}>Pages that stay unlocked (never covered):</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                       {(() => {
-                        const current = Array.isArray(posSettings.terminalLock?.unlockedPages) ? posSettings.terminalLock.unlockedPages : ['/kot'];
+                        const current = (Array.isArray(posSettings.terminalLock?.unlockedPages) ? posSettings.terminalLock.unlockedPages : ['/kot']).map(p => (p === '/orders' ? '/orderhistory' : p));
                         const PAGES = [
                           { path: '/kot', label: 'Kitchen (KOT)' },
-                          { path: '/orders', label: 'Orders' },
+                          { path: '/orderhistory', label: 'Orders' },
                           { path: '/tables', label: 'Tables' },
                           { path: '/home', label: 'Home' },
                           { path: '/analytics', label: 'Reports' },
@@ -13377,17 +13379,20 @@ const Admin = () => {
                     { role: 'captain', label: 'Captain' },
                     { role: 'manager', label: 'Manager' },
                     { role: 'employee', label: 'Employee' },
+                    // + this restaurant's own staff roles (biller, director, chef …)
+                    ...allRoles.filter(r => !['owner', 'admin', 'cashier', 'waiter', 'captain', 'manager', 'employee'].includes(r))
+                      .map(r => ({ role: r, label: r.replace(/\b\w/g, c => c.toUpperCase()) })),
                   ].map(({ role, label }) => (
                     <div key={role} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '12.5px', color: '#374151', fontWeight: 600, width: '84px' }}>{label}</span>
                       <select
-                        value={posSettings.roleLandingPages?.[role] || ''}
+                        value={(posSettings.roleLandingPages?.[role] === '/orders' ? '/orderhistory' : posSettings.roleLandingPages?.[role]) || ''}
                         onChange={(e) => setPosSettings(prev => ({ ...prev, roleLandingPages: { ...(prev.roleLandingPages || {}), [role]: e.target.value } }))}
                         style={{ flex: 1, maxWidth: '220px', padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
                         <option value="">Default (Home)</option>
                         <option value="/dashboard">Billing / Dashboard</option>
                         <option value="/tables">Tables</option>
-                        <option value="/orders">Orders</option>
+                        <option value="/orderhistory">Orders</option>
                         <option value="/kot">Kitchen (KOT)</option>
                         <option value="/menu">Menu</option>
                         <option value="/home">Home</option>
@@ -15035,6 +15040,7 @@ const Admin = () => {
         }}>
           <TaxAndBusinessIdentity
             currentUserRole={currentUserRole}
+            roleOptions={allRoles}
             restaurants={restaurants}
             selectedRestaurant={selectedRestaurant}
             setSelectedRestaurant={setSelectedRestaurant}

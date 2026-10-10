@@ -191,7 +191,9 @@ const KitchenOrderTicket = () => {
       let restaurantId = null;
 
       const userRole = (user.role || '').toLowerCase();
-      if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'kitchen'].includes(userRole)) {
+      // Any staff member (chef, dosai master, captain … — custom roles too) works at their assigned
+      // restaurant; only owner / admin pick one (custom roles got "Invalid user role": MFC).
+      if (user.restaurantId && userRole !== 'owner' && userRole !== 'admin') {
         restaurantId = user.restaurantId;
       } else if (userRole === 'owner' || userRole === 'admin') {
         try {
@@ -338,7 +340,7 @@ const KitchenOrderTicket = () => {
     if (!userData) return null;
     const user = JSON.parse(userData);
     const role = (user.role || '').toLowerCase();
-    if (user.restaurantId && ['waiter', 'manager', 'employee', 'cashier', 'kitchen'].includes(role)) {
+    if (user.restaurantId && role !== 'owner' && role !== 'admin') {
       return user.restaurantId;
     }
     return localStorage.getItem('selectedRestaurantId') || null;

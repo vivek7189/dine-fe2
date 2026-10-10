@@ -36,7 +36,9 @@ export function TerminalLockProvider({ restaurantId, restaurantName, terminalLoc
   // live view shows through and only ACTIONS require the PIN (e.g. Tables status is visible;
   // opening a table to order asks for the PIN).
   const pathname = usePathname();
-  const unlockedPages = Array.isArray(terminalLock?.unlockedPages) ? terminalLock.unlockedPages : ['/kot'];
+  // '/orders' (older setting) is Order History — the page lives at /orderhistory
+  const unlockedPages = (Array.isArray(terminalLock?.unlockedPages) ? terminalLock.unlockedPages : ['/kot'])
+    .flatMap(p => (p === '/orders' ? ['/orders', '/orderhistory'] : [p]));
   const overlaySuppressed = !!(pathname && (
     pathname === '/admin' || pathname.startsWith('/admin/') ||
     unlockedPages.some((p) => p && (pathname === p || pathname.startsWith(p + '/')))
