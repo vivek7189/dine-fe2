@@ -178,6 +178,12 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
   useEffect(() => { setAtt(m.attendance || {}); setMinutes(m.minutes || ''); setDecisions(m.decisions || ''); setGoals(m.goals || []); }, [m]);
 
   const invitees = m.invitees || [];
+  // Approved leave on the meeting day (from Leave) — shown as "On leave" unless attendance is marked.
+  const onLeave = m.onLeave || {};
+  const counts = invitees.reduce((c, i) => {
+    const k = att[i.staffId] || (onLeave[i.staffId] ? 'leave' : 'unmarked');
+    c[k] = (c[k] || 0) + 1; return c;
+  }, {});
   const acks = m.acks || {};
   // Who can't be reached: no phone app with notifications AND no usable WhatsApp number
   const unreachable = invitees.filter(i => { const r = reach[i.staffId]; return r && !r.app && r.phone !== 'ok'; });
@@ -238,10 +244,22 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
           {m.cancelledReason && <p style={{ fontSize: 13, color: '#b91c1c' }}>Cancelled: {m.cancelledReason}</p>}
 
           <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', margin: '10px 0 6px' }}>Attendance{published ? ' & who has read the minutes' : ''}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {[...ATT.map(([k, l, c]) => [k, l, c]), ['leave', 'On leave', '#2563eb'], ['unmarked', 'Not marked', '#9ca3af']].map(([k, l, c]) => (
+              <span key={k} style={{ fontSize: 12, fontWeight: 700, color: c, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 999, padding: '3px 10px' }}>
+                {l} <span style={{ fontVariantNumeric: 'tabular-nums' }}>{counts[k] || 0}</span>
+              </span>
+            ))}
+            <span style={{ fontSize: 12, color: '#6b7280', padding: '3px 4px' }}>of {invitees.length}</span>
+          </div>
           <div style={{ display: 'grid', gap: 6 }}>
             {invitees.map(i => (
               <div key={i.staffId} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
                 <span style={{ minWidth: isMobile ? 120 : 180, fontWeight: 600 }}>{i.name || i.staffId}<span style={{ color: '#9ca3af', fontWeight: 400 }}>{i.role ? ` · ${i.role}` : ''}</span>
+                  {onLeave[i.staffId] && !att[i.staffId] && (
+                    <span title={`Approved ${onLeave[i.staffId].type} leave ${onLeave[i.staffId].from}${onLeave[i.staffId].to !== onLeave[i.staffId].from ? ` → ${onLeave[i.staffId].to}` : ''}${onLeave[i.staffId].halfDay ? ' (half day)' : ''}`}
+                      style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: '#2563eb', background: '#eff6ff', borderRadius: 999, padding: '1px 7px' }}>On leave</span>
+                  )}
                   {reach[i.staffId] && (
                     <span title={`${reach[i.staffId].app ? 'Gets phone-app notifications' : 'Not on the phone app'} · WhatsApp: ${reach[i.staffId].phone === 'ok' ? 'number OK' : PHONE_ISSUE[reach[i.staffId].phone]}`}
                       style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: reach[i.staffId].app || reach[i.staffId].phone === 'ok' ? '#047857' : '#b45309' }}>
