@@ -10,10 +10,12 @@
 // Staff see their own (and marketing tasks given to them); owner / admin / manager see everything.
 // ?kind=repair | suggestion | idea | task opens that tab.
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { Photos, PhotoPicker } from '../../../components/requests/RequestPhotos';
+import RepairTicket, { RefTag } from '../../../components/requests/RepairTicket';
 
 const MANAGER_ROLES = ['owner', 'admin', 'co-owner', 'manager'];
 const KINDS = [['repair', 'Repairs'], ['suggestion', 'Suggestions'], ['idea', 'New dishes'], ['task', 'Marketing']];
@@ -61,56 +63,6 @@ const INTRO = {
   task: 'Marketing tasks given to you — promotions, events, decorations, recruitment. Post progress with photos.',
 };
 
-// Photos: pick (camera or gallery) → uploaded at once → shown as thumbnails; tap one to open it.
-function Photos({ urls = [], onOpen }) {
-  if (!urls.length) return null;
-  return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-      {urls.map(u => (
-        <button key={u} type="button" onClick={() => onOpen(u)} style={{ padding: 0, border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', cursor: 'zoom-in', background: '#f9fafb' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={u} alt="Attached photo" style={{ width: 72, height: 72, objectFit: 'cover', display: 'block' }} />
-        </button>
-      ))}
-    </div>
-  );
-}
-function PhotoPicker({ rid, value, onChange, max = 4 }) {
-  const ref = useRef(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
-  const pick = async (files) => {
-    const list = [...(files || [])].slice(0, max - value.length);
-    if (!list.length) return;
-    setBusy(true); setErr('');
-    try { const r = await apiClient.uploadStaffRequestPhotos(rid, list); onChange([...value, ...(r.urls || [])].slice(0, max)); }
-    catch (e) { setErr(e?.message || 'Could not upload the photo'); }
-    finally { setBusy(false); if (ref.current) ref.current.value = ''; }
-  };
-  return (
-    <div>
-      <label style={label}>Photos (optional, up to {max})</label>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        {value.map(u => (
-          <div key={u} style={{ position: 'relative' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={u} alt="Photo to send" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
-            <button type="button" aria-label="Remove photo" onClick={() => onChange(value.filter(x => x !== u))}
-              style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 999, border: 'none', background: '#111827', color: '#fff', fontSize: 11, cursor: 'pointer' }}>✕</button>
-          </div>
-        ))}
-        {value.length < max && (
-          <button type="button" disabled={busy} onClick={() => ref.current && ref.current.click()} style={{ ...btn('#fff', '#374151', '1.5px dashed #d1d5db'), height: 64, minWidth: 90 }}>
-            {busy ? 'Uploading…' : '+ Add photo'}
-          </button>
-        )}
-        <input ref={ref} type="file" accept="image/*" multiple hidden onChange={e => pick(e.target.files)} />
-      </div>
-      {err && <div style={{ color: '#b91c1c', fontSize: 12, marginTop: 4 }}>{err}</div>}
-    </div>
-  );
-}
-
 function StaffRequestsContent() {
   const params = useSearchParams();
   const initial = (KINDS.find(([k]) => k === params?.get('kind')) || KINDS[0])[0];
@@ -129,6 +81,8 @@ function StaffRequestsContent() {
   const [progress, setProgress] = useState({});          // task id → { note, photos }
   const [staff, setStaff] = useState([]);                // managers: who a task can go to
   const [viewer, setViewer] = useState(null);            // photo opened full size
+  const [search, setSearch] = useState('');              // number (42, REP-0042) or words
+  const [dupes, setDupes] = useState(null);              // repair: "is this the same as REP-0042?"
   const { currencySettings, formatCurrency } = useCurrency();
   const symbol = (currencySettings && currencySettings.currencySymbol) || '';
   const money = (n) => (n == null || n === '' ? '' : (formatCurrency ? formatCurrency(Number(n)) : `${symbol}${n}`));
@@ -159,28 +113,45 @@ function StaffRequestsContent() {
   useEffect(() => { load(); }, [rid, user]);
   useEffect(() => {
     // Staff: the form is always open (except marketing — tasks come from the managers).
-    setShowForm(!isManager && kind !== 'task'); setForm(EMPTY); setNotice('');
+    setShowForm(!isManager && kind !== 'task'); setForm(EMPTY); setNotice(''); setDupes(null); setSearch('');
   }, [kind, isManager]);
   useEffect(() => {
-    if (!isManager || !rid || kind !== 'task' || staff.length) return;
+    if (!isManager || !rid || !['task', 'repair'].includes(kind) || staff.length) return;
     apiClient.getStaffRequestAssignable(rid).then(r => setStaff(r?.staff || [])).catch(() => {});
   }, [isManager, rid, kind, staff.length]);
   const roles = [...new Set(staff.flatMap(s => [s.role, ...(s.extraRoles || [])]).filter(Boolean))].sort();
 
-  const send = async () => {
+  const send = async (confirmNew = false) => {
     const t = FORM_TEXT[kind];
     if (!form.title.trim() && !form.details.trim()) { setError(kind === 'repair' ? 'Say what needs repair' : kind === 'idea' ? 'Name the dish' : kind === 'task' ? 'Say what needs to be done' : 'Write your suggestion'); return; }
     if (kind === 'task' && !form.assignees.roles.length && !form.assignees.staffIds.length) { setError('Choose who does it — roles or staff'); return; }
     setBusy('send'); setError('');
     try {
-      await apiClient.createStaffRequest(rid, { kind, ...form });
-      setForm(EMPTY);
-      setNotice(t.ok);
+      const r = await apiClient.createStaffRequest(rid, { kind, ...form, ...(confirmNew ? { confirmNew: true } : {}) });
+      setForm(EMPTY); setDupes(null);
+      setNotice(`${t.ok}${r?.request?.refNo ? ` Your number is ${r.request.refNo} — quote it any time.` : ''}`);
       if (isManager || kind === 'task') setShowForm(false);
       await load();
-    } catch (e) { setError(e?.message || 'Could not send it'); }
+    } catch (e) {
+      if (e?.code === 'POSSIBLE_DUPLICATE' && Array.isArray(e?.data?.matches)) setDupes(e.data.matches);
+      else setError(e?.message || 'Could not send it');
+    }
     finally { setBusy(null); }
   };
+  // "Yes, it's the same problem" → my details + photos go on that ticket
+  const joinTicket = async (m) => {
+    setBusy('send'); setError('');
+    try {
+      await apiClient.staffRequestSameIssue(rid, m.id, { note: [form.title, form.details].filter(Boolean).join(' — '), photos: form.photos, urgency: form.urgency });
+      setForm(EMPTY); setDupes(null);
+      setNotice(`Added to ${m.refNo || 'the open ticket'} — you'll be told when it's fixed.`);
+      if (isManager) setShowForm(false);
+      await load();
+    } catch (e) { setError(e?.message || 'Could not add it'); }
+    finally { setBusy(null); }
+  };
+  // show the change at once, then refresh the lists + waiting counts
+  const replaceItem = (r) => { setList(l => (l || []).map(x => (x.id === r.id ? { ...x, ...r } : x))); load(); };
   const withdraw = async (r) => {
     setBusy(r.id);
     try { await apiClient.withdrawStaffRequest(rid, r.id); await load(); }
@@ -209,13 +180,18 @@ function StaffRequestsContent() {
     finally { setBusy(null); }
   };
 
-  const mine = (list || []).filter(r => r.kind === kind);
-  const shown = isManager && view === 'active' ? mine.filter(r => ['open', 'in_progress'].includes(r.status)) : mine;
+  const qText = search.trim().toLowerCase();
+  const qNum = (qText.match(/^(?:[a-z]{3})?\s*-?\s*0*(\d{1,7})$/) || [])[1];
+  const matchesSearch = (r) => !qText
+    || (qNum && r.refNo && Number(String(r.refNo).replace(/\D/g, '')) === Number(qNum) && (!/^[a-z]{3}/.test(qText) || String(r.refNo).toLowerCase().startsWith(qText.slice(0, 3))))
+    || `${r.refNo || ''} ${r.title} ${r.location || ''} ${r.details || ''} ${r.staffName || ''}`.toLowerCase().includes(qText);
+  const mine = (list || []).filter(r => r.kind === kind && matchesSearch(r));
+  const shown = isManager && view === 'active' && !qText ? mine.filter(r => ['open', 'in_progress'].includes(r.status)) : mine;
   const ft = FORM_TEXT[kind];
   const listTitle = isManager
     ? { repair: 'Reported repairs', suggestion: 'Suggestions received', idea: 'Dish ideas from the team', task: 'Marketing tasks' }[kind]
     : { repair: 'My repair reports', suggestion: 'My suggestions', idea: 'My dish ideas', task: 'My tasks' }[kind];
-  const emptyText = isManager && view === 'active' ? 'Nothing waiting.'
+  const emptyText = qText ? 'Nothing matches that number or word.' : isManager && view === 'active' ? 'Nothing waiting.'
     : { repair: 'No repairs reported yet.', suggestion: 'No suggestions yet.', idea: 'No dish ideas yet.', task: isManager ? 'No marketing tasks yet.' : 'No marketing tasks for you yet.' }[kind];
   const staffName = (id) => (staff.find(s => s.id === id) || {}).name || '';
   const margin = (r) => (r.estCost > 0 && r.suggestedPrice > 0 ? Math.round(((r.suggestedPrice - r.estCost) / r.suggestedPrice) * 100) : null);
@@ -334,8 +310,23 @@ function StaffRequestsContent() {
             )}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {(isManager || kind === 'task') && <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY); }} style={btn('#fff', '#374151', '1px solid #d1d5db')}>Cancel</button>}
-              <button type="button" disabled={busy === 'send'} onClick={send} style={{ ...btn('#047857'), opacity: busy === 'send' ? 0.6 : 1 }}>{busy === 'send' ? 'Sending…' : 'Send'}</button>
+              {!dupes && <button type="button" disabled={busy === 'send'} onClick={() => send(false)} style={{ ...btn('#047857'), opacity: busy === 'send' ? 0.6 : 1 }}>{busy === 'send' ? 'Sending…' : 'Send'}</button>}
             </div>
+            {dupes && (
+              <div role="alert" style={{ border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 12, padding: 12, display: 'grid', gap: 8 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#92400e' }}>This may already be reported — is it the same problem?</div>
+                {dupes.map(m => (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', background: '#fff', borderRadius: 9, padding: '8px 10px', border: '1px solid #fef3c7' }}>
+                    <div style={{ fontSize: 13, minWidth: 0 }}>
+                      <RefTag refNo={m.refNo} /> <b>{m.title}</b>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>{m.location ? `${m.location} · ` : ''}{statusText('repair', m.status)} · {when(m.createdAt)}{m.staffName ? ` · ${m.staffName}` : ''}</div>
+                    </div>
+                    <button type="button" disabled={busy === 'send'} onClick={() => joinTicket(m)} style={btn('#111827')}>Yes, same — add mine</button>
+                  </div>
+                ))}
+                <div><button type="button" disabled={busy === 'send'} onClick={() => send(true)} style={btn('#fff', '#374151', '1px solid #d1d5db')}>No, it&apos;s a different problem — new ticket</button></div>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -344,6 +335,8 @@ function StaffRequestsContent() {
       <section style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           <h2 style={{ ...h2, margin: 0 }}>{listTitle}</h2>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search number (e.g. 42) or word" aria-label="Search by number or word"
+            style={{ ...input, padding: '6px 10px', fontSize: 13, width: 220, maxWidth: '100%', flex: '0 1 220px' }} />
           {isManager && (
             <div style={{ display: 'flex', gap: 4 }}>
               {[['active', 'To do'], ['all', 'All']].map(([k, t]) => (
@@ -357,6 +350,10 @@ function StaffRequestsContent() {
             : (
               <div style={{ display: 'grid', gap: 10 }}>
                 {shown.map(r => {
+                  if (r.kind === 'repair') {
+                    return <RepairTicket key={r.id} r={r} rid={rid} me={user?.id || user?.userId} isManager={isManager} staff={staff} money={money}
+                      onChanged={replaceItem} onOpenPhoto={setViewer} defaultOpen={!!qText && shown.length === 1} />;
+                  }
                   const typing = reply[r.id];
                   const prog = progress[r.id] || { note: '', photos: [] };
                   const overdue = r.kind === 'task' && r.dueDate && ['open', 'in_progress'].includes(r.status) && r.dueDate < new Date().toISOString().slice(0, 10);
@@ -366,7 +363,7 @@ function StaffRequestsContent() {
                     <div key={r.id} style={{ border: `1px solid ${(r.urgency === 'urgent' || overdue) && ['open', 'in_progress'].includes(r.status) ? '#fecaca' : '#f1f5f9'}`, borderRadius: 12, padding: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14.5, color: '#111827', overflowWrap: 'anywhere' }}>{r.title}</div>
+                          <div style={{ fontWeight: 700, fontSize: 14.5, color: '#111827', overflowWrap: 'anywhere' }}>{r.refNo && <><RefTag refNo={r.refNo} />{' '}</>}{r.title}</div>
                           <div style={{ ...muted, fontSize: 12, marginTop: 2 }}>
                             {when(r.createdAt)}
                             {r.kind === 'repair' && r.location ? ` · ${r.location}` : ''}

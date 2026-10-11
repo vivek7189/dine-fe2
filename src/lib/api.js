@@ -4681,6 +4681,16 @@ class ApiClient {
     files.forEach((file) => formData.append('photos', file));
     return this.request(`/api/staff-requests/${restaurantId}/photos`, { method: 'POST', body: formData });
   }
+  // Repair ticket / marketing task history: { kind, note, photos, followUpDate, status, resolution, vendor }.
+  async logStaffRequest(restaurantId, id, data) {
+    try { return await this.request(`/api/staff-requests/${restaurantId}/${id}/log`, { method: 'POST', body: data }); }
+    finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
+  }
+  // The same problem reported again → added to that open ticket.
+  async staffRequestSameIssue(restaurantId, id, data) {
+    try { return await this.request(`/api/staff-requests/${restaurantId}/${id}/same-issue`, { method: 'POST', body: data }); }
+    finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
+  }
   // Managers: active staff a marketing task can be given to → { staff: [{ id, name, role, extraRoles }] }.
   async getStaffRequestAssignable(restaurantId) {
     return this.request(`/api/staff-requests/${restaurantId}/assignable`);
