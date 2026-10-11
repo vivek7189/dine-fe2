@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaGift, FaTimes, FaTrash, FaPen, FaUndo } from 'react-icons/fa';
 import RemoveRecordDialog from './RemoveRecordDialog';
+import DuplicateMoneyPrompt from './DuplicateMoneyPrompt';
+import { RefTag } from '../../../../components/requests/RepairTicket';
 
 /**
  * BonusTab — record staff bonuses/incentives; payroll adds them to net pay.
@@ -19,6 +21,8 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
   const [showRemoved, setShowRemoved] = useState(false);
   const [editing, setEditing] = useState(null);    // { id, amount, bonusType, reason }
   const [removing, setRemoving] = useState(null);  // bonus being removed (two-step dialog)
+  const [dupes, setDupes] = useState(null);        // same person + amount just recorded → confirm first
+  const [search, setSearch] = useState('');        // BON number, name or reason
 
   const fmt = (n) => (formatCurrency ? formatCurrency(n) : `₹${Number(n || 0).toLocaleString()}`);
 
@@ -51,7 +55,7 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
 
   const staffOf = (id) => (staffList || []).find(x => (x.id || x.staffId) === id);
 
-  const submit = async () => {
+  const submit = async (confirmDuplicate = false) => {
     if (!form.staffId || !(Number(form.amount) > 0)) { setError('Pick a staff member and enter a positive amount.'); return; }
     setSaving(true); setError('');
     try {
@@ -63,11 +67,15 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
         amount: Number(form.amount),
         bonusType: form.bonusType,
         reason: form.reason || null,
+        ...(confirmDuplicate ? { confirmDuplicate: true } : {}),
       });
       setForm({ staffId: '', amount: '', bonusType: 'incentive', reason: '' });
-      setShowForm(false);
+      setShowForm(false); setDupes(null);
       await load();
-    } catch (e) { setError(e?.message || 'Could not save the bonus.'); }
+    } catch (e) {
+      if (e?.code === 'POSSIBLE_DUPLICATE' && Array.isArray(e?.data?.matches)) setDupes(e.data.matches);
+      else setError(e?.message || 'Could not save the bonus.');
+    }
     finally { setSaving(false); }
   };
 
@@ -123,7 +131,7 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginBottom: 16, background: '#fafafa' }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Staff member
-              <select value={form.staffId} onChange={e => setForm({ ...form, staffId: e.target.value })} style={inp}>
+              <select value={form.staffId} onChange={e => { setForm({ ...form, staffId: e.target.value }); setDupes(null); }} style={inp}>
                 <option value="">Select staff…</option>
                 {(staffList || []).map(s => { const id = s.id || s.staffId; return <option key={id} value={id}>{s.name || s.staffName}{s.role ? ` · ${s.role}` : ''}</option>; })}
               </select>
@@ -142,25 +150,36 @@ export default function BonusTab({ restaurantId, apiClient, staffList = [], isMo
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
             <button onClick={() => setShowForm(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={submit} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: saving ? '#93c5fd' : '#2563eb', color: '#fff', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving…' : 'Record bonus'}</button>
+            {!dupes && <button onClick={() => submit(false)} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: saving ? '#93c5fd' : '#2563eb', color: '#fff', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving…' : 'Record bonus'}</button>}
           </div>
+          {dupes && <DuplicateMoneyPrompt matches={dupes} what="bonus" fmt={fmt} saving={saving} onConfirm={() => submit(true)} onCancel={() => { setDupes(null); setShowForm(false); }} />}
         </div>
       )}
 
+      {bonuses.length > 5 && (
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search BON number, name or reason" aria-label="Search bonuses"
+          style={{ ...inp, marginBottom: 10, maxWidth: 300 }} />
+      )}
       {loading ? (
         <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af' }}>Loading…</div>
       ) : bonuses.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No bonuses recorded yet.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {bonuses.map(bn => {
+          {bonuses.filter(bn => {
+            const q = search.trim().toLowerCase();
+            if (!q) return true;
+            const n = (q.match(/^(?:bon)?\s*-?\s*0*(\d+)$/) || [])[1];
+            const st = staffOf(bn.staffId);
+            return (n && bn.refNo && Number(String(bn.refNo).replace(/\D/g, '')) === Number(n)) || `${bn.refNo || ''} ${bn.staffName || (st && (st.name || st.staffName)) || ''} ${bn.reason || ''}`.toLowerCase().includes(q);
+          }).map(bn => {
             const ss = STATUS_STYLE[bn.status] || STATUS_STYLE.approved;
             const s = staffOf(bn.staffId);
             const typeName = (TYPES.find(t => t.id === bn.bonusType) || {}).name || bn.bonusType || 'Bonus';
             return (
               <div key={bn.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, opacity: bn.status === 'removed' ? 0.6 : 1 }}>
                 <div style={{ minWidth: 160 }}>
-                  <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{bn.staffName || (s && (s.name || s.staffName)) || 'Staff'}</div>
+                  <div style={{ fontWeight: 700, color: '#111827', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><RefTag refNo={bn.refNo} />{bn.staffName || (s && (s.name || s.staffName)) || 'Staff'}</div>
                   <div style={{ fontSize: 11, color: '#9ca3af' }}>{typeName}{bn.reason ? ` · ${bn.reason}` : ''}{bn.appliedMonth ? ` · paid ${bn.appliedMonth}` : ''}</div>
                   {bn.status === 'removed' && <div style={{ fontSize: 11, color: '#b91c1c' }}>Removed{bn.removedBy ? ` by ${bn.removedBy}` : ''} · {bn.removeReason || 'no reason'}</div>}
                 </div>

@@ -61,7 +61,7 @@ export default function MyPayView() {
     adj.filter(a => a.kind === 'earning').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '+' + fc(a.amount), '']));
     Object.entries(slip.deductions || {}).forEach(([k, v]) => { if (Number(v) > 0) rows.push([labelOf(k, slip.componentLabels), '', '-' + fc(v)]); });
     if (slip.lopDeduction > 0) rows.push(['Loss of pay (LOP)', '', '-' + fc(slip.lopDeduction)]);
-    if (slip.advanceRecovery > 0) rows.push(['Advance recovery', '', '-' + fc(slip.advanceRecovery)]);
+    if (slip.advanceRecovery > 0) rows.push([`Advance recovery${(slip.advanceRefs || []).length ? ` (${slip.advanceRefs.join(', ')})` : ''}`, '', '-' + fc(slip.advanceRecovery)]);
     adj.filter(a => a.kind === 'deduction').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '', '-' + fc(a.amount)]));
     const att = slip.attendance;
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Payslip · ${escapeHtml(data?.staff?.name || '')} · ${escapeHtml(monthName(slip.month))}</title>
@@ -132,7 +132,7 @@ export default function MyPayView() {
               <div style={{ display: 'grid', gap: 6 }}>
                 {data.advances.map(a => (
                   <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #f9fafb', flexWrap: 'wrap' }}>
-                    <span>{fmtDate(a.date)}{a.reason ? ` · ${a.reason}` : ''}</span>
+                    <span>{a.refNo ? `${a.refNo} · ` : ''}{fmtDate(a.date)}{a.reason ? ` · ${a.reason}` : ''}</span>
                     <span style={{ fontVariantNumeric: 'tabular-nums' }}>
                       {fc(a.amount)}
                       {a.status === 'approved' || a.status === 'settled'
@@ -152,7 +152,7 @@ export default function MyPayView() {
               <div style={{ display: 'grid', gap: 6 }}>
                 {data.bonuses.map(b => (
                   <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, padding: '6px 0', borderBottom: '1px solid #f9fafb', flexWrap: 'wrap' }}>
-                    <span>{fmtDate(b.date)}{b.bonusType ? ` · ${b.bonusType}` : ''}{b.reason ? ` · ${b.reason}` : ''}</span>
+                    <span>{b.refNo ? `${b.refNo} · ` : ''}{fmtDate(b.date)}{b.bonusType ? ` · ${b.bonusType}` : ''}{b.reason ? ` · ${b.reason}` : ''}</span>
                     <span style={{ fontVariantNumeric: 'tabular-nums' }}><b>{fc(b.amount)}</b> · {b.status}</span>
                   </div>
                 ))}

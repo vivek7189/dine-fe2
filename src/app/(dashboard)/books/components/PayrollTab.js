@@ -97,12 +97,12 @@ export default function PayrollTab({
     const adj = (slip.adjustments && Array.isArray(slip.adjustments.items)) ? slip.adjustments.items : [];
     rows.push(['Basic salary', fc(slip.baseSalary), '']);
     Object.entries(allow).forEach(([k, v]) => { if (Number(v) > 0) rows.push([slipLabel('earning', k, slip.componentLabels), '+' + fc(v), '']); });
-    if (slip.bonusPay > 0) rows.push(['Bonus / incentive', '+' + fc(slip.bonusPay), '']);
+    if (slip.bonusPay > 0) rows.push([`Bonus / incentive${(slip.bonusRefs || []).length ? ` (${slip.bonusRefs.join(', ')})` : ''}`, '+' + fc(slip.bonusPay), '']);
     if (slip.overtimePay > 0) rows.push(['Overtime pay', '+' + fc(slip.overtimePay), '']);
     adj.filter(a => a.kind === 'earning').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '+' + fc(a.amount), '']));
     Object.entries(deduct).forEach(([k, v]) => { if (Number(v) > 0) rows.push([slipLabel('deduction', k, slip.componentLabels), '', '-' + fc(v)]); });
     if (slip.lopDeduction > 0) rows.push(['Loss of pay (LOP)', '', '-' + fc(slip.lopDeduction)]);
-    if (slip.advanceRecovery > 0) rows.push(['Advance recovery', '', '-' + fc(slip.advanceRecovery)]);
+    if (slip.advanceRecovery > 0) rows.push([`Advance recovery${(slip.advanceRefs || []).length ? ` (${slip.advanceRefs.join(', ')})` : ''}`, '', '-' + fc(slip.advanceRecovery)]);
     adj.filter(a => a.kind === 'deduction').forEach(a => rows.push([a.name + (a.reason ? ` — ${a.reason}` : ''), '', '-' + fc(a.amount)]));
     const pay = slip.payment || run?.payment || null;
     const plannedMode = !pay && slip.paymentMode ? (paymentModes.find(m => m.id === slip.paymentMode) || {}).name || slip.paymentMode : null;

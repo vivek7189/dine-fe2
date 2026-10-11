@@ -323,7 +323,7 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', opacity: m.status === 'cancelled' ? 0.65 : 1 }}>
       <div onClick={onToggle} style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', cursor: 'pointer' }}>
         <div>
-          <div style={{ fontWeight: 700, color: '#111827' }}>{m.title}</div>
+          <div style={{ fontWeight: 700, color: '#111827' }}>{m.refNo && <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11.5, color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '1px 6px', marginRight: 6 }}>{m.refNo}</span>}{m.title}</div>
           <div style={{ fontSize: 12, color: '#6b7280' }}>{(m.meetingType === 'other' && m.typeLabel) ? m.typeLabel : ((TYPES.find(([k]) => k === m.meetingType) || [])[1] || 'Meeting')} · {whenText(m.scheduledAt)} · {m.durationMin} min{m.location ? ` · ${m.location}` : ''} · {invitees.length} invited{m.audience?.roles?.length ? ` (${m.audience.roles.join(', ')})` : ''}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

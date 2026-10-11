@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaMoneyBillWave, FaCheck, FaTimes, FaTrash, FaThumbsUp, FaBan, FaPen, FaUndo } from 'react-icons/fa';
 import RemoveRecordDialog from './RemoveRecordDialog';
+import DuplicateMoneyPrompt from './DuplicateMoneyPrompt';
+import { RefTag } from '../../../../components/requests/RepairTicket';
 
 /**
  * AdvancesTab — record staff cash advances and let payroll auto-recover them.
@@ -19,6 +21,8 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
   const [showRemoved, setShowRemoved] = useState(false);
   const [editing, setEditing] = useState(null);    // { id, amount, recoveryPerMonth, reason, name, recovered }
   const [removing, setRemoving] = useState(null);  // advance being removed (two-step dialog)
+  const [dupes, setDupes] = useState(null);        // same person + amount just recorded → confirm first
+  const [search, setSearch] = useState('');        // ADV number, name or reason
 
   const fmt = (n) => (formatCurrency ? formatCurrency(n) : `₹${Number(n || 0).toLocaleString()}`);
 
@@ -63,7 +67,7 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
     return s ? (s.role || null) : null;
   };
 
-  const submit = async () => {
+  const submit = async (confirmDuplicate = false) => {
     if (!form.staffId || !(Number(form.amount) > 0)) { setError('Pick a staff member and enter a positive amount.'); return; }
     setSaving(true); setError('');
     try {
@@ -75,11 +79,15 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
         reason: form.reason || null,
         recoveryPerMonth: form.recoveryPerMonth !== '' ? Number(form.recoveryPerMonth) : null,
         paymentMethod: form.paymentMethod,
+        ...(confirmDuplicate ? { confirmDuplicate: true } : {}),
       });
       setForm({ staffId: '', amount: '', reason: '', recoveryPerMonth: '', paymentMethod: 'cash' });
-      setShowForm(false);
+      setShowForm(false); setDupes(null);
       await load();
-    } catch (e) { setError(e?.message || 'Could not save the advance.'); }
+    } catch (e) {
+      if (e?.code === 'POSSIBLE_DUPLICATE' && Array.isArray(e?.data?.matches)) setDupes(e.data.matches);
+      else setError(e?.message || 'Could not save the advance.');
+    }
     finally { setSaving(false); }
   };
 
@@ -137,7 +145,7 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginBottom: 16, background: '#fafafa' }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Staff member
-              <select value={form.staffId} onChange={e => setForm({ ...form, staffId: e.target.value })} style={inp}>
+              <select value={form.staffId} onChange={e => { setForm({ ...form, staffId: e.target.value }); setDupes(null); }} style={inp}>
                 <option value="">Select staff…</option>
                 {(staffList || []).map(s => {
                   const id = s.id || s.staffId;
@@ -157,26 +165,36 @@ export default function AdvancesTab({ restaurantId, apiClient, staffList = [], i
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
             <button onClick={() => setShowForm(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={submit} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: saving ? '#fca5a5' : '#dc2626', color: '#fff', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving…' : 'Record advance'}</button>
+            {!dupes && <button onClick={() => submit(false)} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: saving ? '#fca5a5' : '#dc2626', color: '#fff', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Saving…' : 'Record advance'}</button>}
           </div>
+          {dupes && <DuplicateMoneyPrompt matches={dupes} what="advance" fmt={fmt} saving={saving} onConfirm={() => submit(true)} onCancel={() => { setDupes(null); setShowForm(false); }} />}
         </div>
       )}
 
       {/* List */}
+      {advances.length > 5 && (
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ADV number, name or reason" aria-label="Search advances"
+          style={{ ...inp, marginBottom: 10, maxWidth: 300 }} />
+      )}
       {loading ? (
         <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af' }}>Loading…</div>
       ) : advances.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>No advances recorded yet.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {advances.map(a => {
+          {advances.filter(a => {
+            const q = search.trim().toLowerCase();
+            if (!q) return true;
+            const n = (q.match(/^(?:adv)?\s*-?\s*0*(\d+)$/) || [])[1];
+            return (n && a.refNo && Number(String(a.refNo).replace(/\D/g, '')) === Number(n)) || `${a.refNo || ''} ${a.staffName || staffName(a.staffId) || ''} ${a.reason || ''}`.toLowerCase().includes(q);
+          }).map(a => {
             // The server's balance (pending / rejected / cancelled / settled owe nothing).
             const bal = a.balance != null ? a.balance : (a.status === 'approved' ? Math.max(0, (a.amount || 0) - (a.amountRecovered || 0)) : 0);
             const ss = STATUS_STYLE[a.status] || STATUS_STYLE.approved;
             return (
               <div key={a.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, opacity: a.status === 'removed' ? 0.6 : 1 }}>
                 <div style={{ minWidth: 160 }}>
-                  <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{a.staffName || staffName(a.staffId) || 'Staff'}</div>
+                  <div style={{ fontWeight: 700, color: '#111827', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><RefTag refNo={a.refNo} />{a.staffName || staffName(a.staffId) || 'Staff'}</div>
                   <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.reason || '—'}{a.recoveryPerMonth ? ` · ${fmt(a.recoveryPerMonth)}/mo` : ' · full next payroll'}</div>
                   {a.status === 'removed' && <div style={{ fontSize: 11, color: '#b91c1c' }}>Removed{a.removedBy ? ` by ${a.removedBy}` : ''} · {a.removeReason || 'no reason'}</div>}
                 </div>

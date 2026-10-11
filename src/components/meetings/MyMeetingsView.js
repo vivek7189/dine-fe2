@@ -66,7 +66,7 @@ export default function MyMeetingsView({ embedded = false }) {
   const Minutes = ({ m }) => (
     <div style={{ border: `1px solid ${m.acknowledgedAt ? '#f3f4f6' : '#fde68a'}`, background: m.acknowledgedAt ? '#fff' : '#fffbeb', borderRadius: 10, padding: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-        <div style={{ fontWeight: 700 }}>{m.title}</div>
+        <div style={{ fontWeight: 700 }}>{m.refNo ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11.5, color: '#64748b', marginRight: 6 }}>{m.refNo}</span> : null}{m.title}</div>
         {m.status === 'cancelled' ? <span style={pill('#fef2f2', '#b91c1c')}>Cancelled</span>
           : m.attended === 'present' || m.attended === 'late' ? <span style={pill('#ecfdf5', '#047857')}>You attended</span>
           : <span style={pill('#fef2f2', '#b91c1c')}>{m.attended === 'excused' ? 'Excused' : 'You missed it'}</span>}
@@ -105,7 +105,7 @@ export default function MyMeetingsView({ embedded = false }) {
               <div style={{ display: 'grid', gap: 8 }}>
                 {upcoming.map(m => (
                   <div key={m.id} style={{ border: '1px solid #e0e7ff', background: '#fafaff', borderRadius: 10, padding: 12 }}>
-                    <div style={{ fontWeight: 700 }}>{m.title}</div>
+                    <div style={{ fontWeight: 700 }}>{m.refNo ? <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11.5, color: '#64748b', marginRight: 6 }}>{m.refNo}</span> : null}{m.title}</div>
                     <div style={{ ...muted, fontSize: 12.5 }}>{whenText(m.scheduledAt)} · {m.durationMin} min{m.location ? ` · ${m.location}` : ''}</div>
                     <AgendaAndMedia m={m} />
                   </div>

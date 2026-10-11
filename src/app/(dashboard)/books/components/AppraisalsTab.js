@@ -204,7 +204,7 @@ export default function AppraisalsTab({ restaurantId, apiClient, staffList = [],
               <div key={a.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', opacity: a.status === 'removed' ? 0.6 : 1 }}>
                 <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, cursor: 'pointer' }} onClick={() => setExpanded(isOpen ? null : a.id)}>
                   <div style={{ minWidth: 160 }}>
-                    <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{a.staffName || (staffOf(a.staffId) || {}).name || 'Staff'}</div>
+                    <div style={{ fontWeight: 700, color: '#111827', fontSize: 14 }}>{a.refNo && <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 11.5, color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '1px 6px', marginRight: 6 }}>{a.refNo}</span>}{a.staffName || (staffOf(a.staffId) || {}).name || 'Staff'}</div>
                     <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.period || '—'}{a.templateName ? ` · ${a.templateName}` : ''}{a.reviewerName ? ` · by ${a.reviewerName}` : ''}</div>
                     {a.status === 'removed' && <div style={{ fontSize: 11, color: '#b91c1c' }}>Removed{a.removedBy ? ` by ${a.removedBy}` : ''} · {a.removeReason || 'no reason'}</div>}
                   </div>
