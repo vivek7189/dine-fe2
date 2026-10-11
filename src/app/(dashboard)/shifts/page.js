@@ -12,9 +12,11 @@ import AvailabilityTab from '../../../components/shifts/AvailabilityTab';
 import RequestsTab from '../../../components/shifts/RequestsTab';
 import HoursTab from '../../../components/shifts/HoursTab';
 import SettingsTab from '../../../components/shifts/SettingsTab';
+import UrgentNeedModal from '../../../components/shifts/UrgentNeedModal';
 
 export default function ShiftsPage() {
   const [activeTab, setActiveTab] = useState('schedule');
+  const [urgentOpen, setUrgentOpen] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurantName, setRestaurantName] = useState('');
   const [staff, setStaff] = useState([]);
@@ -147,9 +149,19 @@ export default function ShiftsPage() {
     <div style={{ padding: isMobile ? '16px' : '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 800, color: '#111827', margin: 0 }}>
-          Shift Scheduling
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 800, color: '#111827', margin: 0 }}>
+            Shift Scheduling
+          </h1>
+          <button type="button" onClick={() => setUrgentOpen(true)}
+            style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(220,38,38,0.3)' }}>
+            Need extra staff (urgent)
+          </button>
+        </div>
+        {urgentOpen && (
+          <UrgentNeedModal restaurantId={restaurantId} staff={staff} shifts={shifts}
+            onClose={() => setUrgentOpen(false)} onDone={() => loadShifts()} />
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
           <span style={{ fontSize: '13px', color: '#6b7280' }}>{restaurantName}</span>
           <span style={{

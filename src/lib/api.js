@@ -2707,6 +2707,11 @@ class ApiClient {
   }
 
   // Publish every draft in the range and send each staff member their schedule.
+  // Urgent: need extra staff — creates + publishes open shift(s) and alerts the staff who can take them.
+  async requestUrgentStaff(restaurantId, body) {
+    return this.request(`/api/shift-scheduling/shifts/${restaurantId}/urgent-need`, { method: 'POST', body });
+  }
+
   async publishShifts(restaurantId, startDate, endDate, notify = true) {
     return this.request(`/api/shift-scheduling/shifts/${restaurantId}/publish`, { method: 'POST', body: { startDate, endDate, notify } });
   }
