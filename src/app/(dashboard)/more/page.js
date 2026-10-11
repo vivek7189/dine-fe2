@@ -31,6 +31,8 @@ import {
   FaTools,
   FaLightbulb,
   FaUserClock,
+  FaUtensils,
+  FaBullhorn,
 } from 'react-icons/fa';
 import { getCachedCalendarAccess } from '../../../lib/calendar';
 import { getEffectivePageAccess, accessValueOn } from '../../../lib/pageAccessConfig';
@@ -76,6 +78,22 @@ const features = [
     icon: FaLightbulb,
     gradient: 'linear-gradient(135deg, #ca8a04, #eab308)',
     href: '/staff-requests?kind=suggestion',
+  },
+  {
+    id: 'dish-ideas',
+    name: 'New dishes (R&D)',
+    description: 'Chefs propose new menu items — cost, price and photos — for the owner to try',
+    icon: FaUtensils,
+    gradient: 'linear-gradient(135deg, #be123c, #e11d48)',
+    href: '/staff-requests?kind=idea',
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing tasks',
+    description: 'Promotions, offers, recruitment, events and decorations — given to the team, with progress photos',
+    icon: FaBullhorn,
+    gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+    href: '/staff-requests?kind=task',
   },
   {
     id: 'calendar',
@@ -272,7 +290,7 @@ const features = [
 ];
 
 // Staff's own cards (always shown to staff) …
-const STAFF_SELF = new Set(['my-pay', 'my-meetings', 'my-shifts', 'calendar', 'repairs', 'suggestions']);
+const STAFF_SELF = new Set(['my-pay', 'my-meetings', 'my-shifts', 'calendar', 'repairs', 'suggestions', 'dish-ideas', 'marketing']);
 // … and the access a staff member needs for each management card (reports → Analytics).
 const STAFF_CARD_ACCESS = {
   shifts: ['admin'], register: ['completeBill'], 'shifts-cash': ['shifts'], dineai: ['dineai', 'analytics'],
@@ -288,7 +306,7 @@ export default function MorePage() {
   const [isMobile, setIsMobile] = useState(false);
   const [notAllowedPages, setNotAllowedPages] = useState([]);
   const [search, setSearch] = useState('');
-  const [openRequests, setOpenRequests] = useState({ repair: 0, suggestion: 0 }); // managers: waiting repairs / suggestions
+  const [openRequests, setOpenRequests] = useState({ repair: 0, suggestion: 0, idea: 0, task: 0 }); // managers: waiting per kind
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
@@ -462,7 +480,7 @@ export default function MorePage() {
       }}>
         {visibleFeatures.map((feature, index) => {
           const Icon = feature.icon;
-          const waiting = feature.id === 'repairs' ? openRequests.repair : feature.id === 'suggestions' ? openRequests.suggestion : 0;
+          const waiting = ({ repairs: openRequests.repair, suggestions: openRequests.suggestion, 'dish-ideas': openRequests.idea, marketing: openRequests.task })[feature.id] || 0;
           return (
             <div
               key={feature.id}

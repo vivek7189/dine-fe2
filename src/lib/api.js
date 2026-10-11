@@ -4668,6 +4668,21 @@ class ApiClient {
     try { return await this.request(`/api/staff-requests/${restaurantId}/${id}`, { method: 'PATCH', body: data }); }
     finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
   }
+  // Photos for a repair / dish idea / task update → { urls } (attach the urls when sending).
+  async uploadStaffRequestPhotos(restaurantId, files) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('photos', file));
+    return this.request(`/api/staff-requests/${restaurantId}/photos`, { method: 'POST', body: formData });
+  }
+  // Managers: active staff a marketing task can be given to → { staff: [{ id, name, role, extraRoles }] }.
+  async getStaffRequestAssignable(restaurantId) {
+    return this.request(`/api/staff-requests/${restaurantId}/assignable`);
+  }
+  // Progress on a marketing task (assignee or manager): { note, photos, status? }.
+  async postStaffTaskProgress(restaurantId, id, data) {
+    try { return await this.request(`/api/staff-requests/${restaurantId}/${id}/progress`, { method: 'POST', body: data }); }
+    finally { this.invalidateCache(`/api/staff-requests/${restaurantId}`); }
+  }
 
   async getMyPay(restaurantId) {
     this.invalidateCache(`/api/my-pay/${restaurantId}`);
