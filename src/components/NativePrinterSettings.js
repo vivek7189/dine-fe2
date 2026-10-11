@@ -47,6 +47,7 @@ export default function NativePrinterSettings({ restaurantId }) {
   // this screen behaves differently from before.
   const [orderTypeRouting, setOrderTypeRouting] = useState(false);
   const [savingOrderTypeRouting, setSavingOrderTypeRouting] = useState(false);
+  const [orderTypeRoutingMsg, setOrderTypeRoutingMsg] = useState(null);
   const [restaurantOrderTypes, setRestaurantOrderTypes] = useState([]);
   const disabledStationsRef = useRef([]); // disabled stations, kept on save while the flag is on
   const [stationPrinters, setStationPrinters] = useState({});
@@ -549,6 +550,19 @@ export default function NativePrinterSettings({ restaurantId }) {
   const toggleOrderTypeRouting = useCallback(async () => {
     if (!restaurantId || savingOrderTypeRouting) return;
     const next = !orderTypeRouting;
+    setOrderTypeRoutingMsg(null);
+    if (!next) {
+      // Category-only routing can't send one category to two stations — it would print on both.
+      // So turning this off needs every category on just one station first.
+      const owners = {};
+      for (const st of printStations) for (const c of (st.categoryIds || [])) (owners[c] = owners[c] || []).push(st.name);
+      const shared = Object.entries(owners).filter(([, names]) => names.length > 1);
+      if (shared.length) {
+        const catName = (id) => categories.find(c => c.id === id)?.name || id;
+        setOrderTypeRoutingMsg(`Can't turn off yet: ${shared.map(([c, names]) => `${catName(c)} is on ${names.join(' and ')}`).join('; ')}. Keep each category on one station first, or those items would print twice.`);
+        return;
+      }
+    }
     setSavingOrderTypeRouting(true);
     try {
       await apiClient.updatePrintSettings(restaurantId, { kotOrderTypeRouting: next });
@@ -558,7 +572,7 @@ export default function NativePrinterSettings({ restaurantId }) {
     } finally {
       setSavingOrderTypeRouting(false);
     }
-  }, [restaurantId, orderTypeRouting, savingOrderTypeRouting]);
+  }, [restaurantId, orderTypeRouting, savingOrderTypeRouting, printStations, categories]);
 
   const updateStationCategories = useCallback(async (stationId, categoryIds) => {
     const updated = printStations.map(s =>
@@ -941,6 +955,11 @@ export default function NativePrinterSettings({ restaurantId }) {
                     : ' Off: stations route by category only.'}
                 </span>
               </label>
+              {orderTypeRoutingMsg && (
+                <div style={{ fontSize: '11px', color: '#991b1b', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 8px', margin: '-4px 0 8px' }}>
+                  {orderTypeRoutingMsg}
+                </div>
+              )}
 
               {/* Bill printer override */}
               {printers.length > 0 && (
