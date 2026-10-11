@@ -27,7 +27,7 @@ const whenText = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { weekd
 const blankForm = () => {
   const t = new Date(Date.now() + 24 * 3600e3); t.setMinutes(0, 0, 0); t.setHours(15);
   const { date, time } = localDT(t.toISOString());
-  return { title: '', meetingType: 'meeting', date, time, durationMin: 30, location: '', agenda: '', audience: { everyone: false, roles: [], staffIds: [] } };
+  return { title: '', meetingType: 'meeting', typeLabel: '', date, time, durationMin: 30, location: '', agenda: '', audience: { everyone: false, roles: [], staffIds: [] } };
 };
 
 export default function MeetingsTab({ restaurantId, apiClient, staffList = [], isMobile }) {
@@ -43,8 +43,9 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
   const [filter, setFilter] = useState('upcoming'); // upcoming | past | all
 
   const staff = useMemo(() => (staffList || []).filter(s => !['deleted', 'inactive', 'disabled'].includes(String(s.status || '').toLowerCase()))
-    .map(s => ({ id: s.id || s.staffId || s._id, name: s.name || s.staffName || '', role: s.role || '' })), [staffList]);
-  const roles = useMemo(() => [...new Set(staff.map(s => s.role).filter(Boolean))].sort(), [staff]);
+    .map(s => ({ id: s.id || s.staffId || s._id, name: s.name || s.staffName || '', role: s.role || '', extraRoles: Array.isArray(s.extraRoles) ? s.extraRoles.filter(Boolean) : [] })), [staffList]);
+  // Main roles + the extra roles staff are trained for (the server invites by either).
+  const roles = useMemo(() => [...new Set(staff.flatMap(s => [s.role, ...(s.extraRoles || [])]).filter(Boolean))].sort(), [staff]);
 
   const load = useCallback(async () => {
     if (!restaurantId) return;
@@ -67,7 +68,7 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
     setSaving(true);
     try {
       const r = await apiClient.createStaffMeeting(restaurantId, {
-        title: form.title, meetingType: form.meetingType, scheduledAt: new Date(`${form.date}T${form.time}`).toISOString(),
+        title: form.title, meetingType: form.meetingType, typeLabel: form.meetingType === 'other' ? (form.typeLabel || '').trim() : '', scheduledAt: new Date(`${form.date}T${form.time}`).toISOString(),
         durationMin: form.durationMin, location: form.location, agenda: form.agenda, audience: a, notify: true,
       });
       setShowForm(false); setForm(blankForm()); flash(`Meeting scheduled ✓${sentText(r.notified)}`);
@@ -102,7 +103,12 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
         <div style={{ border: '1px solid #e0e7ff', background: '#fafaff', borderRadius: 12, padding: 14, marginBottom: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
             <div><label style={lbl}>Title</label><input style={inp} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Kitchen weekly meeting" /></div>
-            <div><label style={lbl}>Type</label><select style={inp} value={form.meetingType} onChange={e => setForm({ ...form, meetingType: e.target.value })}>{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+            <div><label style={lbl}>Type</label><select style={inp} value={form.meetingType} onChange={e => setForm({ ...form, meetingType: e.target.value })}>{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+              {form.meetingType === 'other' && (
+                <input style={{ ...inp, marginTop: 6 }} value={form.typeLabel} maxLength={60} placeholder="Your own type, e.g. Hygiene audit"
+                  onChange={e => setForm({ ...form, typeLabel: e.target.value })} />
+              )}
+            </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginTop: 10 }}>
             <div><label style={lbl}>Date</label><input type="date" style={inp} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
@@ -144,7 +150,8 @@ function Audience({ value, onChange, roles, staff }) {
   const toggleRole = (r) => set({ roles: value.roles.includes(r) ? value.roles.filter(x => x !== r) : [...value.roles, r] });
   const toggleStaff = (id) => set({ staffIds: value.staffIds.includes(id) ? value.staffIds.filter(x => x !== id) : [...value.staffIds, id] });
   const matches = staff.filter(s => !q || s.name.toLowerCase().includes(q.toLowerCase()));
-  const count = value.everyone ? staff.length : new Set([...staff.filter(s => value.roles.includes(s.role)).map(s => s.id), ...value.staffIds]).size;
+  const hasRole = (s) => [s.role, ...(s.extraRoles || [])].some(r => value.roles.includes(r));
+  const count = value.everyone ? staff.length : new Set([...staff.filter(hasRole).map(s => s.id), ...value.staffIds]).size;
   return (
     <div style={{ marginTop: 10 }}>
       <label style={lbl}>Who is invited · {count} staff</label>
@@ -154,7 +161,7 @@ function Audience({ value, onChange, roles, staff }) {
       </div>
       {!value.everyone && (
         <details>
-          <summary style={{ cursor: 'pointer', fontSize: 12, color: '#4f46e5', fontWeight: 600 }}>+ Add specific staff{value.staffIds.length ? ` (${value.staffIds.length})` : ''}</summary>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: '#4f46e5', fontWeight: 600 }}>+ Add specific staff — pick from the list{value.staffIds.length ? ` (${value.staffIds.length} chosen)` : ''}</summary>
           <input placeholder="Search staff" value={q} onChange={e => setQ(e.target.value)} style={{ ...inp, margin: '8px 0', maxWidth: 260 }} />
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 160, overflow: 'auto' }}>
             {matches.map(s => <button type="button" key={s.id} onClick={() => toggleStaff(s.id)} style={chip(value.staffIds.includes(s.id))}>{s.name}{s.role ? ` · ${s.role}` : ''}</button>)}
@@ -218,7 +225,7 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
       <div onClick={onToggle} style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', cursor: 'pointer' }}>
         <div>
           <div style={{ fontWeight: 700, color: '#111827' }}>{m.title}</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>{whenText(m.scheduledAt)} · {m.durationMin} min{m.location ? ` · ${m.location}` : ''} · {invitees.length} invited{m.audience?.roles?.length ? ` (${m.audience.roles.join(', ')})` : ''}</div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>{(m.meetingType === 'other' && m.typeLabel) ? m.typeLabel : ((TYPES.find(([k]) => k === m.meetingType) || [])[1] || 'Meeting')} · {whenText(m.scheduledAt)} · {m.durationMin} min{m.location ? ` · ${m.location}` : ''} · {invitees.length} invited{m.audience?.roles?.length ? ` (${m.audience.roles.join(', ')})` : ''}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, color: status[1], background: status[2] }}>{status[0]}</span>

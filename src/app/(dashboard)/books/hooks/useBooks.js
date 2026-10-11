@@ -359,7 +359,9 @@ export default function useBooks() {
     // Payroll + Advances/Bonus/Appraisals all need staffList for their staff dropdown —
     // fetchPayroll loads it. Without this, opening Advances directly left the staff
     // picker empty until the user visited Payroll (the "names don't show first time" bug).
-    else if (activeTab === 'payroll' || activeTab === 'advances' || activeTab === 'bonus' || activeTab === 'appraisals') fetchPayroll();
+    // Meetings too (MFC): its role chips + "Add specific staff" list come from staffList — opening
+    // Meetings directly showed "Who is invited · 0 staff" with no roles.
+    else if (activeTab === 'payroll' || activeTab === 'advances' || activeTab === 'bonus' || activeTab === 'appraisals' || activeTab === 'meetings') fetchPayroll();
   }, [activeTab, period, customStart, customEnd]);
 
   // Ensure subCategories is always a clean array
