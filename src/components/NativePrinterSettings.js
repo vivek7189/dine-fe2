@@ -4,7 +4,7 @@
 // Returns null on web — no UI change for web users.
 // Shows: scan for printers, select default, KOT/Bill routing, test print, diagnostics.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { isWeb, isCapacitor, isTauri, isElectron } from '../utils/platform';
 import { printDocument } from '../utils/printBridge';
 import { saveStationPrinterToServer } from '../utils/stationPrinterSync';
@@ -43,6 +43,12 @@ export default function NativePrinterSettings({ restaurantId }) {
   const [printTerminalId, setPrintTerminalId] = useState(null); // restaurant's designated terminal (null = all print)
   const [savingPrintTerminal, setSavingPrintTerminal] = useState(false);
   const [printStations, setPrintStations] = useState([]);
+  // KOT routing by order type (printSettings.kotOrderTypeRouting, default OFF). When off, nothing on
+  // this screen behaves differently from before.
+  const [orderTypeRouting, setOrderTypeRouting] = useState(false);
+  const [savingOrderTypeRouting, setSavingOrderTypeRouting] = useState(false);
+  const [restaurantOrderTypes, setRestaurantOrderTypes] = useState([]);
+  const disabledStationsRef = useRef([]); // disabled stations, kept on save while the flag is on
   const [stationPrinters, setStationPrinters] = useState({});
   const [stationTestStatus, setStationTestStatus] = useState({});
   const [networkIpInput, setNetworkIpInput] = useState('');
@@ -411,8 +417,15 @@ export default function NativePrinterSettings({ restaurantId }) {
     apiClient.getPrintStations(restaurantId).then(res => {
       if (res?.success) {
         setPrintStations((res.printStations || []).filter(s => s.enabled));
+        disabledStationsRef.current = (res.printStations || []).filter(s => !s.enabled);
         if (res.categories) setCategories(res.categories);
       }
+    }).catch(() => {});
+    // The restaurant's own order types (Admin → order types) for the per-station picker.
+    apiClient.getRestaurant(restaurantId).then(res => {
+      const list = res?.restaurant?.posSettings?.orderTypes;
+      setRestaurantOrderTypes(Array.isArray(list) && list.length ? list.filter(t => t && t.id)
+        : [{ id: 'dine-in', label: 'Dine-in' }, { id: 'takeaway', label: 'Takeaway' }, { id: 'delivery', label: 'Delivery' }]);
     }).catch(() => {});
     // Fetch station printer assignments from local device config
     const loadStationPrinters = async () => {
@@ -448,7 +461,7 @@ export default function NativePrinterSettings({ restaurantId }) {
     window.electronAPI?.getTerminalId?.().then((id) => setMyTerminalId(id || null)).catch(() => {});
     if (restaurantId) {
       apiClient.getPrintSettings(restaurantId)
-        .then((res) => { const ps = res?.printSettings || res || {}; setPrintTerminalId(ps.printTerminalId || null); })
+        .then((res) => { const ps = res?.printSettings || res || {}; setPrintTerminalId(ps.printTerminalId || null); setOrderTypeRouting(ps.kotOrderTypeRouting === true); })
         .catch(() => {});
     }
   }, [restaurantId, isElectronPlatform]);
@@ -524,15 +537,59 @@ export default function NativePrinterSettings({ restaurantId }) {
   }, []);
 
   // --- Multi-printer helpers ---
+  // Save the station list. This screen only shows enabled stations; with order-type routing ON the
+  // disabled ones are sent back too, so editing here never deletes them (flag off → as before).
+  const saveStations = useCallback(async (visible, mode) => {
+    const all = orderTypeRouting ? [...visible, ...disabledStationsRef.current.filter(d => !visible.some(v => v.id === d.id))] : visible;
+    const res = await apiClient.updatePrintStations(restaurantId, all, mode);
+    if (res?.success && Array.isArray(res.printStations)) disabledStationsRef.current = res.printStations.filter(s => !s.enabled);
+    return res;
+  }, [orderTypeRouting, restaurantId]);
+
+  const toggleOrderTypeRouting = useCallback(async () => {
+    if (!restaurantId || savingOrderTypeRouting) return;
+    const next = !orderTypeRouting;
+    setSavingOrderTypeRouting(true);
+    try {
+      await apiClient.updatePrintSettings(restaurantId, { kotOrderTypeRouting: next });
+      setOrderTypeRouting(next);
+    } catch (err) {
+      console.error('Failed to update order-type routing:', err);
+    } finally {
+      setSavingOrderTypeRouting(false);
+    }
+  }, [restaurantId, orderTypeRouting, savingOrderTypeRouting]);
+
   const updateStationCategories = useCallback(async (stationId, categoryIds) => {
     const updated = printStations.map(s =>
       s.id === stationId ? { ...s, categoryIds, updatedAt: new Date().toISOString() } : s
     );
     try {
-      const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
+      const res = await saveStations(updated, 'multi');
       if (res?.success) setPrintStations((res.printStations || updated).filter(s => s.enabled));
     } catch (err) { console.error('Failed to update station categories:', err); }
-  }, [printStations, restaurantId]);
+  }, [printStations, saveStations]);
+
+  const updateStationOrderTypes = useCallback(async (stationId, orderTypes) => {
+    const updated = printStations.map(s => {
+      if (s.id !== stationId) return s;
+      const { orderTypes: _old, ...rest } = s;
+      return orderTypes.length ? { ...rest, orderTypes, updatedAt: new Date().toISOString() } : { ...rest, updatedAt: new Date().toISOString() };
+    });
+    try {
+      const res = await saveStations(updated, 'multi');
+      if (res?.success) setPrintStations((res.printStations || updated).filter(s => s.enabled));
+    } catch (err) { console.error('Failed to update station order types:', err); }
+  }, [printStations, saveStations]);
+
+  // Order-type helpers (only used while the flag is on). Matching ignores case / separators.
+  const otKey = (v) => String(v || '').trim().toLowerCase().replace(/[\s_\-]+/g, '');
+  const otLabel = (id) => (restaurantOrderTypes.find(t => otKey(t.id) === otKey(id))?.label) || id;
+  // Two stations may share a category when their order types don't overlap (empty = all types).
+  const orderTypesOverlap = (a, b) => {
+    const A = (a?.orderTypes || []).map(otKey), B = (b?.orderTypes || []).map(otKey);
+    return !A.length || !B.length || A.some(x => B.includes(x));
+  };
 
   const addStation = useCallback(async (form) => {
     if (!form?.name?.trim()) return null;
@@ -549,21 +606,21 @@ export default function NativePrinterSettings({ restaurantId }) {
     };
     const updated = [...printStations, newStation];
     try {
-      const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
+      const res = await saveStations(updated, 'multi');
       if (res?.success) {
         setPrintStations((res.printStations || updated).filter(s => s.enabled));
         if (res.categories) setCategories(res.categories);
       }
       return stationId;
     } catch (err) { console.error('Failed to add station:', err); return null; }
-  }, [printStations, restaurantId]);
+  }, [printStations, saveStations]);
 
   const deleteStation = useCallback(async (stationId) => {
     if (!confirm('Delete this station? This cannot be undone.')) return;
     const updated = printStations.filter(s => s.id !== stationId);
     const mode = updated.length > 0 ? 'multi' : 'single';
     try {
-      await apiClient.updatePrintStations(restaurantId, updated, mode);
+      await saveStations(updated, mode);
       setPrintStations(updated);
       const updatedSP = { ...stationPrinters };
       delete updatedSP[stationId];
@@ -572,18 +629,18 @@ export default function NativePrinterSettings({ restaurantId }) {
         await window.electronAPI.setPrinterConfig({ stationPrinters: { [stationId]: null } });
       }
     } catch (err) { console.error('Failed to delete station:', err); }
-  }, [printStations, stationPrinters, restaurantId, isElectronPlatform]);
+  }, [printStations, stationPrinters, isElectronPlatform, saveStations]);
 
   const updateStation = useCallback(async (stationId, updates) => {
     const updated = printStations.map(s =>
       s.id === stationId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
     );
     try {
-      const res = await apiClient.updatePrintStations(restaurantId, updated, 'multi');
+      const res = await saveStations(updated, 'multi');
       if (res?.success) setPrintStations((res.printStations || updated).filter(s => s.enabled));
       setEditingStationId(null);
     } catch (err) { console.error('Failed to update station:', err); }
-  }, [printStations, restaurantId]);
+  }, [printStations, saveStations]);
 
   const switchToSimple = useCallback(async () => {
     if (!confirm('Switch to simple mode? This will clear printer routing on this device. Your stations will be preserved.')) return;
@@ -867,9 +924,23 @@ export default function NativePrinterSettings({ restaurantId }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>KOT Stations</span>
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                  — orders route to printers by category
+                  — orders route to printers by category{orderTypeRouting ? ' and order type' : ''}
                 </span>
               </div>
+              {/* Route by order type (dine-in / takeaway / …) — restaurant-wide, default OFF */}
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px', cursor: 'pointer',
+                padding: '8px 10px', backgroundColor: orderTypeRouting ? '#eff6ff' : '#f8fafc', borderRadius: '6px',
+                border: `1px solid ${orderTypeRouting ? '#bfdbfe' : '#e2e8f0'}`,
+              }}>
+                <input type="checkbox" checked={orderTypeRouting} disabled={savingOrderTypeRouting} onChange={toggleOrderTypeRouting} style={{ marginTop: '2px' }} />
+                <span style={{ fontSize: '11px', color: '#374151', lineHeight: 1.4 }}>
+                  <strong>Route by order type</strong> — e.g. dine-in to the kitchen printer, takeaway to the parcel printer.
+                  {orderTypeRouting
+                    ? ' Pick the order types on each station (Edit). A station with none prints every type. Applies to all terminals.'
+                    : ' Off: stations route by category only.'}
+                </span>
+              </label>
 
               {/* Bill printer override */}
               {printers.length > 0 && (
@@ -933,6 +1004,11 @@ export default function NativePrinterSettings({ restaurantId }) {
                       <span style={{ fontSize: '11px', color: '#9ca3af' }}>
                         {assignedPrinterObj?.name || assignedPrinterKey || 'Default printer'}
                       </span>
+                      {orderTypeRouting && (station.orderTypes || []).length > 0 && (
+                        <span style={{ fontSize: '10px', color: '#1d4ed8', backgroundColor: '#eff6ff', padding: '1px 6px', borderRadius: '4px' }}>
+                          {(station.orderTypes || []).map(otLabel).join(' · ')}
+                        </span>
+                      )}
                       {!isEditing && catCount > 0 && (
                         <span style={{ fontSize: '10px', color: '#6b7280', marginLeft: '2px' }}>
                           ({catCount} cat{catCount !== 1 ? 's' : ''})
@@ -993,6 +1069,29 @@ export default function NativePrinterSettings({ restaurantId }) {
                             {st === 'printing' ? '...' : st === 'success' ? 'OK' : st === 'error' ? 'Fail' : 'Test'}
                           </button>
                         </div>
+                        {/* Order types (only while routing by order type is on) */}
+                        {orderTypeRouting && restaurantOrderTypes.length > 0 && (
+                          <div style={{ marginBottom: '6px' }}>
+                            <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '3px' }}>
+                              Order types{(station.orderTypes || []).length === 0 && <span style={{ color: '#f59e0b' }}> — none picked: prints every type</span>}:
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {restaurantOrderTypes.filter(t => t.enabled !== false || (station.orderTypes || []).some(x => otKey(x) === otKey(t.id))).map(t => {
+                                const cur = station.orderTypes || [];
+                                const on = cur.some(x => otKey(x) === otKey(t.id));
+                                return (
+                                  <button key={t.id}
+                                    onClick={() => updateStationOrderTypes(station.id, on ? cur.filter(x => otKey(x) !== otKey(t.id)) : [...cur, t.id])}
+                                    style={{
+                                      padding: '3px 8px', borderRadius: '12px', fontSize: '11px', border: 'none', cursor: 'pointer',
+                                      backgroundColor: on ? '#16a34a' : '#e5e7eb', color: on ? '#fff' : '#374151',
+                                    }}
+                                  >{t.label || t.id}</button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                         {/* Categories */}
                         {categories.length > 0 && (
                           <div>
@@ -1002,7 +1101,8 @@ export default function NativePrinterSettings({ restaurantId }) {
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '120px', overflowY: 'auto' }}>
                               {categories.map(cat => {
                                 const isSelected = (station.categoryIds || []).includes(cat.id);
-                                const assignedElsewhere = !isSelected && printStations.some(s => s.id !== station.id && (s.categoryIds || []).includes(cat.id));
+                                const assignedElsewhere = !isSelected && printStations.some(s => s.id !== station.id && (s.categoryIds || []).includes(cat.id)
+                                  && (!orderTypeRouting || orderTypesOverlap(s, station)));
                                 return (
                                   <button
                                     key={cat.id}
