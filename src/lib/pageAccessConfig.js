@@ -30,9 +30,12 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'bookings', label: 'Bookings & Catering', icon: 'FaCalendarAlt', category: 'more' },
   { key: 'parking', label: 'Parking', icon: 'FaCar', category: 'more' },
   { key: 'dineai', label: 'DineAI Studio', icon: 'FaRobot', category: 'more' },
-  { key: 'shifts', label: 'Shifts', icon: 'FaClock', category: 'more' },
+  // opens Shifts & Cash (cash-drawer handover) — a management page. A staff member's OWN shifts and
+  // leave are always in their More menu (My Shifts & Leave), no tick needed (MFC ticked this for that).
+  { key: 'shifts', label: 'Shifts & Cash (cash drawer)', icon: 'FaClock', category: 'more' },
   { key: 'books', label: 'Books & Accounting', icon: 'FaBook', category: 'more' },
-  { key: 'feedback', label: 'Feedback', icon: 'FaCommentDots', category: 'more' },
+  // customers' feedback / reviews. Staff suggestions & feedback (to the owner) are always available.
+  { key: 'feedback', label: 'Customer feedback (from diners)', icon: 'FaCommentDots', category: 'more' },
   { key: 'calendar', label: 'Event Calendar', icon: 'FaCalendarAlt', category: 'more' },
   // the staff member's OWN salary, advances, bonuses, appraisals (off unless ticked)
   { key: 'myPay', label: 'My Pay (own salary, advance, bonus, appraisal)', icon: 'FaMoneyBillWave', category: 'more' },

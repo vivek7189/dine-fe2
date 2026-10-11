@@ -10046,7 +10046,7 @@ const Admin = () => {
                               textTransform: 'uppercase', letterSpacing: '0.06em',
                               padding: '8px 14px 4px', userSelect: 'none'
                             }}>
-                              {category === 'main' ? 'Main Pages' : 'More Pages'}
+                              {category === 'main' ? 'Main Pages' : 'More Pages'}{category === 'more' && <div style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: '11px', color: '#6b7280', marginTop: '2px', lineHeight: 1.4 }}>Their own meetings, shifts &amp; leave, event calendar, repairs and suggestions are always in their More menu — no tick needed. Tick these only to open the owner&apos;s pages.</div>}
                             </div>
                             {items.map(({ key, label }) => {
                               const hasGranular = !!FEATURE_OPS[key];
@@ -11305,7 +11305,7 @@ const Admin = () => {
                                   textTransform: 'uppercase', letterSpacing: '0.06em',
                                   padding: '8px 14px 4px', userSelect: 'none'
                                 }}>
-                                  {category === 'main' ? 'Main Pages' : 'More Pages'}
+                                  {category === 'main' ? 'Main Pages' : 'More Pages'}{category === 'more' && <div style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: '11px', color: '#6b7280', marginTop: '2px', lineHeight: 1.4 }}>Their own meetings, shifts &amp; leave, event calendar, repairs and suggestions are always in their More menu — no tick needed. Tick these only to open the owner&apos;s pages.</div>}
                                 </div>
                                 {items.map(({ key, label }) => {
                                   const hasGranular = !!FEATURE_OPS[key];
