@@ -695,8 +695,18 @@ const MenuItemCard = ({
                 {getDisplayPrice()}
               </span>
               {/* Stock/Expiry badges */}
-              {(isLowStock || expiryStatus) && (
+              {(isStockManaged || expiryStatus) && (
                 <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+                  {isStockManaged && !isLowStock && !isOutOfStock && (
+                    <span style={{
+                      fontSize: '8px', fontWeight: '700',
+                      padding: '1px 4px', borderRadius: '3px',
+                      backgroundColor: '#ecfdf5', color: '#065f46',
+                      border: '1px solid #a7f3d0'
+                    }}>
+                      {item.stockQuantity} left
+                    </span>
+                  )}
                   {isLowStock && (
                     <span style={{
                       fontSize: '8px', fontWeight: '700',
@@ -1152,8 +1162,18 @@ const MenuItemCard = ({
             {getDisplayPrice()}
           </span>
           {/* Stock/Expiry badges */}
-          {(isLowStock || expiryStatus) && (
+          {(isStockManaged || expiryStatus) && (
             <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '2px' }}>
+              {isStockManaged && !isLowStock && !isOutOfStock && (
+                <span style={{
+                  fontSize: '8px', fontWeight: '700',
+                  padding: '1px 4px', borderRadius: '3px',
+                  backgroundColor: '#ecfdf5', color: '#065f46',
+                  border: '1px solid #a7f3d0'
+                }}>
+                  {item.stockQuantity} left
+                </span>
+              )}
               {isLowStock && (
                 <span style={{
                   fontSize: '8px', fontWeight: '700',
@@ -1296,6 +1316,7 @@ const MemoizedMenuItemCard = memo(MenuItemCard, (prevProps, nextProps) => {
     prevProps.item.isAvailable === nextProps.item.isAvailable &&
     prevProps.item.stockQuantity === nextProps.item.stockQuantity &&
     prevProps.item.isStockManaged === nextProps.item.isStockManaged &&
+    prevProps.item.lowStockThreshold === nextProps.item.lowStockThreshold &&
     prevProps.item.expiryDate === nextProps.item.expiryDate &&
     prevProps.item.isFavorite === nextProps.item.isFavorite &&
     prevProps.quantityInCart === nextProps.quantityInCart &&
