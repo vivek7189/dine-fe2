@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import apiClient from '../../lib/api';
+import { MediaList } from './MeetingMedia';
 
 const card = { background: '#fff', border: '1px solid #eef0f3', borderRadius: 14, padding: 16, marginBottom: 14 };
 const muted = { color: '#6b7280', fontSize: 13 };
@@ -13,6 +14,23 @@ const pill = (bg, fg) => ({ fontSize: 11, fontWeight: 700, padding: '2px 9px', b
 const whenText = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const GOAL_LABEL = { target: 'Target', skill: 'Skill', promotion: 'Promotion', other: 'Goal' };
 const UPCOMING_GRACE_MS = 6 * 3600e3;
+
+// Agenda points + notes + photos / voice notes the manager attached.
+function AgendaAndMedia({ m }) {
+  const pts = m.agendaItems || [];
+  return (<>
+    {pts.length > 0 && (
+      <div style={{ margin: '8px 0 0' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700 }}>Agenda</div>
+        <ol style={{ margin: '4px 0 0', paddingLeft: 20, fontSize: 13 }}>
+          {pts.map(a => <li key={a.id}>{a.text}{a.presenter || a.durationMin ? <span style={{ color: '#6b7280' }}> · {[a.presenter, a.durationMin ? `${a.durationMin} min` : ''].filter(Boolean).join(' · ')}</span> : null}</li>)}
+        </ol>
+      </div>
+    )}
+    {m.agenda && <p style={{ fontSize: 13, whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{pts.length ? <b>Notes: </b> : null}{m.agenda}</p>}
+    {(m.media || []).length > 0 && <div style={{ marginTop: 8 }}><MediaList media={m.media} /></div>}
+  </>);
+}
 
 export default function MyMeetingsView({ embedded = false }) {
   const [data, setData] = useState(null);
@@ -55,6 +73,7 @@ export default function MyMeetingsView({ embedded = false }) {
       </div>
       <div style={{ ...muted, fontSize: 12 }}>{whenText(m.scheduledAt)}{m.location ? ` · ${m.location}` : ''}</div>
       {m.cancelledReason && <p style={{ ...muted, margin: '6px 0 0' }}>{m.cancelledReason}</p>}
+      {(m.media || []).length > 0 && <div style={{ marginTop: 8 }}><MediaList media={m.media} /></div>}
       {m.minutes && <p style={{ fontSize: 13.5, whiteSpace: 'pre-wrap', margin: '8px 0 0' }}><b>Conclusion:</b> {m.minutes}</p>}
       {m.decisions && <p style={{ fontSize: 13.5, whiteSpace: 'pre-wrap', margin: '6px 0 0' }}><b>Decisions:</b> {m.decisions}</p>}
       {m.minutesPublishedAt && (m.acknowledgedAt
@@ -88,7 +107,7 @@ export default function MyMeetingsView({ embedded = false }) {
                   <div key={m.id} style={{ border: '1px solid #e0e7ff', background: '#fafaff', borderRadius: 10, padding: 12 }}>
                     <div style={{ fontWeight: 700 }}>{m.title}</div>
                     <div style={{ ...muted, fontSize: 12.5 }}>{whenText(m.scheduledAt)} · {m.durationMin} min{m.location ? ` · ${m.location}` : ''}</div>
-                    {m.agenda && <p style={{ fontSize: 13, whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{m.agenda}</p>}
+                    <AgendaAndMedia m={m} />
                   </div>
                 ))}
               </div>

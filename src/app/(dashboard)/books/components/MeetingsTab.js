@@ -5,9 +5,13 @@
 // decisions and goals / targets per role or person (incl. promotion goals), then "Publish minutes" —
 // everyone invited gets it (those who missed it: "you missed…") and must acknowledge it. Reminders go to
 // whoever hasn't. Staff see their meetings, minutes and goals under My meetings.
+// Agenda as points (who presents, minutes; ticked off in the meeting), photos + voice notes sent to the
+// staff, edit a scheduled meeting (time, agenda, who is invited — newly invited are told), and
+// attendance filled in from the staff's clock-ins for the meeting time (check and change, then Save).
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaPlus, FaUsers, FaBell, FaCheck, FaTimes, FaChevronDown, FaChevronUp, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaUsers, FaBell, FaCheck, FaTimes, FaChevronDown, FaChevronUp, FaTrash, FaEdit } from 'react-icons/fa';
+import { MediaList, MediaAdder } from '../../../../components/meetings/MeetingMedia';
 
 const inp = { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, width: '100%', boxSizing: 'border-box' };
 const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 };
@@ -27,8 +31,66 @@ const whenText = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { weekd
 const blankForm = () => {
   const t = new Date(Date.now() + 24 * 3600e3); t.setMinutes(0, 0, 0); t.setHours(15);
   const { date, time } = localDT(t.toISOString());
-  return { title: '', meetingType: 'meeting', typeLabel: '', date, time, durationMin: 30, location: '', agenda: '', audience: { everyone: false, roles: [], staffIds: [] } };
+  return { title: '', meetingType: 'meeting', typeLabel: '', date, time, durationMin: 30, location: '', agenda: '', agendaItems: [], media: [], audience: { everyone: false, roles: [], staffIds: [] } };
 };
+const newPoint = () => ({ id: Math.random().toString(36).slice(2, 10), text: '', presenter: '', durationMin: '', done: false });
+const cleanPoints = (list) => (list || []).filter(a => String(a.text || '').trim()).map(a => ({ ...a, text: a.text.trim(), durationMin: parseInt(a.durationMin, 10) || null }));
+
+// Agenda points: topic, who presents (optional), minutes (optional).
+function AgendaEditor({ value, onChange, isMobile, people = [] }) {
+  const set = (i, patch) => onChange(value.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const total = value.reduce((t, a) => t + (parseInt(a.durationMin, 10) || 0), 0);
+  return (
+    <div style={{ marginTop: 10 }}>
+      <label style={lbl}>Agenda{total ? ` · ${total} min planned` : ''}</label>
+      <datalist id="meeting-presenters">{people.map(n => <option key={n} value={n} />)}</datalist>
+      {value.map((a, i) => (
+        <div key={a.id} style={{ display: 'grid', gridTemplateColumns: isMobile ? '24px 1fr 32px' : '24px 1fr 180px 90px 32px', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textAlign: 'right' }}>{i + 1}.</span>
+          <input style={inp} value={a.text} maxLength={300} onChange={e => set(i, { text: e.target.value })} placeholder="Topic, e.g. Kitchen hygiene" />
+          {isMobile && <button type="button" title="Remove" onClick={() => onChange(value.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer' }}><FaTrash size={11} /></button>}
+          {isMobile && <span />}
+          <input style={inp} list="meeting-presenters" value={a.presenter || ''} maxLength={80} onChange={e => set(i, { presenter: e.target.value })} placeholder="Who presents (optional)" />
+          <input style={inp} type="number" min="0" value={a.durationMin || ''} onChange={e => set(i, { durationMin: e.target.value })} placeholder="Min" />
+          {!isMobile && <button type="button" title="Remove" onClick={() => onChange(value.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer' }}><FaTrash size={11} /></button>}
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...value, newPoint()])} style={{ ...btn('#fff', '#4f46e5'), padding: '5px 10px', fontSize: 12 }}><FaPlus size={10} /> Add agenda point</button>
+    </div>
+  );
+}
+
+// Title / type / when / where / agenda / who — shared by "New meeting" and "Edit meeting".
+function MeetingFields({ form, setForm, roles, staff, isMobile, restaurantId, apiClient }) {
+  return (<>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
+      <div><label style={lbl}>Title</label><input style={inp} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Kitchen weekly meeting" /></div>
+      <div><label style={lbl}>Type</label><select style={inp} value={form.meetingType} onChange={e => setForm({ ...form, meetingType: e.target.value })}>{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+        {form.meetingType === 'other' && (
+          <input style={{ ...inp, marginTop: 6 }} value={form.typeLabel} maxLength={60} placeholder="Your own type, e.g. Hygiene audit"
+            onChange={e => setForm({ ...form, typeLabel: e.target.value })} />
+        )}
+      </div>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginTop: 10 }}>
+      <div><label style={lbl}>Date</label><input type="date" style={inp} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+      <div><label style={lbl}>Time</label><input type="time" style={inp} value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} /></div>
+      <div><label style={lbl}>Minutes</label><input type="number" min="5" style={inp} value={form.durationMin} onChange={e => setForm({ ...form, durationMin: e.target.value })} /></div>
+      <div><label style={lbl}>Place</label><input style={inp} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Kitchen / office" /></div>
+    </div>
+    <AgendaEditor value={form.agendaItems} onChange={(agendaItems) => setForm({ ...form, agendaItems })} isMobile={isMobile} people={staff.map(s => s.name).filter(Boolean)} />
+    <div style={{ marginTop: 10 }}><label style={lbl}>Notes for the staff (optional)</label><textarea rows={2} style={{ ...inp, resize: 'vertical' }} value={form.agenda} onChange={e => setForm({ ...form, agenda: e.target.value })} placeholder="What to bring, what to prepare…" /></div>
+    <div style={{ marginTop: 10 }}>
+      <label style={lbl}>Photos &amp; voice notes for the staff (optional)</label>
+      <MediaList media={form.media} onRemove={(x) => setForm({ ...form, media: form.media.filter(y => y.url !== x.url) })} />
+      <div style={{ marginTop: form.media.length ? 8 : 0 }}>
+        <MediaAdder count={form.media.length} upload={(files) => apiClient.uploadMeetingMedia(restaurantId, files)}
+          onAdded={(items) => setForm(f => ({ ...f, media: [...f.media, ...items] }))} />
+      </div>
+    </div>
+    <Audience value={form.audience} onChange={(audience) => setForm({ ...form, audience })} roles={roles} staff={staff} />
+  </>);
+}
 
 export default function MeetingsTab({ restaurantId, apiClient, staffList = [], isMobile }) {
   const [meetings, setMeetings] = useState([]);
@@ -69,7 +131,7 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
     try {
       const r = await apiClient.createStaffMeeting(restaurantId, {
         title: form.title, meetingType: form.meetingType, typeLabel: form.meetingType === 'other' ? (form.typeLabel || '').trim() : '', scheduledAt: new Date(`${form.date}T${form.time}`).toISOString(),
-        durationMin: form.durationMin, location: form.location, agenda: form.agenda, audience: a, notify: true,
+        durationMin: form.durationMin, location: form.location, agenda: form.agenda, agendaItems: cleanPoints(form.agendaItems), media: form.media, audience: a, notify: true,
       });
       setShowForm(false); setForm(blankForm()); flash(`Meeting scheduled ✓${sentText(r.notified)}`);
       await load();
@@ -101,23 +163,7 @@ export default function MeetingsTab({ restaurantId, apiClient, staffList = [], i
 
       {showForm && (
         <div style={{ border: '1px solid #e0e7ff', background: '#fafaff', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
-            <div><label style={lbl}>Title</label><input style={inp} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Kitchen weekly meeting" /></div>
-            <div><label style={lbl}>Type</label><select style={inp} value={form.meetingType} onChange={e => setForm({ ...form, meetingType: e.target.value })}>{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-              {form.meetingType === 'other' && (
-                <input style={{ ...inp, marginTop: 6 }} value={form.typeLabel} maxLength={60} placeholder="Your own type, e.g. Hygiene audit"
-                  onChange={e => setForm({ ...form, typeLabel: e.target.value })} />
-              )}
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginTop: 10 }}>
-            <div><label style={lbl}>Date</label><input type="date" style={inp} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-            <div><label style={lbl}>Time</label><input type="time" style={inp} value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} /></div>
-            <div><label style={lbl}>Minutes</label><input type="number" min="5" style={inp} value={form.durationMin} onChange={e => setForm({ ...form, durationMin: e.target.value })} /></div>
-            <div><label style={lbl}>Place</label><input style={inp} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Kitchen / office" /></div>
-          </div>
-          <div style={{ marginTop: 10 }}><label style={lbl}>Agenda</label><textarea rows={3} style={{ ...inp, resize: 'vertical' }} value={form.agenda} onChange={e => setForm({ ...form, agenda: e.target.value })} placeholder="What will be discussed" /></div>
-          <Audience value={form.audience} onChange={(audience) => setForm({ ...form, audience })} roles={roles} staff={staff} />
+          <MeetingFields form={form} setForm={setForm} roles={roles} staff={staff} isMobile={isMobile} restaurantId={restaurantId} apiClient={apiClient} />
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <button onClick={() => setShowForm(false)} style={btn('#fff', '#374151')}>Cancel</button>
             <button disabled={saving} onClick={create} style={{ ...btn('#4f46e5'), opacity: saving ? 0.6 : 1 }}><FaBell size={11} /> {saving ? 'Saving…' : 'Schedule & notify'}</button>
@@ -174,17 +220,52 @@ function Audience({ value, onChange, roles, staff }) {
 
 const PHONE_ISSUE = { missing: 'no phone number', invalid: 'phone number too short', shared: 'same phone number as another staff member' };
 
+// Attendance suggested from Attendance for a meeting that has started and whose minutes aren't out:
+// clocked in for the meeting time → present / late, approved leave → excused, everyone else → absent.
+// Only when the restaurant actually uses clock-ins that day (otherwise nothing is guessed), and only for
+// people not marked yet. Returns { att, suggested: Set of staffIds filled in }.
+function withClockIns(m) {
+  const saved = m.attendance || {};
+  const clocked = m.clockedIn || {};
+  const started = new Date(m.scheduledAt).getTime() <= Date.now();
+  const suggested = new Set();
+  if (!started || m.minutesPublishedAt || m.status === 'cancelled' || !Object.keys(clocked).length) return { att: { ...saved }, suggested };
+  const att = { ...saved };
+  for (const i of m.invitees || []) {
+    if (att[i.staffId]) continue;
+    att[i.staffId] = clocked[i.staffId] ? clocked[i.staffId].status : (m.onLeave || {})[i.staffId] ? 'excused' : 'absent';
+    suggested.add(i.staffId);
+  }
+  return { att, suggested };
+}
+const editFormOf = (m) => {
+  const { date, time } = localDT(m.scheduledAt);
+  return {
+    title: m.title || '', meetingType: m.meetingType || 'meeting', typeLabel: m.typeLabel || '', date, time, durationMin: m.durationMin || 30,
+    location: m.location || '', agenda: m.agenda || '', agendaItems: (m.agendaItems || []).map(a => ({ ...a, durationMin: a.durationMin || '' })), media: m.media || [],
+    audience: { everyone: !!m.audience?.everyone, roles: [...(m.audience?.roles || [])], staffIds: [...(m.audience?.staffIds || [])] },
+  };
+};
+
 function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff, isMobile, onChanged, onError, sentText, reach = {} }) {
-  const [att, setAtt] = useState(m.attendance || {});
+  const [att, setAtt] = useState(() => withClockIns(m).att);
+  const [suggested, setSuggested] = useState(() => withClockIns(m).suggested);
   const [minutes, setMinutes] = useState(m.minutes || '');
   const [decisions, setDecisions] = useState(m.decisions || '');
   const [goals, setGoals] = useState(m.goals || []);
+  const [points, setPoints] = useState(m.agendaItems || []);
   const [busy, setBusy] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState('');
-  useEffect(() => { setAtt(m.attendance || {}); setMinutes(m.minutes || ''); setDecisions(m.decisions || ''); setGoals(m.goals || []); }, [m]);
+  const [editing, setEditing] = useState(null); // edit form while changing a scheduled meeting
+  useEffect(() => {
+    const w = withClockIns(m);
+    setAtt(w.att); setSuggested(w.suggested); setMinutes(m.minutes || ''); setDecisions(m.decisions || ''); setGoals(m.goals || []); setPoints(m.agendaItems || []);
+  }, [m]);
+  const mark = (id, k) => { setAtt(a => ({ ...a, [id]: a[id] === k ? undefined : k })); setSuggested(x => { const n = new Set(x); n.delete(id); return n; }); };
 
   const invitees = m.invitees || [];
+  const clocked = m.clockedIn || {};
   // Approved leave on the meeting day (from Leave) — shown as "On leave" unless attendance is marked.
   const onLeave = m.onLeave || {};
   const counts = invitees.reduce((c, i) => {
@@ -208,15 +289,33 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
     catch (e) { onError(e?.message || 'Something went wrong.'); }
     finally { setBusy(''); }
   };
-  const save = () => run('save', () => apiClient.updateStaffMeeting(restaurantId, m.id, { attendance: att, minutes, decisions, goals }), 'Saved ✓');
+  const body = () => ({ attendance: att, minutes, decisions, goals, ...(points.length ? { agendaItems: points } : {}) });
+  const save = () => run('save', () => apiClient.updateStaffMeeting(restaurantId, m.id, body()), 'Saved ✓');
   const publish = () => run('publish', async () => {
-    await apiClient.updateStaffMeeting(restaurantId, m.id, { attendance: att, minutes, decisions, goals });
+    await apiClient.updateStaffMeeting(restaurantId, m.id, body());
     return apiClient.publishMeetingMinutes(restaurantId, m.id);
   }, (r) => `Minutes published ✓${sentText(r && r.notified)}`);
   const remind = () => run('remind', () => apiClient.remindStaffMeeting(restaurantId, m.id), (r) => (r && r.message) || `Reminder sent ✓${sentText(r && r.notified)}`);
   const cancel = () => run('cancel', () => apiClient.cancelStaffMeeting(restaurantId, m.id, reason), (r) => `Meeting cancelled${sentText(r && r.notified)}`);
 
   const editable = m.status !== 'cancelled';
+  const canEditDetails = editable && !published;
+  // Photos / voice notes added from the card go to the staff straight away.
+  const addMedia = (items) => run('media', () => apiClient.updateStaffMeeting(restaurantId, m.id, { media: [...(m.media || []), ...items], notifyMedia: true }),
+    (r) => `Added and sent to the staff ✓${sentText(r && r.notified)}`);
+  const removeMedia = (x) => run('media', () => apiClient.updateStaffMeeting(restaurantId, m.id, { media: (m.media || []).filter(y => y.url !== x.url) }), 'Removed');
+  const saveEdit = () => {
+    const f = editing;
+    if (!f.title.trim()) return onError('Give the meeting a title.');
+    if (!f.date || !f.time) return onError('Choose the date and time.');
+    if (!f.audience.everyone && !f.audience.roles.length && !f.audience.staffIds.length) return onError('Choose who is invited — roles or staff.');
+    return run('edit', () => apiClient.updateStaffMeeting(restaurantId, m.id, {
+      title: f.title, meetingType: f.meetingType, typeLabel: f.meetingType === 'other' ? (f.typeLabel || '').trim() : '',
+      scheduledAt: new Date(`${f.date}T${f.time}`).toISOString(), durationMin: f.durationMin, location: f.location,
+      agenda: f.agenda, agendaItems: cleanPoints(f.agendaItems), media: f.media, audience: f.audience, notifyMedia: true,
+    }).then(r => { setEditing(null); return r; }), (r) => `Meeting updated ✓${sentText(r && r.notified)}`);
+  };
+  const clockedCount = invitees.filter(i => clocked[i.staffId]).length;
   const addGoal = () => setGoals(g => [...g, { id: Math.random().toString(36).slice(2, 10), text: '', target: '', category: 'target', roles: [], staffIds: [], dueDate: null, status: 'open' }]);
   const setGoal = (i, patch) => setGoals(g => g.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
@@ -234,7 +333,43 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
       </div>
       {open && (
         <div style={{ padding: '0 12px 14px', borderTop: '1px solid #f3f4f6' }}>
-          {m.agenda && <p style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap', margin: '10px 0' }}><b>Agenda:</b> {m.agenda}</p>}
+          {canEditDetails && !editing && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+              <button type="button" onClick={() => setEditing(editFormOf(m))} style={{ ...btn('#fff', '#4f46e5'), padding: '6px 12px', fontSize: 12 }}><FaEdit size={11} /> Edit meeting · add roles / staff</button>
+            </div>
+          )}
+          {editing && (
+            <div style={{ border: '1px solid #e0e7ff', background: '#fafaff', borderRadius: 12, padding: 14, margin: '10px 0' }}>
+              <MeetingFields form={editing} setForm={setEditing} roles={roles} staff={staff} isMobile={isMobile} restaurantId={restaurantId} apiClient={apiClient} />
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 8 }}>Newly invited staff get the meeting; if the time or place changes everyone is told.</div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+                <button onClick={() => setEditing(null)} style={btn('#fff', '#374151')}>Cancel</button>
+                <button disabled={!!busy} onClick={saveEdit} style={{ ...btn('#4f46e5'), opacity: busy ? 0.6 : 1 }}><FaBell size={11} /> {busy === 'edit' ? 'Saving…' : 'Save & notify'}</button>
+              </div>
+            </div>
+          )}
+          {!editing && points.length > 0 && (
+            <div style={{ margin: '10px 0' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>Agenda{editable ? ' · tick what was covered' : ''}</div>
+              {points.map((a, i) => (
+                <label key={a.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: '#374151', padding: '3px 0', cursor: editable ? 'pointer' : 'default' }}>
+                  {editable && <input type="checkbox" checked={!!a.done} onChange={() => setPoints(p => p.map((x, j) => (j === i ? { ...x, done: !x.done } : x)))} style={{ marginTop: 2 }} />}
+                  <span style={{ textDecoration: a.done ? 'line-through' : 'none', color: a.done ? '#6b7280' : '#374151' }}>
+                    {i + 1}. {a.text}{a.presenter || a.durationMin ? <span style={{ color: '#9ca3af' }}> · {[a.presenter, a.durationMin ? `${a.durationMin} min` : ''].filter(Boolean).join(' · ')}</span> : null}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          {!editing && m.agenda && <p style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap', margin: '10px 0' }}><b>{points.length ? 'Notes' : 'Agenda'}:</b> {m.agenda}</p>}
+          {!editing && ((m.media || []).length > 0 || editable) && (
+            <div style={{ margin: '10px 0' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Photos &amp; voice notes{(m.media || []).length ? ` · ${(m.media || []).length}` : ''}</div>
+              <MediaList media={m.media || []} onRemove={editable ? removeMedia : undefined} />
+              {editable && <div style={{ marginTop: 6 }}><MediaAdder disabled={!!busy} count={(m.media || []).length} upload={(files) => apiClient.uploadMeetingMedia(restaurantId, files)} onAdded={addMedia} /></div>}
+              {editable && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Added files are sent to everyone invited and stay in their My Meetings.</div>}
+            </div>
+          )}
           {n.sent != null && (
             <p style={{ fontSize: 12, color: '#6b7280', margin: '8px 0' }}>
               Sent to {n.sent} staff: <b>{n.push || 0}</b> on the phone app, <b>{n.whatsapp || 0}</b> on WhatsApp
@@ -259,6 +394,11 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
             ))}
             <span style={{ fontSize: 12, color: '#6b7280', padding: '3px 4px' }}>of {invitees.length}</span>
           </div>
+          {suggested.size > 0 && (
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 8 }}>
+              Filled in from Attendance: {clockedCount} clocked in for the meeting time, the rest absent (approved leave = excused). Check it, change anyone, then <b>Save</b>.
+            </div>
+          )}
           <div style={{ display: 'grid', gap: 6 }}>
             {invitees.map(i => (
               <div key={i.staffId} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
@@ -274,7 +414,9 @@ function MeetingCard({ m, open, onToggle, restaurantId, apiClient, roles, staff,
                     </span>
                   )}
                 </span>
-                {editable && ATT.map(([k, l, c]) => <button key={k} type="button" onClick={() => setAtt(a => ({ ...a, [i.staffId]: a[i.staffId] === k ? undefined : k }))} style={{ ...chip(att[i.staffId] === k, c), padding: '3px 9px' }}>{l}</button>)}
+                {editable && ATT.map(([k, l, c]) => <button key={k} type="button" onClick={() => mark(i.staffId, k)} style={{ ...chip(att[i.staffId] === k, c), padding: '3px 9px' }}>{l}</button>)}
+                {clocked[i.staffId] && <span title="Clock-in from Attendance" style={{ fontSize: 11, color: '#6b7280' }}>⏱ in {new Date(clocked[i.staffId].at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>}
+                {suggested.has(i.staffId) && <span style={{ fontSize: 10, fontWeight: 700, color: '#2563eb' }}>auto</span>}
                 {published && (acks[i.staffId]
                   ? <span style={{ color: '#047857', fontSize: 12, fontWeight: 700 }}><FaCheck size={10} /> read {new Date(acks[i.staffId].at).toLocaleDateString()}</span>
                   : <span style={{ color: '#b45309', fontSize: 12, fontWeight: 600 }}>not read yet</span>)}

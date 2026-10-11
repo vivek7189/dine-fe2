@@ -4611,6 +4611,13 @@ class ApiClient {
   async updateStaffMeeting(restaurantId, id, data) {
     return this.request(`/api/staff-meetings/${restaurantId}/${id}`, { method: 'PATCH', body: data });
   }
+  // Photos / voice notes for a meeting → [{ url, kind: 'photo' | 'voice', name }] (attach via media).
+  async uploadMeetingMedia(restaurantId, files) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const r = await this.request(`/api/staff-meetings/${restaurantId}/media`, { method: 'POST', body: formData });
+    return (r && r.files) || [];
+  }
   async publishMeetingMinutes(restaurantId, id) {
     return this.request(`/api/staff-meetings/${restaurantId}/${id}/publish`, { method: 'POST', body: {} });
   }
