@@ -46,6 +46,11 @@ export function getTodayAttendance(restaurantId) {
   return fetchWithAuth(`${base(restaurantId)}/today`);
 }
 
+// GET /day?date= — the register for one day: everyone present / late / half day / leave / absent / day off
+export function getAttendanceDay(restaurantId, date) {
+  return fetchWithAuth(`${base(restaurantId)}/day?date=${encodeURIComponent(date)}`);
+}
+
 // GET /history?startDate=&endDate=&staffId=&status=
 export function getAttendanceHistory(restaurantId, { startDate, endDate, staffId, status } = {}) {
   const params = new URLSearchParams();

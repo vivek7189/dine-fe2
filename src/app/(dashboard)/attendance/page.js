@@ -211,6 +211,7 @@ export default function AttendancePage() {
   const [tableSort, setTableSort] = useState({ key: null, dir: 'asc' }); // Today table + lists: tap a column header to sort (MFC)   // Today: show only present | absent | late | leave (summary boxes)
   const [staffSort, setStaffSort] = useState('asc'); // manual-entry staff list order
   const [reviewRows, setReviewRows] = useState(null);
+  const [dayReg, setDayReg] = useState(null);   // past day: everyone with present / late / leave / absent / day off
   const [otEdits, setOtEdits] = useState({});
   const [savingReview, setSavingReview] = useState(false);
   const [otRule, setOtRule] = useState(null);         // { enabled, approvedOnly } from the server (admins)
@@ -330,10 +331,12 @@ export default function AttendancePage() {
       const presentCount = res?.presentCount ?? attendance.filter(a => a.status === 'present').length;
       const absentCount = res?.absentCount ?? attendance.filter(a => a.status === 'absent').length;
       const lateCount = attendance.filter(a => a.status === 'late' || Number(a.lateBy) > 0).length;
-      const onLeaveCount = attendance.filter(a => a.status === 'on-leave' || a.status === 'leave').length;
+      // server count includes approved leave without an attendance row (older servers: rows only)
+      const onLeaveCount = res?.onLeaveCount ?? attendance.filter(a => a.status === 'on-leave' || a.status === 'leave').length;
       setTodayData({
         attendance,
         absentStaff: res?.absentStaff || null,
+        onLeaveStaff: res?.onLeaveStaff || null,
         staffCount: res?.staffCount ?? staffList.length,
         presentCount,
         absentCount,
@@ -370,11 +373,15 @@ export default function AttendancePage() {
   const pastReview = !!reviewDate && reviewDate !== todayKey;
 
   const loadReviewDay = useCallback(async () => {
-    if (!restaurantId || !reviewDate || reviewDate === ymd(restaurantToday())) { setReviewRows(null); return; }
-    setReviewRows(null);
+    if (!restaurantId || !reviewDate || reviewDate === ymd(restaurantToday())) { setReviewRows(null); setDayReg(null); return; }
+    setReviewRows(null); setDayReg(null);
     try {
-      const res = await attendanceApi.getAttendanceHistory(restaurantId, { startDate: reviewDate, endDate: reviewDate });
+      const [res, reg] = await Promise.all([
+        attendanceApi.getAttendanceHistory(restaurantId, { startDate: reviewDate, endDate: reviewDate }),
+        attendanceApi.getAttendanceDay(restaurantId, reviewDate).catch(() => null),   // older servers: no register
+      ]);
       setReviewRows(res?.records || []);
+      setDayReg(reg && reg.counts ? reg : null);
       if (res?.otRule) setOtRule(res.otRule);
     } catch (err) {
       showToast(err.message || 'Could not load that day', 'error');
@@ -970,7 +977,17 @@ export default function AttendancePage() {
   // ══════════════════════════════════════════════════════════════════════════
 
   function renderTodayTab() {
-    const dateStr = fmtDate(new Date(), 'en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); // restaurant's today
+    const dateStr = pastReview
+      ? fmtDate(reviewDate + 'T12:00:00', 'en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : fmtDate(new Date(), 'en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); // restaurant's today
+    // The boxes + lists follow the chosen day: a past day uses its register (everyone, incl. leave / day off).
+    const reg = pastReview ? dayReg : null;
+    const counts = reg ? reg.counts : { present: todayData.presentCount, absent: todayData.absentCount, late: todayData.lateCount, leave: todayData.onLeaveCount, off: 0 };
+    const shiftDay = (n) => {
+      const [y, m, d] = (reviewDate || todayKey).split('-').map(Number);
+      const next = ymd(new Date(y, m - 1, d + n));
+      setReviewDate(next >= todayKey ? '' : next); setExpandedId(null);
+    };
     const attendance = isAdmin
       ? (pastReview ? (reviewRows || []) : todayData.attendance)
       : todayData.attendance.filter(a => a.staffId === userId);
@@ -984,10 +1001,15 @@ export default function AttendancePage() {
     let shown = attentionOnly ? attendance.filter(needsAttention) : attendance;
     if (listFilter && byFilter[listFilter]) shown = shown.filter(byFilter[listFilter]);
     // Absentees: active staff with no clock-in / leave today (from the server, same as the count)
-    const absentPeople = listFilter === 'absent'
-      ? (todayData.absentStaff || staffList.filter(st => !attendance.some(a => a.staffId === (st.id || st._id)) || attendance.some(a => a.staffId === (st.id || st._id) && a.status === 'absent'))
+    // People lists (absent / on leave / day off): the day's register, else today's lists from the server.
+    const leaveText = (lv) => (lv ? `${String(lv.typeName || 'Leave').trim()}${lv.halfDay ? ' (half day)' : ''}${lv.from && lv.to && lv.from !== lv.to ? ` · ${fmtDate(lv.from + 'T12:00:00', 'en-IN', { day: 'numeric', month: 'short' })} – ${fmtDate(lv.to + 'T12:00:00', 'en-IN', { day: 'numeric', month: 'short' })}` : ''}` : 'On leave');
+    const peopleList = !['absent', 'leave', 'off'].includes(listFilter) ? null
+      : reg ? reg.rows.filter(r => r.bucket === listFilter).map(r => ({ id: r.staffId, name: r.name, role: r.role, detail: listFilter === 'leave' ? leaveText(r.leave) : (r.note || '') }))
+      : listFilter === 'absent' ? (todayData.absentStaff || staffList.filter(st => !attendance.some(a => a.staffId === (st.id || st._id)) || attendance.some(a => a.staffId === (st.id || st._id) && a.status === 'absent'))
         .map(st => ({ id: st.id || st._id, name: st.name, role: st.role })))
-      : [];
+      : listFilter === 'leave' && todayData.onLeaveStaff ? todayData.onLeaveStaff.map(p => ({ id: p.id, name: p.name, role: p.role, detail: leaveText(p.leave) }))
+      : null;
+    const absentPeople = peopleList || [];
     // Sort by the tapped column (again = reverse). Empty values (not clocked out yet, no late) go last either way.
     const staffOf = (a) => staffList.find(st => st._id === a.staffId || st.id === a.staffId);
     const timeMs = (t) => { if (!t) return null; const d = new Date(t && t.toDate ? t.toDate() : (t && t._seconds ? t._seconds * 1000 : t)); return isNaN(d) ? null : d.getTime(); };
@@ -1033,18 +1055,36 @@ export default function AttendancePage() {
       <div>
         {/* Date & Summary */}
         <div style={{ marginBottom: '20px' }}>
-          <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 16px 0' }}>{dateStr}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', margin: '0 0 16px 0' }}>
+            <p style={{ fontSize: '15px', color: pastReview ? '#111827' : '#6b7280', fontWeight: pastReview ? 700 : 400, margin: 0 }}>
+              {dateStr}{pastReview && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 600, color: '#92400e', background: '#fffbeb', borderRadius: '999px', padding: '2px 9px' }}>past day</span>}
+            </p>
+            {isAdmin && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button type="button" onClick={() => shiftDay(-1)} aria-label="Previous day" style={{ ...btnSecondary, padding: '6px 10px' }}>‹</button>
+                <input type="date" value={reviewDate || todayKey} max={todayKey} aria-label="Choose a day"
+                  onChange={e => { setReviewDate(e.target.value && e.target.value !== todayKey ? e.target.value : ''); setExpandedId(null); }}
+                  style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px' }} />
+                <button type="button" onClick={() => shiftDay(1)} disabled={!pastReview} aria-label="Next day" style={{ ...btnSecondary, padding: '6px 10px', opacity: pastReview ? 1 : 0.4 }}>›</button>
+                {pastReview && <button type="button" onClick={() => { setReviewDate(''); setExpandedId(null); }} style={{ ...btnSecondary, padding: '6px 12px', fontSize: '12px' }}>Today</button>}
+              </div>
+            )}
+          </div>
+          {isAdmin && pastReview && !dayReg && reviewRows !== null && (
+            <p style={{ fontSize: '12px', color: '#9ca3af', margin: '-8px 0 12px 0' }}>Loading the day…</p>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : `repeat(${counts.off > 0 ? 5 : 4}, 1fr)`, gap: '12px' }}>
             {[
-              { key: 'present', label: 'Present', count: todayData.presentCount, color: '#22c55e', bg: '#f0fdf4' },
-              { key: 'absent', label: 'Absent', count: todayData.absentCount, color: '#ef4444', bg: '#fef2f2' },
-              { key: 'late', label: 'Late', count: todayData.lateCount, color: '#eab308', bg: '#fefce8' },
-              { key: 'leave', label: 'On Leave', count: todayData.onLeaveCount, color: '#3b82f6', bg: '#eff6ff' },
+              { key: 'present', label: 'Present', count: counts.present, color: '#22c55e', bg: '#f0fdf4' },
+              { key: 'absent', label: 'Absent', count: counts.absent, color: '#ef4444', bg: '#fef2f2' },
+              { key: 'late', label: 'Late', count: counts.late, color: '#eab308', bg: '#fefce8' },
+              { key: 'leave', label: 'On Leave', count: counts.leave, color: '#3b82f6', bg: '#eff6ff' },
+              ...(counts.off > 0 ? [{ key: 'off', label: 'Day off', count: counts.off, color: '#64748b', bg: '#f8fafc' }] : []),
             ].map(card => {
               const on = listFilter === card.key;
               return (
                 <button key={card.label} type="button" disabled={!isAdmin}
-                  onClick={() => { setReviewDate(''); setAttentionOnly(false); setListFilter(on ? null : card.key); }}
+                  onClick={() => { setAttentionOnly(false); setListFilter(on ? null : card.key); }}
                   title={isAdmin ? (on ? 'Show everyone' : `Show the ${card.label.toLowerCase()} list`) : undefined}
                   style={{ ...cardStyle, background: card.bg, textAlign: 'center', cursor: isAdmin ? 'pointer' : 'default', border: on ? `2px solid ${card.color}` : cardStyle.border, boxShadow: on ? `0 0 0 3px ${card.bg}` : cardStyle.boxShadow, font: 'inherit' }}>
                   <div style={{ fontSize: '28px', fontWeight: 800, color: card.color }}>{card.count}</div>
@@ -1123,16 +1163,10 @@ export default function AttendancePage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', margin: '0 0 16px 0' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
               Staff Attendance{pastReview ? ` · ${fmtDate(reviewDate + 'T12:00:00', 'en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
-              {listFilter && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: '#b91c1c' }}>· {({ present: 'Present', absent: 'Absent', late: 'Late', leave: 'On leave' })[listFilter]} only <button onClick={() => setListFilter(null)} style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>show everyone</button></span>}
+              {listFilter && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: '#b91c1c' }}>· {({ present: 'Present', absent: 'Absent', late: 'Late', leave: 'On leave', off: 'Day off' })[listFilter]} only <button onClick={() => setListFilter(null)} style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>show everyone</button></span>}
             </h3>
             {isAdmin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <label style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  Review day
-                  <input type="date" value={reviewDate || todayKey} max={todayKey}
-                    onChange={e => setReviewDate(e.target.value && e.target.value !== todayKey ? e.target.value : '')}
-                    style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px' }} />
-                </label>
                 {workedCount > 0 && (
                   <span style={{ fontSize: '12px', fontWeight: 600, color: reviewedCount === workedCount ? '#15803d' : '#b45309' }}>
                     {reviewedCount === workedCount ? '✓ Day approved' : `${reviewedCount}/${workedCount} approved`}
@@ -1160,21 +1194,22 @@ export default function AttendancePage() {
               {otRule?.enabled && otRule.approvedOnly && <span style={{ color: '#b45309' }}> Only approved days are paid overtime.</span>}
             </p>
           )}
-          {listFilter === 'absent' ? (
+          {peopleList ? (
             absentPeople.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>No one is absent today 🎉</p>
+              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>{{ absent: 'No one was absent', leave: 'No one was on leave', off: 'No one had a day off' }[listFilter]}{pastReview ? ' on this day' : ' today'}{listFilter === 'absent' ? ' 🎉' : ''}</p>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                <thead><tr style={{ borderBottom: '2px solid #e5e7eb' }}><SortTh label="Staff Name" k="name" /><SortTh label="Role" k="role" /><SortTh label="" /></tr></thead>
+                <thead><tr style={{ borderBottom: '2px solid #e5e7eb' }}><SortTh label="Staff Name" k="name" /><SortTh label="Role" k="role" /><SortTh label={listFilter === 'leave' ? 'Leave' : 'Note'} /><SortTh label="" /></tr></thead>
                 <tbody>
                   {absentSorted.map(p => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '12px', fontWeight: 600 }}>{p.name || '-'}</td>
                       <td style={{ padding: '12px', color: '#6b7280' }}>{p.role || '-'}</td>
+                      <td style={{ padding: '12px', color: '#4b5563', fontSize: '13px' }}>{p.detail || ''}</td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <button onClick={() => { setManualForm(f => ({ ...f, staffId: p.id, date: todayKey, status: 'present' })); setShowManualEntry(true); if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        {listFilter === 'absent' && <button onClick={() => { setManualForm(f => ({ ...f, staffId: p.id, date: reviewDate || todayKey, status: 'present' })); setShowManualEntry(true); if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                           title="Forgot to punch in? Add their time — or mark leave / absent"
-                          style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px' }}><FaPlus size={10} style={{ marginRight: '4px' }} />Add entry</button>
+                          style={{ ...btnSecondary, padding: '5px 10px', fontSize: '12px' }}><FaPlus size={10} style={{ marginRight: '4px' }} />Add entry</button>}
                       </td>
                     </tr>
                   ))}
@@ -1184,7 +1219,7 @@ export default function AttendancePage() {
           ) : isAdmin && pastReview && reviewRows === null ? (
             <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>Loading…</p>
           ) : shown.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>{listFilter ? 'No one in this list today' : pastReview ? 'No attendance records for this day' : 'No attendance records for today'}</p>
+            <p style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: '14px' }}>{listFilter ? `No one in this list ${pastReview ? 'on this day' : 'today'}` : pastReview ? 'No attendance records for this day' : 'No attendance records for today'}</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
