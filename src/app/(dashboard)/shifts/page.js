@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../lib/api';
 import {
-  FaCalendarAlt, FaUsers, FaClock, FaCog, FaSpinner, FaStore, FaInbox, FaChartBar
+  FaCalendarAlt, FaUsers, FaClock, FaCog, FaSpinner, FaStore, FaInbox, FaChartBar, FaBirthdayCake, FaBolt
 } from 'react-icons/fa';
 import { DEFAULT_SHIFT_SETTINGS, getWeekStart, getWeekEnd, formatDateISO } from '../../../components/shifts/constants';
 import WeeklyScheduleGrid from '../../../components/shifts/WeeklyScheduleGrid';
@@ -13,6 +13,7 @@ import RequestsTab from '../../../components/shifts/RequestsTab';
 import HoursTab from '../../../components/shifts/HoursTab';
 import SettingsTab from '../../../components/shifts/SettingsTab';
 import UrgentNeedModal from '../../../components/shifts/UrgentNeedModal';
+import CalendarTab from '../../../components/shifts/CalendarTab';
 
 export default function ShiftsPage() {
   const [activeTab, setActiveTab] = useState('schedule');
@@ -29,6 +30,7 @@ export default function ShiftsPage() {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [availability, setAvailability] = useState({}); // staffId → { availability, unavailableDates }
+  const [weekDates, setWeekDates] = useState([]);        // birthdays / anniversaries / important days / leave this week
 
   const loadAvailability = useCallback(async () => {
     if (!restaurantId) return;
@@ -114,6 +116,15 @@ export default function ShiftsPage() {
     loadShifts();
   }, [loadShifts]);
 
+  // Staff dates for the rota headers (never blocks the schedule).
+  useEffect(() => {
+    if (!restaurantId) return;
+    let alive = true;
+    apiClient.getStaffDates(restaurantId, formatDateISO(getWeekStart(currentWeek)), formatDateISO(getWeekEnd(currentWeek)))
+      .then(r => { if (alive) setWeekDates(r?.events || []); }).catch(() => { if (alive) setWeekDates([]); });
+    return () => { alive = false; };
+  }, [restaurantId, currentWeek, activeTab]);
+
   // Listen for restaurant changes
   useEffect(() => {
     const handler = (e) => {
@@ -126,6 +137,7 @@ export default function ShiftsPage() {
 
   const tabs = [
     { id: 'schedule', label: 'Schedule', mobileLabel: 'Schedule', icon: FaCalendarAlt },
+    { id: 'calendar', label: 'Calendar', mobileLabel: 'Calendar', icon: FaBirthdayCake },
     { id: 'team', label: 'Team', mobileLabel: 'Team', icon: FaUsers },
     { id: 'availability', label: 'Availability', mobileLabel: 'Avail', icon: FaClock },
     { id: 'requests', label: 'Requests', mobileLabel: 'Requests', icon: FaInbox },
@@ -150,41 +162,30 @@ export default function ShiftsPage() {
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 800, color: '#111827', margin: 0 }}>
+          <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 800, color: '#111827', margin: 0 }}>
             Shift Scheduling
           </h1>
           <button type="button" onClick={() => setUrgentOpen(true)}
-            style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(220,38,38,0.3)' }}>
-            Need extra staff (urgent)
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '10px', border: '1px solid #fecaca', background: '#fff', color: '#b91c1c', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+            <FaBolt size={11} /> Need extra staff now
           </button>
         </div>
         {urgentOpen && (
           <UrgentNeedModal restaurantId={restaurantId} staff={staff} shifts={shifts}
             onClose={() => setUrgentOpen(false)} onDone={() => loadShifts()} />
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
-          <span style={{ fontSize: '13px', color: '#6b7280' }}>{restaurantName}</span>
-          <span style={{
-            padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-            backgroundColor: '#f3f4f6', color: '#374151'
-          }}>{activeStaff.length} staff</span>
-          <span style={{
-            padding: '2px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-            backgroundColor: '#dbeafe', color: '#1e40af'
-          }}>{shifts.length} shifts this week</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '13px', color: '#6b7280', flexWrap: 'wrap' }}>
+          {restaurantName && <><span>{restaurantName}</span><span>·</span></>}
+          <span>{activeStaff.length} staff</span>
+          <span>·</span>
+          <span>{shifts.length} shifts this week</span>
         </div>
       </div>
 
-      {/* Tab Bar */}
-      <div style={{
-        background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%)',
-        borderRadius: '16px',
-        padding: '6px',
-        display: 'flex',
-        gap: '4px',
-        marginBottom: '24px',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
+      {/* Tab Bar — underline tabs, one accent for the open tab */}
+      <div role="tablist" style={{
+        display: 'flex', gap: isMobile ? '2px' : '6px', marginBottom: '20px', borderBottom: '1px solid #e5e7eb',
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
       }}>
         {tabs.map(tab => {
           const isActive = activeTab === tab.id;
@@ -192,27 +193,26 @@ export default function ShiftsPage() {
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                flex: isMobile ? 'none' : 1,
-                padding: isMobile ? '10px 14px' : '12px 20px',
-                borderRadius: '12px',
+                padding: isMobile ? '10px 12px' : '11px 16px',
                 border: 'none',
-                background: isActive ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'transparent',
-                color: isActive ? '#ffffff' : '#881b1b',
-                fontSize: '13px',
+                borderBottom: `2px solid ${isActive ? '#dc2626' : 'transparent'}`,
+                marginBottom: '-1px',
+                background: 'transparent',
+                color: isActive ? '#111827' : '#6b7280',
+                fontSize: '13.5px',
                 fontWeight: isActive ? 700 : 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'all 0.2s',
+                gap: '7px',
                 whiteSpace: 'nowrap',
-                boxShadow: isActive ? '0 2px 8px rgba(239,68,68,0.3)' : 'none',
               }}
             >
-              <Icon size={13} />
+              <Icon size={12} style={{ opacity: isActive ? 1 : 0.7 }} />
               {isMobile ? tab.mobileLabel : tab.label}
             </button>
           );
@@ -239,7 +239,12 @@ export default function ShiftsPage() {
               shiftSettings={shiftSettings}
               isMobile={isMobile}
               availability={availability}
+              staffDates={weekDates}
             />
+          )}
+
+          {activeTab === 'calendar' && (
+            <CalendarTab restaurantId={restaurantId} staff={staff} isMobile={isMobile} />
           )}
 
           {activeTab === 'requests' && (

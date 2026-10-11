@@ -35,6 +35,7 @@ export default function StaffAlertsCard({ restaurantId, isMobile = false, canEdi
   const tomorrow = L.upcoming.filter(l => l.daysUntil === 1);
   const chips = [
     ...week.slice(0, 3).map(b => ({ key: `b${b.staffId}`, color: b.daysUntil === 0 ? '#be185d' : '#9d174d', bg: b.daysUntil === 0 ? '#fce7f3' : '#fdf2f8', text: `🎂 ${b.name} · ${when(b.daysUntil)}${b.turning ? ` (${b.turning})` : ''}` })),
+    ...(data.dates || []).filter(d => d.daysUntil <= 7).slice(0, 3).map(d => ({ key: `d${d.staffId}${d.kind}${d.date}`, color: '#3730a3', bg: '#eef2ff', text: `${{ work_anniversary: '🎉', wedding_anniversary: '💍' }[d.kind] || '📌'} ${d.name} · ${d.label} · ${when(d.daysUntil)}` })),
     ...(L.onLeaveToday.length ? [{ key: 'today', color: '#065f46', bg: '#ecfdf5', text: `🌴 On leave today: ${L.onLeaveToday.map(l => l.name).slice(0, 3).join(', ')}${L.onLeaveToday.length > 3 ? ` +${L.onLeaveToday.length - 3}` : ''}` }] : []),
     ...(tomorrow.length ? [{ key: 'tom', color: '#065f46', bg: '#f0fdf4', text: `🌴 From tomorrow: ${tomorrow.map(l => l.name).slice(0, 3).join(', ')}` }] : []),
     ...(L.pending.length ? [{ key: 'pend', color: '#92400e', bg: '#fffbeb', text: `📝 ${L.pending.length} leave request${L.pending.length > 1 ? 's' : ''} waiting` }] : []),
@@ -100,7 +101,7 @@ function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClo
           <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: '#f3f4f6', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes /></button>
         </div>
         <div style={{ padding: '10px 18px', display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1px solid #f9fafb' }}>
-          {tabBtn('birthdays', `🎂 Birthdays (${data.birthdays.length})`)}
+          {tabBtn('birthdays', `🎂 Birthdays & dates (${data.birthdays.length + (data.dates || []).length})`)}
           {tabBtn('leave', `🌴 Leave (${L.onLeaveToday.length + L.upcoming.length + L.pending.length})`)}
           {tabBtn('balances', '📊 Leave balances')}
           {canEditSettings && tabBtn('settings', '⚙ Alerts')}
@@ -108,6 +109,12 @@ function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClo
         <div style={{ padding: '14px 18px 18px', overflowY: 'auto' }}>
           {tab === 'birthdays' && (
             <>
+              {(data.dates || []).length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Anniversaries &amp; important days</div>
+                  {list(data.dates, d => row(`${d.staffId}${d.kind}${d.date}`, `${{ work_anniversary: '🎉', wedding_anniversary: '💍' }[d.kind] || '📌'} ${d.name} · ${d.label}`, `${when(d.daysUntil)} · ${fmtDate(d.date)}${d.endDate ? ` – ${fmtDate(d.endDate)}` : ''}`), '')}
+                </div>
+              )}
               {list(data.birthdays, b => row(b.staffId, `${b.daysUntil === 0 ? '🎉 ' : ''}${b.name}${b.role ? ` · ${b.role}` : ''}`, `${when(b.daysUntil)} · ${fmtDate(b.date)}${b.turning ? ` · turning ${b.turning}` : ''}`, b.daysUntil === 0 ? '#be185d' : '#111827'), 'No birthdays in the next 30 days.')}
               <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 10 }}>{data.staffWithDob} of {data.staffCount} staff have a date of birth (Admin → Staff → Staff Profile, or My Pay → My Profile).</div>
             </>
@@ -153,6 +160,9 @@ function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClo
                 <select value={s.birthdayDaysBefore ?? 1} onChange={e => setS({ ...s, birthdayDaysBefore: Number(e.target.value) })} style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid #e5e7eb' }}>
                   {[0, 1, 2, 3, 7].map(n => <option key={n} value={n}>{n === 0 ? 'no advance alert' : `${n} day${n > 1 ? 's' : ''} before`}</option>)}
                 </select>
+              </label>
+              <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}>
+                <input type="checkbox" checked={s.importantDates !== false} onChange={e => setS({ ...s, importantDates: e.target.checked })} /> Anniversaries &amp; important days — work and wedding anniversaries, staff prayer / family days (today and tomorrow)
               </label>
               <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}>
                 <input type="checkbox" checked={s.leave !== false} onChange={e => setS({ ...s, leave: e.target.checked })} /> Leave alerts — who starts leave tomorrow, requests waiting

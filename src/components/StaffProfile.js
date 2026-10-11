@@ -17,7 +17,7 @@ const CONDITIONS = [
   ['asthma', 'Asthma'], ['heart', 'Heart condition'], ['thyroid', 'Thyroid'], ['epilepsy', 'Epilepsy'], ['kidney', 'Kidney condition'],
 ];
 const EMPTY = {
-  dateOfBirth: '', address: '',
+  dateOfBirth: '', address: '', shareBirthday: false, weddingAnniversary: '',
   emergencyContact: { name: '', relation: '', phone: '' },
   health: { bloodGroup: '', conditions: [], otherConditions: '', medication: '', allergies: '' },
   experience: { totalYears: null, specialization: '', previous: [], notes: '' },
@@ -75,7 +75,10 @@ export default function StaffProfile({ staffId, self = false, canEdit = true, is
   const save = async () => {
     setSaving(true); setMsg(null);
     try {
-      const r = self ? await apiClient.saveMyStaffProfile(profile) : await apiClient.saveStaffProfile(staffId, profile);
+      // Important dates are added / removed in Shift Scheduling → Calendar and My Shifts → My dates,
+      // so this form never sends them (saving here can't undo a date added meanwhile).
+      const { importantDates, ...body } = profile; // eslint-disable-line no-unused-vars
+      const r = self ? await apiClient.saveMyStaffProfile(body) : await apiClient.saveStaffProfile(staffId, body);
       setProfile(merge(r?.profile)); setUpdatedAt(r?.updatedAt || null); setDirty(false);
       if (r?.access?.edit) setEditable(canEdit ? r.access.edit : []);
       setMsg({ type: 'ok', text: 'Profile saved.' });
@@ -117,7 +120,14 @@ export default function StaffProfile({ staffId, self = false, canEdit = true, is
         <>
           {section(<FaUserShield color="#2563eb" />, 'Personal & emergency contact', readOnlyNote('personal'))}
           <div style={grid}>
-            {field('Date of birth', <input type="date" disabled={!can('personal')} value={profile.dateOfBirth || ''} onChange={e => set('dateOfBirth', e.target.value)} style={input} />)}
+            {field('Date of birth', <>
+              <input type="date" disabled={!can('personal')} value={profile.dateOfBirth || ''} onChange={e => set('dateOfBirth', e.target.value)} style={input} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4b5563', marginTop: 6, cursor: can('personal') ? 'pointer' : 'default' }}>
+                <input type="checkbox" disabled={!can('personal')} checked={!!profile.shareBirthday} onChange={e => set('shareBirthday', e.target.checked)} />
+                Let the team see the birthday (day only, never the year)
+              </label>
+            </>)}
+            {field('Wedding anniversary (optional)', <input type="date" disabled={!can('personal')} value={profile.weddingAnniversary || ''} onChange={e => set('weddingAnniversary', e.target.value)} style={input} />)}
             {field('Address', <textarea disabled={!can('personal')} rows={2} value={profile.address || ''} onChange={e => set('address', e.target.value)} style={{ ...input, resize: 'vertical' }} />)}
             {field('Next of kin — name', <input disabled={!can('personal')} value={profile.emergencyContact.name} onChange={e => set('emergencyContact.name', e.target.value)} style={input} />)}
             {field('Relationship', <input disabled={!can('personal')} placeholder="e.g. Wife, Father" value={profile.emergencyContact.relation} onChange={e => set('emergencyContact.relation', e.target.value)} style={input} />)}

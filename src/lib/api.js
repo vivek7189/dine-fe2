@@ -5020,6 +5020,21 @@ class ApiClient {
     return this.request(`/api/staff-alerts/${restaurantId}`);
   }
 
+  // ── Staff dates: birthdays, anniversaries, important personal dates (+ approved leave for managers) ──
+  async getStaffDates(restaurantId, from, to) {
+    const q = new URLSearchParams();
+    if (from) q.set('from', from);
+    if (to) q.set('to', to);
+    this.invalidateCache(`/api/staff-dates/${restaurantId}`);
+    return this.request(`/api/staff-dates/${restaurantId}?${q.toString()}`);
+  }
+  async saveStaffImportantDate(restaurantId, staffId, date) {
+    return this.request(`/api/staff-dates/${restaurantId}/${staffId}/dates`, { method: 'POST', body: date });
+  }
+  async deleteStaffImportantDate(restaurantId, staffId, dateId) {
+    return this.request(`/api/staff-dates/${restaurantId}/${staffId}/dates/${dateId}`, { method: 'DELETE' });
+  }
+
   // ── Event Calendar (festivals, public holidays, custom events) ──
   // View: any staff when calendarSettings.staffCanView !== false (else 403 for non-managers).
   // Manage (settings, custom events): owner / admin / co-owner / manager.

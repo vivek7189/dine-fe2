@@ -4,11 +4,14 @@
 //  • Shifts: my shifts (next 4 weeks) + ask a colleague to swap, swap requests for me, open shifts to pick up
 //  • Leave: balances, apply, my requests (cancel while pending)
 //  • Availability: which days/hours I can work (up to 2 time slots a day) + dates I can't
+//  • My dates: birthday, wedding anniversary and important days (prayer, wedding, child birth…) so the
+//    manager can plan around them — optionally asking for leave for them in one go
 // Manager approvals (claims / swaps / extra pay) live on the full /shifts page, not here.
 
 import { useCallback, useEffect, useState } from 'react';
 import { FaSyncAlt, FaTimes, FaExchangeAlt } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import StaffDatesEditor from '../../../components/shifts/StaffDatesEditor';
 
 const DAYS = [['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun']];
 const FULL = { mon: 'monday', tue: 'tuesday', wed: 'wednesday', thu: 'thursday', fri: 'friday', sat: 'saturday', sun: 'sunday' };
@@ -301,8 +304,8 @@ export default function MyShiftsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 rounded-xl mb-3" role="tablist">
-        {[['shifts', 'Shifts'], ['leave', 'Leave'], ['availability', 'Availability']].map(([k, label]) => (
+      <div className="grid grid-cols-4 gap-1 p-1 bg-gray-100 rounded-xl mb-3" role="tablist">
+        {[['shifts', 'Shifts'], ['leave', 'Leave'], ['availability', 'Availability'], ['dates', 'My dates']].map(([k, label]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setConfirmKey(null); }}
             className={`py-2 rounded-lg text-sm font-bold transition ${tab === k ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
             {label}{k === 'shifts' && incoming.length > 0 ? ` · ${incoming.length}` : ''}
@@ -561,6 +564,18 @@ export default function MyShiftsPage() {
           <button type="button" disabled={!availDirty || busy === 'avail'} onClick={saveAvailability} className={`${btn} w-full mt-4 py-2.5 bg-red-500 text-white`}>
             {busy === 'avail' ? 'Saving…' : 'Save availability'}
           </button>
+        </section>
+      )}
+
+      {/* ── My dates ── */}
+      {tab === 'dates' && rid && (
+        <section className={card}>
+          <h2 className={h2}>My dates</h2>
+          <p className={`${muted} mb-3`}>Your manager sees these when planning the rota, and gets a reminder the day before.</p>
+          <StaffDatesEditor restaurantId={rid} self onRequestLeave={(from, to, reason) => {
+            setLeaveForm({ ...emptyLeaveForm(), leaveType: leaveTypes[0]?.id || '', startDate: from, endDate: to, reason });
+            setShowApply(true); setLeaveError(''); setTab('leave');
+          }} />
         </section>
       )}
     </div>

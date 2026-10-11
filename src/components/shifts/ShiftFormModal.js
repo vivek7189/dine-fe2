@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaTimes, FaClock, FaUser, FaStickyNote, FaCalendarAlt, FaExclamationTriangle, FaUserPlus, FaGift } from 'react-icons/fa';
-import { getRoleColor, BREAK_OPTIONS, formatDateISO, rotaRoles, titleCase, availabilityOn, fitsAvailability, slotsLabel, memberRoles } from './constants';
+import { getRoleColor, BREAK_OPTIONS, formatDateISO, rotaRoles, titleCase, availabilityOn, fitsAvailability, slotsLabel, memberRoles, dateIcon, dateText } from './constants';
 import TimeSelect from './TimeSelect';
 import { useCurrency } from '../../contexts/CurrencyContext';
 
@@ -15,7 +15,7 @@ const label = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13
 // Add / edit one shift. `prefill` (from a coverage gap) can set { shiftType, role, isOpen }.
 export default function ShiftFormModal({
   isOpen, onClose, onSave, shift, staff, date, staffId, isMobile,
-  shiftTypes = [], extraRoles = [], availability = {}, prefill = null,
+  shiftTypes = [], extraRoles = [], availability = {}, prefill = null, dayDates = {},
 }) {
   const blank = {
     staffId: '', date: '', startTime: '09:00', endTime: '17:00', breakMinutes: 30,
@@ -161,7 +161,8 @@ export default function ShiftFormModal({
                 <option value="">Select staff member…</option>
                 {activeStaff.map(s => {
                   const a = form.date ? availabilityOn(availability[s.id], form.date) : null;
-                  return <option key={s.id} value={s.id}>{s.name} ({memberRoles(s).join(', ')}){a && !a.available ? ' — unavailable' : ''}</option>;
+                  const lv = form.date && (dayDates[form.date] || []).some(e => e.staffId === s.id && e.kind === 'leave');
+                  return <option key={s.id} value={s.id}>{s.name} ({memberRoles(s).join(', ')}){lv ? ' — on leave' : a && !a.available ? ' — unavailable' : ''}</option>;
                 })}
               </select>
               {avail && !avail.available && (
@@ -169,6 +170,11 @@ export default function ShiftFormModal({
                   <FaExclamationTriangle size={11} /> {avail.reason} — you can still assign, but check with them.
                 </div>
               )}
+              {form.staffId && form.date && (dayDates[form.date] || []).filter(e => e.staffId === form.staffId).map(e => (
+                <div key={e.id} style={{ marginTop: '6px', fontSize: '12px', color: e.kind === 'leave' || e.kind === 'important' ? '#b45309' : '#4b5563', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span>{dateIcon(e)}</span> {e.kind === 'leave' ? `On approved leave (${e.label})` : dateText({ ...e, name: '' })}{e.note ? ` · ${e.note}` : ''}
+                </div>
+              ))}
               {outsideHours && (
                 <div style={{ marginTop: '6px', fontSize: '12px', color: '#b45309', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <FaExclamationTriangle size={11} /> Available only {slotsLabel(avail.slots)} this day.
@@ -263,7 +269,7 @@ export default function ShiftFormModal({
 
           <button type="submit" disabled={saving || (!form.isOpen && !form.staffId)} style={{
             width: '100%', marginTop: '10px', padding: '12px', borderRadius: '12px', border: 'none',
-            background: saving || (!form.isOpen && !form.staffId) ? '#e5e7eb' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+            background: saving || (!form.isOpen && !form.staffId) ? '#e5e7eb' : '#dc2626',
             color: 'white', fontWeight: 700, fontSize: '15px', cursor: saving ? 'not-allowed' : 'pointer'
           }}>
             {saving ? 'Saving…' : shift ? 'Update Shift' : form.isOpen ? 'Add Open Shift' : 'Add Shift'}

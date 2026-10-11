@@ -143,3 +143,51 @@ export const getWeekDates = (weekStart) => {
 export const isSameDay = (d1, d2) => {
   return formatDateISO(d1) === formatDateISO(d2);
 };
+
+// Teams for the "Staff needed" summary: any restaurant's own role names fall into a handful of
+// teams by keyword (works for custom roles like "Dosa Master" or "Takeaway Leader"); unknown → Other.
+// Order matters: the first team whose words match wins ("takeaway leader" → Takeaway, "head chef" → Kitchen).
+export const TEAMS = [
+  { id: 'takeaway', name: 'Takeaway & delivery', re: /parcel|take ?away|delivery|rider|driver|pack|dispatch|aggregator/ },
+  { id: 'cash', name: 'Cash & front desk', re: /cash|bill|account|front ?desk|reception/ },
+  { id: 'bar', name: 'Bar & beverages', re: /barista|bartend|\bbar\b|juice|mixolog|beverage|\btea\b|coffee|sommelier/ },
+  { id: 'kitchen', name: 'Kitchen', re: /chef|cook|kitchen|master|tandoo?r|bak|pastry|grill|prep|commis|sous|cuisine|dosa|idl[iy]|parotta|biryani|chinese|chaat|pizza|sandwich|production|butcher|fry/ },
+  { id: 'service', name: 'Service', re: /waiter|waitress|server|captain|steward|host|order ?taker|runner|service|floor|butler|sommelier/ },
+  { id: 'cleaning', name: 'Cleaning', re: /clean|dish|wash|housekeep|janitor|utility|dispos|sweep|helper|porter/ },
+  { id: 'stores', name: 'Stores & quality', re: /store|stock|inventory|purchas|quality|warehouse/ },
+  { id: 'management', name: 'Management', re: /manager|supervisor|director|lead|incharge|in-charge|head|owner|admin/ },
+];
+export const teamOf = (role) => {
+  const r = String(role || '').trim().toLowerCase();
+  const t = TEAMS.find(x => x.re.test(r));
+  return t ? { id: t.id, name: t.name } : { id: 'other', name: 'Other' };
+};
+
+// Staff dates (birthdays, anniversaries, important personal dates, leave) — one icon each.
+export const IMPORTANT_TYPES = [
+  ['religious', 'Prayer / religious day', '🙏'], ['wedding', 'My wedding', '💒'], ['family_wedding', 'Family wedding', '💒'],
+  ['child_birth', 'Child birth', '👶'], ['family_event', 'Family event', '👪'], ['medical', 'Medical', '🩺'], ['other', 'Other', '📌'],
+];
+export const dateIcon = (e) => {
+  if (!e) return '📌';
+  if (e.kind === 'birthday') return '🎂';
+  if (e.kind === 'work_anniversary') return '🎉';
+  if (e.kind === 'wedding_anniversary') return '💍';
+  if (e.kind === 'leave') return '🌴';
+  return (IMPORTANT_TYPES.find(t => t[0] === e.type) || IMPORTANT_TYPES[6])[2];
+};
+export const dateText = (e) => `${e.name ? `${e.name} — ` : ''}${e.label}${e.years && e.kind !== 'work_anniversary' ? ` (${e.kind === 'birthday' ? 'turns ' : ''}${e.years}${e.kind === 'wedding_anniversary' ? ' years' : ''})` : ''}`;
+// events → { 'YYYY-MM-DD': [events] } (multi-day ones on every day they cover)
+export const datesByDay = (events = []) => {
+  const map = {};
+  for (const e of events) {
+    let d = e.date;
+    const end = e.endDate || e.date;
+    for (let i = 0; i < 62 && d <= end; i++) {
+      (map[d] = map[d] || []).push(e);
+      const [y, m, dd] = d.split('-').map(Number);
+      d = formatDateISO(new Date(y, m - 1, dd + 1));
+    }
+  }
+  return map;
+};

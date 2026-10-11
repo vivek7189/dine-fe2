@@ -6,13 +6,14 @@ import {
   FaTrash, FaEdit, FaSpinner, FaCalendarAlt, FaClock, FaUserPlus, FaCheckCircle, FaExclamationTriangle
 } from 'react-icons/fa';
 import apiClient from '../../lib/api';
-import { getRoleColor, DAYS_OF_WEEK, formatTime, getWeekStart, getWeekEnd, getWeekDates, formatDateISO, isSameDay, shiftMatchesType, availabilityOn, titleCase, slotsLabel } from './constants';
+import { getRoleColor, DAYS_OF_WEEK, formatTime, getWeekStart, getWeekEnd, getWeekDates, formatDateISO, isSameDay, shiftMatchesType, availabilityOn, titleCase, slotsLabel, datesByDay, dateIcon, dateText } from './constants';
+import CoveragePanel from './CoveragePanel';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import ShiftFormModal from './ShiftFormModal';
 
 export default function WeeklyScheduleGrid({
   restaurantId, staff, shifts, setShifts, currentWeek, setCurrentWeek,
-  onReloadShifts, shiftSettings, isMobile, availability = {}
+  onReloadShifts, shiftSettings, isMobile, availability = {}, staffDates = []
 }) {
   const [notice, setNotice] = useState(null); // { type, text }
   const { getCurrencySymbol } = useCurrency();
@@ -35,6 +36,9 @@ export default function WeeklyScheduleGrid({
   const today = new Date();
 
   const activeStaff = (staff || []).filter(s => s.status === 'active');
+  // Birthdays / anniversaries / important personal dates / leave this week → per day and per person.
+  const dayDates = useMemo(() => datesByDay(staffDates), [staffDates]);
+  const personDates = (staffId, dk) => (dayDates[dk] || []).filter(e => e.staffId === staffId);
 
   // Group shifts by staffId + date
   const shiftMap = useMemo(() => {
@@ -69,11 +73,12 @@ export default function WeeklyScheduleGrid({
     const req = type.requiredRoles || {};
     const roles = Object.keys(req).filter(r => req[r] > 0);
     const rows = roles.map(r => {
-      const have = onType.filter(s => normRole(s.role) === normRole(r)).length; // s.role = the person's current role
-      return { role: r, need: req[r], have, short: Math.max(0, req[r] - have) };
+      const mine = onType.filter(s => normRole(s.role) === normRole(r)); // s.role = the person's current role
+      const have = mine.length;
+      return { role: r, need: req[r], have, short: Math.max(0, req[r] - have), drafts: mine.filter(s => s.status === 'draft').length };
     });
     const needTotal = Number(type.requiredEmployees) || rows.reduce((a, x) => a + x.need, 0);
-    return { rows, needTotal, haveTotal: onType.length, short: rows.reduce((a, x) => a + x.short, 0) + (roles.length ? 0 : Math.max(0, needTotal - onType.length)) };
+    return { rows, needTotal, haveTotal: onType.length, draftTotal: onType.filter(s => s.status === 'draft').length, short: rows.reduce((a, x) => a + x.short, 0) + (roles.length ? 0 : Math.max(0, needTotal - onType.length)) };
   };
   const weekShort = shiftTypes.length ? weekDates.reduce((n, d) => n + shiftTypes.reduce((m, t) => m + coverageFor(formatDateISO(d), t).short, 0), 0) : 0;
   const openGap = (date, type, role) => {
@@ -318,51 +323,17 @@ export default function WeeklyScheduleGrid({
       border: `1px solid ${notice.type === 'error' ? '#fecaca' : notice.type === 'warning' ? '#fde68a' : '#bbf7d0'}` }}>{notice.text}</div>
   );
 
-  // Coverage chips for one shift type on one day.
-  const coverageChips = (date, type) => {
-    const dk = formatDateISO(date);
-    const c = coverageFor(dk, type);
-    if (!c.rows.length && !c.needTotal) return <span style={{ fontSize: '11px', color: '#d1d5db' }}>—</span>;
-    const chips = c.rows.length ? c.rows : [{ role: null, need: c.needTotal, have: c.haveTotal, short: Math.max(0, c.needTotal - c.haveTotal) }];
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', justifyContent: 'center' }}>
-        {chips.map(x => (
-          <button key={x.role || 'all'} type="button" title={x.short ? `Add ${x.role ? titleCase(x.role) : 'staff'} for ${type.name}` : 'Covered'}
-            onClick={(e) => { e.stopPropagation(); if (x.short) openGap(date, type, x.role || undefined); }}
-            style={{ border: 'none', cursor: x.short ? 'pointer' : 'default', padding: '2px 6px', borderRadius: '6px', fontSize: '10.5px', fontWeight: 700,
-              background: x.short ? '#fee2e2' : '#dcfce7', color: x.short ? '#b91c1c' : '#166534' }}>
-            {x.role ? `${titleCase(x.role)} ` : ''}{x.have}/{x.need}
-          </button>
-        ))}
-      </div>
-    );
-  };
-
   const hasCoverageTargets = shiftTypes.some(t => Object.values(t.requiredRoles || {}).some(v => v > 0) || Number(t.requiredEmployees) > 0);
-  const coveragePanel = hasCoverageTargets && !isMobile && (
-    <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', marginBottom: '16px', overflow: 'auto' }}>
-      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f9fafb' }}>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>Staff needed per shift</div>
-        <div style={{ fontSize: '12px', fontWeight: 600, color: weekShort ? '#b91c1c' : '#166534', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          {weekShort ? <><FaExclamationTriangle size={11} /> {weekShort} slot(s) unfilled — click a red chip to fill it</> : <><FaCheckCircle size={11} /> Every shift is covered</>}
-        </div>
-      </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-        <tbody>
-          {shiftTypes.map(t => (
-            <tr key={t.name}>
-              <td style={{ width: '180px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, color: '#374151', borderBottom: '1px solid #f9fafb' }}>
-                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '4px', background: t.color || '#9ca3af', marginRight: '6px' }} />
-                {t.name} <span style={{ color: '#9ca3af', fontWeight: 500 }}>{t.startTime}–{t.endTime}</span>
-              </td>
-              {weekDates.map((d, i) => (
-                <td key={i} style={{ padding: '6px 4px', borderBottom: '1px solid #f9fafb', textAlign: 'center' }}>{coverageChips(d, t)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  const coveragePanel = hasCoverageTargets && (
+    <CoveragePanel shiftTypes={shiftTypes} weekDates={weekDates} coverageFor={coverageFor} onAdd={openGap}
+      isMobile={isMobile} mobileDate={isMobile ? weekDates[mobileDay] : null} />
+  );
+  // Small icons for a day / a person's day: 🎂 birthday, 🎉 / 💍 anniversary, 🙏 👶 📌 personal dates, 🌴 leave.
+  const dateIcons = (events, max = 4) => events.length > 0 && (
+    <span title={events.map(dateText).join('\n')} style={{ display: 'inline-flex', gap: 1, fontSize: 12, lineHeight: 1, cursor: 'help' }}>
+      {events.slice(0, max).map(e => <span key={e.id}>{dateIcon(e)}</span>)}
+      {events.length > max && <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, alignSelf: 'center' }}>+{events.length - max}</span>}
+    </span>
   );
 
   const openCell = (date) => {
@@ -395,7 +366,7 @@ export default function WeeklyScheduleGrid({
           )}
           <button onClick={handleAddClick} style={{
             padding: '8px 14px', borderRadius: '10px', border: 'none',
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
+            background: '#dc2626', color: 'white',
             fontSize: '12px', fontWeight: 600, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: '4px'
           }}><FaPlus size={10} /> Add</button>
@@ -438,15 +409,10 @@ export default function WeeklyScheduleGrid({
           ))}
         </div>
 
-        {hasCoverageTargets && (
-          <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '12px 14px', border: '1px solid #f1f5f9', marginBottom: '12px' }}>
-            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>Staff needed</div>
-            {shiftTypes.map(t => (
-              <div key={t.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0' }}>
-                <span style={{ fontSize: '12px', color: '#4b5563' }}>{t.name}</span>
-                {coverageChips(currentDate, t)}
-              </div>
-            ))}
+        {coveragePanel}
+        {(dayDates[dateKey] || []).length > 0 && (
+          <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '10px 14px', border: '1px solid #f1f5f9', marginBottom: '12px', fontSize: '12.5px', color: '#374151', display: 'grid', gap: '4px' }}>
+            {(dayDates[dateKey] || []).map(e => <div key={e.id}>{dateIcon(e)} {dateText(e)}</div>)}
           </div>
         )}
         {(shiftMap[`OPEN_${dateKey}`] || []).length > 0 && (
@@ -482,6 +448,7 @@ export default function WeeklyScheduleGrid({
                         {Array.isArray(member.extraRoles) && member.extraRoles.length > 0 && (
                           <span title={`Also works as ${member.extraRoles.join(', ')}`} style={{ fontSize: '10px', color: '#6b7280', marginLeft: '4px' }}>+{member.extraRoles.map(titleCase).join(', ')}</span>
                         )}
+                        <span style={{ marginLeft: '6px' }}>{dateIcons(personDates(member.id, dateKey))}</span>
                   </div>
                 </div>
                 {memberShifts.map(s => renderShiftBlock(s))}
@@ -537,6 +504,7 @@ export default function WeeklyScheduleGrid({
           extraRoles={shiftSettings?.extraRoles || []}
           availability={availability}
           prefill={prefill}
+          dayDates={dayDates}
         />
       </div>
     );
@@ -564,54 +532,46 @@ export default function WeeklyScheduleGrid({
             display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 600
           }}>Next <FaChevronRight size={11} /></button>
           <button onClick={goToToday} style={{
-            padding: '6px 14px', borderRadius: '20px', border: 'none',
-            backgroundColor: '#fef2f2', color: '#ef4444', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
+            padding: '7px 14px', borderRadius: '10px', border: '1px solid #e5e7eb',
+            backgroundColor: 'white', color: '#374151', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
           }}>Today</button>
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{
-            padding: '4px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-            backgroundColor: '#f3f4f6', color: '#374151'
-          }}>{(shifts || []).length} shifts</span>
-          <span style={{
-            padding: '4px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-            backgroundColor: '#dbeafe', color: '#1e40af'
-          }}>{totalHours.toFixed(1)}h total</span>
-          {draftCount > 0 && (
-            <span style={{
-              padding: '4px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 600,
-              backgroundColor: '#fef3c7', color: '#92400e'
-            }}>{draftCount} drafts</span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#6b7280' }}>
+          <span><b style={{ color: '#111827' }}>{(shifts || []).length}</b> shifts</span>
+          <span>·</span>
+          <span><b style={{ color: '#111827' }}>{totalHours.toFixed(1)}</b> h</span>
+          {draftCount > 0 && (<>
+            <span>·</span>
+            <span style={{ color: '#92400e' }}><b>{draftCount}</b> not published</span>
+          </>)}
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={handleAutoGenerate} disabled={autoGenerating} style={{
-            padding: '8px 14px', borderRadius: '10px', border: 'none',
-            backgroundColor: '#ede9fe', color: '#6d28d9', fontSize: '13px', fontWeight: 600,
+            padding: '8px 14px', borderRadius: '10px', border: '1px solid #e5e7eb',
+            backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: 600,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
           }}>{autoGenerating ? <FaSpinner size={11} className="animate-spin" /> : <FaRobot size={11} />} AI Generate</button>
           <button onClick={handleCopyWeek} disabled={copying} style={{
-            padding: '8px 14px', borderRadius: '10px', border: 'none',
-            backgroundColor: '#f3f4f6', color: '#374151', fontSize: '13px', fontWeight: 600,
+            padding: '8px 14px', borderRadius: '10px', border: '1px solid #e5e7eb',
+            backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: 600,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
           }}>{copying ? <FaSpinner size={11} className="animate-spin" /> : <FaCopy size={11} />} Copy Week</button>
           {draftCount > 0 && (
             <button onClick={handlePublish} disabled={publishing} style={{
               padding: '8px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: '#dcfce7', color: '#166534', fontSize: '13px', fontWeight: 600,
+              backgroundColor: '#16a34a', color: 'white', fontSize: '13px', fontWeight: 700,
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
             }}>{publishing ? <FaSpinner size={11} className="animate-spin" /> : <FaPaperPlane size={11} />} Publish ({draftCount})</button>
           )}
           <button onClick={handleAddClick} style={{
             padding: '8px 14px', borderRadius: '10px', border: 'none',
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
-            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '6px',
-            boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
+            background: '#dc2626', color: 'white',
+            fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '6px'
           }}><FaPlus size={11} /> Add Shift</button>
         </div>
       </div>
@@ -643,14 +603,15 @@ export default function WeeklyScheduleGrid({
                 return (
                   <th key={i} style={{
                     padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #f1f5f9',
-                    backgroundColor: isCurrentDay ? '#fef2f2' : '#fafafa',
-                    borderBottomColor: isCurrentDay ? '#ef4444' : '#f1f5f9'
+                    backgroundColor: '#fafafa', verticalAlign: 'top',
+                    borderBottomColor: isCurrentDay ? '#dc2626' : '#f1f5f9'
                   }}>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>{DAYS_OF_WEEK[i]}</div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: isCurrentDay ? '#dc2626' : '#6b7280' }}>{DAYS_OF_WEEK[i]}{isCurrentDay ? ' · Today' : ''}</div>
                     <div style={{
-                      fontSize: '20px', fontWeight: 700, color: isCurrentDay ? '#ef4444' : '#111827',
+                      fontSize: '20px', fontWeight: 700, color: '#111827',
                       lineHeight: 1.2
                     }}>{date.getDate()}</div>
+                    <div style={{ minHeight: '14px', marginTop: '2px' }}>{dateIcons(dayDates[formatDateISO(date)] || [])}</div>
                   </th>
                 );
               })}
@@ -715,7 +676,9 @@ export default function WeeklyScheduleGrid({
                     const cellShifts = shiftMap[key] || [];
                     const isCurrentDay = isSameDay(date, today);
                     const av = availabilityOn(availability[member.id], dateKey);
-                    const cellBg = !av.available ? '#f3f4f6' : isCurrentDay ? '#fffbfb' : 'white';
+                    const mine = personDates(member.id, dateKey);
+                    const onLeave = mine.some(e => e.kind === 'leave');
+                    const cellBg = !av.available || onLeave ? '#f8fafc' : isCurrentDay ? '#fcfcfd' : 'white';
                     return (
                       <td
                         key={i}
@@ -723,17 +686,21 @@ export default function WeeklyScheduleGrid({
                         onClick={() => handleCellClick(member.id, date)}
                         style={{
                           padding: '6px', borderBottom: '1px solid #f9fafb',
-                          backgroundColor: cellBg,
+                          backgroundColor: cellBg, position: 'relative',
                           cursor: 'pointer', verticalAlign: 'top',
                           transition: 'background-color 0.15s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = cellBg}
                       >
-                        {!av.available && cellShifts.length === 0 && (
+                        {mine.length > 0 && <div style={{ position: 'absolute', top: '3px', right: '5px', zIndex: 1 }}>{dateIcons(mine, 3)}</div>}
+                        {onLeave && cellShifts.length === 0 && (
+                          <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'center', paddingTop: '12px' }}>On leave</div>
+                        )}
+                        {!onLeave && !av.available && cellShifts.length === 0 && (
                           <div style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'center', paddingTop: '12px' }}>Unavailable</div>
                         )}
-                        {!av.available && cellShifts.length === 0 ? null : cellShifts.length > 0 ? (
+                        {(!av.available || onLeave) && cellShifts.length === 0 ? null : cellShifts.length > 0 ? (
                           cellShifts.map(s => renderShiftBlock(s))
                         ) : (
                           <div style={{
@@ -770,6 +737,7 @@ export default function WeeklyScheduleGrid({
         extraRoles={shiftSettings?.extraRoles || []}
         availability={availability}
         prefill={prefill}
+        dayDates={dayDates}
       />
     </div>
   );
