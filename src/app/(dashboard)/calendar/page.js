@@ -12,6 +12,7 @@ import {
 import EventDrawer from '../../../components/calendar/EventDrawer';
 import EventFormModal from '../../../components/calendar/EventFormModal';
 import ImportEventsModal from '../../../components/calendar/ImportEventsModal';
+import { weekStartsOnMonday, weekdayOffset } from '../../../lib/restaurantTime';
 
 const VIEW_KEY = 'dineCalendarView';
 
@@ -19,10 +20,10 @@ function monthStartKey(y, m) {
   return `${y}-${String(m + 1).padStart(2, '0')}-01`;
 }
 
-// 6-week grid (Sunday first) covering the month.
+// 6-week grid (Sunday first, or Monday with posSettings.weekStartsOn) covering the month.
 function gridDays(y, m) {
   const first = new Date(Date.UTC(y, m, 1));
-  const start = addDays(monthStartKey(y, m), -first.getUTCDay());
+  const start = addDays(monthStartKey(y, m), -weekdayOffset(first.getUTCDay()));
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
@@ -200,7 +201,7 @@ export default function CalendarPage() {
   const panelEvents = selectedDay ? (byDay[selectedDay] || events.filter((e) => eventOnDay(e, selectedDay))) : monthEvents;
 
   const monthTitle = cursor ? fmtDay(monthStartKey(cursor.y, cursor.m), { month: 'long', year: 'numeric' }) : '';
-  const weekdays = useMemo(() => Array.from({ length: 7 }, (_, i) => fmtDay(addDays('2026-01-04', i), { weekday: isMobile ? 'narrow' : 'short' })), [isMobile]);
+  const weekdays = useMemo(() => Array.from({ length: 7 }, (_, i) => fmtDay(addDays(weekStartsOnMonday() ? '2026-01-05' : '2026-01-04', i), { weekday: isMobile ? 'narrow' : 'short' })), [isMobile]);
 
   // ── Derived for list view ──────────────────────────────────────────────
   const listGroups = useMemo(() => {

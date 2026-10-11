@@ -896,6 +896,7 @@ class ApiClient {
       const ps = saved && saved.posSettings;
       if (!ps) return;
       if (!this._restaurantTimezone && ps.timezone) this._restaurantTimezone = ps.timezone;
+      if (!this._weekStartsOn && ps.weekStartsOn) this._weekStartsOn = ps.weekStartsOn;
       if (!this._businessDayStartHour && ps.businessDayStartHour) {
         const n = Number(ps.businessDayStartHour);
         this._businessDayStartHour = (isNaN(n) || n < 0 || n > 23) ? 0 : Math.floor(n);
@@ -919,6 +920,16 @@ class ApiClient {
   setRestaurantTimezone(iana) {
     this._restaurantClockReady = true;
     this._restaurantTimezone = iana || null;
+  }
+
+  // posSettings.weekStartsOn ('monday' → weekly views start on Monday; unset → each screen's default).
+  setWeekStartsOn(value) {
+    this._weekStartsOn = value || null;
+  }
+
+  getWeekStartsOn() {
+    this._ensureRestaurantClock();
+    return this._weekStartsOn || null;
   }
 
   // The restaurant's configured IANA timezone (or null → fall back to device tz).

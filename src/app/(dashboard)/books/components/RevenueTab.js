@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { FaMoneyBillWave, FaCreditCard, FaUtensils, FaArrowUp, FaArrowDown, FaDownload } from 'react-icons/fa';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Cell } from 'recharts';
+import { weekStartsOnMonday } from '../../../../lib/restaurantTime';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -35,7 +36,15 @@ function groupBreakdown(dailyBreakdown, view) {
   dailyBreakdown.forEach(day => {
     const d = new Date(day.date);
     let key;
-    if (view === 'weekly') {
+    const ymdParts = String(day.date || '').slice(0, 10).split('-').map(Number);
+    if (view === 'weekly' && weekStartsOnMonday() && ymdParts.length === 3 && ymdParts.every(Number.isFinite)) {
+      // Monday-start weeks (posSettings.weekStartsOn), labelled by their dates: "6 Oct – 12 Oct 2026".
+      const t = Date.UTC(ymdParts[0], ymdParts[1] - 1, ymdParts[2]);
+      const start = new Date(t - ((new Date(t).getUTCDay() + 6) % 7) * 86400000);
+      const end = new Date(start.getTime() + 6 * 86400000);
+      const f = (x, o) => x.toLocaleDateString('en-IN', { timeZone: 'UTC', day: 'numeric', month: 'short', ...o });
+      key = `${f(start)} – ${f(end, { year: 'numeric' })}`;
+    } else if (view === 'weekly') {
       const startOfYear = new Date(d.getFullYear(), 0, 1);
       const weekNum = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
       key = `W${String(weekNum).padStart(2, '0')} ${d.getFullYear()}`;

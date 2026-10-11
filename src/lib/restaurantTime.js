@@ -104,3 +104,23 @@ export function restaurantToday() {
 export function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+// Week start for weekly views (Books weekly, HQ weekly chart, calendars). posSettings.weekStartsOn
+// 'monday' → Monday; unset → every screen keeps its own default (these were Sunday-first).
+export function weekStartsOnMonday() {
+  try {
+    return (apiClient.getWeekStartsOn && apiClient.getWeekStartsOn()) === 'monday';
+  } catch {
+    return false;
+  }
+}
+
+// Days from the week's first day to a weekday (0 = Sunday … 6 = Saturday, i.e. Date#getDay()).
+export function weekdayOffset(dow) {
+  return weekStartsOnMonday() ? (dow + 6) % 7 : dow;
+}
+
+// Seven Sunday-first labels/values reordered to the restaurant's week.
+export function orderWeekdays(sundayFirst) {
+  return weekStartsOnMonday() ? [...sundayFirst.slice(1), sundayFirst[0]] : sundayFirst;
+}

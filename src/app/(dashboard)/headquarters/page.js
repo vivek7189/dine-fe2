@@ -51,6 +51,7 @@ import CentralMenuTab from './components/CentralMenuTab';
 import WarehouseTab from './components/WarehouseTab';
 import CentralKitchenTab from './components/CentralKitchenTab';
 import HQReportsTab from './components/HQReportsTab';
+import { weekStartsOnMonday, weekdayOffset } from '../../../lib/restaurantTime';
 
 // ============================================
 // HEADQUARTERS - Owner Command Center
@@ -1842,7 +1843,7 @@ export function HeadquartersContent({ embedded = false }) {
       data.forEach(d => {
         const date = new Date(d.date);
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
+        weekStart.setDate(date.getDate() - weekdayOffset(date.getDay()));
         const key = weekStart.toISOString().split('T')[0];
         if (!weeks[key]) weeks[key] = { date: key, revenue: 0, orders: 0 };
         weeks[key].revenue += d.revenue || 0;
@@ -1857,7 +1858,9 @@ export function HeadquartersContent({ embedded = false }) {
     const formatLabel = (d) => {
       const date = new Date(d.date);
       if (effectiveView === 'hourly') return date.toLocaleTimeString('en-US', { hour: '2-digit' });
-      if (effectiveView === 'weekly') return `W${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
+      if (effectiveView === 'weekly') return weekStartsOnMonday()
+        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) // week of (its Monday)
+        : `W${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
       // daily
       return dateRange.preset === '7d'
         ? date.toLocaleDateString('en-US', { weekday: 'short' })

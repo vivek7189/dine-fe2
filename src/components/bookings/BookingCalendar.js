@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { weekdayOffset, orderWeekdays } from '../../lib/restaurantTime';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -14,7 +15,7 @@ const BOOKING_COLORS = {
 function getMonthDays(year, month) {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const startOffset = firstDay.getDay();
+  const startOffset = weekdayOffset(firstDay.getDay());
   const totalDays = lastDay.getDate();
 
   const days = [];
@@ -253,7 +254,7 @@ export default function BookingCalendar({ bookings = [], onDayClick, onBookingCl
       </div>
 
       <div style={styles.grid}>
-        {DAYS_OF_WEEK.map((day) => (
+        {orderWeekdays(DAYS_OF_WEEK).map((day) => (
           <div key={day} style={styles.dayHeader}>
             {isMobile ? day.charAt(0) : day}
           </div>

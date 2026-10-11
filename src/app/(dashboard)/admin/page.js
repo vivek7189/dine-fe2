@@ -6480,6 +6480,7 @@ const Admin = () => {
       }
       const updated = { ...selectedRestaurant, posSettings: savedPos, businessType, ...(billingSettingsLoaded ? { billingSettings: savedBillingSettings } : {}) };
       localStorage.setItem('selectedRestaurant', JSON.stringify(updated));
+      apiClient.setWeekStartsOn(savedPos?.weekStartsOn || null); // weekly views follow at once
       setSelectedRestaurant(updated);
       // Notify other pages (dashboard, layout) about the settings change
       window.dispatchEvent(new CustomEvent('restaurantChanged', { detail: { restaurantId: updated.id, restaurant: updated } }));
@@ -12695,6 +12696,26 @@ const Admin = () => {
                   </span>
                 </div>
               )}
+            </div>
+
+            {/* Week starts on Monday — weekly reports (Books weekly, HQ weekly chart) and calendars.
+                OFF by default → every screen keeps its current week. */}
+            <div style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#f0f9ff', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPosSettings(prev => ({ ...prev, weekStartsOn: prev.weekStartsOn === 'monday' ? 'sunday' : 'monday' }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.weekStartsOn === 'monday'
+                    ? <FaToggleOn size={28} color="#0284c7" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#0c4a6e' }}>Week starts on Monday</span>
+                  <div style={{ fontSize: '11px', color: '#0369a1' }}>Weekly reports and calendars run Monday – Sunday (like Zomato / Swiggy reports). Off: Sunday – Saturday.</div>
+                </div>
+              </div>
             </div>
 
             {/* Hotel & In-Room Dining — single switch that turns on room bookings + room service on the

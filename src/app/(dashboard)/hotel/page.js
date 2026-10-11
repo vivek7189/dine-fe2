@@ -34,6 +34,7 @@ import {
   FaTrash,
   FaBookmark
 } from 'react-icons/fa';
+import { weekdayOffset, orderWeekdays } from '../../../lib/restaurantTime';
 
 const Hotel = () => {
   const router = useRouter();
@@ -1730,7 +1731,7 @@ const Hotel = () => {
                       {/* Calendar Grid */}
                       <div className="grid grid-cols-7 gap-2">
                         {/* Weekday Headers */}
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                        {orderWeekdays(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(day => (
                           <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
                             {day}
                           </div>
@@ -1741,7 +1742,7 @@ const Hotel = () => {
                           const firstDay = new Date(calendarYear, calendarMonth - 1, 1);
                           const lastDay = new Date(calendarYear, calendarMonth, 0);
                           const daysInMonth = lastDay.getDate();
-                          const startDayOfWeek = firstDay.getDay();
+                          const startDayOfWeek = weekdayOffset(firstDay.getDay());
 
                           const days = [];
 

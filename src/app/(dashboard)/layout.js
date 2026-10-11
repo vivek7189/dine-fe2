@@ -395,6 +395,7 @@ function DashboardLayoutContent({ children }) {
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
         apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
         apiClient.setRestaurantTimezone(restaurant?.posSettings?.timezone || null);
+        apiClient.setWeekStartsOn(restaurant?.posSettings?.weekStartsOn || null);
         apiClient.setRestaurantBaseURL(restaurant);
       } catch { setNotificationOrderTypes(['online']); }
     };
@@ -413,6 +414,7 @@ function DashboardLayoutContent({ children }) {
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
         apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
         apiClient.setRestaurantTimezone(restaurant?.posSettings?.timezone || null);
+        apiClient.setWeekStartsOn(restaurant?.posSettings?.weekStartsOn || null);
         apiClient.setRestaurantBaseURL(restaurant);
       } catch { setNotificationOrderTypes(['online']); }
     };
