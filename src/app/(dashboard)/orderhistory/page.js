@@ -4470,7 +4470,7 @@ const OrderHistory = () => {
                                 >
                                   <FaEye size={11} />
                                 </button>
-                                {canAdvanceStatus && (() => {
+                                {canAdvanceStatus && order.status !== 'awaiting_approval' && (() => {
                                   const act = nextStatusAction(order.status);
                                   if (!act) return null;
                                   return (
@@ -4484,7 +4484,7 @@ const OrderHistory = () => {
                                     </button>
                                   );
                                 })()}
-                                {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
+                                {order.status !== 'deleted' && order.status !== 'completed' && order.status !== 'awaiting_approval' && !order.orderFlow?.isDirectBilling && (
                                   <button
                                     onClick={() => handleEditOrder(order.id)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-white bg-red-500 hover:bg-red-600 border border-red-500 transition-colors"
@@ -4915,6 +4915,22 @@ const OrderHistory = () => {
                           </div>
                           )}
                           <div className={`flex items-center ${isMobile ? 'gap-1 flex-wrap' : 'gap-1.5 flex-shrink-0'}`}>
+                            {order.status === 'awaiting_approval' && (
+                              <>
+                                <button
+                                  onClick={() => decideHeldOrder(order.id, 'approve')}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors"
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  onClick={() => decideHeldOrder(order.id, 'reject')}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 transition-colors"
+                                >
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
                             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                               <button
                                 onClick={() => handleMarkCompleted(order.id)}
@@ -5043,7 +5059,7 @@ const OrderHistory = () => {
                                 <FaUndoAlt size={isMobile ? 11 : 12} /> {!isMobile && 'Refund'}
                               </button>
                             )}
-                            {canAdvanceStatus && (() => {
+                            {canAdvanceStatus && order.status !== 'awaiting_approval' && (() => {
                               const act = nextStatusAction(order.status);
                               if (!act) return null;
                               return (
@@ -5057,7 +5073,7 @@ const OrderHistory = () => {
                                 </button>
                               );
                             })()}
-                            {order.status !== 'deleted' && order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
+                            {order.status !== 'deleted' && order.status !== 'completed' && order.status !== 'awaiting_approval' && !order.orderFlow?.isDirectBilling && (
                               <button
                                 onClick={() => handleEditOrder(order.id)}
                                 className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
