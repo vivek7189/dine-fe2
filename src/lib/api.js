@@ -1308,8 +1308,20 @@ class ApiClient {
 
   // Lightweight poll for the account/billing gate banner (super-admin controlled).
   // Short cache so a newly-set/cleared notice surfaces within a couple of minutes.
+  // Desktop / app builds also say which client + version they are, so super-admin broadcasts can
+  // target them and a required desktop update can be requested (web sends nothing extra).
   async getBillingNotice(restaurantId) {
-    return this.cachedGet(`/api/restaurants/${restaurantId}/billing-notice`, 90 * 1000);
+    let qs = '';
+    try {
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        let v = this.appVersion;
+        if (!v && window.electronAPI.getVersion) v = await window.electronAPI.getVersion().catch(() => null);
+        qs = `?client=desktop${v ? `&v=${encodeURIComponent(v)}` : ''}`;
+      } else if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+        qs = '?client=mobile-app';
+      }
+    } catch (_) { qs = ''; }
+    return this.cachedGet(`/api/restaurants/${restaurantId}/billing-notice${qs}`, 90 * 1000);
   }
 
   async updateRestaurant(restaurantId, updateData) {
