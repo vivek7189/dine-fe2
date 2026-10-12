@@ -3,7 +3,7 @@
 
 import {
   esc, getKOTLabels, buildSpecialInstructionsHtml,
-  formatDateTime, getKOTPrintCSS, wrapInDocument,
+  formatDateTime, kotDateOf, getKOTPrintCSS, wrapInDocument,
   KOT_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
 } from '../helpers';
 import { orderDisplayNumber } from '../../orderNumber';
@@ -20,7 +20,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const kl = printSettings?.kotLayout || {};
   const k = kotData;
   const specialInstructionsHtml = buildSpecialInstructionsHtml(k, L);
-  const { dateStr, timeStr } = formatDateTime();
+  const { dateStr, timeStr } = formatDateTime(kotDateOf(kotData));
   const removedItems = k.removedItems || [];
   const hasChanges = k.isIncremental && ((k.items || []).length > 0 || removedItems.length > 0);
 

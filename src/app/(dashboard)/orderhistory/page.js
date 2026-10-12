@@ -24,7 +24,7 @@ import { getBillPrintCSS, getKOTPrintCSS, getBillHeaderHTML, buildTokenSlipsDocu
 import { printDocument, printHtmlInHiddenFrame, supportsNativeAutoPrint } from '../../../utils/printBridge';
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateBillHTML } from '../../../utils/printHtmlGenerator';
-import { buildBillIdentity } from '../../../utils/printTemplates/helpers';
+import { toPrintDate, buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber, billNumberLabel } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
 import { getCartSubtotal } from '../../../utils/billingPrice';
@@ -1974,6 +1974,11 @@ const OrderHistory = () => {
     const isPreBill = order.status !== 'completed';
 
     return {
+      // Real bill times → bills print the FIRST bill time (helpers.billDateOf), not the print time.
+      billedAt: (order.billedBy && order.billedBy.at) || null,
+      completedAt: order.completedAt || null,
+      createdAt: order.createdAt || null,
+      status: order.status,
       id: order.id,
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
@@ -2117,11 +2122,14 @@ const OrderHistory = () => {
     const customerName = order.customerDisplay?.name || order.customerInfo?.name || null;
     const orderType = order.orderType || null;
     const items = order.items || [];
-    const formattedTime = fmtTime(new Date(), 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // restaurant's timezone
-    const formattedDate = fmtDate(new Date(), 'en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    // Reprint of an existing order → the KOT keeps the order's original time.
+    const kotOrigTime = toPrintDate(order.createdAt) || new Date();
+    const formattedTime = fmtTime(kotOrigTime, 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }); // restaurant's timezone
+    const formattedDate = fmtDate(kotOrigTime, 'en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const kotReprintNote = `<div style="text-align:center;font-size:10px;margin-top:4px;">*** REPRINT *** ${fmtDate(new Date(), 'en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${fmtTime(new Date(), 'en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>`;
     const totalItems = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
     const specialInstructions = order.specialInstructions || '';
-    const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div></body></html>`;
+    const kotContent = `<!DOCTYPE html><html><head><title>KOT - ${orderNum}</title><style>${getKOTPrintCSS(printSettings?.billFontScale || printSettings?.billFontSize, printSettings?.billFontFamily, printSettings?.printerWidth, printSettings)}</style></head><body><div class="kot-header"><div class="restaurant-name">${restaurantName.replace(/</g,'&lt;')}</div><div class="kot-title">--- KITCHEN ORDER ---</div></div><div class="divider">--------------------------------</div><div class="kot-info"><div><strong>Order#:</strong> ${orderNum}</div>${tableNum ? `<div><strong>Table:</strong> ${tableNum}</div>` : ''}${roomNum ? `<div><strong>Room:</strong> ${roomNum}</div>` : ''}<div><strong>Time:</strong> ${formattedTime}</div><div><strong>Date:</strong> ${formattedDate}</div>${customerName ? `<div><strong>Customer:</strong> ${String(customerName).replace(/</g,'&lt;')}</div>` : ''}${orderType ? `<div><strong>Type:</strong> ${orderType}</div>` : ''}</div><div class="divider">--------------------------------</div><div style="font-weight:bold;margin-bottom:4px;">QTY &nbsp; ITEM</div><div class="divider">--------------------------------</div>${items.map(i => `<div class="item"><div class="item-main"><span class="item-qty">${i.quantity || 1}x</span><span class="item-name">${(i.name || '').replace(/</g,'&lt;')}</span></div>${i.selectedVariant?.name ? `<div class="item-detail">[${i.selectedVariant.name}]</div>` : ''}${(i.selectedCustomizations || []).map(c => `<div class="item-detail">+ ${(c.name || c || '').toString().replace(/</g,'&lt;')}</div>`).join('')}${i.notes ? `<div class="item-note">Note: ${(i.notes || '').replace(/</g,'&lt;')}</div>` : ''}</div>`).join('')}<div class="divider">--------------------------------</div>${specialInstructions ? `<div class="special-instructions"><strong>*** SPECIAL INSTRUCTIONS ***</strong><div>${specialInstructions.replace(/</g,'&lt;')}</div></div><div class="divider">--------------------------------</div>` : ''}<div class="kot-footer">Total Items: ${totalItems}</div><div class="divider">================================</div>${kotReprintNote}</body></html>`;
 
     if (supportsNativeAutoPrint()) {
       printDocument({ html: kotContent, type: 'kot', orderId: order.id, restaurantId, printSettings: printSettings || {} });

@@ -432,6 +432,11 @@ export default function DashboardTablesPanel({
     const items = order.items || [];
     const subtotal = order.totalAmount || order.subtotal || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
     return {
+      // Real bill times → bills print the FIRST bill time (helpers.billDateOf), not the print time.
+      billedAt: (order.billedBy && order.billedBy.at) || null,
+      completedAt: order.completedAt || null,
+      createdAt: order.createdAt || null,
+      status: order.status,
       ...order,
       currencySymbol,
       subtotal,

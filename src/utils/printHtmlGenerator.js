@@ -3,7 +3,7 @@
 // Delegates to the template system for KOT and Bill rendering.
 
 import { renderKOT, renderBill } from './printTemplates/index';
-import { attachInclusiveSplits, splitIndiaGst } from './printTemplates/helpers';
+import { attachInclusiveSplits, splitIndiaGst, billDateOf, kotDateOf, formatDateTime } from './printTemplates/helpers';
 import { getContentWidth } from './printFontSizes';
 
 // Display-only: when an order came from a per-seat/chair QR (chairNumber/seat set), show the seat
@@ -34,6 +34,14 @@ export function generateBillHTML(invoice, printSettings = {}, labels = {}) {
     splitIndiaGst(invoice); // India: render GST as CGST + SGST (display only)
   } catch (_) { /* never block printing */ }
   let html = renderBill(withSeatLabel(invoice), printSettings, labels);
+  // Reprint: the bill keeps its FIRST bill time (billDateOf, used by every template); when it is
+  // printed later than that, add a small "Copy printed …" line so both moments are on the paper.
+  try {
+    const billed = billDateOf(invoice);
+    if (billed && Date.now() - billed.getTime() > 2 * 60 * 1000) {
+      html = appendPrintNote(html, `Copy printed: ${formatDateTime().combined}`);
+    }
+  } catch (_) { /* never block printing */ }
   // Credit-note refund: mark the printout clearly at the top (the KRA block below carries the
   // signed CREDIT NOTE + original-invoice reference + QR). Body amounts show the original order.
   try {
@@ -98,7 +106,21 @@ function kraFiscalBlockHtml(inv) {
  * Delegates to the selected KOT template via printSettings.kotTemplate.
  */
 export function generateKOTHTML(kotData, printSettings = {}, labels = {}) {
-  return renderKOT(withSeatLabel(kotData), printSettings, labels);
+  let html = renderKOT(withSeatLabel(kotData), printSettings, labels);
+  // KOT reprint keeps the original order time (kotDateOf); mark it as a reprint with today's time.
+  try {
+    if (kotData && kotData.isReprint && kotDateOf(kotData)) {
+      html = appendPrintNote(html, `*** REPRINT *** ${formatDateTime().combined}`);
+    }
+  } catch (_) { /* never block printing */ }
+  return html;
+}
+
+// Small centred note at the bottom of a receipt (reprint info). Never throws.
+function appendPrintNote(html, text) {
+  const t = String(text).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const note = `<div style="text-align:center;font-size:10px;margin-top:6px;border-top:1px dashed #000;padding-top:4px;">${t}</div>`;
+  return html.includes('</body>') ? html.replace('</body>', `${note}</body>`) : (html + note);
 }
 
 // esc helper used by parking slip generators below

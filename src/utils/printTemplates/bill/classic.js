@@ -5,7 +5,7 @@
 import {
   esc, getBillLabels, buildIdentityHtml, getSublineHtml,
   buildBillItemRows, buildTaxHtml, buildDiscountHtml, buildChargesHtml,
-  buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime,
+  buildPaymentHtml, buildEcrPaymentHtml, buildDeliveryAddressHtml, calcGrandTotal, formatDateTime, billDateOf,
   getBillPrintCSS, getBillHeaderHTML, wrapInDocument, buildInclusiveTaxNote,
   buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
@@ -41,7 +41,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
   const titleText = showAr ? dualTitle(`--- ${L.billTitle} ---`, `--- ${AR.billTitle} ---`, showAr) : `--- ${L.billTitle} ---`;
   const headerHtml = getBillHeaderHTML(esc(invoice.restaurantName || 'Restaurant'), identityHtml, receiptLogo, titleText);
 
-  const { combined: dateStr } = formatDateTime();
+  const { combined: dateStr } = formatDateTime(billDateOf(invoice));
   const baseCss = getBillPrintCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
   const css = showAr ? baseCss + getBillDualCSS() : baseCss;
 
