@@ -11,6 +11,7 @@ import DineAIButton from '../../components/dineai/DineAIButton';
 import BulkMenuUpload from '../../components/BulkMenuUpload';
 import OrderNotificationBell from '../../components/OrderNotificationBell';
 import OrderNotificationToast from '../../components/OrderNotificationToast';
+import QrApprovalPanel from '../../components/QrApprovalPanel';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
 import useRealtimeConnection from '../../hooks/useRealtimeConnection';
@@ -581,6 +582,9 @@ function DashboardLayoutContent({ children }) {
               toasts={orderToasts}
               onDismiss={dismissOrderToast}
             />
+
+            {/* QR order approval — customer orders waiting for Approve / Reject (only when used) */}
+            {selectedRestaurantId && <QrApprovalPanel restaurantId={selectedRestaurantId} />}
 
             {/* Print event debug toasts — shows when remote print commands arrive */}
             <PrintEventToast printSettings={nativePrintSettings} />

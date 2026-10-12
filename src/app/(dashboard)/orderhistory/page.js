@@ -544,7 +544,7 @@ const OrderHistory = () => {
   /** Maps status string to display label (for "Deleted (was: X)" and similar). */
   const getStatusDisplayLabel = (s) => {
     if (!s) return t('orderHistory.unknown') || 'Unknown';
-    const map = { completed: t('orderHistory.status.completed'), confirmed: t('orderHistory.status.confirmed'), pending: t('orderHistory.status.pending'), cancelled: t('orderHistory.status.cancelled'), deleted: t('orderHistory.status.deleted'), refunded: 'Refunded' };
+    const map = { completed: t('orderHistory.status.completed'), confirmed: t('orderHistory.status.confirmed'), pending: t('orderHistory.status.pending'), cancelled: t('orderHistory.status.cancelled'), deleted: t('orderHistory.status.deleted'), refunded: 'Refunded', awaiting_approval: 'Awaiting approval' };
     return map[s] || (s.charAt(0).toUpperCase() + s.slice(1));
   };
 
@@ -565,6 +565,10 @@ const OrderHistory = () => {
     }
     if (status === 'confirmed') return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd', label: t('orderHistory.status.confirmed') };
     if (status === 'pending') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: t('orderHistory.status.pending') };
+    if (status === 'awaiting_approval') return { bg: '#fff7ed', text: '#c2410c', border: '#fdba74', label: 'Awaiting approval' };
+    if (status === 'cancelled' && order?.approval?.state === 'rejected') {
+      return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: order.approval.autoRejected ? 'Rejected (timed out)' : 'Rejected' };
+    }
     if (status === 'cancelled') return { bg: '#fee2e2', text: '#991b1b', border: '#fecaca', label: t('orderHistory.status.cancelled') };
     if (status === 'refunded') return { bg: '#fef3c7', text: '#92400e', border: '#fde68a', label: 'Refunded' };
     if (status === 'deleted') {
@@ -2360,7 +2364,7 @@ const OrderHistory = () => {
 
     // Fallback: client-side calculation from current page (before analytics loads)
     const validOrders = orders.filter(order => {
-      return !['cancelled', 'deleted', 'saved', 'refunded'].includes(order.status);
+      return !['cancelled', 'deleted', 'saved', 'refunded', 'awaiting_approval'].includes(order.status);
     });
 
     // Revenue + payments only from REALIZED (completed/paid/settled) orders — matches the backend, so the
@@ -2385,7 +2389,7 @@ const OrderHistory = () => {
 
     // Reconciled buckets — best-effort from the current page until server analytics loads.
     const _low = (o) => String(o.status || '').toLowerCase();
-    const _open = orders.filter(o => !['completed','paid','settled','cancelled','deleted','saved','refunded'].includes(_low(o)));
+    const _open = orders.filter(o => !['completed','paid','settled','cancelled','deleted','saved','refunded','awaiting_approval'].includes(_low(o)));
     const _canc = orders.filter(o => ['cancelled','deleted','void'].includes(_low(o)));
     const _refd = orders.filter(o => _low(o) === 'refunded' || (o.refundAmount || 0) > 0);
     return { totalRevenue, orderCount, completedCount, paymentBreakdown,
@@ -2716,6 +2720,23 @@ const OrderHistory = () => {
     { key: '30d', label: t('orderHistory.summary30Days') },
     { key: 'custom', label: t('orderHistory.summaryCustom') },
   ];
+
+  // QR order approval: Approve / Reject a customer order that is waiting (also in the POS panel).
+  const decideHeldOrder = async (orderId, action, done) => {
+    let reason = '';
+    if (action === 'reject') {
+      const r = typeof window !== 'undefined' ? window.prompt('Reject this order? Reason for the customer (optional):', '') : '';
+      if (r === null) return; // cancelled
+      reason = r.trim();
+    }
+    try {
+      await apiClient.decideQrOrder(orderId, action, reason);
+      if (typeof done === 'function') done();
+      fetchOrders(false);
+    } catch (e) {
+      alert(e?.message || 'Could not update the order');
+    }
+  };
 
   const OrderDetailsModal = ({ order, onClose }) => {
     if (!order) return null;
@@ -3171,7 +3192,23 @@ const OrderHistory = () => {
                 <FaWallet /> {t('orderHistory.markAsPaid')}
               </button>
             )}
-            {order.status !== 'completed' && !order.orderFlow?.isDirectBilling && (
+            {order.status === 'awaiting_approval' && (
+              <>
+                <button
+                  onClick={() => decideHeldOrder(order.id, 'approve', onClose)}
+                  className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium text-sm rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  ✓ Approve
+                </button>
+                <button
+                  onClick={() => decideHeldOrder(order.id, 'reject', onClose)}
+                  className="flex-1 px-4 py-2.5 bg-white text-red-600 border border-red-200 font-medium text-sm rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  ✕ Reject
+                </button>
+              </>
+            )}
+            {order.status !== 'completed' && order.status !== 'awaiting_approval' && !order.orderFlow?.isDirectBilling && (
             <button
               onClick={() => { handleEditOrder(order.id); onClose(); }}
               className="flex-1 px-4 py-2.5 bg-gray-900 text-white font-medium text-sm rounded-lg hover:bg-gray-800 transition-colors"
@@ -4307,7 +4344,25 @@ const OrderHistory = () => {
                             {/* Actions */}
                             <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-center gap-1">
-                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                                {order.status === 'awaiting_approval' && (
+                                  <>
+                                    <button
+                                      onClick={() => decideHeldOrder(order.id, 'approve')}
+                                      className="px-2 h-7 rounded-lg flex items-center justify-center text-white bg-green-600 hover:bg-green-700 text-[11px] font-semibold transition-colors"
+                                      title="Approve this customer order"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => decideHeldOrder(order.id, 'reject')}
+                                      className="px-2 h-7 rounded-lg flex items-center justify-center text-red-600 bg-white hover:bg-red-50 border border-red-200 text-[11px] font-semibold transition-colors"
+                                      title="Reject this customer order"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                                   <button
                                     onClick={() => handleMarkCompleted(order.id)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 transition-colors"
@@ -4338,6 +4393,7 @@ const OrderHistory = () => {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      if (order.status === 'awaiting_approval') return; // nothing prints until approved
                                       setPrintDropdownOrderId(prev => prev === order.id ? null : order.id);
                                     }}
                                     className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-colors ${printingOrderId === order.id ? 'bg-orange-200 border-orange-300 cursor-wait' : 'text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200'}`}
@@ -4455,7 +4511,7 @@ const OrderHistory = () => {
                                     </button>
                                   </>
                                 )}
-                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                                   <button
                                     onClick={() => handleCancelOrder(order.id)}
                                     className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
@@ -4859,7 +4915,7 @@ const OrderHistory = () => {
                           </div>
                           )}
                           <div className={`flex items-center ${isMobile ? 'gap-1 flex-wrap' : 'gap-1.5 flex-shrink-0'}`}>
-                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                               <button
                                 onClick={() => handleMarkCompleted(order.id)}
                                 className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
@@ -4897,6 +4953,7 @@ const OrderHistory = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (order.status === 'awaiting_approval') return; // nothing prints until approved
                                   setPrintDropdownOrderId(prev => prev === order.id ? null : order.id);
                                 }}
                                 className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium rounded-md transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${printingOrderId === order.id ? 'bg-orange-200 border border-orange-300 cursor-wait' : 'text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100'}`}
@@ -4967,7 +5024,7 @@ const OrderHistory = () => {
                                 </div>
                               )}
                             </div>
-                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                               <button
                                 onClick={() => handleCancelOrder(order.id)}
                                 className={`${isMobile ? 'p-1.5 text-[10px]' : 'px-3 py-1.5 text-xs'} font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-all flex items-center gap-1 whitespace-nowrap flex-shrink-0`}
@@ -6895,7 +6952,7 @@ const OrderHistory = () => {
                               {items.length > 4 && <span className="text-gray-400"> +{items.length - 4} more</span>}
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                                 <button
                                   onClick={() => handleMarkCompleted(order.id)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all"
@@ -6909,7 +6966,7 @@ const OrderHistory = () => {
                               >
                                 <FaEye className="text-[10px]" /> View
                               </button>
-                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                              {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                                 <button
                                   onClick={() => setCancelModalOrderId(order.id)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all"
@@ -6987,7 +7044,7 @@ const OrderHistory = () => {
                                       )}
                                       <span className="text-xs text-gray-400 hidden sm:inline">{itemCount} items</span>
                                       <span className="font-bold text-sm text-gray-900 w-20 text-right">{formatCurrency(order.finalAmount || order.totalAmount || 0)}</span>
-                                      {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && (
+                                      {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'deleted' && order.status !== 'refunded' && order.status !== 'awaiting_approval' && (
                                         <button
                                           onClick={() => handleMarkCompleted(order.id)}
                                           className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-all"

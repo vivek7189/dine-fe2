@@ -1702,6 +1702,14 @@ class ApiClient {
     });
   }
 
+  // QR order approval: approve or reject a customer order that is waiting for approval.
+  async decideQrOrder(orderId, action, reason = '') {
+    return this.request(`/api/orders/${orderId}/qr-approval`, {
+      method: 'POST',
+      body: { action, ...(reason ? { reason } : {}) },
+    });
+  }
+
   async updateOrder(orderId, updateData, extraOptions = {}) {
     return this.request(`/api/orders/${orderId}`, {
       method: 'PATCH',

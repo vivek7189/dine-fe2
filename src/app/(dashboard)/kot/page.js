@@ -363,7 +363,8 @@ const KitchenOrderTicket = () => {
       debounceTimer = setTimeout(() => {
         loadKotDataRef.current(false, false);
       }, 1000);
-      if (eventName === 'order-created' && soundEnabledRef.current) {
+      // No kitchen sound for a customer order still waiting for approval (it isn't a ticket yet).
+      if (eventName === 'order-created' && soundEnabledRef.current && data?.status !== 'awaiting_approval') {
         playSound('newOrder');
       }
     };

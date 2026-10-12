@@ -137,7 +137,18 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       serviceChargeRate: 0,
       serviceChargeLabel: 'Service Charge',
     },
+    // QR order approval — OFF by default (orders go straight to the kitchen, as always).
+    qrOrderApproval: {
+      enabled: false,
+      autoApprovePaidOnline: true,
+      rejectPaidAction: 'refund_needed', // 'refund_needed' | 'auto_refund'
+      timeoutAction: 'wait',             // 'wait' | 'auto_reject'
+      timeoutMinutes: 10,
+      reminderMinutes: 1,
+      approverRoles: ['manager', 'cashier'],
+    },
   });
+  const setApproval = (patch) => setSettings(prev => ({ ...prev, qrOrderApproval: { ...(prev.qrOrderApproval || {}), ...patch } }));
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
@@ -1252,6 +1263,85 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 }}
               />
             </div>
+
+            {/* ── Order approval (QR / customer app orders) ── */}
+            <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 4px' }}>Order Approval</h3>
+            <Toggle
+              value={!!settings.qrOrderApproval?.enabled}
+              onChange={(v) => setApproval({ enabled: v })}
+              label="Approve customer orders before they go to the kitchen"
+            />
+            <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
+              {settings.qrOrderApproval?.enabled
+                ? 'New QR / online orders wait on the Orders page with Approve and Reject. Nothing prints, the table stays free and stock is not touched until you approve.'
+                : 'Off: customer orders are accepted instantly and sent to the kitchen (current behaviour).'}
+            </p>
+            {settings.qrOrderApproval?.enabled && (() => {
+              const qa = settings.qrOrderApproval || {};
+              const chip = (active) => ({
+                padding: '8px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                border: `2px solid ${active ? '#ef4444' : '#e5e7eb'}`, background: active ? '#fef2f2' : '#fff', color: active ? '#b91c1c' : '#374151',
+              });
+              const label = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', margin: '16px 0 8px' };
+              const roles = Array.isArray(qa.approverRoles) ? qa.approverRoles : [];
+              return (
+                <div style={{ marginTop: '8px', padding: '4px 14px 14px', border: '1px solid #fee2e2', borderRadius: '12px', background: '#fffafa' }}>
+                  <Toggle
+                    value={qa.autoApprovePaidOnline !== false}
+                    onChange={(v) => setApproval({ autoApprovePaidOnline: v })}
+                    label="Auto-approve orders already paid online (Razorpay)"
+                  />
+
+                  <span style={label}>If you reject an order that was paid online</span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button type="button" style={chip(qa.rejectPaidAction !== 'auto_refund')} onClick={() => setApproval({ rejectPaidAction: 'refund_needed' })}>Mark “Refund needed”</button>
+                    <button type="button" style={chip(qa.rejectPaidAction === 'auto_refund')} onClick={() => setApproval({ rejectPaidAction: 'auto_refund' })}>Refund automatically (Razorpay)</button>
+                  </div>
+
+                  <span style={label}>If nobody approves</span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button type="button" style={chip(qa.timeoutAction !== 'auto_reject')} onClick={() => setApproval({ timeoutAction: 'wait' })}>Keep waiting</button>
+                    <button type="button" style={chip(qa.timeoutAction === 'auto_reject')} onClick={() => setApproval({ timeoutAction: 'auto_reject' })}>Auto-reject after</button>
+                    {qa.timeoutAction === 'auto_reject' && (
+                      <>
+                        <input
+                          type="number" min={1} max={240}
+                          value={qa.timeoutMinutes ?? 10}
+                          onChange={(e) => setApproval({ timeoutMinutes: Math.max(1, Math.min(240, parseInt(e.target.value, 10) || 1)) })}
+                          style={{ width: '70px', padding: '8px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px' }}
+                        />
+                        <span style={{ fontSize: '13px', color: '#374151' }}>minutes</span>
+                      </>
+                    )}
+                  </div>
+
+                  <span style={label}>Remind staff while an order is waiting</span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[0, 1, 2, 5].map(m => (
+                      <button key={m} type="button" style={chip((qa.reminderMinutes ?? 1) === m)} onClick={() => setApproval({ reminderMinutes: m })}>
+                        {m === 0 ? 'Alert once' : `Every ${m} min`}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span style={label}>Who can approve or reject <span style={{ fontWeight: 400, color: '#64748b' }}>(owner & admin always can)</span></span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['manager', 'cashier', 'captain', 'waiter'].map(r => {
+                      const on = roles.includes(r);
+                      return (
+                        <button key={r} type="button" style={chip(on)}
+                          onClick={() => setApproval({ approverRoles: on ? roles.filter(x => x !== r) : [...roles, r] })}>
+                          {on ? '✓ ' : ''}{r.charAt(0).toUpperCase() + r.slice(1)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={{ margin: '14px 0 0', fontSize: '11px', color: '#94a3b8', lineHeight: 1.5 }}>
+                    Approve / Reject shows on the web POS and the latest desktop app. Remember to press Save.
+                  </p>
+                </div>
+              );
+            })()}
 
             <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 12px' }}>Page Behavior</h3>
 

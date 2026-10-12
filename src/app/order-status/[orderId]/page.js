@@ -66,6 +66,9 @@ export default function OrderStatusPage() {
 
   const status = data?.status;
   const isCancelled = status === 'cancelled';
+  // QR order approval: the restaurant hasn't accepted the order yet / didn't accept it.
+  const isAwaiting = status === 'awaiting_approval';
+  const isRejected = isCancelled && data?.approval?.state === 'rejected';
   const stepIdx = currentStepIndex(status);
 
   return (
@@ -101,9 +104,25 @@ export default function OrderStatusPage() {
             <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '22px 18px', textAlign: 'center', marginBottom: 18 }}>
               <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase' }}>Your token</div>
               <div style={{ fontSize: 46, fontWeight: 800, lineHeight: 1.1, margin: '4px 0 8px' }}>#{data.token}</div>
-              {isCancelled ? (
+              {isRejected ? (
+                <div>
+                  <div style={{ display: 'inline-block', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
+                    {data.approval?.autoRejected ? 'Not accepted in time' : 'Order not accepted'}
+                  </div>
+                  {data.approval?.reason ? <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--muted)' }}>{data.approval.reason}</p> : null}
+                  {data.refundStatus ? (
+                    <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--muted)' }}>
+                      {data.refundStatus === 'refunded' ? 'Your payment has been refunded.' : 'Your payment will be refunded by the restaurant.'}
+                    </p>
+                  ) : null}
+                </div>
+              ) : isCancelled ? (
                 <div style={{ display: 'inline-block', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
                   Order Cancelled
+                </div>
+              ) : isAwaiting ? (
+                <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999, animation: 'pulse 1.6s ease-in-out infinite' }}>
+                  ⏳ Waiting for the restaurant to accept
                 </div>
               ) : (
                 <div style={{
@@ -133,7 +152,7 @@ export default function OrderStatusPage() {
                         animation: active ? 'pulse 1.4s ease-in-out infinite' : 'none',
                       }}>{done ? '✓' : step.icon}</div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: active ? 700 : 500, color: done || active ? 'var(--fg)' : 'var(--muted)' }}>{step.label}</div>
+                        <div style={{ fontWeight: active ? 700 : 500, color: done || active ? 'var(--fg)' : 'var(--muted)' }}>{isAwaiting && i === 0 ? 'Order sent — waiting for the restaurant' : step.label}</div>
                       </div>
                     </div>
                   );

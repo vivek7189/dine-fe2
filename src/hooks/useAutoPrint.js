@@ -633,6 +633,8 @@ export function useAutoPrint(restaurantId, printSettings) {
       if (msg.type !== 'event') return;
 
       if (msg.event === 'order-created') {
+        // A customer order waiting for approval prints nothing until it is approved.
+        if (msg.data?.status === 'awaiting_approval') return;
         handleKotCreated(msg.data || {});
       } else if (msg.event === 'kot-print-request') {
         handleKotPrintRequest(msg.data || {});

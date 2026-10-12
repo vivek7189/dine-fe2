@@ -109,6 +109,8 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
       itemsCount: orderData.itemsCount || orderData.items?.length || 0,
       tableNumber: orderData.tableNumber || '',
       totalAmount: orderData.totalAmount || orderData.finalAmount || 0,
+      // QR order approval: the customer order is waiting for Approve / Reject.
+      needsApproval: orderData.status === 'awaiting_approval',
       timestamp: Date.now(),
       read: false,
     };

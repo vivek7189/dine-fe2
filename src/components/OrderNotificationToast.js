@@ -68,7 +68,10 @@ function ToastItem({ notification, onDismiss, index }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: '13px', fontWeight: '700', color: '#111', marginBottom: '2px' }}>
-            New {config.label} Order #{orderDisplayNumber(notification)}
+            {notification.needsApproval ? 'Approve' : 'New'} {config.label} Order #{orderDisplayNumber(notification)}
+            {notification.needsApproval && (
+              <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 700, color: '#92400e', background: '#fef3c7', borderRadius: '6px', padding: '1px 6px' }}>NEEDS APPROVAL</span>
+            )}
           </div>
           <div style={{ fontSize: '11px', color: '#6b7280' }}>
             {notification.customerName && `${notification.customerName} • `}

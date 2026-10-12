@@ -286,6 +286,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // QR order approval: the placed order is waiting for the restaurant → offer a tracking link.
+  const [trackOrderId, setTrackOrderId] = useState(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -1334,6 +1336,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       const response = await apiClient.placePublicOrder(restaurantId, orderData);
 
       let successMsg = 'Order placed successfully!';
+      if (response.awaitingApproval) {
+        successMsg = 'Your order has been sent to the restaurant. You will see it confirmed here shortly.';
+        setTrackOrderId(response.order?.id || null);
+      } else {
+        setTrackOrderId(null);
+      }
       if (response.order?.loyaltyPointsEarned > 0) {
         successMsg += ` You earned ${response.order.loyaltyPointsEarned} loyalty points!`;
       }
@@ -1422,6 +1430,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             const result = await apiClient.placePublicOrder(restaurantId, orderData);
 
             let successMsg = 'Payment successful! Order placed.';
+            if (result.awaitingApproval) {
+              successMsg = 'Payment received. Your order has been sent to the restaurant for confirmation.';
+              setTrackOrderId(result.order?.id || null);
+            } else {
+              setTrackOrderId(null);
+            }
             if (result.order?.loyaltyPointsEarned > 0) {
               successMsg += ` You earned ${result.order.loyaltyPointsEarned} loyalty points!`;
             }
@@ -4001,8 +4015,16 @@ const CheckoutView = ({
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
-            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#166534', margin: '0 0 12px' }}>Order Placed!</h2>
+            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#166534', margin: '0 0 12px' }}>{trackOrderId ? 'Order Sent!' : 'Order Placed!'}</h2>
             <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 24px' }}>{success}</p>
+            {trackOrderId && (
+              <a
+                href={`/order-status/${trackOrderId}`}
+                style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginBottom: '10px', background: '#fff', color: '#166534', border: '2px solid #22c55e', padding: '12px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, textDecoration: 'none' }}
+              >
+                Track your order
+              </a>
+            )}
             <button
               onClick={() => {
                 setSuccess('');
