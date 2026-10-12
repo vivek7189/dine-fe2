@@ -4389,7 +4389,7 @@ const OrderHistory = () => {
                                     <FaListAlt size={11} />
                                   </button>
                                 )}
-                                <div style={{ position: 'relative' }}>
+                                <div style={{ position: 'relative', display: order.status === 'awaiting_approval' ? 'none' : undefined }}>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -4965,7 +4965,7 @@ const OrderHistory = () => {
                             >
                               <FaEye size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.view')}
                             </button>
-                            <div style={{ position: 'relative', display: 'inline-block' }} className="flex-shrink-0">
+                            <div style={{ position: 'relative', display: order.status === 'awaiting_approval' ? 'none' : 'inline-block' }} className="flex-shrink-0">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
