@@ -261,6 +261,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [categories, setCategories] = useState([]);
   // Full category objects (id/name/taxGroupId) — per-category tax groups for the bill (server parity)
   const [menuCategoryObjs, setMenuCategoryObjs] = useState([]);
+  // Items carry the category ID ("sandwiches--wraps"); show its saved name ("Sandwiches & Wraps").
+  const catLabel = (c) => {
+    const o = menuCategoryObjs.find(x => x && x.id != null && String(x.id).toLowerCase() === String(c).toLowerCase());
+    return (o && o.name) || c;
+  };
   const [cart, setCart] = useState([]);
   const [sizeFor, setSizeFor] = useState(null); // item whose sizes (1 L / Tot / Half…) the customer is choosing
   const [customerInfo, setCustomerInfo] = useState({
@@ -2139,7 +2144,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  {category === 'all' ? 'All' : category}
+                  {category === 'all' ? 'All' : catLabel(category)}
                 </button>
               ))}
             </div>
@@ -2354,7 +2359,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     }
                   }}
                 >
-                  {category === 'all' ? '🍽️ All Items' : category}
+                  {category === 'all' ? '🍽️ All Items' : catLabel(category)}
                 </button>
               ))}
             </div>
@@ -2432,7 +2437,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 textTransform: 'uppercase',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
               }}>
-                {category}
+                {catLabel(category)}
               </h2>
               <div className="desktop-menu-grid" style={{
                 display: 'grid',
