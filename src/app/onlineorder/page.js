@@ -1687,6 +1687,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         error={error}
         setError={setError}
         success={success}
+        trackOrderId={trackOrderId}
         setSuccess={setSuccess}
         handleLogout={handleLogout}
         getTierProgress={getTierProgress}
@@ -3904,6 +3905,7 @@ const CheckoutView = ({
   setError,
   success,
   setSuccess,
+  trackOrderId = null,
   handleLogout,
   getTierProgress,
   tierInfo,
