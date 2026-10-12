@@ -2307,12 +2307,18 @@ const TableManagement = () => {
     return map;
   }, [bookingsForDate]);
 
+  // TODAY's status of a table = its LIVE status (kept current by the realtime table/order events
+  // and every floors refresh). tableStatusesForDate is a one-time snapshot taken when the date is
+  // loaded; reading it first froze tiles — a QR order never turned its table occupied, and a
+  // settled bill never freed it, until a manual refresh. It stays only as a fallback.
+  const todayStatusOf = (t) => t.status || tableStatusesForDate[t.id] || 'available';
+
   // For non-today: count tables with bookings as "reserved", rest as "available"
   const stats = useMemo(() => isTodayDate ? {
-    available: allTables.filter(t => (tableStatusesForDate[t.id] || t.status) === 'available').length,
-    occupied: allTables.filter(t => ['occupied', 'serving'].includes(tableStatusesForDate[t.id] || t.status)).length,
-    reserved: allTables.filter(t => (tableStatusesForDate[t.id] || t.status) === 'reserved').length,
-    other: allTables.filter(t => ['cleaning', 'out-of-service'].includes(tableStatusesForDate[t.id] || t.status)).length,
+    available: allTables.filter(t => todayStatusOf(t) === 'available').length,
+    occupied: allTables.filter(t => ['occupied', 'serving'].includes(todayStatusOf(t))).length,
+    reserved: allTables.filter(t => todayStatusOf(t) === 'reserved').length,
+    other: allTables.filter(t => ['cleaning', 'out-of-service'].includes(todayStatusOf(t))).length,
   } : {
     available: allTables.filter(t => !tableBookingsMap[t.id]?.length).length,
     occupied: 0,
@@ -2844,7 +2850,7 @@ const TableManagement = () => {
                     const renderCard = (table) => {
                       const tblBookings = tableBookingsMap[table.id] || [];
                       const hasBookings = tblBookings.length > 0;
-                      const tableStatus = isToday ? (tableStatusesForDate[table.id] || table.status) : (hasBookings ? 'reserved' : 'available');
+                      const tableStatus = isToday ? todayStatusOf(table) : (hasBookings ? 'reserved' : 'available');
                       return (
                         <TableCard
                           key={table.id}
@@ -2902,7 +2908,7 @@ const TableManagement = () => {
                           parties={tables.filter(x => x.isPartyTable && x.partyOfTableId === table.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''))}
                           onAddParty={handleAddParty}
                           onOpenParty={(pt) => {
-                            const pst = isToday ? (tableStatusesForDate[pt.id] || pt.status || 'available') : 'available';
+                            const pst = isToday ? todayStatusOf(pt) : 'available';
                             handleTableAction(pst === 'available' ? 'take-order' : 'view-order', pt);
                           }}
                           // ⋮ opens the clean centered options modal instead of an inline dropdown.
@@ -2959,7 +2965,7 @@ const TableManagement = () => {
                               {subs.length === 0
                                 ? <div style={{ fontSize: '12px', color: '#9ca3af', padding: '6px', gridColumn: '1 / -1' }}>{t('tables.noSubTables') || 'No sub-tables'}</div>
                                 : subs.map(s => {
-                                    const st = isToday ? (tableStatusesForDate[s.id] || s.status || 'available') : 'available';
+                                    const st = isToday ? todayStatusOf(s) : 'available';
                                     const info = getTableStatusInfo(st);
                                     const occupied = st !== 'available';
                                     return (
@@ -4029,7 +4035,7 @@ const TableManagement = () => {
       {/* Clean centered "table options" modal (replaces the cramped inline card dropdown) */}
       {actionsSheetTable && (() => {
         const tbl = actionsSheetTable;
-        const st = isTodayDate ? (tableStatusesForDate[tbl.id] || tbl.status || 'available') : 'available';
+        const st = isTodayDate ? todayStatusOf(tbl) : 'available';
         const parties = allTables.filter(x => x.isPartyTable && x.partyOfTableId === tbl.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
         return (
           <TableActionsSheet
@@ -4046,7 +4052,7 @@ const TableManagement = () => {
             onViewOrder={(x) => handleTableAction('view-order', x)}
             onAddParty={(x) => handleAddParty(x)}
             onOpenParty={(pt) => {
-              const pst = isToday ? (tableStatusesForDate[pt.id] || pt.status || 'available') : 'available';
+              const pst = isToday ? todayStatusOf(pt) : 'available';
               handleTableAction(pst === 'available' ? 'take-order' : 'view-order', pt);
             }}
             onAssignServer={(x) => openAssignServer(x)}
@@ -4074,7 +4080,7 @@ const TableManagement = () => {
       {checksSheetTable && (() => {
         const base = checksSheetTable;
         const parties = allTables.filter(x => x.isPartyTable && x.partyOfTableId === base.id).sort((a, b) => (a.partyLabel || '').localeCompare(b.partyLabel || ''));
-        const statusOf = (x) => isTodayDate ? (tableStatusesForDate[x.id] || x.status || 'available') : 'available';
+        const statusOf = (x) => isTodayDate ? todayStatusOf(x) : 'available';
         const openCheck = (x) => { setChecksSheetTable(null); handleTableAction(statusOf(x) === 'available' ? 'take-order' : 'view-order', x); };
         const billCheck = (x) => { setChecksSheetTable(null); setBillingModalTable(x); setBillingModalOpen(true); };
         return (
