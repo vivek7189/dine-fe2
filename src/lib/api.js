@@ -1715,6 +1715,24 @@ class ApiClient {
   }
 
   // QR order approval: approve or reject a customer order that is waiting for approval.
+  // Paytm QR orders: ask Paytm about a 'pending_payment' order (placed automatically once paid).
+  async checkPaytmPayment(orderId) {
+    return this.request(`/api/orders/${orderId}/paytm-check`, { method: 'POST', body: {} });
+  }
+
+  // Owner: the restaurant's own Paytm merchant account (keys are stored encrypted server-side).
+  async getPaytmSettings(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/paytm`);
+  }
+
+  async connectPaytm(restaurantId, { mid, merchantKey, websiteName, env }) {
+    return this.request(`/api/restaurants/${restaurantId}/paytm`, { method: 'PUT', body: { mid, merchantKey, websiteName, env } });
+  }
+
+  async disconnectPaytm(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/paytm`, { method: 'DELETE' });
+  }
+
   async decideQrOrder(orderId, action, reason = '') {
     return this.request(`/api/orders/${orderId}/qr-approval`, {
       method: 'POST',

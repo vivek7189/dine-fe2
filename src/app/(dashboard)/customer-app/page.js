@@ -29,6 +29,7 @@ import {
   FaUnlink,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import PaytmConnectSection from '../../../components/PaytmConnectSection';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // Helper function to determine if text should be light or dark based on background color
@@ -1289,13 +1290,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   <Toggle
                     value={qa.autoApprovePaidOnline !== false}
                     onChange={(v) => setApproval({ autoApprovePaidOnline: v })}
-                    label="Auto-approve orders already paid online (Razorpay)"
+                    label="Auto-approve orders already paid online (Razorpay / Paytm)"
                   />
 
                   <span style={label}>If you reject an order that was paid online</span>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button type="button" style={chip(qa.rejectPaidAction !== 'auto_refund')} onClick={() => setApproval({ rejectPaidAction: 'refund_needed' })}>Mark “Refund needed”</button>
-                    <button type="button" style={chip(qa.rejectPaidAction === 'auto_refund')} onClick={() => setApproval({ rejectPaidAction: 'auto_refund' })}>Refund automatically (Razorpay)</button>
+                    <button type="button" style={chip(qa.rejectPaidAction === 'auto_refund')} onClick={() => setApproval({ rejectPaidAction: 'auto_refund' })}>Refund automatically (Razorpay / Paytm)</button>
                   </div>
 
                   <span style={label}>If nobody approves</span>
@@ -1980,6 +1981,18 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
             </div>
           )}
         </div>
+
+        {/* Paytm Payment Gateway (restaurant's own Paytm account) */}
+        <PaytmConnectSection
+          restaurantId={restaurantId}
+          isMobile={isMobile}
+          enabled={!!settings.paymentSettings?.paytmEnabled}
+          connected={!!settings.paymentSettings?.paytmConnected}
+          razorpayEnabled={!!settings.paymentSettings?.razorpayEnabled}
+          Toggle={Toggle}
+          onChange={(patch) => setSettings(prev => ({ ...prev, paymentSettings: { ...prev.paymentSettings, ...patch } }))}
+          notify={(m) => { setToastMessage(m); setShowToast(true); setTimeout(() => setShowToast(false), 4000); }}
+        />
 
         {/* Billing Settings Section */}
         <div style={{

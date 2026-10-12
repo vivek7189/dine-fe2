@@ -49,6 +49,7 @@ import { matchesAudience, calculateDiscountForOffer, isScheduleValid, isDateVali
 import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
+import { openPaytmCheckout } from '../../utils/paytmCheckout';
 
 // Order the public menu's category tabs by the SAME saved order as the dashboard/menu page.
 // IMPORTANT: the sidebar entries must stay equal to the ACTUAL item.category values (that's what
@@ -1382,6 +1383,28 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return response;
   };
 
+  // Paytm (restaurant's own Paytm account): the server stores the order as "pending payment" and
+  // returns Paytm's payment page; Paytm sends the guest back to /order-status/<id>, where the order
+  // is confirmed and goes to the kitchen only once Paytm reports the payment.
+  const handlePaytmPayment = async () => {
+    try {
+      setPlacingOrder(true);
+      setError('');
+      const orderData = { ...buildOrderData(), paymentMethod: 'paytm' };
+      const response = await apiClient.placePublicOrder(restaurantId, orderData);
+      if (!response?.paytm?.actionUrl) throw new Error(response?.error || 'Paytm payment could not be started');
+      setCart([]);
+      setSelectedOffers([]);
+      setRedeemLoyaltyPoints(0);
+      if (!openPaytmCheckout(response.paytm)) throw new Error('Could not open Paytm');
+      // Leaving for Paytm — keep the button busy.
+    } catch (err) {
+      console.error('Paytm payment error:', err);
+      setError(err.message || 'Paytm payment could not be started. Please try again.');
+      setPlacingOrder(false);
+    }
+  };
+
   // Razorpay checkout flow
   const handleRazorpayPayment = async () => {
     try {
@@ -1500,9 +1523,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }
 
     const razorpayEnabled = customerAppSettings?.paymentSettings?.razorpayEnabled;
+    const paytmEnabled = customerAppSettings?.paymentSettings?.paytmEnabled;
     const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
 
-    if (razorpayEnabled) {
+    if (paytmEnabled) {
+      // Paytm payment — order placed only after Paytm confirms
+      await handlePaytmPayment();
+    } else if (razorpayEnabled) {
       // Razorpay payment — verified before order creation
       await handleRazorpayPayment();
     } else if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
@@ -5052,7 +5079,12 @@ const CheckoutView = ({
                 {placingOrder ? (
                   <>
                     <FaSpinner size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                    Placing Order...
+                    {customerAppSettings?.paymentSettings?.paytmEnabled ? 'Opening Paytm...' : 'Placing Order...'}
+                  </>
+                ) : customerAppSettings?.paymentSettings?.paytmEnabled ? (
+                  <>
+                    <FaUtensils size={18} />
+                    Pay with Paytm - {cs}{getFinalTotal().toFixed(2)}
                   </>
                 ) : (
                   <>

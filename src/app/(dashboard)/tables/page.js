@@ -1145,7 +1145,7 @@ const TableManagement = () => {
         const tname = (data.tableNumber != null ? String(data.tableNumber) : '').trim();
         // 'awaiting_approval' = a customer QR order not accepted yet (QR order approval): the table
         // stays free until staff approve it (the approved order then occupies it as usual).
-        const terminal = ['completed', 'cancelled', 'deleted', 'awaiting_approval'].includes(String(data.status || '').toLowerCase());
+        const terminal = ['completed', 'cancelled', 'deleted', 'awaiting_approval', 'pending_payment'].includes(String(data.status || '').toLowerCase());
         if (tname && !terminal && (data.type === 'order-created' || data.type === 'order-updated' || data.type === 'order-status-updated')) {
           const oid = data.id ?? data.orderId ?? null;
           const total = data.totalAmount != null ? data.totalAmount : (data.finalAmount != null ? data.finalAmount : null);

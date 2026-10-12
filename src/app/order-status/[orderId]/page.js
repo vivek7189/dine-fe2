@@ -5,6 +5,7 @@
 // on their phone (linked from the "order ready" WhatsApp and a receipt QR).
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { openPaytmCheckout } from '../../../utils/paytmCheckout';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -29,6 +30,8 @@ export default function OrderStatusPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const prevReadyRef = useRef(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
 
   const load = useCallback(async () => {
     if (!orderId || !API_BASE_URL) return;
@@ -55,20 +58,43 @@ export default function OrderStatusPage() {
     }
   }, [orderId]);
 
-  // Initial load + poll every 8s + refresh when the tab regains focus.
+  // Initial load + poll every 8s (4s while a Paytm payment is being confirmed) + refresh on focus.
+  const waitingForPayment = data?.status === 'pending_payment';
   useEffect(() => {
     load();
-    const id = setInterval(load, 8000);
+    const id = setInterval(load, waitingForPayment ? 4000 : 8000);
     const onFocus = () => { if (document.visibilityState === 'visible') load(); };
     document.addEventListener('visibilitychange', onFocus);
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', onFocus); };
-  }, [load]);
+  }, [load, waitingForPayment]);
+
+  // Paytm: open the payment page again (closed / failed first try).
+  const payNow = async () => {
+    if (!orderId || !API_BASE_URL || paying) return;
+    setPaying(true); setPayError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/public/paytm/${orderId}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Could not open Paytm');
+      if (json.paytm && openPaytmCheckout(json.paytm)) return; // leaving the page
+      await load();
+    } catch (e) {
+      setPayError(e.message || 'Could not open Paytm');
+    }
+    setPaying(false);
+  };
 
   const status = data?.status;
   const isCancelled = status === 'cancelled';
   // QR order approval: the restaurant hasn't accepted the order yet / didn't accept it.
   const isAwaiting = status === 'awaiting_approval';
   const isRejected = isCancelled && data?.approval?.state === 'rejected';
+  // Paytm online payment: waiting for Paytm's confirmation / not paid / paid but not placed.
+  const pay = data?.payment?.method === 'paytm' ? data.payment : null;
+  const isPayPending = status === 'pending_payment';
+  const payFailed = isPayPending && pay?.lastStatus === 'TXN_FAILURE';
+  const isUnpaidCancel = isCancelled && pay && ['expired', 'failed'].includes(pay.state);
+  const isPaidNotPlaced = isCancelled && pay?.state === 'paid_not_placed';
   const stepIdx = currentStepIndex(status);
 
   return (
@@ -104,7 +130,45 @@ export default function OrderStatusPage() {
             <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '22px 18px', textAlign: 'center', marginBottom: 18 }}>
               <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase' }}>Your token</div>
               <div style={{ fontSize: 46, fontWeight: 800, lineHeight: 1.1, margin: '4px 0 8px' }}>#{data.token}</div>
-              {isRejected ? (
+              {isPayPending ? (
+                <div>
+                  {payFailed ? (
+                    <div style={{ display: 'inline-block', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
+                      Payment didn&apos;t go through
+                    </div>
+                  ) : (
+                    <div style={{ display: 'inline-block', background: '#dbeafe', color: '#1d4ed8', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999, animation: 'pulse 1.6s ease-in-out infinite' }}>
+                      💳 Confirming your payment…
+                    </div>
+                  )}
+                  <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+                    {payFailed ? 'No money was taken. You can try again.' : 'Paid already? This updates by itself in a few seconds. Your order goes to the kitchen as soon as the payment is confirmed.'}
+                  </p>
+                  {pay?.canRetry ? (
+                    <button onClick={payNow} disabled={paying} style={{ marginTop: 14, width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: '#002e6e', color: '#fff', fontWeight: 700, fontSize: 15, cursor: paying ? 'wait' : 'pointer', opacity: paying ? 0.7 : 1 }}>
+                      {paying ? 'Opening Paytm…' : (payFailed ? 'Try paying again' : 'Complete payment with Paytm')}
+                    </button>
+                  ) : null}
+                  {payError ? <p style={{ margin: '8px 0 0', fontSize: 12, color: '#dc2626' }}>{payError}</p> : null}
+                </div>
+              ) : isPaidNotPlaced ? (
+                <div>
+                  <div style={{ display: 'inline-block', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
+                    Order could not be placed
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+                    {data.refundStatus === 'refunded' || data.refundStatus === 'refund_pending' ? 'Your payment is being refunded to you.' : 'Your payment will be refunded — please contact the restaurant.'}
+                  </p>
+                </div>
+              ) : isUnpaidCancel ? (
+                <div>
+                  <div style={{ display: 'inline-block', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
+                    Payment not completed
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--muted)' }}>The order was not placed. Please order again.</p>
+                  {data.refundStatus ? <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--muted)' }}>A late payment is being refunded to you.</p> : null}
+                </div>
+              ) : isRejected ? (
                 <div>
                   <div style={{ display: 'inline-block', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
                     {data.approval?.autoRejected ? 'Not accepted in time' : 'Order not accepted'}
@@ -136,8 +200,16 @@ export default function OrderStatusPage() {
               )}
             </div>
 
+            {pay && !isPayPending && !isCancelled && (pay.paymentStatus === 'paid' || pay.paymentStatus === 'partial') ? (
+              <div style={{ textAlign: 'center', marginTop: -8, marginBottom: 14 }}>
+                <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '4px 12px', borderRadius: 999 }}>
+                  ✓ Paid with Paytm{pay.paymentStatus === 'partial' ? ' (part — pay the rest at the counter)' : ''}
+                </span>
+              </div>
+            ) : null}
+
             {/* Stepper */}
-            {!isCancelled && (
+            {!isCancelled && !isPayPending && (
               <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '18px', marginBottom: 18 }}>
                 {STEPS.map((step, i) => {
                   const done = i < stepIdx;

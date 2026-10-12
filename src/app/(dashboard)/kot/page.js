@@ -364,7 +364,7 @@ const KitchenOrderTicket = () => {
         loadKotDataRef.current(false, false);
       }, 1000);
       // No kitchen sound for a customer order still waiting for approval (it isn't a ticket yet).
-      if (eventName === 'order-created' && soundEnabledRef.current && data?.status !== 'awaiting_approval') {
+      if (eventName === 'order-created' && soundEnabledRef.current && data?.status !== 'awaiting_approval' && data?.status !== 'pending_payment') {
         playSound('newOrder');
       }
     };
