@@ -1,3 +1,5 @@
+import { STATIC_BLOG_SLUGS, HINDI_STATIC_BLOG_SLUGS } from './src/lib/blogSlugs.mjs';
+
 // Service Worker disabled — Serwist 9.x has unsupported-route-type errors with Next.js 15.5.
 // Offline orders work via IndexedDB (no SW needed). Re-enable when Serwist fixes compatibility.
 // import withSerwistInit from "@serwist/next";
@@ -149,7 +151,7 @@ const nextConfig = {
   // Rewrites: serve static HTML blog posts at both /blog/slug and /blog/slug.html
   // This fixes 144 broken URLs caused by internal links missing .html extension
   async rewrites() {
-    const staticBlogSlugs = [
+    const staticBlogSlugs = [...new Set([
       'offline-pos-restaurants-global-guide-2026',
       'offline-pos-restaurants-india-2026',
       'offline-pos-restaurants-usa-2026',
@@ -260,10 +262,11 @@ const nextConfig = {
       'restaurant-labor-shortage-solutions-2026',
       'health-inspection-checklist-restaurant-2026',
       'hawker-stall-license-singapore-2026',
-    ];
+      ...STATIC_BLOG_SLUGS,
+    ])];
 
     // Hindi static blog slugs (served as raw HTML files in public/hi/blog/)
-    const hindiStaticBlogSlugs = [
+    const hindiStaticBlogSlugs = [...new Set([
       'bakery-kaise-khole',
       'best-restaurant-pos-india-hindi',
       'cafe-coffee-shop-kaise-khole',
@@ -296,7 +299,8 @@ const nextConfig = {
       'swiggy-zomato-commission-kaise-bachaye',
       'tiffin-service-kaise-shuru-kare',
       'zomato-swiggy-par-restaurant-kaise-register-kare',
-    ];
+      ...HINDI_STATIC_BLOG_SLUGS,
+    ])];
 
     return {
       // beforeFiles ensures rewrites run BEFORE Next.js checks static/SSG pages
