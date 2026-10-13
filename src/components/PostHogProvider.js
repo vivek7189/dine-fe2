@@ -5,7 +5,8 @@ import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
 import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || '';
+// Project key is public (sent to every browser) — fallback keeps tracking on when the build env lacks it
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || 'phc_AdmCxAj5txqYAeyrgxsphiwW5sfyJ6h8tFW2ycZU9vnN';
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 
 // Initialize PostHog once (client-side only, skip if no key)
