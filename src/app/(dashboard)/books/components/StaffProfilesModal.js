@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { FaTimes, FaIdCard } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
 import StaffProfile from '../../../../components/StaffProfile';
+import StaffIdDocuments from '../../../../components/StaffIdDocuments';
 
 /**
  * Books → Appraisals → Staff profiles: pick a staff member and open their HR profile (personal,
@@ -50,6 +51,7 @@ export default function StaffProfilesModal({ restaurantId, isMobile, onClose }) 
                 {list.map(s => <option key={s.id} value={s.id}>{s.name || 'Staff'}{s.role ? ` · ${s.role}` : ''}{s.self ? ' (you)' : ''}{s.hasProfile ? '' : ' — not filled yet'}</option>)}
               </select>
               {selected && <StaffProfile key={selected} staffId={selected} isMobile={isMobile} />}
+              {selected && <StaffIdDocuments key={`id-${selected}`} staffId={selected} isMobile={isMobile} />}
             </>
           )}
         </div>

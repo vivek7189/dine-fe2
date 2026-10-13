@@ -14,6 +14,20 @@ import { useCurrency } from '../../../contexts/CurrencyContext';
 import AdditionalChargesSettings from '../../../components/AdditionalChargesSettings';
 import StaffDocuments from '../../../components/StaffDocuments';
 import StaffProfile from '../../../components/StaffProfile';
+import StaffIdDocuments from '../../../components/StaffIdDocuments';
+
+// Staff list: what ID / licence is on file (Staff Details → ID & licence). Nothing when none.
+function StaffIdBadges({ summary }) {
+  if (!summary || !summary.count) return null;
+  const chip = (text, bg, fg, title) => <span title={title} style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: bg, color: fg, whiteSpace: 'nowrap' }}>{text}</span>;
+  return (
+    <span style={{ display: 'inline-flex', gap: 4 }}>
+      {summary.hasIdentity && chip('ID ✓', '#ecfdf5', '#047857', 'Identity document on file')}
+      {summary.hasLicence && chip('Licence ✓', '#eff6ff', '#1d4ed8', 'Driving licence on file')}
+      {summary.expired ? chip('Expired', '#fee2e2', '#b91c1c', 'A document has expired') : (summary.expiringSoon ? chip('Expiring', '#fef3c7', '#92400e', 'A document expires within 30 days') : null)}
+    </span>
+  );
+}
 import WhatsAppOrderingTab from '../../../components/WhatsAppOrderingTab';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
@@ -8357,6 +8371,7 @@ const Admin = () => {
                               {React.createElement(roleInfo.icon, { size: 13, color: isInactive ? '#9ca3af' : roleInfo.color })}
                             </div>
                             {member.name || 'Unknown'}
+                            <StaffIdBadges summary={member.idSummary} />
                           </div>
                         </td>
                         <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>{member.phone || '—'}</td>
@@ -8512,6 +8527,7 @@ const Admin = () => {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '15px', fontWeight: 600, color: isInactive ? '#6b7280' : '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.name || 'Unknown'}</div>
                         <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '1px' }}>{member.phone || member.email || 'No contact'}</div>
+                        {member.idSummary && member.idSummary.count > 0 && <div style={{ marginTop: 4 }}><StaffIdBadges summary={member.idSummary} /></div>}
                       </div>
                       <span style={{
                         padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
@@ -11129,7 +11145,10 @@ const Admin = () => {
 
                 {/* HR profile: personal & emergency contact, health (confidential), experience — owner / admin only */}
                 {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
-                  <StaffProfile staffId={selectedStaff.id} canEdit isMobile={isClient && isMobile} />
+                  <>
+                    <StaffIdDocuments key={`id-${selectedStaff.id}`} staffId={selectedStaff.id} isMobile={isClient && isMobile} />
+                    <StaffProfile staffId={selectedStaff.id} canEdit isMobile={isClient && isMobile} />
+                  </>
                 )}
 
                 <div style={{

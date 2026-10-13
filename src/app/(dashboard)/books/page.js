@@ -179,6 +179,7 @@ export default function BooksPage() {
         {activeTab === 'payroll' && (
           <PayrollTab
             payrollConfig={books.payrollConfig}
+            payrollUnset={books.payrollUnset}
             payrollRuns={books.payrollRuns}
             loadingPayroll={books.loadingPayroll}
             isMobile={books.isMobile}

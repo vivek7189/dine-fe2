@@ -2348,6 +2348,43 @@ class ApiClient {
     return this.request(`/api/staff/${staffId}/documents`, { method: 'DELETE', body: { url } });
   }
 
+  // Open a private (encrypted, logged-in only) staff file in a new tab. `path` = API path, e.g.
+  // /api/staff/:id/documents/file/:fileId. Older documents with a direct https link open as before.
+  async openPrivateFile(path) {
+    if (/^https?:\/\//i.test(String(path || ''))) { window.open(path, '_blank', 'noopener'); return; }
+    const win = window.open('', '_blank'); // opened now so pop-up blockers allow it
+    try {
+      const token = this.getToken();
+      const res = await fetch(`${getApiBase()}${path}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Could not open the file');
+      }
+      const url = URL.createObjectURL(await res.blob());
+      if (win) win.location.href = url; else window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      if (win) win.close();
+      throw e;
+    }
+  }
+
+  // ── Staff ID & licence documents (any country; staffId 'me' = the signed-in person) ──
+  async getStaffIdDocuments(staffId) {
+    return this.request(`/api/staff/${staffId || 'me'}/id-documents`);
+  }
+  async saveStaffIdDocuments(staffId, documents) {
+    return this.request(`/api/staff/${staffId || 'me'}/id-documents`, { method: 'PUT', body: { documents } });
+  }
+  async uploadStaffIdFile(staffId, file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.request(`/api/staff/${staffId || 'me'}/id-documents/files`, { method: 'POST', body: fd });
+  }
+  async openStaffIdFile(staffId, fileId) {
+    return this.openPrivateFile(`/api/staff/${staffId || 'me'}/id-documents/files/${fileId}`);
+  }
+
   // ── Staff HR profile (personal & emergency contact, health, experience) — owner / admin ──
   async getStaffProfile(staffId) {
     return this.request(`/api/staff/${staffId}/profile`);

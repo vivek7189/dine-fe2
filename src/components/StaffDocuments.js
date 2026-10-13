@@ -6,7 +6,8 @@ import apiClient from '../lib/api';
 
 /**
  * StaffDocuments — upload & manage a staff member's documents (ID, contract, etc).
- * Self-contained; files go to GCS via /api/staff/:staffId/documents.
+ * Self-contained; files go to /api/staff/:staffId/documents (stored encrypted, opened only when
+ * logged in — older documents keep their direct link).
  */
 export default function StaffDocuments({ staffId, initialDocuments = [], canEdit = true, isMobile = false }) {
   const [docs, setDocs] = useState(Array.isArray(initialDocuments) ? initialDocuments : []);
@@ -72,7 +73,7 @@ export default function StaffDocuments({ staffId, initialDocuments = [], canEdit
                 <span style={{ fontSize: 13, color: '#111827', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <a href={d.url} target="_blank" rel="noopener noreferrer" title="Open" style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #e5e7eb', background: '#fff', color: '#2563eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FaExternalLinkAlt size={11} /></a>
+                <button type="button" onClick={() => apiClient.openPrivateFile(d.url).catch(err => setError(err?.message || 'Could not open.'))} title="Open" style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #e5e7eb', background: '#fff', color: '#2563eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><FaExternalLinkAlt size={11} /></button>
                 {canEdit && <button onClick={() => remove(d)} title="Remove" style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #e5e7eb', background: '#fff', color: '#b91c1c', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FaTrash size={10} /></button>}
               </div>
             </div>

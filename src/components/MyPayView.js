@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../lib/api';
 import StaffProfile from './StaffProfile';
+import StaffIdDocuments from './StaffIdDocuments';
 import MyMeetingsView from './meetings/MyMeetingsView';
 import { useCurrency } from '../contexts/CurrencyContext';
 
@@ -187,6 +188,7 @@ export default function MyPayView() {
       {/* My Profile (shown even when My Pay is off for the role): personal details, next of kin and
           health they can update; experience is the employer's record (view only). */}
       <StaffProfile self isMobile={isNarrow} />
+      <StaffIdDocuments self isMobile={isNarrow} />
     </div>
   );
 }

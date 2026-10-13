@@ -40,6 +40,7 @@ export default function StaffAlertsCard({ restaurantId, isMobile = false, canEdi
     ...(tomorrow.length ? [{ key: 'tom', color: '#065f46', bg: '#f0fdf4', text: `🌴 From tomorrow: ${tomorrow.map(l => l.name).slice(0, 3).join(', ')}` }] : []),
     ...(L.pending.length ? [{ key: 'pend', color: '#92400e', bg: '#fffbeb', text: `📝 ${L.pending.length} leave request${L.pending.length > 1 ? 's' : ''} waiting` }] : []),
     ...(L.low.length ? [{ key: 'low', color: '#991b1b', bg: '#fef2f2', text: `⚠️ ${new Set(L.low.map(x => x.staffId)).size} low on leave` }] : []),
+    ...docChips(data.documents || []),
   ];
 
   return (
@@ -64,6 +65,17 @@ export default function StaffAlertsCard({ restaurantId, isMobile = false, canEdi
       {open && <StaffAlertsModal data={data} restaurantId={restaurantId} isMobile={isMobile} canEditSettings={canEditSettings} onClose={() => setOpen(false)} onSaved={load} />}
     </>
   );
+}
+
+// ID / licence / visa expiry (Staff Details → ID & licence).
+const docWhen = (d) => (d.daysUntil < 0 ? `expired ${fmtDate(d.expiryDate)}` : d.daysUntil === 0 ? 'expires today' : `expires ${when(d.daysUntil).toLowerCase()} · ${fmtDate(d.expiryDate)}`);
+function docChips(docs) {
+  const expired = docs.filter(d => d.daysUntil < 0);
+  const soon = docs.filter(d => d.daysUntil >= 0 && d.daysUntil <= 30);
+  return [
+    ...(expired.length ? [{ key: 'docx', color: '#991b1b', bg: '#fef2f2', text: `🪪 ${expired.length === 1 ? `${expired[0].name}'s ${expired[0].label} expired` : `${expired.length} IDs / licences expired`}` }] : []),
+    ...(soon.length ? [{ key: 'docs', color: '#92400e', bg: '#fffbeb', text: `🪪 ${soon.length === 1 ? `${soon[0].name}'s ${soon[0].label} ${docWhen(soon[0])}` : `${soon.length} IDs / licences expiring soon`}` }] : []),
+  ];
 }
 
 function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClose, onSaved }) {
@@ -104,6 +116,7 @@ function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClo
           {tabBtn('birthdays', `🎂 Birthdays & dates (${data.birthdays.length + (data.dates || []).length})`)}
           {tabBtn('leave', `🌴 Leave (${L.onLeaveToday.length + L.upcoming.length + L.pending.length})`)}
           {tabBtn('balances', '📊 Leave balances')}
+          {tabBtn('documents', `🪪 ID & licence (${(data.documents || []).length})`)}
           {canEditSettings && tabBtn('settings', '⚙ Alerts')}
         </div>
         <div style={{ padding: '14px 18px 18px', overflowY: 'auto' }}>
@@ -152,9 +165,15 @@ function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClo
               </div>
             )
           )}
+          {tab === 'documents' && (
+            <>
+              {list(data.documents || [], d => row(`${d.staffId}${d.docId}`, `${d.name}${d.role ? ` · ${d.role}` : ''} — ${d.label}`, docWhen(d), d.daysUntil < 0 ? '#b91c1c' : d.daysUntil <= 7 ? '#b45309' : '#111827'), `No ID, licence or visa expiring in the next ${data.settings?.documentExpiryDays || 30} days.`)}
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 10 }}>Add or renew documents in Admin → Staff → Staff Details → ID &amp; licence (staff can also add their own in My Pay → My Profile).</div>
+            </>
+          )}
           {tab === 'settings' && canEditSettings && (
             <div style={{ display: 'grid', gap: 12, maxWidth: 520 }}>
-              <div style={{ fontSize: 12, color: '#6b7280' }}>A daily phone notification goes to the owner and admins (DineOpen app) from 9 am: birthdays and leave.</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>A daily phone notification goes to the owner and admins (DineOpen app) from 9 am: birthdays, leave and expiring IDs / licences.</div>
               <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}>
                 <input type="checkbox" checked={s.birthdays !== false} onChange={e => setS({ ...s, birthdays: e.target.checked })} /> Birthday alerts — on the day and
                 <select value={s.birthdayDaysBefore ?? 1} onChange={e => setS({ ...s, birthdayDaysBefore: Number(e.target.value) })} style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid #e5e7eb' }}>
@@ -171,6 +190,23 @@ function StaffAlertsModal({ data, restaurantId, isMobile, canEditSettings, onClo
                 Show &ldquo;low on leave&rdquo; at
                 <input type="number" min="0" max="30" value={s.lowLeaveDays ?? 2} onChange={e => setS({ ...s, lowLeaveDays: Number(e.target.value) })} style={{ width: 64, padding: '4px 6px', borderRadius: 6, border: '1px solid #e5e7eb' }} /> days left or less
               </label>
+              <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, flexWrap: 'wrap' }}>
+                <input type="checkbox" checked={s.documents !== false} onChange={e => setS({ ...s, documents: e.target.checked })} /> ID / licence / visa expiry — list
+                <input type="number" min="1" max="180" value={s.documentExpiryDays ?? 30} onChange={e => setS({ ...s, documentExpiryDays: Number(e.target.value) })} style={{ width: 64, padding: '4px 6px', borderRadius: 6, border: '1px solid #e5e7eb' }} /> days ahead
+              </label>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, flexWrap: 'wrap', paddingLeft: 24 }}>
+                Phone alert
+                {[60, 30, 14, 7, 3, 1, 0].map(n => {
+                  const cur = Array.isArray(s.documentReminderDays) ? s.documentReminderDays : [30, 7, 1, 0];
+                  const on = cur.includes(n);
+                  return (
+                    <button key={n} type="button" onClick={() => setS({ ...s, documentReminderDays: on ? cur.filter(x => x !== n) : [...cur, n].sort((a, b) => b - a) })}
+                      style={{ padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${on ? '#7c3aed' : '#e5e7eb'}`, background: on ? '#f5f3ff' : '#fff', color: on ? '#6d28d9' : '#374151' }}>
+                      {n === 0 ? 'on the day' : `${n} day${n > 1 ? 's' : ''} before`}
+                    </button>
+                  );
+                })}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button onClick={saveSettings} disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: saving ? '#c4b5fd' : '#7c3aed', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{saving ? 'Saving…' : 'Save'}</button>
                 {msg && <span style={{ fontSize: 12, color: /Saved/.test(msg) ? '#166534' : '#b91c1c' }}>{msg}</span>}

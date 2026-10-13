@@ -34,7 +34,7 @@ const STATUS_COLORS = {
 };
 
 export default function PayrollTab({
-  payrollConfig, payrollRuns, loadingPayroll, isMobile, formatCurrency,
+  payrollConfig, payrollUnset, payrollRuns, loadingPayroll, isMobile, formatCurrency,
   staffList, onSaveConfig, onDeleteConfig, onGenerateRun, onUpdateRun, onDeleteRun, onViewSlips, onSaveAdjustments, onSaveSlipAttendance,
   restaurantId, apiClient, onReload,
 }) {
@@ -83,6 +83,10 @@ export default function PayrollTab({
   });
 
   const configs = payrollConfig || [];
+  // Active staff with no salary yet — listed automatically (₹0, "Salary not set") so a new staff
+  // member shows up here by themselves; nothing is saved until a salary is set.
+  const unset = payrollUnset || [];
+  const [onlyUnset, setOnlyUnset] = useState(false);
   const runs = payrollRuns || [];
   const totalMonthly = configs.reduce((s, c) => s + (c.netPay || 0), 0);
 
@@ -141,11 +145,18 @@ export default function PayrollTab({
     setShowConfigModal(true);
   };
 
+  // "Set salary" for someone without one: the Add form, already filled with the person.
+  const openSet = (u) => {
+    setEditConfig(null);
+    setForm({ staffId: u.staffId, staffName: u.staffName, role: u.role, baseSalary: '', allowances: {}, deductions: {}, componentLabels: {}, payFrequency: 'monthly', bankAccount: '', paymentMode: '' });
+    setShowConfigModal(true);
+  };
+
   const openEdit = (cfg) => {
     setEditConfig(cfg);
     setForm({
       staffId: cfg.staffId, staffName: cfg.staffName, role: cfg.role,
-      baseSalary: String(cfg.baseSalary || ''),
+      baseSalary: cfg.baseSalary == null ? '' : String(cfg.baseSalary),
       allowances: Object.fromEntries(Object.entries(cfg.allowances || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, String(v)])),
       deductions: Object.fromEntries(Object.entries(cfg.deductions || {}).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, String(v)])),
       componentLabels: cfg.componentLabels || {},
@@ -155,7 +166,8 @@ export default function PayrollTab({
   };
 
   const handleSave = async () => {
-    if (!form.staffId || !form.baseSalary) return;
+    // ₹0 is fine (set up now, fill in the real salary later); only a blank salary is refused.
+    if (!form.staffId || form.baseSalary === '' || form.baseSalary == null || !(Number(form.baseSalary) >= 0)) return;
     // Keep only filled components; remember each one's name for payslips.
     const pick = (values, kind) => {
       const out = {};
@@ -216,6 +228,7 @@ export default function PayrollTab({
             </div>
           </div>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>{configs.length}</div>
+          {unset.length > 0 && <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 600, marginTop: 2 }}>{unset.length} staff without a salary yet</div>}
         </div>
         <div style={{ ...cardStyle, padding: '14px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
@@ -237,7 +250,14 @@ export default function PayrollTab({
             <button onClick={openAdd} style={btnPrimary}><FaPlus size={11} /> Add Staff Salary</button>
           </div>
         </div>
-        {configs.length === 0 ? (
+        {unset.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+            {[[false, `All (${configs.length + unset.length})`], [true, `Salary not set (${unset.length})`]].map(([v, l]) => (
+              <button key={String(v)} type="button" onClick={() => setOnlyUnset(v)} style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: onlyUnset === v ? (v ? '#f59e0b' : '#2563eb') : '#f3f4f6', color: onlyUnset === v ? '#fff' : '#374151' }}>{l}</button>
+            ))}
+          </div>
+        )}
+        {configs.length === 0 && unset.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
             <FaUsers size={28} style={{ marginBottom: '8px', opacity: 0.5 }} />
             <p style={{ margin: 0, fontSize: '13px' }}>No salary configurations yet. Add staff salary details to get started.</p>
@@ -253,14 +273,29 @@ export default function PayrollTab({
                 </tr>
               </thead>
               <tbody>
-                {configs.map(cfg => (
+                {[...(onlyUnset ? [] : configs), ...unset].sort((a, b) => String(a.staffName || '').localeCompare(String(b.staffName || ''))).map(cfg => (cfg.notSet ? (
+                  <tr key={`unset-${cfg.staffId}`} style={{ borderBottom: '1px solid #f3f4f6', background: '#fffbeb' }}>
+                    <td style={{ padding: '12px', fontWeight: 600, color: '#111827' }}>{cfg.staffName}</td>
+                    <td style={{ padding: '12px', color: '#6b7280' }}>{cfg.role}</td>
+                    <td style={{ padding: '12px', color: '#9ca3af' }}>{formatCurrency(0)}</td>
+                    <td style={{ padding: '12px', color: '#9ca3af' }}>—</td>
+                    <td style={{ padding: '12px', color: '#9ca3af' }}>—</td>
+                    <td style={{ padding: '12px' }}><span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', borderRadius: 999, padding: '2px 8px' }}>Salary not set</span></td>
+                    <td style={{ padding: '12px' }}>
+                      <button onClick={() => openSet(cfg)} style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Set salary</button>
+                    </td>
+                  </tr>
+                ) : (
                   <tr key={cfg.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '12px', fontWeight: 600, color: '#111827' }}>{cfg.staffName}</td>
                     <td style={{ padding: '12px', color: '#6b7280' }}>{cfg.role}</td>
                     <td style={{ padding: '12px', color: '#111827' }}>{formatCurrency(cfg.baseSalary)}</td>
                     <td style={{ padding: '12px', color: '#059669' }}>+{formatCurrency(sumValues(cfg.allowances))}</td>
                     <td style={{ padding: '12px', color: '#dc2626' }}>-{formatCurrency(sumValues(cfg.deductions))}</td>
-                    <td style={{ padding: '12px', fontWeight: 700, color: '#111827' }}>{formatCurrency(cfg.netPay)}</td>
+                    <td style={{ padding: '12px', fontWeight: 700, color: '#111827' }}>
+                      {formatCurrency(cfg.netPay)}
+                      {!(Number(cfg.baseSalary) > 0) && !(sumValues(cfg.allowances) > 0) && <div style={{ fontSize: 10, fontWeight: 600, color: '#b45309' }}>₹0 — not on payroll until set</div>}
+                    </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button onClick={() => openEdit(cfg)} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -272,7 +307,7 @@ export default function PayrollTab({
                       </div>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>

@@ -67,6 +67,7 @@ export default function useBooks() {
   const [supplierDuesData, setSupplierDuesData] = useState(null);
   const [pnlData, setPnlData] = useState(null);
   const [payrollConfig, setPayrollConfig] = useState([]);
+  const [payrollUnset, setPayrollUnset] = useState([]); // active staff with no salary set yet
   const [payrollRuns, setPayrollRuns] = useState([]);
   const [staffList, setStaffList] = useState([]);
 
@@ -259,6 +260,7 @@ export default function useBooks() {
         apiClient.getStaff(restaurantId).catch(() => apiClient.getPayrollStaff(restaurantId).catch(() => ({ staff: [] }))),
       ]);
       setPayrollConfig(configRes?.configs || []);
+      setPayrollUnset(configRes?.unset || []);
       setPayrollRuns(runsRes?.runs || []);
       setStaffList(staffRes?.staff || staffRes || []);
     } catch (err) { console.error('Payroll fetch error:', err); }
@@ -446,7 +448,7 @@ export default function useBooks() {
     isMobile, error, setError, success, setSuccess,
     overviewData, revenueData, cogsData, expensesList, expensesSummary,
     supplierDuesData, pnlData,
-    payrollConfig, payrollRuns, staffList, loadingPayroll,
+    payrollConfig, payrollUnset, payrollRuns, staffList, loadingPayroll,
     loadingOverview, loadingRevenue, loadingExpenses, loadingSupplierDues, loadingPnl,
     showAddExpenseModal, setShowAddExpenseModal, editingExpense, setEditingExpense,
     expenseFormData, setExpenseFormData,

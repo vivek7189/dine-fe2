@@ -145,6 +145,11 @@ export default function SalarySheet({ restaurantId, apiClient, formatCurrency, p
           {(data?.skipped || []).length > 0 && (
             <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>Not included: {data.skipped.map(s => `${s.staffName || s.staffId} (${s.reason})`).join(', ')}</div>
           )}
+          {(data?.notSet || []).length > 0 && (
+            <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }} title={data.notSet.map(s => s.staffName).join(', ')}>
+              No salary yet ({data.notSet.length}): {data.notSet.slice(0, 6).map(s => s.staffName).join(', ')}{data.notSet.length > 6 ? ` +${data.notSet.length - 6} more` : ''} — set it in Salary Configuration below.
+            </div>
+          )}
         </>
       )}
 
