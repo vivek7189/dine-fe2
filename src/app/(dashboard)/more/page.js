@@ -40,6 +40,14 @@ import apiClient from '../../../lib/api';
 
 const features = [
   {
+    id: 'announcements',
+    name: 'Announcements',
+    description: 'Notices from the owner and managers to the team',
+    icon: FaBullhorn,
+    gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+    href: '/announcements',
+  },
+  {
     id: 'my-pay',
     name: 'My Pay',
     description: 'Your payslips, advances, bonuses and appraisals',
@@ -290,7 +298,7 @@ const features = [
 ];
 
 // Staff's own cards (always shown to staff) …
-const STAFF_SELF = new Set(['my-pay', 'my-meetings', 'my-shifts', 'calendar', 'repairs', 'suggestions', 'dish-ideas', 'marketing']);
+const STAFF_SELF = new Set(['announcements', 'my-pay', 'my-meetings', 'my-shifts', 'calendar', 'repairs', 'suggestions', 'dish-ideas', 'marketing']);
 // … and the access a staff member needs for each management card (reports → Analytics).
 const STAFF_CARD_ACCESS = {
   shifts: ['admin'], register: ['completeBill'], 'shifts-cash': ['shifts'], dineai: ['dineai', 'analytics'],
@@ -307,6 +315,7 @@ export default function MorePage() {
   const [notAllowedPages, setNotAllowedPages] = useState([]);
   const [search, setSearch] = useState('');
   const [openRequests, setOpenRequests] = useState({ repair: 0, suggestion: 0, idea: 0, task: 0 }); // managers: waiting per kind
+  const [announcements, setAnnouncements] = useState({ enabled: false, unread: 0 }); // only where the restaurant has them on
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout
@@ -318,6 +327,15 @@ export default function MorePage() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Announcements card: only when the restaurant has them switched on; staff see how many are unread.
+  useEffect(() => {
+    try {
+      const rid = localStorage.getItem('selectedRestaurantId');
+      if (!rid) return;
+      apiClient.getMyAnnouncements(rid).then(r => { if (r?.enabled) setAnnouncements({ enabled: true, unread: r.unread || 0 }); }).catch(() => {});
+    } catch {}
   }, []);
 
   // Owner / admin / manager: how many repairs + suggestions are waiting (badge on those cards)
@@ -368,6 +386,7 @@ export default function MorePage() {
   } catch {}
   const grants = (f) => (STAFF_CARD_ACCESS[f.id] || []).some(k => pa && accessValueOn(pa[k]));
   const allowedFeatures = features.filter(f => !notAllowedPages.includes(f.id)
+    && (f.id !== 'announcements' || announcements.enabled)
     && (f.id !== 'my-pay' || myPayAllowed) && (f.id !== 'calendar' || !calendarDenied)
     && (f.id !== 'my-shifts' || !ownerView)
     && (!staffView || STAFF_SELF.has(f.id) || grants(f)));
@@ -516,6 +535,7 @@ export default function MorePage() {
                 margin: '0 0 6px 0',
               }}>
                 {feature.name}
+                {feature.id === 'announcements' && announcements.unread > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#2563eb', color: '#fff', verticalAlign: 'middle' }}>{announcements.unread} new</span>}
                 {waiting > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#ef4444', color: '#fff', verticalAlign: 'middle' }}>{waiting} waiting</span>}
               </h3>
               <p style={{

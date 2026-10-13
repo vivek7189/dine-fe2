@@ -4718,6 +4718,34 @@ class ApiClient {
     finally { this.invalidateCache(`/api/staff-meetings/${restaurantId}/mine`); }
   }
 
+  // ── Staff announcements (owner / managers → staff; only where the restaurant has them on) ──
+  async getMyAnnouncements(restaurantId) {
+    this.invalidateCache(`/api/staff-announcements/${restaurantId}/mine`);
+    return this.request(`/api/staff-announcements/${restaurantId}/mine`);
+  }
+  async getStaffAnnouncements(restaurantId) {
+    this.invalidateCache(`/api/staff-announcements/${restaurantId}`);
+    return this.request(`/api/staff-announcements/${restaurantId}`);
+  }
+  async createStaffAnnouncement(restaurantId, data) {
+    return this.request(`/api/staff-announcements/${restaurantId}`, { method: 'POST', body: data });
+  }
+  async updateStaffAnnouncement(restaurantId, id, data) {
+    return this.request(`/api/staff-announcements/${restaurantId}/${id}`, { method: 'PATCH', body: data });
+  }
+  async deleteStaffAnnouncement(restaurantId, id) {
+    return this.request(`/api/staff-announcements/${restaurantId}/${id}`, { method: 'DELETE' });
+  }
+  async markAnnouncementRead(restaurantId, id) {
+    return this.request(`/api/staff-announcements/${restaurantId}/${id}/read`, { method: 'POST', body: {} });
+  }
+  async uploadAnnouncementPhotos(restaurantId, files) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const r = await this.request(`/api/staff-announcements/${restaurantId}/media`, { method: 'POST', body: formData });
+    return (r && r.files) || [];
+  }
+
   // ── My Pay (a staff member's own pay records) ──
   // Liquor (bar) stock: per bottle size, tots / pegs poured from bottles (/api/liquor)
   async getLiquor(restaurantId) {
