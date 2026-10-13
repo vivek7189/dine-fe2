@@ -6370,6 +6370,7 @@ const Admin = () => {
     refundsRequireApproval: true,
     emailInvoiceEnabled: false,
     whatsappBillingEnabled: false,
+    whatsappOrderConfirmation: false,
     orderStatusRoles: [],
   });
   const [billingSaving, setBillingSaving] = useState(false);
@@ -14713,6 +14714,12 @@ const Admin = () => {
                     key: 'whatsappBillingEnabled',
                     name: 'WhatsApp Bill',
                     desc: 'Auto-send invoice via WhatsApp after billing',
+                    icon: FaPhone,
+                  },
+                  {
+                    key: 'whatsappOrderConfirmation',
+                    name: 'WhatsApp Order Confirmation',
+                    desc: 'Send the customer an "order confirmed" WhatsApp when an order with their phone number is placed',
                     icon: FaPhone,
                   },
                   {
