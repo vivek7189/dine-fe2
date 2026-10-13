@@ -303,6 +303,17 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
             <div style={{ width: '20px', height: '20px', borderRadius: '10px', backgroundColor: 'white', position: 'absolute', top: '2px', left: notif.remindersEnabled ? '22px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
           </button>
         </div>
+        {/* Leave requests → owner / managers; approved / not approved / cancelled → the staff member */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '12px 0 0' }}>
+          <FaClock size={14} color="#0ea5e9" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Leave requests &amp; decisions</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>Owner and managers are told when someone applies for leave; staff are told when it is approved, not approved or cancelled — by app notification and WhatsApp (as above)</div>
+          </div>
+          <button type="button" onClick={() => setNotif('leaveUpdates', !notif.leaveUpdates)} style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', backgroundColor: notif.leaveUpdates ? '#22c55e' : '#d1d5db', position: 'relative', flexShrink: 0 }}>
+            <div style={{ width: '20px', height: '20px', borderRadius: '10px', backgroundColor: 'white', position: 'absolute', top: '2px', left: notif.leaveUpdates ? '22px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          </button>
+        </div>
       </div>
 
       {/* Staff Limits */}

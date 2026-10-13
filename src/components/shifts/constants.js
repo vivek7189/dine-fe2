@@ -31,7 +31,7 @@ export const DEFAULT_SHIFT_SETTINGS = {
   maxHoursPerDay: 8,
   timeOff: [],
   extraRoles: [],
-  notifications: { push: true, whatsapp: false, whatsappTemplate: 'staff_shift_update', whatsappLanguage: 'en', remindersEnabled: false, reminderMinutes: 60 },
+  notifications: { push: true, whatsapp: false, whatsappTemplate: 'staff_shift_update', whatsappLanguage: 'en', remindersEnabled: false, reminderMinutes: 60, leaveUpdates: false },
 };
 
 export const BREAK_OPTIONS = [
