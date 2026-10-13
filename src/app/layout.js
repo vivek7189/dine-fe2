@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { LoadingProvider } from '../contexts/LoadingContext'
 import PostHogProvider from '../components/PostHogProvider'
 import WebsiteChatbot from '../components/WebsiteChatbot'
+import GoogleTag from '../components/GoogleTag'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -61,8 +62,6 @@ export default function RootLayout({ children }) {
     <html lang="en" className={inter.variable} suppressHydrationWarning={true}>
       <head>
         <meta name="google-site-verification" content="RTIIGHLt3AjnBo3YbmCmbEc32r0dYS6XpO0n2bX7T1A" />
-        {/* TODO: Add GA4 - get measurement ID from https://analytics.google.com */}
-        {/* <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script> */}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="icon" type="image/png" href="/favicon.png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -85,6 +84,7 @@ export default function RootLayout({ children }) {
             <WebsiteChatbot />
           </LoadingProvider>
         </PostHogProvider>
+        <GoogleTag />
         {/* Vercel Analytics only on Vercel (the AWS copy has no /_vercel/insights endpoint) */}
         {process.env.VERCEL === '1' && <Analytics />}
         {/* <script

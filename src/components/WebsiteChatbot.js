@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaPaperPlane, FaTimes, FaComments } from 'react-icons/fa';
+import { trackLead } from '../lib/analytics';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -155,6 +156,7 @@ export default function WebsiteChatbot() {
           comment,
         }),
       });
+      trackLead('website_chatbot');
     } catch {}
   };
 

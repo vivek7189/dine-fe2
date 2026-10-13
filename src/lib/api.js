@@ -1,4 +1,4 @@
-import { track, trackOnce, identifyUser, resetAnalytics, trackApiError } from './analytics';
+import { track, trackOnce, identifyUser, resetAnalytics, trackApiError, trackLead } from './analytics';
 import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkStatus';
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
@@ -4292,6 +4292,7 @@ class ApiClient {
       if (!response.ok) {
         throw new Error(data.message || data.error || 'Failed to submit demo request');
       }
+      trackLead(String(comment || '').includes('PARTNER APPLICATION') ? 'partner_form' : 'demo_form');
 
       return data;
     } catch (error) {

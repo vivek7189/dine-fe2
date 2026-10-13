@@ -3,10 +3,15 @@
 // drop off. Only IDs and roles are sent (no names, phones or emails). No-op when PostHog
 // isn't initialised (no key, server render, Electron desktop app).
 import posthog from 'posthog-js';
+import { gtagEvent, gtagAdsConversion, ADS_SIGNUP_LABEL, ADS_LEAD_LABEL } from './googleTag';
 
 const enabled = () => typeof window !== 'undefined' && !!window.__posthogInitialized && !window.electronAPI;
 
+// Funnel events that also go to Google (GA4 key events → Google Ads conversions).
+const GOOGLE_EVENTS = { restaurant_created: 'restaurant_created', subscription_payment_verified: 'purchase' };
+
 export function track(event, props = {}) {
+  if (GOOGLE_EVENTS[event]) gtagEvent(GOOGLE_EVENTS[event]);
   if (!enabled()) return;
   try { posthog.capture(event, props); } catch { /* analytics must never break the app */ }
 }
@@ -39,11 +44,22 @@ export function identifyUser(user) {
 export function trackAuth(resp, method) {
   if (!resp) return;
   identifyUser(resp.user);
+  if (resp.isNewUser) {
+    gtagEvent('sign_up', { method });
+    gtagAdsConversion(ADS_SIGNUP_LABEL);
+  }
   track(resp.isNewUser ? 'signup_completed' : 'login_completed', {
     method,
     is_new_user: !!resp.isNewUser,
     has_restaurants: resp.hasRestaurants ?? null,
   });
+}
+
+// Demo/contact request sent from the website (chatbot, demo forms).
+export function trackLead(source) {
+  gtagEvent('generate_lead', { source });
+  gtagAdsConversion(ADS_LEAD_LABEL);
+  track('demo_request_submitted', { source });
 }
 
 export function resetAnalytics() {

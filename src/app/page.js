@@ -1,6 +1,5 @@
 import HomePageClient from './HomePageClient';
 import SEOStructuredData from '../components/SEOStructuredData';
-import Script from 'next/script';
 import Link from 'next/link';
 
 // Force static generation for SEO - This ensures the page is pre-rendered at build time
@@ -177,17 +176,7 @@ export default function HomePage() {
         </nav>
       </div>
 
-      {/* Google Analytics - Home page only */}
-      <Script src="https://www.googletagmanager.com/gtag/js?id=G-ZW28WXCLTF" strategy="afterInteractive" />
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-ZW28WXCLTF');
-        `}
-      </Script>
-
+      {/* Google tag (GA4/Ads) is loaded site-wide from the root layout */}
       {/* Interactive client component */}
       <HomePageClient />
     </>
