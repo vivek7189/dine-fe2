@@ -5639,7 +5639,9 @@ _afterSuccess('completeOrder', () => {
   const rid = (typeof window !== 'undefined' && localStorage.getItem('selectedRestaurantId')) || 'unknown';
   trackOnce('first_order_completed', rid, { restaurant_id: rid });
 });
-_afterSuccess('verifyPayment', () => track('subscription_payment_verified'));
+// apiClient.verifyPayment verifies a CUSTOMER's bill payment at the POS, not a DineOpen
+// subscription (that is tracked on /billing), so it must not become a Google 'purchase'.
+_afterSuccess('verifyPayment', () => track('pos_payment_verified'));
 
 const apiClient = new ApiClient();
 

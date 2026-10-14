@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { getApiBase } from '@/lib/apiBase';
+import { track } from '@/lib/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaCreditCard,
@@ -113,6 +114,7 @@ function BillingContent() {
       if (data.success && data.status === 'active') {
         showNotification('success', data.message || 'Subscription activated!');
         notifyBillingGatePaid();
+        track('subscription_payment_verified', { gateway: 'dodo' });
         // Reload to get fresh data
         setTimeout(() => window.location.reload(), 1500);
       } else {
@@ -931,6 +933,7 @@ function BillingContent() {
       if (data.success) {
         showNotification('success', 'Payment successful! Your plan has been upgraded.');
         notifyBillingGatePaid();
+        track('subscription_payment_verified', { gateway: 'razorpay', plan_id: paymentData?.planId || null });
         // Immediately update subscription state so UI reflects the new plan
         const userId = user?.uid || user?.id;
         if (userId) {
