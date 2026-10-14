@@ -946,12 +946,12 @@ const OrderHistory = () => {
     if (!restaurantId) return;
     let alive = true;
     const pick = (bs) => { if (alive) setReprintAfterBillRoles(Array.isArray(bs?.reprintAfterBillRoles) ? bs.reprintAfterBillRoles : []); };
-    if (restaurant?.billingSettings) pick(restaurant.billingSettings);
+    // Another outlet's rule must never carry over: start from this outlet's own data (or none).
+    const saved = (() => { try { const x = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); return x?.id === restaurantId ? x.billingSettings : null; } catch { return null; } })();
+    pick((restaurant?.id === restaurantId && restaurant?.billingSettings) || saved);
     apiClient.getRestaurants()
       .then((res) => { const r = (res?.restaurants || []).find(x => x.id === restaurantId); if (r) pick(r.billingSettings || {}); })
-      .catch(() => {
-        try { const saved = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); if (saved?.id === restaurantId && saved.billingSettings) pick(saved.billingSettings); } catch {}
-      });
+      .catch(() => {});
     return () => { alive = false; };
   }, [restaurantId, restaurant]);
 
