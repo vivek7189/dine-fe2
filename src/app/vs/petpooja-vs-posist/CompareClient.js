@@ -487,7 +487,7 @@ export default function CompareClient() {
               },
               {
                 q: 'Which is cheaper — Petpooja or POSist?',
-                a: 'Petpooja is cheaper, starting at ₹1,000+/month. POSist uses custom enterprise pricing typically ranging from ₹2,000-5,000+/month depending on outlets and features needed.',
+                a: 'Petpooja is cheaper: it publishes a ₹12,000 + GST Base plan with paid add-ons. POSist uses custom enterprise pricing typically ranging from ₹2,000-5,000+/month depending on outlets and features needed.',
               },
               {
                 q: 'Is Petpooja or POSist better for Zomato and Swiggy integration?',

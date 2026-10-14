@@ -40,7 +40,7 @@ export default function KitchenPage() {
         "name": "Starter",
         "price": "20",
         "priceCurrency": "USD",
-        "description": "Perfect for small restaurants - $20/mo or ₹299/mo in India"
+        "description": "Perfect for small restaurants - $20/mo, or from ₹899/mo in India"
       },
       {
         "@type": "Offer",

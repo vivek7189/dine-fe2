@@ -34,7 +34,7 @@ export default function InventoryPage() {
     "url": "https://www.dineopen.com/products/inventory",
     "offers": [
       { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter plan" },
-      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter plan (India)" },
+      { "@type": "Offer", "price": "899", "priceCurrency": "INR", "description": "Starter plan (India)" },
       { "@type": "Offer", "price": "99", "priceCurrency": "USD", "description": "Pro plan" },
       { "@type": "Offer", "price": "1799", "priceCurrency": "INR", "description": "Pro plan (India)" }
     ],

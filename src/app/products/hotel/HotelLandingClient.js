@@ -53,7 +53,7 @@ export default function HotelLandingClient() {
   const faqs = [
     { q: 'What is DineOpen Hotel management software?', a: 'DineOpen Hotel is a cloud-based hotel management module within the DineOpen platform. It helps small hotels, boutique stays, and hotel-restaurants manage rooms, bookings, check-ins, housekeeping, room service, and invoicing from one dashboard. It is not a booking marketplace like Booking.com or OYO -- it is operational software for hotel staff.' },
     { q: 'Is this a full hotel booking engine?', a: 'No. DineOpen Hotel is property management software for day-to-day hotel operations. It manages your room inventory, guest check-ins, housekeeping schedules, and generates invoices. If you need an online booking marketplace, you would use a separate OTA platform.' },
-    { q: 'How much does it cost?', a: 'The Starter Plan starts at $20/month (Rs 299/month in India). The Pro Plan at $99/month (Rs 1,799/month in India) includes advanced features for larger properties. Both plans include the hotel management module along with the restaurant POS.' },
+    { q: 'How much does it cost?', a: 'The Starter Plan starts at $20/month (from ₹899/month in India). The Pro Plan at $99/month (Rs 1,799/month in India) includes advanced features for larger properties. Both plans include the hotel management module along with the restaurant POS.' },
     { q: 'Can I manage room service orders?', a: 'Yes. Room service is fully integrated with the restaurant POS. When a guest orders food from their room, the order is sent as a KOT (Kitchen Order Ticket) directly to the kitchen, just like a dine-in order. Charges are automatically added to the guest folio.' },
     { q: 'How do I add rooms to the system?', a: 'You can add rooms individually with details like room number, type, floor, and pricing. For faster setup, use the bulk add feature to create multiple rooms at once. You can also set room status and schedule maintenance periods.' },
     { q: 'Does it handle guest profiles?', a: 'Yes. During check-in, you can create guest profiles with contact details and ID information. Guest history is maintained so you can see past stays and preferences when a returning guest checks in.' },
@@ -215,7 +215,7 @@ export default function HotelLandingClient() {
                 <div style={{ marginBottom: '20px' }}>
                   <span style={{ fontSize: '36px', fontWeight: '800', color: '#111827' }}>$20</span>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>/month</span>
-                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Rs 299/month in India</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>from ₹899/month in India</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px' }}>
                   {['Room management', 'Booking calendar', 'Check-in / check-out', 'Invoice generation', 'Guest profiles', 'Restaurant POS included'].map((item, i) => (

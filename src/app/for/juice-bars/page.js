@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Juice Bars & Smoothie Shops India | DineOpen',
-  description: 'Best POS for juice bars, smoothie shops & fresh juice corners in India. Quick billing, customization handling, inventory for perishables, loyalty programs. From $20/month (₹299 in India).',
+  description: 'Best POS for juice bars, smoothie shops & fresh juice corners in India. Quick billing, customization handling, inventory for perishables, loyalty programs. From $20/month (from ₹899/month in India).',
   keywords: 'juice bar POS India, smoothie shop software, fresh juice billing, juice corner POS, fruit juice shop software, healthy drinks billing',
   openGraph: {
     title: 'POS Software for Juice Bars & Smoothie Shops India | DineOpen',

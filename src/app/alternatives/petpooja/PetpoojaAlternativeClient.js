@@ -8,7 +8,7 @@ import { useState } from 'react';
 
 const comparisonData = [
   { category: 'Pricing & Fees', features: [
-    { feature: 'Starting Price', dineopen: '$20/month (₹299 in India)', petpooja: '₹1,000+/month (custom quote)', winner: 'dineopen' },
+    { feature: 'Starting Price', dineopen: '$20/month (from ₹899/month in India)', petpooja: '₹12,000/yr + GST (Base) + add-ons', winner: 'dineopen' },
     { feature: 'Transaction Fees', dineopen: '0% — zero transaction fees', petpooja: '1.5-2% per transaction', winner: 'dineopen' },
     { feature: 'Pricing Transparency', dineopen: 'Published on website', petpooja: 'Contact sales for quote', winner: 'dineopen' },
     { feature: 'Free Trial', dineopen: '7 days, no credit card', petpooja: '14 days', winner: 'dineopen' },
@@ -51,11 +51,11 @@ export default function PetpoojaAlternativeClient() {
   const faqs = [
     {
       q: 'Is DineOpen really cheaper than Petpooja?',
-      a: 'Yes. DineOpen Starter plan starts at $20/month (₹299 in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja\'s base plan starts around ₹1,000/month, and inventory, CRM, and online ordering are paid add-ons. With zero transaction fees (vs Petpooja\'s 1.5-2%), a restaurant doing ₹5 lakh/month in transactions saves ₹7,500/month on fees alone — that\'s ₹90,000/year.'
+      a: 'Yes. DineOpen Starter plan starts at $20/month (from ₹899/month in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja\'s base plan starts around ₹1,000/month, and inventory, CRM, and online ordering are paid add-ons. With zero transaction fees (vs Petpooja\'s 1.5-2%), a restaurant doing ₹5 lakh/month in transactions saves ₹7,500/month on fees alone — that\'s ₹90,000/year.'
     },
     {
       q: 'What does DineOpen have that Petpooja doesn\'t?',
-      a: 'AI voice ordering in regional languages (Hindi, Tamil, Marathi, Telugu), AI-powered menu extraction from photos, built-in loyalty programs at no extra cost, and a modern interface that staff learn in 15 minutes. DineOpen also charges zero transaction fees — Petpooja charges 1.5-2% per transaction.'
+      a: 'AI voice ordering in regional languages (Hindi, Tamil, Marathi, Telugu), AI-powered menu extraction from photos, built-in loyalty programs at no extra cost, and a modern interface that staff learn in 15 minutes. DineOpen also charges zero transaction fees.'
     },
     {
       q: 'Can I switch from Petpooja to DineOpen easily?',
@@ -186,7 +186,7 @@ export default function PetpoojaAlternativeClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>The best Petpooja alternative in 2026 is DineOpen.</strong> It costs $20/month (₹299 in India) vs Petpooja&apos;s ₹1,000+/month, charges zero transaction fees (Petpooja charges 1.5-2%), and includes AI voice ordering, inventory management, loyalty programs, and QR ordering as standard — features Petpooja charges extra for as add-ons. DineOpen does not have Zomato/Swiggy integration (Petpooja does), so restaurants relying heavily on delivery aggregators should factor that in.
+            <strong>The best Petpooja alternative in 2026 is DineOpen.</strong> It costs $20/month (from ₹899/month in India) vs Petpooja&apos;s ₹12,000/year Base plan plus paid add-ons, charges zero transaction fees, and includes AI voice ordering, inventory management, loyalty programs, and QR ordering as standard — features Petpooja charges extra for as add-ons. DineOpen does not have Zomato/Swiggy integration (Petpooja does), so restaurants relying heavily on delivery aggregators should factor that in.
           </p>
         </div>
       </section>
@@ -196,7 +196,7 @@ export default function PetpoojaAlternativeClient() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             {[
-              { stat: '$20/mo', label: 'DineOpen starting price', sublabel: '₹299/mo in India · vs ₹1,000+/mo Petpooja' },
+              { stat: '$20/mo', label: 'DineOpen starting price', sublabel: 'From ₹899/mo in India · Petpooja Base ₹12,000/yr + add-ons' },
               { stat: '0%', label: 'Transaction fees', sublabel: 'vs 1.5-2% with Petpooja' },
               { stat: '₹90,000+', label: 'Annual savings on fees', sublabel: 'On ₹5 lakh/mo transactions' },
               { stat: '15 min', label: 'Setup time', sublabel: 'vs 1-3 days with Petpooja' },
@@ -227,7 +227,7 @@ export default function PetpoojaAlternativeClient() {
             <div style={{ background: '#f0fdf4', padding: '28px', borderRadius: '16px', border: '1px solid #bbf7d0' }}>
               <h3 style={{ color: '#166534', fontSize: '18px', fontWeight: '700', marginBottom: '16px' }}>Where DineOpen Wins</h3>
               <ul style={{ margin: 0, paddingLeft: '20px', color: '#374151', lineHeight: '2' }}>
-                <li><strong>Price:</strong> 70% cheaper with all features included</li>
+                <li><strong>Price:</strong> captain app, KDS and QR ordering included in one plan</li>
                 <li><strong>Zero fees:</strong> No per-transaction charges</li>
                 <li><strong>AI features:</strong> Voice ordering, menu extraction</li>
                 <li><strong>Modern UI:</strong> Staff learn in 15 minutes</li>
@@ -267,7 +267,7 @@ export default function PetpoojaAlternativeClient() {
               </div>
               <div style={{ padding: '32px', textAlign: 'center', background: '#f0fdf4' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#166534', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>With DineOpen</div>
-                <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>₹299/mo subscription</div>
+                <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>From ₹899/mo subscription</div>
                 <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>Everything included</div>
                 <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>Zero transaction fees</div>
                 <div style={{ fontSize: '36px', fontWeight: '800', color: '#16a34a', marginTop: '16px' }}>₹3,588/yr</div>
@@ -412,8 +412,8 @@ export default function PetpoojaAlternativeClient() {
             {[
               {
                 icon: '💰',
-                title: '70% Lower Cost',
-                desc: '$20/month (₹299 in India) vs Petpooja\'s ₹1,000+/month. Plus zero transaction fees. A restaurant doing ₹5L/month saves ₹1.5+ lakh per year.'
+                title: 'Lower Cost, All-in-One',
+                desc: 'DineOpen Growth is ₹8,988/year (or ₹899/month) with captain app, KDS and QR ordering included. Petpooja lists ₹12,000 + GST for its Base plan and ₹20,000 more for the Operations add-on that adds those features.'
               },
               {
                 icon: '🤖',

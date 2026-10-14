@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "Is DineOpen better than POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers AI voice ordering, AI chat assistant, and menu extraction at just $20/month (₹299 in India) compared to POSist's ₹2,000+/month. DineOpen also has zero setup fees and instant onboarding."
+        "text": "DineOpen offers AI voice ordering, AI chat assistant, and menu extraction at just $20/month (from ₹899/month in India) compared to POSist's quote-based pricing (not published). DineOpen also has zero setup fees and instant onboarding."
       }
     },
     {
@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $20/month (₹299 in India) versus POSist's ₹2,000+/month. DineOpen offers instant setup compared to POSist's lengthy onboarding process, saving both time and money."
+        "text": "DineOpen starts at $20/month (from ₹899/month in India) versus POSist's quote-based pricing (not published). DineOpen offers instant setup compared to POSist's lengthy onboarding process, saving both time and money."
       }
     },
     {

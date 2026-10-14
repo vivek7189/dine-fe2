@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Dhabas India | Highway & Roadside Restaurants | DineOpen',
-  description: 'Best POS for dhabas, highway restaurants & roadside eateries in India. Quick billing, driver loyalty, 24-hour operations, offline mode, GST compliance. From $20/month (₹299 in India).',
+  description: 'Best POS for dhabas, highway restaurants & roadside eateries in India. Quick billing, driver loyalty, 24-hour operations, offline mode, GST compliance. From $20/month (from ₹899/month in India).',
   keywords: 'dhaba POS India, highway restaurant software, roadside dhaba billing, truck driver loyalty, 24 hour restaurant POS, offline billing software',
   openGraph: {
     title: 'POS Software for Dhabas India | Highway Restaurant | DineOpen',

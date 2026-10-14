@@ -35,7 +35,7 @@ export default function OfflinePosPage() {
     url: 'https://www.dineopen.com/products/offline-pos',
     offers: [
       { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Free plan' },
-      { '@type': 'Offer', price: '299', priceCurrency: 'INR', description: 'Starter plan (India)' },
+      { '@type': 'Offer', price: '899', priceCurrency: 'INR', description: 'Starter plan (India)' },
       { '@type': 'Offer', price: '20', priceCurrency: 'USD', description: 'Starter plan' },
     ],
     featureList: [

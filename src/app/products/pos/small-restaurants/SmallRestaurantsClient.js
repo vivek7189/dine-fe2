@@ -18,7 +18,7 @@ export default function SmallRestaurantsClient() {
   }, []);
 
   const whySmall = [
-    { icon: <FaRupeeSign size={28} />, title: 'Starts at $20/mo', description: 'The Starter plan gives you a complete POS for just $20/mo ($99/mo for Pro). In India, that is ₹299/mo and ₹1,799/mo respectively. Zero transaction fees means you keep every rupee.' },
+    { icon: <FaRupeeSign size={28} />, title: 'Starts at $20/mo', description: 'The Starter plan gives you a complete POS for just $20/mo ($99/mo for Pro). In India, plans start at ₹899/mo (Pro ₹1,799/mo). Zero transaction fees means you keep every rupee.' },
     { icon: <FaMobileAlt size={28} />, title: 'No Hardware Needed', description: 'Use your existing phone or tablet. No need to buy expensive POS terminals, printers, or tablets. Open a browser, log in, and start taking orders. That is it.' },
     { icon: <FaClock size={28} />, title: 'Set Up in 30 Minutes', description: 'Sign up, add your menu items, set your tables, and start taking orders. No IT person needed. No installation. No configuration headaches. Demo mode lets you explore first.' },
     { icon: <FaShoppingCart size={28} />, title: 'All Order Types Included', description: 'Dine-in with table selection, takeaway, delivery, and room service - all included in the base plan. You do not pay extra for different order types.' },
@@ -45,7 +45,7 @@ export default function SmallRestaurantsClient() {
   ];
 
   const faqs = [
-    { q: 'How much does DineOpen POS cost for small restaurants?', a: 'The Starter plan is $20/mo (₹299/mo in India). It includes full POS with all order types, multi-payment support, receipt printing, and tax calculations. Zero transaction fees on all plans.' },
+    { q: 'How much does DineOpen POS cost for small restaurants?', a: 'The Starter plan is $20/mo (from ₹899/month in India). It includes full POS with all order types, multi-payment support, receipt printing, and tax calculations. Zero transaction fees on all plans.' },
     { q: 'Do I need to buy special hardware?', a: 'No. DineOpen runs in any web browser on your existing phone, tablet, or laptop. No proprietary terminals needed. For receipts, any standard Bluetooth or USB printer works.' },
     { q: 'How long does setup take?', a: 'Most small restaurants are running in under 30 minutes. Sign up, add menu items, configure tables, and start taking orders. Demo mode is available to explore first.' },
     { q: 'Is it too complex for a small restaurant?', a: 'No. The interface is intuitive and the core workflow - browse menu, take order, process payment - requires minimal training. Advanced features are available but not forced on you.' },
@@ -158,7 +158,7 @@ export default function SmallRestaurantsClient() {
                 <span style={{ fontSize: '48px', fontWeight: '800', color: '#111827' }}>$20</span>
                 <span style={{ fontSize: '18px', color: '#6b7280' }}>/mo</span>
               </div>
-              <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>₹299/mo in India</p>
+              <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>From ₹899/mo in India</p>
               <p style={{ fontSize: '14px', color: '#16a34a', fontWeight: '600' }}>Zero transaction fees</p>
             </div>
             <div>

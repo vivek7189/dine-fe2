@@ -41,7 +41,7 @@ export default function FreeBillingClient() {
     { feature: 'AI Ordering', dineopen: 'Included', square: 'Not available', zomato: 'Not available', spreadsheet: 'Not available' },
     { feature: 'Inventory Tracking', dineopen: 'Real-time alerts', square: 'Basic', zomato: 'Not included', spreadsheet: 'Manual' },
     { feature: 'Kitchen Display', dineopen: 'Included', square: 'Extra cost', zomato: 'Not included', spreadsheet: 'Not available' },
-    { feature: 'After Trial Price', dineopen: '$20/mo or ₹299/mo', square: 'Transaction fees forever', zomato: 'Commission forever', spreadsheet: 'Free but limited' },
+    { feature: 'After Trial Price', dineopen: '$20/mo or from ₹899/mo', square: 'Transaction fees forever', zomato: 'Commission forever', spreadsheet: 'Free but limited' },
   ];
 
   const audiences = [
@@ -143,7 +143,7 @@ export default function FreeBillingClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>DineOpen offers free restaurant billing software</strong> with a 7-day trial — no credit card required. You get cloud POS, AI voice ordering, GST-compliant billing, kitchen display system, inventory management, and analytics. After the trial, plans start at $20/month (₹299 in India) with zero transaction fees. Works on any phone, tablet, or laptop — no hardware purchase needed. Sign up takes 2 minutes.
+            <strong>DineOpen offers free restaurant billing software</strong> with a 7-day trial — no credit card required. You get cloud POS, AI voice ordering, GST-compliant billing, kitchen display system, inventory management, and analytics. After the trial, plans start at $20/month (from ₹899/month in India) with zero transaction fees. Works on any phone, tablet, or laptop — no hardware purchase needed. Sign up takes 2 minutes.
           </p>
         </div>
       </section>

@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "What is the main difference between DineOpen and Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen focuses on AI-powered features (voice ordering, chat assistant, menu extraction) at a lower price point (₹899/month with zero transaction fees). Petpooja is an established India-focused POS brand starting at ₹1,000+/month with 1.5-2% transaction fees but a larger local support team."
+        "text": "DineOpen focuses on AI-powered features (voice ordering, chat assistant, menu extraction) at a lower price point (₹899/month with zero transaction fees). Petpooja is an established India-focused POS brand with a ₹12,000 + GST Base plan plus paid add-ons and a larger local support team."
       }
     },
     {
@@ -90,7 +90,7 @@ const faqSchema = {
       "name": "Which restaurant POS has the most features for a single outlet in India?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "For a single outlet, DineOpen includes the most features at the lowest price: AI voice ordering, cloud POS, inventory management, loyalty programs, QR ordering, WhatsApp ordering, kitchen display system, and analytics — all for ₹899/month with zero transaction fees. Petpooja charges ₹1,000+/month for the base POS and requires paid add-ons for inventory and loyalty. POSist targets enterprise chains and is even more expensive."
+        "text": "For a single outlet, DineOpen includes the most features at the lowest price: AI voice ordering, cloud POS, inventory management, loyalty programs, QR ordering, WhatsApp ordering, kitchen display system, and analytics — all for ₹899/month with zero transaction fees. Petpooja lists ₹12,000 + GST for its Base plan (which includes inventory) and sells captain app, KDS and QR ordering in paid add-ons (CRM and loyalty are in a separate Marketing add-on). POSist targets enterprise chains and is even more expensive."
       }
     },
     {

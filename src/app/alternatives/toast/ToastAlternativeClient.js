@@ -4,7 +4,7 @@ import Link from 'next/link';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$10/month', toast: '$69+/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', toast: '$69+/month', winner: 'dineopen' },
   { feature: 'Transaction Fees', dineopen: '0%', toast: '2.49% + 15¢', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', toast: '✗', winner: 'dineopen' },
   { feature: 'Hardware Lock-in', dineopen: 'None', toast: 'Toast hardware only', winner: 'dineopen' },

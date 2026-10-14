@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "How much does a POS system cost for a small restaurant?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 7-day free trial for small restaurants. Paid plans start at just $20/month (approximately ₹299/month in India). There are no setup fees, no hardware costs, and no long-term contracts."
+        "text": "DineOpen offers a 7-day free trial for small restaurants. Paid plans start at just $20/month (from ₹899/month in India). There are no setup fees, no hardware costs, and no long-term contracts."
       }
     },
     {

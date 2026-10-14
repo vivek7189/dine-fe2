@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Catering Software India 2026 | Bulk Orders & GST Billing | DineOpen',
-  description: 'Best catering software in India for wedding, corporate & event catering. Bulk order management, advance bookings, GST invoicing, menu planning. Free 7-day trial. From $20/month (₹299 in India).',
+  description: 'Best catering software in India for wedding, corporate & event catering. Bulk order management, advance bookings, GST invoicing, menu planning. Free 7-day trial. From $20/month (from ₹899/month in India).',
   keywords: 'catering software India, catering management software, wedding catering billing, corporate catering POS, bulk order management, caterer billing software, event catering software, catering business software India',
   openGraph: {
     title: 'POS Software for Catering Business India | DineOpen',

@@ -89,7 +89,7 @@ export default function HotelPage() {
         "name": "How much does DineOpen Hotel cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Hotel starts at $20/month (Starter Plan) or Rs 299/month in India. The Pro Plan at $99/month (Rs 1,799/month in India) includes advanced features for larger properties."
+          "text": "DineOpen Hotel starts at $20/month (Starter Plan) or from ₹899/month in India. The Pro Plan at $99/month (Rs 1,799/month in India) includes advanced features for larger properties."
         }
       },
       {

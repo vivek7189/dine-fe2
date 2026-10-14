@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Canteens India | Corporate, School, Factory | DineOpen',
-  description: 'Best POS for canteens - corporate offices, schools, colleges, factories. Meal subscriptions, prepaid cards, subsidized billing, attendance integration. From $20/month (₹299 in India).',
+  description: 'Best POS for canteens - corporate offices, schools, colleges, factories. Meal subscriptions, prepaid cards, subsidized billing, attendance integration. From $20/month (from ₹899/month in India).',
   keywords: 'canteen POS India, corporate canteen software, school canteen billing, factory mess software, cafeteria management system, subsidized meal billing',
   openGraph: {
     title: 'POS Software for Canteens India | Corporate & School | DineOpen',

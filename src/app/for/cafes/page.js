@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "How much does cafe POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at just $20/month (approximately ₹299 in India). There is also a 7-day free trial available for small cafes to get started without any upfront cost."
+        "text": "DineOpen starts at just $20/month (from ₹899/month in India). There is also a 7-day free trial available for small cafes to get started without any upfront cost."
       }
     },
     {

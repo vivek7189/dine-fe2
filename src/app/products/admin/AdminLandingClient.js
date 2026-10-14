@@ -145,7 +145,7 @@ export default function AdminLandingClient() {
               <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', backgroundColor: 'white' }}>
                 <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Starter</h3>
                 <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.299/mo in India</div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>From ₹899/mo in India</div>
                 {['Staff management', 'Role assignment', 'Tax configuration', 'Printer setup'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}

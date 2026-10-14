@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Food Courts & Mall Food Zones India | DineOpen',
-  description: 'Best POS for mall food courts, food zones & multi-vendor setups. Centralized billing, token system, split payments, high-speed checkout. From $20/month (₹299 in India).',
+  description: 'Best POS for mall food courts, food zones & multi-vendor setups. Centralized billing, token system, split payments, high-speed checkout. From $20/month (from ₹899/month in India).',
   keywords: 'food court POS India, mall food court software, multi-vendor POS, food zone billing, token system POS, centralized food court billing',
   openGraph: {
     title: 'POS Software for Food Courts & Mall Food Zones India | DineOpen',

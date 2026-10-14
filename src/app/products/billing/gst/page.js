@@ -28,7 +28,7 @@ export default function GstPage() {
     "url": "https://www.dineopen.com/products/billing/gst",
     "offers": [
       { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter plan" },
-      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter plan (India)" }
+      { "@type": "Offer", "price": "899", "priceCurrency": "INR", "description": "Starter plan (India)" }
     ],
   };
 

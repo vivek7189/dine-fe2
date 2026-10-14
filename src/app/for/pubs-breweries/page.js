@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Pubs & Microbreweries India | Bar Management | DineOpen',
-  description: 'Best POS for pubs, microbreweries, bars & taprooms in India. Tab management, happy hour pricing, age verification, keg tracking, liquor inventory. From $20/month (₹299 in India).',
+  description: 'Best POS for pubs, microbreweries, bars & taprooms in India. Tab management, happy hour pricing, age verification, keg tracking, liquor inventory. From $20/month (from ₹899/month in India).',
   keywords: 'pub POS India, microbrewery software, bar billing system, taproom POS, liquor inventory management, happy hour pricing software',
   openGraph: {
     title: 'POS Software for Pubs & Microbreweries India | DineOpen',

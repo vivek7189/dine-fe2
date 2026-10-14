@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Sweet Shops & Mithai Stores India | DineOpen',
-  description: 'Best POS for sweet shops, mithai stores, namkeen shops & halwai in India. Weight-based billing, festival rush management, box packaging, GST invoicing. From $20/month (₹299 in India).',
+  description: 'Best POS for sweet shops, mithai stores, namkeen shops & halwai in India. Weight-based billing, festival rush management, box packaging, GST invoicing. From $20/month (from ₹899/month in India).',
   keywords: 'sweet shop POS India, mithai shop billing software, halwai POS system, namkeen shop software, Indian sweets billing, weight based billing POS',
   openGraph: {
     title: 'POS Software for Sweet Shops & Mithai Stores India | DineOpen',

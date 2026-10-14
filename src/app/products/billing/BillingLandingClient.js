@@ -60,7 +60,7 @@ export default function BillingLandingClient() {
   const faqs = [
     { q: 'Does DineOpen Billing support GST invoicing?', a: 'Yes. DineOpen generates fully GST-compliant invoices with HSN codes, GSTIN display, and automatic CGST/SGST/IGST calculation based on your restaurant location and customer state.' },
     { q: 'What payment methods does DineOpen Billing support?', a: 'DineOpen supports cash, credit/debit cards, UPI (Google Pay, PhonePe, Paytm), digital wallets, and payment gateways like Razorpay and Dodo. Split payments across multiple methods are also supported.' },
-    { q: 'How much does DineOpen Billing cost?', a: 'DineOpen Billing starts at $20/month (Rs.299/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans.' },
+    { q: 'How much does DineOpen Billing cost?', a: 'DineOpen Billing starts at $20/month (from ₹899/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans.' },
     { q: 'Can I generate tax reports for GST filing?', a: 'Yes. DineOpen maintains complete tax records and generates reports compatible with GSTR-1, GSTR-3B, and other GST filing formats. Export data in Excel or CSV for your accountant.' },
     { q: 'Does DineOpen support multiple tax rates?', a: 'Absolutely. Configure different GST rates (5%, 12%, 18%, 28%) per item category. The system handles service tax, packaging charges, and delivery charges separately with proper tax treatment.' },
     { q: 'Can I customize my invoice template?', a: 'Yes. Customize your invoice layout with your restaurant logo, address, FSSAI number, custom footer messages, and terms. Choose between thermal printer format and A4 format for different use cases.' },
@@ -165,7 +165,7 @@ export default function BillingLandingClient() {
               <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
                 <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Starter</h3>
                 <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.299/mo in India</div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>From ₹899/mo in India</div>
                 {['Bill generation', 'GST invoices', 'Tax calculation', 'UPI & card payments'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}

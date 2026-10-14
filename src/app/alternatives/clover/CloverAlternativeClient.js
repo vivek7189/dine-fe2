@@ -6,7 +6,7 @@ import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$10/month', competitor: '$14.95+/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', competitor: '$14.95+/month', winner: 'dineopen' },
   { feature: 'Transaction Fees', dineopen: '0%', competitor: '2.3-3.5%', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
   { feature: 'Hardware Required', dineopen: 'No - any device', competitor: 'Clover hardware only', winner: 'dineopen' },

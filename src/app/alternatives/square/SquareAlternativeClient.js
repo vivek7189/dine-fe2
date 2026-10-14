@@ -4,7 +4,7 @@ import Link from 'next/link';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$10/month', square: '$60+/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', square: '$60+/month', winner: 'dineopen' },
   { feature: 'Transaction Fees', dineopen: '0%', square: '2.6% + 10¢', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', square: '✗', winner: 'dineopen' },
   { feature: 'QR Code Menus', dineopen: '✓', square: '✓', winner: 'tie' },

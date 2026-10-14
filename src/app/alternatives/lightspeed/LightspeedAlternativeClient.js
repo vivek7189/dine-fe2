@@ -7,7 +7,7 @@ import InternalLinks from '../../../components/InternalLinks';
 import { FaCheck, FaTimes, FaArrowRight, FaDollarSign, FaMicrophone, FaGlobe, FaStore } from 'react-icons/fa';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$10/month', competitor: '$69-299/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', competitor: '$69-299/month', winner: 'dineopen' },
   { feature: 'Transaction Fees', dineopen: '0%', competitor: '2.6% + 10¢', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
   { feature: 'QR Code Menus', dineopen: '✓ Free', competitor: '✓ Extra cost', winner: 'dineopen' },
@@ -115,7 +115,7 @@ export default function LightspeedAlternativeClient() {
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaDollarSign size={32} style={{ color: '#059669', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>70% Lower Cost</h3>
-                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>Lightspeed costs $69-299/month. DineOpen is just $10/month with all features included. No hidden fees.</p>
+                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>Lightspeed costs $69-299/month. DineOpen is just $20/month with all features included. No hidden fees.</p>
               </div>
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaMicrophone size={32} style={{ color: '#4f46e5', marginBottom: '16px' }} />

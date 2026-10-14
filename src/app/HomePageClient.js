@@ -200,69 +200,24 @@ export default function LandingPage() {
   const currencySymbols = { USD: '$', GBP: '£', INR: '₹', CAD: 'C$', AUD: 'A$', SGD: 'S$', AED: 'AED', EUR: '€' };
   const currencyNames = { USD: 'USD', GBP: 'GBP', INR: 'INR', CAD: 'CAD', AUD: 'AUD', SGD: 'SGD', AED: 'AED', EUR: 'EUR' };
 
+  // Same prices as /pricing (src/app/pricing/PricingClient.js). India shows Growth + Pro only
+  // (Starter isn't offered publicly in India). Currencies without their own table use USD.
   const priceTable = {
-    INR: {
-      symbol: '₹',
-      starter:  { monthly: 299,  annual: 250,  regular: 999 },
-      growth:   { monthly: 899,  annual: 749,  regular: 1999 },
-      pro:      { monthly: 1799, annual: 1499, regular: 3999 },
-    },
-    USD: {
-      symbol: '$',
-      starter:  { monthly: 10, annual: 8,  regular: 29 },
-      growth:   { monthly: 22, annual: 18, regular: 59 },
-      pro:      { monthly: 45, annual: 37, regular: 119 },
-    },
-    GBP: {
-      symbol: '£',
-      starter:  { monthly: 8,  annual: 7,  regular: 24 },
-      growth:   { monthly: 18, annual: 15, regular: 49 },
-      pro:      { monthly: 36, annual: 30, regular: 99 },
-    },
-    CAD: {
-      symbol: 'C$',
-      starter:  { monthly: 14, annual: 11, regular: 39 },
-      growth:   { monthly: 29, annual: 24, regular: 79 },
-      pro:      { monthly: 59, annual: 49, regular: 159 },
-    },
-    AUD: {
-      symbol: 'A$',
-      starter:  { monthly: 15, annual: 12, regular: 44 },
-      growth:   { monthly: 33, annual: 28, regular: 89 },
-      pro:      { monthly: 65, annual: 55, regular: 179 },
-    },
-    AED: {
-      symbol: 'AED ',
-      starter:  { monthly: 37,  annual: 29,  regular: 109 },
-      growth:   { monthly: 79,  annual: 65,  regular: 219 },
-      pro:      { monthly: 159, annual: 135, regular: 439 },
-    },
-    SGD: {
-      symbol: 'S$',
-      starter:  { monthly: 14, annual: 11, regular: 39 },
-      growth:   { monthly: 29, annual: 24, regular: 79 },
-      pro:      { monthly: 59, annual: 49, regular: 159 },
-    },
-    EUR: {
-      symbol: '€',
-      starter:  { monthly: 9,  annual: 7,  regular: 27 },
-      growth:   { monthly: 19, annual: 16, regular: 54 },
-      pro:      { monthly: 39, annual: 32, regular: 109 },
-    },
+    INR: { symbol: '₹',    growth: { monthly: 899, annual: 749 }, pro: { monthly: 1799, annual: 1499 } },
+    USD: { symbol: '$',    starter: { monthly: 20, annual: 18 }, growth: { monthly: 50, annual: 46 }, pro: { monthly: 99, annual: 83 } },
+    GBP: { symbol: '£',    starter: { monthly: 16, annual: 14 }, growth: { monthly: 40, annual: 37 }, pro: { monthly: 79, annual: 67 } },
+    AED: { symbol: 'AED ', starter: { monthly: 75, annual: 66 }, growth: { monthly: 185, annual: 168 }, pro: { monthly: 365, annual: 306 } },
   };
-  const fmt = (n) => priceTable[currency].symbol + n.toLocaleString('en-IN');
-  // For INR annual: show yearly total directly (₹3,000/year instead of ₹250/month)
-  const showYearlyTotal = currency === 'INR' && billingCycle === 'annual';
-  const getPlanPrice = (type) => showYearlyTotal ? priceTable[currency][type].annual * 12 : priceTable[currency][type][billingCycle];
-  const getRegularPrice = (type) => showYearlyTotal ? priceTable[currency][type].regular * 12 : priceTable[currency][type].regular;
+  const priceCurrency = priceTable[currency] ? currency : 'USD';
+  const fmt = (n) => priceTable[priceCurrency].symbol + n.toLocaleString('en-IN');
+  // For INR annual: show yearly total directly (₹8,988/year instead of ₹749/month)
+  const showYearlyTotal = priceCurrency === 'INR' && billingCycle === 'annual';
+  const getPlanPrice = (type) => showYearlyTotal ? priceTable[priceCurrency][type].annual * 12 : priceTable[priceCurrency][type][billingCycle];
   const pricePeriod = showYearlyTotal ? 'per year' : 'per month';
-  const plans = [
+  const allPlans = [
     {
       name: "Starter",
       type: "starter",
-      price: fmt(getPlanPrice('starter')),
-      regularPrice: fmt(getRegularPrice('starter')),
-      discount: Math.round((1 - getPlanPrice('starter') / getRegularPrice('starter')) * 100),
       period: pricePeriod,
       subPrice: 'For single-outlet restaurants',
       features: ["Complete Cloud POS", "QR Digital Menu & Ordering", "KOT Printing", "Unlimited Tables & Staff", "Basic Inventory & Reports", "1 Outlet"],
@@ -272,21 +227,15 @@ export default function LandingPage() {
     {
       name: "Growth",
       type: "growth",
-      price: fmt(getPlanPrice('growth')),
-      regularPrice: fmt(getRegularPrice('growth')),
-      discount: Math.round((1 - getPlanPrice('growth') / getRegularPrice('growth')) * 100),
       period: pricePeriod,
       subPrice: 'For growing restaurants',
-      features: ["Everything in Starter", "AI Voice Ordering 🎤", "AI Menu Generator & Insights", "Captain App + Kitchen Display", "Advanced Inventory & Recipes", "Customer Loyalty & WhatsApp", "Up to 2 Outlets"],
+      features: [priceCurrency === 'INR' ? "Complete Cloud POS, QR Menu & KOT" : "Everything in Starter", "AI Voice Ordering 🎤", "AI Menu Generator & Insights", "Captain App + Kitchen Display", "Advanced Inventory & Recipes", "Customer Loyalty & WhatsApp", "Up to 2 Outlets"],
       button: "Get Started",
       popular: true
     },
     {
       name: "Pro",
       type: "pro",
-      price: fmt(getPlanPrice('pro')),
-      regularPrice: fmt(getRegularPrice('pro')),
-      discount: Math.round((1 - getPlanPrice('pro') / getRegularPrice('pro')) * 100),
       period: pricePeriod,
       subPrice: 'For restaurant chains',
       features: ["Everything in Growth", "Chain Dashboard & HQ View", "Cross-Outlet Analytics", "Centralized Menu Management", "Priority 24/7 Support", "Up to 5 Outlets"],
@@ -294,6 +243,9 @@ export default function LandingPage() {
       popular: false
     }
   ];
+  const plans = allPlans
+    .filter((plan) => priceTable[priceCurrency][plan.type])
+    .map((plan) => ({ ...plan, price: fmt(getPlanPrice(plan.type)) }));
 
   const processSteps = [
     { icon: <FaCamera size={24} /> },
@@ -2241,7 +2193,7 @@ export default function LandingPage() {
             }}>
               {[
                 { key: 'monthly', label: 'Monthly' },
-                { key: 'annual', label: 'Annual', badge: 'Save 17%' }
+                { key: 'annual', label: 'Annual', badge: 'Save up to 17%' }
               ].map((opt) => {
                 const active = billingCycle === opt.key;
                 return (
@@ -2293,7 +2245,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${plans.length}, 1fr)`, gap: '24px', maxWidth: plans.length < 3 ? '820px' : undefined, margin: '0 auto' }}>
             {plans.map((plan, i) => (
               <div key={i} style={{
                 padding: '40px',
@@ -2330,7 +2282,6 @@ export default function LandingPage() {
                   <span style={{ fontSize: '16px', fontWeight: '500', opacity: 0.7 }}>/{plan.period.replace('per ', '')}</span>
                 </div>
                 <p style={{ opacity: 0.7, marginBottom: '8px', fontSize: '15px' }}>{plan.subPrice}</p>
-                <p style={{ fontSize: '12px', color: plan.popular ? '#6ee7b7' : '#16a34a', fontWeight: '600', marginBottom: '4px' }}>Lock this price forever. Pay once, keep your account active until you start. No recurring billing.</p>
                 <p style={{ fontSize: '12px', color: plan.popular ? 'rgba(255,255,255,0.65)' : '#6b7280', fontWeight: '500', marginBottom: '24px' }}>Start without any credit card • Zero transaction fees</p>
                 <button
                   onClick={handleLogin}

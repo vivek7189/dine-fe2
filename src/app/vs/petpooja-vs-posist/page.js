@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Which is cheaper — Petpooja or POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Petpooja is generally cheaper with plans starting at ₹1,000+/month plus 1.5-2% transaction fees. POSist (Restroworks) uses custom enterprise pricing typically ranging from ₹2,000-5,000+/month depending on the number of outlets and features required. For single-outlet restaurants, Petpooja is the more affordable option."
+        "text": "Petpooja is generally cheaper: it publishes a ₹12,000 + GST Base plan with paid add-ons. POSist (Restroworks) uses custom enterprise pricing typically ranging from ₹2,000-5,000+/month depending on the number of outlets and features required. For single-outlet restaurants, Petpooja is the more affordable option."
       }
     },
     {

@@ -7,7 +7,7 @@ import InternalLinks from '../../../components/InternalLinks';
 import { FaCloud, FaMobileAlt, FaMicrophone, FaGlobe, FaArrowRight } from 'react-icons/fa';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$10/month', competitor: '$69-399/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', competitor: '$69-399/month', winner: 'dineopen' },
   { feature: 'System Type', dineopen: 'Cloud-based', competitor: 'Local server + Cloud', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
   { feature: 'Device Requirement', dineopen: 'Any device', competitor: 'iPad only', winner: 'dineopen' },

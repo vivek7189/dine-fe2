@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS for Small Restaurants | Affordable POS System | DineOpen',
-  description: 'Affordable POS system for small restaurants starting at $20/mo (₹299 in India). Easy setup, no hardware required, essential features included. Perfect for restaurants, cafes, and food trucks with limited budgets.',
+  description: 'Affordable POS system for small restaurants starting at $20/mo (from ₹899/month in India). Easy setup, no hardware required, essential features included. Perfect for restaurants, cafes, and food trucks with limited budgets.',
   keywords: 'POS for small restaurants, affordable restaurant POS, cheap POS system, small restaurant POS software, budget restaurant POS, simple POS system',
   openGraph: {
     title: 'POS for Small Restaurants | Affordable POS System | DineOpen',
@@ -43,7 +43,7 @@ export default function SmallRestaurantsPosPage() {
         "name": "How much does DineOpen POS cost for small restaurants?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Starter plan costs $20/mo (₹299/mo in India). It includes full POS functionality with all order types, multi-payment support, receipt printing, and tax calculations. Zero transaction fees - you keep every dollar you earn."
+          "text": "DineOpen Starter plan costs $20/mo (from ₹899/month in India). It includes full POS functionality with all order types, multi-payment support, receipt printing, and tax calculations. Zero transaction fees - you keep every dollar you earn."
         }
       },
       {

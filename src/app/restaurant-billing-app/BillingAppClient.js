@@ -86,7 +86,7 @@ export default function BillingAppClient() {
     },
     {
       question: 'Is there a free trial?',
-      answer: 'Yes. DineOpen offers a free 7-day trial with full access to all features. No credit card required. After the trial, pricing starts at $20/month internationally or Rs 299/month in India.'
+      answer: 'Yes. DineOpen offers a free 7-day trial with full access to all features. No credit card required. After the trial, pricing starts at $20/month internationally or from ₹899/month in India.'
     },
   ];
 
@@ -185,7 +185,7 @@ export default function BillingAppClient() {
               fontWeight: '600',
               marginBottom: '32px'
             }}>
-              Starting at just $20/month internationally | Rs 299/month in India | 7-day free trial
+              Starting at just $20/month internationally | from ₹899/month in India | 7-day free trial
             </p>
 
             <div style={{
@@ -321,7 +321,7 @@ export default function BillingAppClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>The best restaurant billing app in 2026 is DineOpen</strong> — it turns any phone, tablet, or laptop into a full billing system. Generate bills in 3 seconds, accept UPI/card/cash, manage tables, send orders to the kitchen, and track inventory. Starts at $20/month (₹299 in India) with zero transaction fees and a 7-day free trial. Works offline, supports GST billing, and requires no hardware purchase.
+            <strong>The best restaurant billing app in 2026 is DineOpen</strong> — it turns any phone, tablet, or laptop into a full billing system. Generate bills in 3 seconds, accept UPI/card/cash, manage tables, send orders to the kitchen, and track inventory. Starts at $20/month (from ₹899/month in India) with zero transaction fees and a 7-day free trial. Works offline, supports GST billing, and requires no hardware purchase.
           </p>
         </div>
       </section>
@@ -666,9 +666,9 @@ export default function BillingAppClient() {
                 INDIA
               </div>
               <div style={{ fontSize: '48px', fontWeight: '800', color: '#111827', marginBottom: '4px' }}>
-                Rs 299
+                Rs 899
               </div>
-              <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '20px' }}>per month</div>
+              <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '20px' }}>per month (or Rs 8,988/year)</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
                 {['All billing features', 'Unlimited orders', 'KOT printing', 'Multi-device access', '7-day free trial'].map((item, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -40,7 +40,7 @@ export default function AiPage() {
         "name": "Starter",
         "price": "20",
         "priceCurrency": "USD",
-        "description": "$20/mo or ₹299/mo in India"
+        "description": "$20/mo, or from ₹899/mo in India"
       },
       {
         "@type": "Offer",

@@ -126,7 +126,7 @@ export default function HomePage() {
         </nav>
         <h2>Pricing</h2>
         <p>
-          DineOpen Starter plan starts at $20 per month ($215/year) internationally and ₹299 per month in India.
+          DineOpen Starter plan starts at $20 per month ($215/year) internationally or from ₹899/month in India.
           Pro plan for restaurant chains at $99 per month ($999/year). All plans include a 7-day free trial
           with no credit card required and zero transaction fees.
         </p>

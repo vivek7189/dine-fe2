@@ -208,7 +208,7 @@ export default function PosLandingClient() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '32px' }}>
               {[
-                { plan: 'Starter', price: '$20', inr: '₹299', period: '/mo', desc: 'Everything a single-location restaurant needs to get started.', items: ['Full POS with all order types', 'Multi-payment support', 'Receipt printing', 'Tax calculations', 'Demo mode'] },
+                { plan: 'Starter', price: '$20', inr: '', period: '/mo', desc: 'Everything a single-location restaurant needs to get started.', items: ['Full POS with all order types', 'Multi-payment support', 'Receipt printing', 'Tax calculations', 'Demo mode'] },
                 { plan: 'Pro', price: '$99', inr: '₹1,799', period: '/mo', desc: 'For growing restaurants and multi-location businesses.', items: ['Everything in Starter', 'Multi-location management', 'Real-time Pusher updates', 'Saved orders queue', 'Priority support'], highlight: true },
               ].map((p, i) => (
                 <div key={i} style={{ background: 'white', padding: '40px 32px', borderRadius: '16px', border: p.highlight ? '2px solid #ef4444' : '1px solid #e5e7eb', position: 'relative' }}>
@@ -218,7 +218,7 @@ export default function PosLandingClient() {
                     <span style={{ fontSize: '42px', fontWeight: '800', color: '#111827' }}>{p.price}</span>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>{p.period}</span>
                   </div>
-                  <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>{p.inr}/mo in India</p>
+                  {p.inr && <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>{p.inr}/mo in India</p>}
                   <p style={{ fontSize: '14px', color: '#16a34a', fontWeight: '600', marginBottom: '20px' }}>Zero transaction fees</p>
                   <p style={{ fontSize: '15px', color: '#374151', marginBottom: '24px', lineHeight: 1.6 }}>{p.desc}</p>
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px' }}>

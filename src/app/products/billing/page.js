@@ -36,7 +36,7 @@ export default function BillingPage() {
     "url": "https://www.dineopen.com/products/billing",
     "offers": [
       { "@type": "Offer", "price": "20", "priceCurrency": "USD", "description": "Starter plan - monthly" },
-      { "@type": "Offer", "price": "299", "priceCurrency": "INR", "description": "Starter plan - monthly (India)" },
+      { "@type": "Offer", "price": "899", "priceCurrency": "INR", "description": "Starter plan - monthly (India)" },
       { "@type": "Offer", "price": "99", "priceCurrency": "USD", "description": "Pro plan - monthly" },
       { "@type": "Offer", "price": "1799", "priceCurrency": "INR", "description": "Pro plan - monthly (India)" }
     ],
@@ -76,7 +76,7 @@ export default function BillingPage() {
         "name": "How much does DineOpen Billing cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Billing starts at $20/month (Rs.299/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans."
+          "text": "DineOpen Billing starts at $20/month (from ₹899/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans."
         }
       },
       {

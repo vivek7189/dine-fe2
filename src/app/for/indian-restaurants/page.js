@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does Indian restaurant POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $20/month (approximately ₹299 in India) with a 7-day free trial. GST billing and multi-language support are included in all plans."
+        "text": "DineOpen starts at $20/month (from ₹899/month in India) with a 7-day free trial. GST billing and multi-language support are included in all plans."
       }
     },
     {

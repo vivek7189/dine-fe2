@@ -39,7 +39,7 @@ const faqSchema = {
       "name": "How much does an ice cream POS system cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen ice cream POS system starts at $20/month (₹299/month in India) with all features included — scoop billing, combo offers, loyalty programs, and seasonal menus. No transaction fees. The Pro plan at $99/month supports unlimited locations for ice cream chains."
+        "text": "DineOpen ice cream POS system starts at $20/month (from ₹899/month in India) with all features included — scoop billing, combo offers, loyalty programs, and seasonal menus. No transaction fees. The Pro plan at $99/month supports unlimited locations for ice cream chains."
       }
     },
     {
@@ -87,7 +87,7 @@ const faqSchema = {
       "name": "What is the best ice cream shop management software for small businesses?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "For small ice cream shops, DineOpen is the best management software starting at just $20/month (₹299/month in India). It includes billing, inventory tracking, expiry monitoring, loyalty programs, and QR ordering — all in one app with no add-on fees. Unlike enterprise solutions, DineOpen is designed to be simple enough that new staff can learn it in 15 minutes."
+        "text": "For small ice cream shops, DineOpen is the best management software starting at just $20/month (from ₹899/month in India). It includes billing, inventory tracking, expiry monitoring, loyalty programs, and QR ordering — all in one app with no add-on fees. Unlike enterprise solutions, DineOpen is designed to be simple enough that new staff can learn it in 15 minutes."
       }
     },
     {

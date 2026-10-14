@@ -90,7 +90,7 @@ export default function QrMenuPage() {
         "name": "Is a QR code menu free with DineOpen?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "QR menu generation is included in all DineOpen plans starting at $20/month (₹299/month in India). No extra charges for QR codes, hosting, or customer views."
+          "text": "QR menu generation is included in all DineOpen plans starting at $20/month (from ₹899/month in India). No extra charges for QR codes, hosting, or customer views."
         }
       }
     ]
