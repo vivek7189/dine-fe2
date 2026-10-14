@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Kolkata | Billing System | DineOpen',
-  description: 'Restaurant POS software in Kolkata. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 350+ Kolkata restaurants. Start free trial.',
+  description: 'Restaurant POS software in Kolkata. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 350+ Kolkata restaurants. Start free trial.',
   keywords: 'restaurant POS Kolkata, billing software Kolkata, restaurant software West Bengal, GST billing Kolkata, cloud POS Kolkata, QR menu Kolkata, sweet shop POS, restaurant management Kolkata',
   openGraph: {
     title: 'Best Restaurant POS Software in Kolkata | DineOpen',
-    description: 'AI-powered restaurant POS for Kolkata. GST compliant billing, QR menus, delivery integration.',
+    description: 'AI-powered restaurant POS for Kolkata. GST compliant billing, QR menus, delivery order tracking.',
     url: 'https://www.dineopen.com/pos/kolkata',
     siteName: 'DineOpen',
     type: 'website',
@@ -29,7 +29,7 @@ export default function KolkataPOSPage() {
     highlights: [
       'Bengali language voice ordering support',
       'GST-compliant billing for West Bengal',
-      'Swiggy & Zomato integration for Park Street',
+      'Swiggy & Zomato sales tracking for Park Street',
       'Sweet shop (Mishti) inventory management',
       'Durga Puja rush hour handling',
       'Roll & street food quick billing',
@@ -45,7 +45,7 @@ export default function KolkataPOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Kolkata",
-    "description": "Best restaurant POS software for Kolkata restaurants with Bengali language support, GST billing, and delivery integration.",
+    "description": "Best restaurant POS software for Kolkata restaurants with Bengali language support, GST billing, and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

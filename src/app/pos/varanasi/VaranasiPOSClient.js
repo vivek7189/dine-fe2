@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaLeaf, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaGlobe, FaWater, FaStore } from 'react-icons/fa';
+import { FaLeaf, FaCheck, FaMapMarkerAlt, FaGlobe, FaWater, FaStore } from 'react-icons/fa';
 
 export default function VaranasiPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function VaranasiPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#fef2f2' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#dc2626', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;Our ghat-view cafe gets Japanese, Korean, and Western tourists daily. DineOpen&apos;s multi-language QR menu solved our communication problems. The pure veg tagging is perfect for our sattvic kitchen.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Suresh Pandey</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Ganga View Cafe, Assi Ghat, Varanasi</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

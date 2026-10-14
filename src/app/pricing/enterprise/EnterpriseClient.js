@@ -55,7 +55,7 @@ const plans = [
       'QR Menu & Table Ordering',
       'Unlimited Users & Terminals',
       'Inventory with Recipe Management',
-      'Aggregator Integration (Swiggy/Zomato)',
+      'Aggregator Sales Tracking (Swiggy/Zomato)',
       'Dedicated WhatsApp Support Channel',
     ],
   },

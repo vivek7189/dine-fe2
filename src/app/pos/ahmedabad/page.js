@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Ahmedabad | Billing System | DineOpen',
-  description: 'Restaurant POS software in Ahmedabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 300+ Ahmedabad restaurants. Start free trial.',
+  description: 'Restaurant POS software in Ahmedabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 300+ Ahmedabad restaurants. Start free trial.',
   keywords: 'restaurant POS Ahmedabad, billing software Ahmedabad, restaurant software Gujarat, GST billing Ahmedabad, cloud POS Ahmedabad, QR menu Ahmedabad, thali restaurant POS, restaurant management Ahmedabad',
   openGraph: {
     title: 'Best Restaurant POS Software in Ahmedabad | DineOpen',
-    description: 'AI-powered restaurant POS for Ahmedabad. GST compliant billing, QR menus, delivery integration.',
+    description: 'AI-powered restaurant POS for Ahmedabad. GST compliant billing, QR menus, delivery order tracking.',
     url: 'https://www.dineopen.com/pos/ahmedabad',
     siteName: 'DineOpen',
     type: 'website',
@@ -29,7 +29,7 @@ export default function AhmedabadPOSPage() {
     highlights: [
       'Gujarati language voice ordering support',
       'GST-compliant billing for Gujarat',
-      'Swiggy & Zomato integration for SG Highway',
+      'Swiggy & Zomato sales tracking for SG Highway',
       'Unlimited thali item tracking',
       'Jain food filtering & labeling',
       'Fasting menu management features',
@@ -45,7 +45,7 @@ export default function AhmedabadPOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Ahmedabad",
-    "description": "Best restaurant POS software for Ahmedabad restaurants with Gujarati language support, GST billing, and delivery integration.",
+    "description": "Best restaurant POS software for Ahmedabad restaurants with Gujarati language support, GST billing, and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

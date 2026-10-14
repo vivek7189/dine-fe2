@@ -233,7 +233,7 @@ export default function PricingClient() {
         'Outlet-wise profit & loss',
         'Franchise-ready architecture',
         'API access for custom integrations',
-        'Aggregator integration (Swiggy / Zomato sync)',
+        'Aggregator sales tracking (Swiggy / Zomato) in reports',
         'Custom user roles & permissions',
         'Dedicated onboarding session',
         'Priority 24/7 support',
@@ -285,7 +285,7 @@ export default function PricingClient() {
       { name: 'Kitchen Display System (KDS)', starter: false, growth: true, pro: true, enterprise: true },
       { name: 'Online ordering website (branded)', starter: false, growth: true, pro: true, enterprise: true },
       { name: 'WhatsApp ordering bot', starter: false, growth: true, pro: true, enterprise: true },
-      { name: 'Aggregator integration (Swiggy/Zomato)', starter: false, growth: false, pro: true, enterprise: true },
+      { name: 'Aggregator sales tracking (Swiggy/Zomato)', starter: false, growth: false, pro: true, enterprise: true },
     ]},
     { category: 'Inventory & Stock', features: [
       { name: 'Basic inventory tracking', starter: true, growth: true, pro: true, enterprise: true },

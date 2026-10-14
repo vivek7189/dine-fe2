@@ -42,10 +42,10 @@ export default function USAPOSPage() {
       'Zero transaction fees (save vs Square 2.6%)',
       'AI voice ordering in English & Spanish',
       'Works on any device - no hardware lock-in',
-      'DoorDash, Uber Eats, Grubhub ready',
+      'DoorDash, Uber Eats & Grubhub sales tracked in reports',
       'Month-to-month billing, no contracts',
     ],
-    deliveryPlatforms: 'Connect with DoorDash, Uber Eats & Grubhub',
+    deliveryPlatforms: 'Track DoorDash, Uber Eats & Grubhub orders in your reports',
     localKeywords: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami', 'San Francisco', 'Seattle', 'Austin', 'Denver', 'Boston'],
     complianceInfo: [
       { title: 'State Sales Tax', desc: 'Automatic sales tax calculation for all 50 states. Handles complex rules like food vs prepared food rates.' },

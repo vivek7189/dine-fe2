@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best POS for Cloud Kitchen & Ghost Kitchen 2026 | DineOpen',
-  description: 'Best POS system for cloud kitchens and ghost kitchens. Multi-brand management, delivery platform integration, virtual brand support. 10-30% profit margins. Free trial.',
+  description: 'Best POS system for cloud kitchens and ghost kitchens. Multi-brand management, delivery order tracking by channel, virtual brand support. 10-30% profit margins. Free trial.',
   keywords: 'best POS cloud kitchen, ghost kitchen POS system, cloud kitchen software, virtual restaurant POS, dark kitchen POS, cloud kitchen management, multi-brand kitchen POS, delivery kitchen POS',
   openGraph: {
     title: 'Best POS for Cloud Kitchen & Ghost Kitchen 2026 | DineOpen',
-    description: 'Run multiple brands from one kitchen. Manage all delivery platforms on one screen. DineOpen POS built for cloud kitchens.',
+    description: 'Run multiple brands from one kitchen. Track every delivery channel in one POS. DineOpen POS built for cloud kitchens.',
     url: 'https://www.dineopen.com/solutions/cloud-kitchen-pos',
     siteName: 'DineOpen',
     images: [
@@ -44,7 +44,7 @@ const softwareSchema = {
     "priceCurrency": "USD",
     "priceValidUntil": "2026-12-31"
   },
-  "description": "Best POS system for cloud kitchens and ghost kitchens. Multi-brand management, delivery platform integration, and virtual brand support."
+  "description": "Best POS system for cloud kitchens and ghost kitchens. Multi-brand management, delivery order tracking by channel, and virtual brand support."
 };
 
 const faqSchema = {
@@ -56,7 +56,7 @@ const faqSchema = {
       "name": "What is the best POS system for a cloud kitchen?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is the best POS for cloud kitchens because it supports multi-brand menu management, integrates with all major delivery platforms (Talabat, DoorDash, Uber Eats, Zomato, Swiggy), and provides per-brand analytics — all for just $10/month with no contracts."
+        "text": "DineOpen is the best POS for cloud kitchens because it supports multi-brand menu management, receives Talabat orders automatically, tracks orders from other delivery apps by channel, and provides per-brand analytics — all from $20/month with no contracts."
       }
     },
     {
@@ -72,7 +72,7 @@ const faqSchema = {
       "name": "Does DineOpen integrate with delivery apps like Uber Eats and DoorDash?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen integrates with all major delivery platforms including Uber Eats, DoorDash, Talabat, Deliveroo, Zomato, and Swiggy. All orders appear on one consolidated screen so you never miss an order."
+        "text": "Talabat orders arrive in DineOpen automatically. For Uber Eats, DoorDash, Deliveroo, Zomato and Swiggy, there is no automatic order sync today: staff record those orders on the POS and tag the channel, so each platform's sales show separately in reports. DineOpen also gives you commission-free direct ordering (QR, your own ordering website and WhatsApp)."
       }
     },
     {
@@ -80,7 +80,7 @@ const faqSchema = {
       "name": "How much does a cloud kitchen POS cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs just $10/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 7-day trial."
+        "text": "DineOpen starts at $20/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 7-day trial."
       }
     },
     {

@@ -223,7 +223,7 @@ export default function MultiRestaurantClient() {
                 'Loyalty & Rewards',
                 'Customer CRM',
                 'Analytics & Reports',
-                'Zomato/Swiggy Integration',
+                'Zomato/Swiggy Sales Tracking',
                 'WhatsApp Notifications',
                 'Unlimited Staff Accounts',
                 '24/7 Support',

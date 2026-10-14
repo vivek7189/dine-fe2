@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS System USA | Toast & Square Alternative | DineOpen',
-  description: 'Modern restaurant POS for US restaurants — state sales tax, IRS tip reporting, ADA-ready, DoorDash/Uber Eats/Grubhub, Apple Pay & tap-to-pay. Zero transaction fees, no contracts. A cheaper Toast & Square alternative from $10/mo.',
+  description: 'Modern restaurant POS for US restaurants — state sales tax, IRS tip reporting, ADA-ready, commission-free online ordering, Apple Pay & tap-to-pay. Zero transaction fees, no contracts. A cheaper Toast & Square alternative from $20/mo.',
   keywords: 'restaurant POS USA, restaurant POS system, best restaurant POS, Toast alternative, Square alternative, free restaurant POS USA, restaurant point of sale, US restaurant software, POS with sales tax',
   alternates: {
     canonical: 'https://www.dineopen.com/usa',
@@ -13,7 +13,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'Restaurant POS System USA | DineOpen',
-    description: 'A modern Toast & Square alternative for US restaurants. Sales tax, tip reporting, ADA-ready, delivery integrations. Zero transaction fees from $10/mo.',
+    description: 'A modern Toast & Square alternative for US restaurants. Sales tax, tip reporting, ADA-ready, commission-free online ordering. Zero transaction fees from $20/mo.',
     url: 'https://www.dineopen.com/usa',
     siteName: 'DineOpen',
     locale: 'en_US',
@@ -28,7 +28,7 @@ const USA_DATA = {
   countryName: 'US',
   flag: '🇺🇸',
   competitors: 'Toast, Square & Clover',
-  priceLine: 'from $10/month',
+  priceLine: 'from $20/month',
   posLink: '/pos/usa',
   hero: {
     badge: 'Restaurant POS for the USA',
@@ -36,14 +36,14 @@ const USA_DATA = {
     sub: 'Cloud POS, AI ordering, inventory and analytics — with US sales tax, tip reporting and delivery built in. Switch from Toast or Square without the hardware lock-in.',
   },
   stats: [
-    { value: '$10/mo', label: 'Starting price' },
+    { value: '$20/mo', label: 'Starting price' },
     { value: '0%', label: 'Transaction fees' },
     { value: '50', label: 'States: sales tax' },
     { value: '5 min', label: 'Setup' },
   ],
   compliance: ['State & local sales tax (all 50 states)', 'IRS tip reporting (Form 8027 ready)', 'ADA-compliant ordering & receipts', 'Month-to-month — no long contracts'],
   payments: ['Visa, Mastercard, Amex & Discover', 'Apple Pay & Google Pay (tap-to-pay)', 'Cash App Pay & Venmo', 'Split checks, tips & pre-auth tabs'],
-  delivery: ['DoorDash, Uber Eats & Grubhub', 'ChowNow & direct online ordering', 'QR-code dine-in ordering', 'QuickBooks & Xero export'],
+  delivery: ['DoorDash, Uber Eats & Grubhub sales tracked in reports', 'Commission-free direct online ordering', 'QR-code dine-in ordering', 'QuickBooks & Xero export'],
   verticals: [
     { name: 'Bars & Pubs', href: '/for/bars-pubs', desc: 'Tabs, pre-auth, tip-out' },
     { name: 'Cafes & Coffee', href: '/for/cafes', desc: 'Fast counter service' },
@@ -72,10 +72,10 @@ const USA_DATA = {
     { name: 'Restaurant Startup Cost Calculator', href: '/tools/startup-cost-calculator', desc: 'Free tool' },
   ],
   faqs: [
-    { q: 'Is DineOpen a good Toast or Square alternative for US restaurants?', a: 'Yes. DineOpen offers cloud POS, AI ordering, inventory and analytics with US sales tax, tip reporting and DoorDash/Uber Eats/Grubhub integrations — with zero transaction fees, no hardware lock-in and month-to-month pricing from $10/month, versus Toast’s hardware contracts and per-transaction fees.' },
+    { q: 'Is DineOpen a good Toast or Square alternative for US restaurants?', a: 'Yes. DineOpen offers cloud POS, AI ordering, inventory and analytics with US sales tax, tip reporting and commission-free online ordering — with zero transaction fees, no hardware lock-in and month-to-month pricing from $20/month, versus Toast’s hardware contracts and per-transaction fees.' },
     { q: 'Does DineOpen handle US sales tax and tips?', a: 'Yes. DineOpen calculates state and local sales tax for all 50 states, supports tip lines, tip pooling and Form 8027 tip reporting, and prints ADA-compliant receipts.' },
-    { q: 'Which payments and delivery apps work in the US?', a: 'DineOpen supports Visa, Mastercard, Amex, Discover, Apple Pay, Google Pay, Cash App Pay and Venmo, plus DoorDash, Uber Eats, Grubhub and ChowNow, and direct QR-code ordering.' },
-    { q: 'How much does DineOpen cost in the US?', a: 'Plans start at $10/month with zero transaction fees and no long-term contracts. There is a free trial with no credit card required.' },
+    { q: 'Which payments and delivery apps work in the US?', a: 'DineOpen supports Visa, Mastercard, Amex, Discover, Apple Pay, Google Pay, Cash App Pay and Venmo, plus commission-free direct QR-code and online ordering. DoorDash, Uber Eats and Grubhub orders can be recorded on the POS and tracked as separate channels in reports (no automatic order sync today).' },
+    { q: 'How much does DineOpen cost in the US?', a: 'Plans start at $20/month with zero transaction fees and no long-term contracts. There is a free trial with no credit card required.' },
   ],
 };
 

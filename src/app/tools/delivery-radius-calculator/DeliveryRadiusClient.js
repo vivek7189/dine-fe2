@@ -224,7 +224,7 @@ export default function DeliveryRadiusClient() {
         <section style={{ padding: '60px 20px', backgroundColor: '#10b981', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Manage Delivery Orders with DineOpen</h2>
-            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Integrated Swiggy & Zomato orders, rider tracking, and zone management.</p>
+            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Swiggy & Zomato orders tracked by channel, commission-free direct ordering, and rider tracking.</p>
             <Link href="/for/cloud-kitchens" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#10b981', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
               POS for Cloud Kitchens
             </Link>

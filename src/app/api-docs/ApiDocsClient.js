@@ -21,7 +21,7 @@ export default function ApiDocsClient() {
     {
       icon: <FaShoppingCart size={28} />,
       title: 'Food Delivery Platforms',
-      desc: 'Sync orders from Zomato and Swiggy directly into your POS. No manual entry — online orders appear on your KDS and billing screen instantly. Menu items, prices, and availability update in real-time across platforms.'
+      desc: 'Talabat orders (UAE/Gulf) arrive in DineOpen automatically. DineOpen does not sync Zomato or Swiggy orders today - staff record them on the POS and tag the channel so they show separately in reports. Commission-free QR, website and WhatsApp orders land on your KDS and billing screen instantly.'
     },
     {
       icon: <FaCreditCard size={28} />,
@@ -61,10 +61,10 @@ export default function ApiDocsClient() {
 
   const faqs = [
     { q: 'Does DineOpen have an API?', a: 'Yes. DineOpen provides a REST API that lets you programmatically access POS data, orders, menu items, inventory, customers, and reports. API access is available on the Pro plan.' },
-    { q: 'Which food delivery platforms does DineOpen integrate with?', a: 'DineOpen integrates with Zomato and Swiggy for automatic order sync. Online orders appear directly in your POS — no manual entry needed. Menu and availability sync in real-time.' },
+    { q: 'Which food delivery platforms does DineOpen integrate with?', a: 'Talabat (UAE/Gulf) is integrated - Talabat orders arrive in DineOpen automatically. DineOpen does not sync Zomato or Swiggy orders automatically today: staff record those orders on the POS and mark the channel, so aggregator sales show separately in your reports.' },
     { q: 'What payment gateways are supported?', a: 'DineOpen supports Razorpay and Stripe for online payments, UPI for direct bank transfers, and all major card terminals. Payment status syncs automatically with your billing system.' },
     { q: 'Can I get webhook notifications?', a: 'Yes. Configure webhooks to receive real-time HTTP callbacks when events occur — new order placed, payment received, inventory low, reservation created, and more. Use webhooks to connect DineOpen with your own systems.' },
-    { q: 'Is there a setup fee for integrations?', a: 'No. All pre-built integrations (Zomato, Swiggy, Razorpay, WhatsApp) are included at no extra cost on the Pro plan. API access is also included. Custom integration support is available on request.' },
+    { q: 'Is there a setup fee for integrations?', a: 'No. All pre-built integrations (Razorpay, WhatsApp, Talabat) are included at no extra cost on the Pro plan. API access is also included. Custom integration support is available on request.' },
     { q: 'Can I build custom integrations?', a: 'Absolutely. Use the REST API and webhooks to connect DineOpen with any system — your own apps, third-party tools, or automation platforms like Zapier. Full API documentation is provided with your Pro plan access.' },
   ];
 
@@ -83,7 +83,7 @@ export default function ApiDocsClient() {
               Connect Your Entire Restaurant Stack
             </h1>
             <p style={{ fontSize: isMobile ? '17px' : '20px', color: '#374151', lineHeight: '1.7', maxWidth: '750px', margin: '0 auto 36px' }}>
-              Integrate DineOpen with Zomato, Swiggy, Razorpay, WhatsApp, and your own systems. REST API, webhooks, and 20+ pre-built connectors — so your POS talks to everything.
+              Integrate DineOpen with Razorpay, WhatsApp, Talabat, and your own systems. REST API, webhooks, and 20+ pre-built connectors — so your POS talks to everything.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/login?ref=api-docs" style={{ padding: '16px 32px', fontSize: '16px', fontWeight: '700', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', textDecoration: 'none', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>
@@ -104,8 +104,8 @@ export default function ApiDocsClient() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
               {[
-                { name: 'Zomato', color: '#e23744', desc: 'Order sync' },
-                { name: 'Swiggy', color: '#fc8019', desc: 'Order sync' },
+                { name: 'Talabat', color: '#ff5a00', desc: 'Order sync (UAE/Gulf)' },
+                { name: 'Zomato / Swiggy', color: '#e23744', desc: 'Manual entry + reports' },
                 { name: 'Razorpay', color: '#2563eb', desc: 'Payments' },
                 { name: 'WhatsApp', color: '#25d366', desc: 'Notifications' },
               ].map((item) => (
@@ -184,7 +184,7 @@ export default function ApiDocsClient() {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '32px' }}>
               {[
                 { step: '1', title: 'Sign Up for Pro', desc: 'API access and all integrations are included in the Pro plan. Start with a free trial — no credit card required.' },
-                { step: '2', title: 'Connect Your Platforms', desc: 'Enable Zomato, Swiggy, Razorpay, or WhatsApp integrations from your dashboard with one click. No code needed for pre-built connectors.' },
+                { step: '2', title: 'Connect Your Platforms', desc: 'Enable Razorpay, WhatsApp or Talabat integrations from your dashboard with one click. No code needed for pre-built connectors.' },
                 { step: '3', title: 'Build Custom Flows', desc: 'Use the REST API and webhooks to connect DineOpen with your own systems. Full documentation and sample code provided.' },
               ].map((s) => (
                 <div key={s.step} style={{ textAlign: 'center' }}>
@@ -213,8 +213,8 @@ export default function ApiDocsClient() {
                 {[
                   'REST API access',
                   'Webhook notifications',
-                  'Zomato order sync',
-                  'Swiggy order sync',
+                  'Talabat order sync (UAE/Gulf)',
+                  'Zomato/Swiggy sales tracking',
                   'Razorpay / Stripe payments',
                   'WhatsApp Business messaging',
                   'Tally / accounting export',
@@ -265,7 +265,7 @@ export default function ApiDocsClient() {
               Ready to Connect Your Restaurant?
             </h2>
             <p style={{ fontSize: '18px', color: '#cbd5e1', lineHeight: '1.7', marginBottom: '32px' }}>
-              Start your free trial today. All integrations included — set up Zomato, Swiggy, and payment gateways in under 5 minutes.
+              Start your free trial today. All integrations included — set up payment gateways and WhatsApp in under 5 minutes.
             </p>
             <Link href="/login?ref=api-docs" style={{ padding: '16px 40px', fontSize: '16px', fontWeight: '700', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', textDecoration: 'none', display: 'inline-block', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>
               Start Free Trial <FaArrowRight style={{ marginLeft: '8px', verticalAlign: 'middle' }} />

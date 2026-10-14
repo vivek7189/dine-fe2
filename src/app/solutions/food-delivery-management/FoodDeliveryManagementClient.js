@@ -8,15 +8,15 @@ import { FaMotorcycle, FaMapMarkerAlt, FaClock, FaMobile, FaChartBar, FaCheck } 
 
 export default function FoodDeliveryManagementPage() {
   const features = [
-    { icon: FaMapMarkerAlt, title: 'Order Aggregation', desc: 'Zomato, Swiggy, direct website, WhatsApp - all orders in one dashboard.' },
+    { icon: FaMapMarkerAlt, title: 'All Channels, One Report', desc: 'Website and WhatsApp orders arrive automatically; Zomato and Swiggy orders are entered on the POS and tagged by channel.' },
     { icon: FaClock, title: 'Prep Time Tracking', desc: 'Set accurate prep times. Kitchen and riders aligned. No waiting.' },
     { icon: FaMotorcycle, title: 'Rider Management', desc: 'Assign riders, track status, notify when ready. Works with your team or aggregators.' },
     { icon: FaChartBar, title: 'Platform Analytics', desc: 'Revenue per platform, commission tracking, top-selling items by channel.' },
   ];
 
   const platforms = [
-    { name: 'Zomato', desc: 'Orders flow directly to your POS' },
-    { name: 'Swiggy', desc: 'Auto-accept or manual confirmation' },
+    { name: 'Zomato', desc: 'Entered on the POS, tracked separately in reports (no auto-sync)' },
+    { name: 'Swiggy', desc: 'Entered on the POS, tracked separately in reports (no auto-sync)' },
     { name: 'Direct Website', desc: 'Your own ordering page, zero commission' },
     { name: 'WhatsApp', desc: 'Orders via chat, tracked in system' },
   ];
@@ -30,7 +30,7 @@ export default function FoodDeliveryManagementPage() {
             <FaMotorcycle style={{ fontSize: '64px', marginBottom: '20px' }} />
             <h1 style={{ fontSize: '48px', fontWeight: '800', marginBottom: '20px' }}>Food Delivery Management</h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px' }}>
-              Zomato, Swiggy, direct orders - one system. Manage all delivery channels without the chaos.
+              Direct orders arrive automatically; Zomato and Swiggy orders are recorded by channel. Track all delivery in one system.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ef4444', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Start Free Trial</Link>
@@ -115,8 +115,8 @@ export default function FoodDeliveryManagementPage() {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/features/delivery-management" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Delivery Orders</Link>
               <Link href="/features/kitchen-display-system" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Kitchen Display</Link>
-              <Link href="/integrations/zomato" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Zomato Integration</Link>
-              <Link href="/integrations/swiggy" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Swiggy Integration</Link>
+              <Link href="/integrations/zomato" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Managing Zomato Orders</Link>
+              <Link href="/integrations/swiggy" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Managing Swiggy Orders</Link>
             </div>
           </div>
         </div>

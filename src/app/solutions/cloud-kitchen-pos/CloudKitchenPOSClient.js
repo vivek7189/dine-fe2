@@ -6,9 +6,9 @@ import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$10/month', toast: '$69+/month', square: '$60+/month', foodics: '$150+/month', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', toast: '$69+/month', square: '$60+/month', foodics: '$150+/month', winner: 'dineopen' },
   { feature: 'Multi-Brand Support', dineopen: 'Unlimited brands', toast: 'Limited', square: 'Separate accounts', foodics: 'Up to 5', winner: 'dineopen' },
-  { feature: 'Delivery Integration', dineopen: 'All platforms', toast: 'US only', square: 'Limited', foodics: 'MENA only', winner: 'dineopen' },
+  { feature: 'Delivery Integration', dineopen: 'Talabat (auto); others via manual entry + reports', toast: 'US only', square: 'Limited', foodics: 'MENA only', winner: 'tie' },
   { feature: 'Virtual Brand Launch', dineopen: 'Minutes', toast: 'Days', square: 'New account needed', foodics: 'Hours', winner: 'dineopen' },
   { feature: 'Analytics Per Brand', dineopen: 'Real-time', toast: 'Basic', square: 'Separate dashboards', foodics: 'Available', winner: 'dineopen' },
   { feature: 'Kitchen Display (KDS)', dineopen: 'Per brand/station', toast: 'Single view', square: 'Basic', foodics: 'Available', winner: 'dineopen' },
@@ -26,8 +26,8 @@ const features = [
     ),
   },
   {
-    title: 'Delivery Platform Integration',
-    desc: 'Talabat, DoorDash, Uber Eats, Swiggy, Zomato, Deliveroo -- all orders on one screen. Never miss an order, never juggle tablets.',
+    title: 'Delivery Channel Tracking',
+    desc: 'Talabat orders arrive automatically. Orders from DoorDash, Uber Eats, Swiggy, Zomato or Deliveroo are entered on the POS and tagged by channel, so every platform shows separately in reports.',
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
@@ -78,25 +78,25 @@ const countryData = [
     country: 'India',
     flag: 'IN',
     color: 'orange',
-    content: 'Home to Rebel Foods (world\'s largest cloud kitchen company), Box8, Faasos, and thousands of independent cloud kitchens. Zomato and Swiggy dominate delivery. DineOpen integrates with both platforms and supports INR pricing, GST compliance, and multi-brand operations that Indian cloud kitchens need.',
+    content: 'Home to Rebel Foods (world\'s largest cloud kitchen company), Box8, Faasos, and thousands of independent cloud kitchens. Zomato and Swiggy dominate delivery. DineOpen records Zomato and Swiggy orders by channel (no automatic sync today), adds commission-free direct ordering, and supports INR pricing, GST compliance, and multi-brand operations that Indian cloud kitchens need.',
   },
   {
     country: 'UAE / Dubai',
     flag: 'AE',
     color: 'emerald',
-    content: 'Dubai\'s ghost kitchen licensing in 2026 has opened up massive opportunities. Talabat and Deliveroo are the dominant platforms. DineOpen supports AED pricing, VAT compliance, and integrates with both Talabat and Deliveroo for seamless order management across multiple virtual brands.',
+    content: 'Dubai\'s ghost kitchen licensing in 2026 has opened up massive opportunities. Talabat and Deliveroo are the dominant platforms. DineOpen supports AED pricing, VAT compliance, and receives Talabat orders automatically; Deliveroo orders are entered on the POS and tracked by channel across multiple virtual brands.',
   },
   {
     country: 'USA',
     flag: 'US',
     color: 'blue',
-    content: 'DoorDash and Uber Eats dominate the US delivery market. Virtual brands have exploded, with restaurants launching delivery-only concepts. DineOpen integrates with both platforms, supports USD pricing, and makes it easy to launch and manage virtual brands alongside your main restaurant.',
+    content: 'DoorDash and Uber Eats dominate the US delivery market. Virtual brands have exploded, with restaurants launching delivery-only concepts. DineOpen tracks DoorDash and Uber Eats orders by channel (entered on the POS, no automatic sync today), supports USD pricing, and makes it easy to launch and manage virtual brands alongside your main restaurant.',
   },
   {
     country: 'UK',
     flag: 'GB',
     color: 'purple',
-    content: 'Deliveroo Editions pioneered the shared kitchen space concept. Just Eat and Uber Eats round out the top delivery platforms. DineOpen supports GBP pricing, VAT compliance, and integrates with all major UK delivery platforms for cloud kitchen operators.',
+    content: 'Deliveroo Editions pioneered the shared kitchen space concept. Just Eat and Uber Eats round out the top delivery platforms. DineOpen supports GBP pricing, VAT compliance, and tracks delivery-app orders by channel for cloud kitchen operators (orders are entered on the POS; no automatic sync today).',
   },
 ];
 
@@ -122,7 +122,7 @@ export default function CloudKitchenPOSClient() {
             Best POS for <span className="text-cyan-400">Cloud Kitchens</span> &amp; <span className="text-cyan-400">Ghost Kitchens</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Run multiple brands from one kitchen. Manage Talabat, DoorDash, Uber Eats, Zomato orders on one screen. DineOpen handles the chaos so you can focus on food.
+            Run multiple brands from one kitchen. Get Talabat orders automatically and track every other delivery channel in one POS. DineOpen handles the chaos so you can focus on food.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
@@ -158,7 +158,7 @@ export default function CloudKitchenPOSClient() {
               <div className="text-sm text-gray-500 font-medium">Delivery Orders/Day</div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md text-center border border-gray-100">
-              <div className="text-3xl md:text-4xl font-bold text-cyan-600 mb-1">$10/mo</div>
+              <div className="text-3xl md:text-4xl font-bold text-cyan-600 mb-1">$20/mo</div>
               <div className="text-sm text-gray-500 font-medium">DineOpen Monthly</div>
             </div>
           </div>
@@ -188,8 +188,8 @@ export default function CloudKitchenPOSClient() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
                 </svg>
               </div>
-              <h3 className="font-bold text-xl mb-3 text-gray-900">Delivery Platform Aggregation</h3>
-              <p className="text-gray-600 leading-relaxed">One screen for DoorDash, Uber Eats, Talabat, Zomato, Swiggy, and Deliveroo. No more juggling 5 tablets. Every order flows into a single unified queue with clear brand and platform labels.</p>
+              <h3 className="font-bold text-xl mb-3 text-gray-900">Delivery Channel Tracking</h3>
+              <p className="text-gray-600 leading-relaxed">Talabat orders flow in automatically. Orders from DoorDash, Uber Eats, Zomato, Swiggy and Deliveroo are entered on the POS with a channel tag, so one kitchen queue and one report show every brand and platform.</p>
             </div>
             <div className="bg-white rounded-xl p-8 shadow-md border border-gray-100 hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 bg-cyan-100 text-cyan-700 rounded-lg flex items-center justify-center mb-4">
@@ -273,7 +273,7 @@ export default function CloudKitchenPOSClient() {
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 text-center">Cloud Kitchens Around the World</h2>
           <p className="text-gray-600 text-center max-w-2xl mx-auto mb-12">
-            DineOpen supports cloud kitchen operators in every major market with local delivery platform integrations and compliance.
+            DineOpen supports cloud kitchen operators in every major market with local tax compliance, delivery channel tracking and Talabat integration in the Gulf.
           </p>
           <div className="grid md:grid-cols-2 gap-6">
             {countryData.map((c) => {
@@ -316,7 +316,7 @@ export default function CloudKitchenPOSClient() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">What is the best POS system for a cloud kitchen?</h3>
-              <p className="text-gray-600 leading-relaxed">DineOpen is the best POS for cloud kitchens because it supports multi-brand menu management, integrates with all major delivery platforms (Talabat, DoorDash, Uber Eats, Zomato, Swiggy), and provides per-brand analytics -- all for just $10/month with no contracts.</p>
+              <p className="text-gray-600 leading-relaxed">DineOpen is the best POS for cloud kitchens because it supports multi-brand menu management, receives Talabat orders automatically, tracks orders from other delivery apps by channel, and provides per-brand analytics -- all from $20/month with no contracts.</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">Can I run multiple brands from one POS system?</h3>
@@ -324,11 +324,11 @@ export default function CloudKitchenPOSClient() {
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">Does DineOpen integrate with delivery apps like Uber Eats and DoorDash?</h3>
-              <p className="text-gray-600 leading-relaxed">Yes, DineOpen integrates with all major delivery platforms including Uber Eats, DoorDash, Talabat, Deliveroo, Zomato, and Swiggy. All orders appear on one consolidated screen so you never miss an order.</p>
+              <p className="text-gray-600 leading-relaxed">Talabat orders arrive in DineOpen automatically. For Uber Eats, DoorDash, Deliveroo, Zomato and Swiggy, there is no automatic order sync today: staff record those orders on the POS and tag the channel, so each platform&apos;s sales show separately in reports. DineOpen also gives you commission-free direct ordering (QR, your own ordering website and WhatsApp).</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">How much does a cloud kitchen POS cost?</h3>
-              <p className="text-gray-600 leading-relaxed">DineOpen costs just $10/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 7-day trial.</p>
+              <p className="text-gray-600 leading-relaxed">DineOpen starts at $20/month with no long-term contracts, no setup fees, and no transaction fees. Competitors like Toast charge $69+/month with additional per-transaction fees. Start with a free 7-day trial.</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 mb-2">Can I track performance for each brand separately?</h3>

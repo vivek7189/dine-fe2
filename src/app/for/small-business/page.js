@@ -73,7 +73,7 @@ const faqSchema = {
       "name": "What features should a small business POS have?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "A good small business POS should include: easy billing, inventory management, GST/tax compliance, digital menus (QR codes), customer management, basic reporting, and delivery app integration. DineOpen includes all these features even in the free plan."
+        "text": "A good small business POS should include: easy billing, inventory management, GST/tax compliance, digital menus (QR codes), customer management, basic reporting, and delivery order tracking. DineOpen includes all these features in every plan, with a 7-day free trial."
       }
     }
   ]

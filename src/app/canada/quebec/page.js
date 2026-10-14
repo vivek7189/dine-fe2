@@ -6,10 +6,10 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Quebec | GST+QST, Bill 72 & Bilingual | DineOpen',
-  description: 'Modern restaurant POS for Quebec restaurants in Montreal, Quebec City & Laval. GST 5% + QST 9.975%, Bill 72 pre-tax tipping, mandatory French receipts, SkipTheDishes/Uber Eats. A Lightspeed & TouchBistro alternative from C$14/mo.',
+  description: 'Modern restaurant POS for Quebec restaurants in Montreal, Quebec City & Laval. GST 5% + QST 9.975%, Bill 72 pre-tax tipping, mandatory French receipts, online ordering. A Lightspeed & TouchBistro alternative from US$20/mo.',
   keywords: 'restaurant POS Quebec, restaurant POS Montreal, Quebec QST POS, Bill 72 tipping POS, French restaurant POS, Lightspeed alternative Quebec, Web-SRM POS',
   alternates: { canonical: 'https://www.dineopen.com/canada/quebec', languages: { 'en-CA': 'https://www.dineopen.com/canada/quebec', 'fr-CA': 'https://www.dineopen.com/canada/quebec' } },
-  openGraph: { title: 'Restaurant POS Quebec | DineOpen', description: 'Modern POS for Quebec restaurants. GST+QST, Bill 72 tipping, French receipts. From C$14/mo.', url: 'https://www.dineopen.com/canada/quebec', siteName: 'DineOpen', locale: 'en_CA', type: 'website' },
+  openGraph: { title: 'Restaurant POS Quebec | DineOpen', description: 'Modern POS for Quebec restaurants. GST+QST, Bill 72 tipping, French receipts. From US$20/mo.', url: 'https://www.dineopen.com/canada/quebec', siteName: 'DineOpen', locale: 'en_CA', type: 'website' },
   robots: { index: true, follow: true },
 };
 
@@ -22,7 +22,7 @@ const LOC = {
     sub: 'From Montreal and Quebec City to Laval — cloud POS with GST + QST, Bill 72 pre-tax tipping and bilingual French receipts built in. A cheaper, no-lock-in alternative to Lightspeed and TouchBistro.',
   },
   stats: [
-    { value: 'C$14/mo', label: 'Starting price' },
+    { value: 'US$20/mo', label: 'Starting price' },
     { value: '5% + 9.975%', label: 'GST + QST' },
     { value: '0%', label: 'Transaction fees' },
     { value: 'FR/EN', label: 'Bilingual receipts' },

@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaBuilding, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaMotorcycle, FaLaptop, FaShoppingBag } from 'react-icons/fa';
+import { FaBuilding, FaCheck, FaMapMarkerAlt, FaMotorcycle, FaLaptop, FaShoppingBag } from 'react-icons/fa';
 
 export default function NoidaPOSClient() {
   const cityFeatures = [
-    { icon: <FaMotorcycle size={24} />, title: 'Delivery-First Operations', description: 'Built for Noida\'s booming cloud kitchen scene. Manage Zomato, Swiggy, and direct orders from one dashboard.' },
+    { icon: <FaMotorcycle size={24} />, title: 'Delivery-First Operations', description: 'Built for Noida\'s booming cloud kitchen scene. Record Zomato & Swiggy orders on the POS and take commission-free direct orders too.' },
     { icon: <FaLaptop size={24} />, title: 'Corporate & IT Park Ready', description: 'Subscription meals, corporate billing, employee discounts. Perfect for Sector 62, 63 IT park cafeterias.' },
     { icon: <FaShoppingBag size={24} />, title: 'Mall Food Court Support', description: 'High-speed billing for DLF Mall, Mall of India, GIP food courts. Handle rush hours efficiently.' },
     { icon: <FaBuilding size={24} />, title: 'Multi-Brand Management', description: 'Run multiple virtual brands from one kitchen. Separate menus, unified operations for cloud kitchens.' },
@@ -83,16 +83,6 @@ export default function NoidaPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#ede9fe' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#7c3aed', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;We run 3 virtual brands from our cloud kitchen in Sector 63. DineOpen lets us manage all brands separately while keeping operations unified. Aggregator orders flow smoothly.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Rahul Verma</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>CloudBites Kitchen, Sector 63, Noida</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

@@ -136,7 +136,7 @@ const comparisonRows = [
   { feature: 'Contract', toast: '2-year (hardware deals)', square: 'Month-to-month', lightspeed: 'Annual contract', dineopen: 'Month-to-month' },
   { feature: 'AI Features', toast: 'None built-in', square: 'Basic AI for marketing', lightspeed: 'None built-in', dineopen: 'Voice ordering, menu extraction, AI chat' },
   { feature: 'QR Dine-in Ordering', toast: 'Add-on (Toast Mobile Order)', square: 'Limited (QR for payment only)', lightspeed: 'Add-on (Order Anywhere)', dineopen: 'Built-in, free' },
-  { feature: 'Delivery Integration', toast: 'Toast Delivery Services', square: 'Square Online + aggregators', lightspeed: 'Uber Eats, DoorDash via add-on', dineopen: 'Aggregator integration included' },
+  { feature: 'Delivery Integration', toast: 'Toast Delivery Services', square: 'Square Online + aggregators', lightspeed: 'Uber Eats, DoorDash via add-on', dineopen: 'Talabat (auto); others via manual entry + reports' },
   { feature: 'Kitchen Display (KDS)', toast: 'Add-on ($25/mo per screen)', square: 'Included in Plus plan', lightspeed: 'Included', dineopen: 'Included + Android KOT printer app' },
   { feature: 'Inventory', toast: 'Add-on (xtraCHEF)', square: 'Basic stock tracking', lightspeed: 'Advanced (best-in-class)', dineopen: 'Recipe-level deduction included' },
   { feature: 'Offline Mode', toast: 'Yes (hardware-based)', square: 'Yes (limited)', lightspeed: 'Yes (limited)', dineopen: 'KOT printer works offline' },

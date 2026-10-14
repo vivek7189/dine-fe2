@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaLeaf, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaIndustry, FaStore, FaTruck } from 'react-icons/fa';
+import { FaLeaf, FaCheck, FaMapMarkerAlt, FaIndustry, FaStore, FaTruck } from 'react-icons/fa';
 
 export default function SaharanpurPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function SaharanpurPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#ecfccb' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#65a30d', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;Our sweet shop handles hundreds of customers daily, especially during festivals. DineOpen&apos;s quick billing and inventory tracking helps us manage rush periods perfectly.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Rajesh Agarwal</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Agarwal Sweets, Court Road, Saharanpur</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

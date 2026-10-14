@@ -9,8 +9,8 @@ const comparisonData = [
   { feature: 'Monthly Price', dineopen: '₹899/month', competitor: '₹1,500+/month', winner: 'dineopen' },
   { feature: 'Transaction Fees', dineopen: '0%', competitor: '2-3%', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
-  { feature: 'Platform Lock-in', dineopen: 'None - works with all', competitor: 'Zomato ecosystem', winner: 'dineopen' },
-  { feature: 'Swiggy Integration', dineopen: '✓', competitor: 'Limited', winner: 'dineopen' },
+  { feature: 'Platform Lock-in', dineopen: 'None - independent platform', competitor: 'Zomato ecosystem', winner: 'dineopen' },
+  { feature: 'Swiggy Orders', dineopen: 'Manual entry + channel reports', competitor: 'Limited', winner: 'tie' },
   { feature: 'Multi-Location', dineopen: 'Unlimited (included)', competitor: 'Extra cost', winner: 'dineopen' },
   { feature: 'Offline Mode', dineopen: '✓', competitor: '✓', winner: 'tie' },
   { feature: 'QR Code Menus', dineopen: '✓', competitor: '✓', winner: 'tie' },
@@ -30,7 +30,7 @@ export default function ZomatoBaseAlternativeClient() {
               Looking for a <span style={{ color: '#ef4444' }}>Zomato Base Alternative</span>?
             </h1>
             <p style={{ fontSize: '20px', color: '#6b7280', marginBottom: '32px' }}>
-              DineOpen works with ALL delivery platforms (not just Zomato), has AI voice ordering, and costs less with zero transaction fees.
+              DineOpen is independent of any delivery platform, tracks Zomato and Swiggy orders by channel, has AI voice ordering, and costs less with zero transaction fees.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>
@@ -80,10 +80,10 @@ export default function ZomatoBaseAlternativeClient() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
               {[
-                { title: 'No Platform Lock-in', desc: 'DineOpen works with Zomato, Swiggy, and any other platform. You\'re not restricted to one ecosystem.' },
+                { title: 'No Platform Lock-in', desc: 'Record Zomato, Swiggy or any other platform\'s orders on the POS by channel (no automatic sync today). You\'re not restricted to one ecosystem.' },
                 { title: 'AI Voice Ordering', desc: 'Revolutionary AI that takes orders via voice. Zomato Base doesn\'t offer this technology.' },
                 { title: 'Lower Total Cost', desc: 'No transaction fees means you save ₹50,000+ per year compared to Zomato Base.' },
-                { title: 'True Multi-Platform', desc: 'Manage Zomato AND Swiggy AND dine-in from one dashboard without extra fees.' },
+                { title: 'One Report for Every Channel', desc: 'Dine-in, direct orders and manually entered Zomato and Swiggy orders in one report, without extra fees.' },
               ].map((item, idx) => (
                 <div key={idx} style={{ padding: '24px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{item.title}</h3>

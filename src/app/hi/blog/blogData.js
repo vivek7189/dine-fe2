@@ -532,7 +532,7 @@ export const hindiBlogPostContent = {
 <li>✅ <strong>Works on Any Device</strong> — Phone, tablet, laptop — कोई special hardware नहीं</li>
 <li>✅ <strong>Offline Mode</strong> — Internet गया तो भी billing चालू रहे</li>
 <li>✅ <strong>15 Minute Setup</strong> — Menu add करें, GST configure करें, done!</li>
-<li>✅ <strong>Swiggy/Zomato Integration</strong> — Online orders auto-sync</li>
+<li>✅ <strong>Swiggy/Zomato Sales Tracking</strong> — Swiggy/Zomato orders POS पर entry करें, reports में अलग दिखें (auto-sync नहीं)</li>
 <li>✅ <strong>Free QR Menu</strong> — Contactless ordering के लिए</li>
 </ul>
 
@@ -1104,11 +1104,11 @@ export const hindiBlogPostContent = {
 <p>WhatsApp ordering small restaurants और home kitchens के लिए perfect है। Patna और Lucknow में काफी restaurants WhatsApp से orders ले रहे हैं।</p>
 
 <h2 id="s6">🚀 DineOpen के Online Ordering Features</h2>
-<p>DineOpen सब कुछ एक platform पर देता है — <a href="/products/orders">online ordering</a>, QR menu, और aggregator integration:</p>
+<p>DineOpen सब कुछ एक platform पर देता है — <a href="/products/orders">online ordering</a>, QR menu, और WhatsApp ordering:</p>
 <ul>
 <li><strong>Direct Ordering Website</strong> — अपने restaurant का branded ordering page, zero commission</li>
 <li><strong>QR Code Dine-in Ordering</strong> — Table ordering without app download</li>
-<li><strong>Swiggy/Zomato Integration</strong> — सभी orders एक dashboard पर</li>
+<li><strong>Swiggy/Zomato Orders Tracking</strong> — Swiggy/Zomato orders POS पर entry करें और channel tag करें, ताकि reports में उनकी sales अलग दिखे (अभी automatic sync नहीं होता)</li>
 <li><strong>WhatsApp Order Management</strong> — WhatsApp orders track करें</li>
 <li><strong>Real-time Kitchen Display</strong> — Orders directly kitchen screen पर</li>
 <li><strong>Customer Database</strong> — Repeat customers को offers भेजें</li>

@@ -16,7 +16,7 @@ export default function DeliveryManagementClient() {
             <FaMotorcycle style={{ fontSize: '64px', marginBottom: '20px' }} />
             <h1 style={{ fontSize: '48px', fontWeight: '800', marginBottom: '20px' }}>Delivery Order Management</h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px' }}>
-              Zomato, Swiggy, direct orders - all in one dashboard. Route to kitchen, track riders, manage packaging.
+              Direct online orders plus Zomato and Swiggy orders recorded on the POS - all in one set of reports. Route to kitchen, track riders, manage packaging.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ec4899', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Start Free Trial</Link>
@@ -30,7 +30,7 @@ export default function DeliveryManagementClient() {
             <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '48px' }}>Delivery Chaos? We Organize It.</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
               {[
-                { problem: 'Zomato, Swiggy, calls - too many tabs', solution: 'One dashboard for all orders' },
+                { problem: 'Zomato, Swiggy, calls - too many tabs', solution: 'Record every order on one POS, tagged by channel' },
                 { problem: 'Kitchen doesn\'t know delivery priority', solution: 'Separate delivery queue with ETAs' },
                 { problem: 'Packaging mistakes, wrong orders', solution: 'Print labels with order details' },
                 { problem: 'No idea which platform makes money', solution: 'Revenue & commission tracking per platform' },
@@ -51,7 +51,7 @@ export default function DeliveryManagementClient() {
             <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '48px' }}>Delivery Features</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '32px' }}>
               {[
-                { icon: FaMapMarkerAlt, title: 'Multi-Platform Hub', desc: 'Zomato, Swiggy, direct orders. All platforms in one view.' },
+                { icon: FaMapMarkerAlt, title: 'Multi-Channel Reports', desc: 'Direct orders plus Zomato/Swiggy orders entered on the POS, reported by channel.' },
                 { icon: FaClock, title: 'ETA Management', desc: 'Set prep times. Riders know exact pickup time. No waiting.' },
                 { icon: FaMobile, title: 'Rider Notifications', desc: 'Auto-notify riders when order is ready for pickup.' },
                 { icon: FaChartLine, title: 'Platform Analytics', desc: 'Track revenue, commissions, ratings per platform.' },
@@ -70,10 +70,10 @@ export default function DeliveryManagementClient() {
 
         <div style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '24px' }}>Integrates With</h3>
+            <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '24px' }}>Related</h3>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/integrations/zomato" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Zomato</Link>
-              <Link href="/integrations/swiggy" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Swiggy</Link>
+              <Link href="/integrations/zomato" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Zomato orders</Link>
+              <Link href="/integrations/swiggy" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Swiggy orders</Link>
               <Link href="/for/cloud-kitchens" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Cloud Kitchens</Link>
               <Link href="/tools/swiggy-zomato-calculator" style={{ padding: '12px 20px', backgroundColor: 'white', borderRadius: '8px', color: '#374151', textDecoration: 'none' }}>Commission Calculator</Link>
             </div>

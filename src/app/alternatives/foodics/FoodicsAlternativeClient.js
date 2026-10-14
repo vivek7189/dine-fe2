@@ -10,7 +10,7 @@ const comparisonData = [
   { feature: 'Transaction Fees', dineopen: '0%', foodics: '1-2%', winner: 'dineopen' },
   { feature: 'Arabic/English Support', dineopen: '\u2713', foodics: '\u2713', winner: 'tie' },
   { feature: 'Talabat Integration', dineopen: '\u2713', foodics: '\u2713', winner: 'tie' },
-  { feature: 'Deliveroo Integration', dineopen: '\u2713', foodics: '\u2713', winner: 'tie' },
+  { feature: 'Deliveroo Integration', dineopen: 'Manual entry + reports', foodics: '\u2713', winner: 'foodics' },
   { feature: 'AI Voice Ordering', dineopen: '\u2713', foodics: '\u2717', winner: 'dineopen' },
   { feature: 'VAT 5% Compliant', dineopen: '\u2713', foodics: '\u2713', winner: 'tie' },
   { feature: 'Hardware Required', dineopen: 'No (any device)', foodics: 'Foodics hardware', winner: 'dineopen' },

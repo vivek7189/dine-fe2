@@ -22,7 +22,7 @@ export default function StatePOSClient({ stateData }) {
     { title: 'QR Code Menus', desc: 'Contactless digital menus for every table' },
     { title: 'POS Billing', desc: 'Fast, accurate billing with tax compliance' },
     { title: 'Inventory Management', desc: 'Track stock levels in real-time' },
-    { title: 'Delivery Integration', desc: 'Connect with Zomato, Swiggy & more' },
+    { title: 'Delivery Sales Tracking', desc: 'Record Zomato & Swiggy orders and track each channel in reports' },
     { title: 'Analytics & Reports', desc: 'Understand your business performance' },
   ];
 

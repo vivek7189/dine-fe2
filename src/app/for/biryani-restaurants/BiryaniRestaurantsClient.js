@@ -42,7 +42,7 @@ export default function BiryaniRestaurantsClient() {
     'Dum timer & batch tracking on kitchen display',
     'High-volume mode for weekend rushes',
     'Auto-attach raita, salan with combos',
-    'Separate Zomato/Swiggy queue management',
+    'Zomato/Swiggy orders tagged by channel',
     'Rice & meat inventory tracking per batch'
   ];
 
@@ -62,7 +62,7 @@ export default function BiryaniRestaurantsClient() {
     },
     {
       question: 'Does it work with Zomato and Swiggy?',
-      answer: 'Yes! Direct integration with both platforms. Orders come straight to your kitchen display. Separate queue for delivery orders with rider tracking. Auto-print packaging labels.'
+      answer: 'Yes, as manual entries. DineOpen does not sync Zomato or Swiggy orders automatically today: staff punch them in on the POS and tag the channel, they go to your kitchen display, and aggregator sales show separately in reports. You can also take commission-free orders via QR, your website and WhatsApp.'
     },
     {
       question: 'Can I track biryani-specific inventory?',

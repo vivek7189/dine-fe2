@@ -9,7 +9,7 @@ export const metadata = {
   keywords: 'Zomato Base alternative, Zomato Base competitor, better than Zomato Base, Zomato POS alternative, restaurant POS India, Zomato billing software alternative',
   openGraph: {
     title: 'Best Zomato Base Alternative | DineOpen - AI-Powered POS',
-    description: 'Switch from Zomato Base to DineOpen. AI voice ordering, zero fees, multi-platform support.',
+    description: 'Switch from Zomato Base to DineOpen. AI voice ordering, zero fees, commission-free direct ordering.',
     url: 'https://www.dineopen.com/alternatives/zomato-base',
     siteName: 'DineOpen',
     type: 'website',
@@ -28,7 +28,7 @@ const faqSchema = {
       "name": "Is DineOpen better than Zomato Base?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is an independent platform where you own your data. Unlike Zomato Base, you are not locked into the Zomato ecosystem, and you get AI voice ordering and multi-platform support."
+        "text": "DineOpen is an independent platform where you own your data. Unlike Zomato Base, you are not locked into the Zomato ecosystem, and you get AI voice ordering and commission-free direct ordering."
       }
     },
     {
@@ -44,7 +44,7 @@ const faqSchema = {
       "name": "Does DineOpen integrate with Zomato?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers direct Zomato order integration without locking you into the Zomato ecosystem. You can also integrate with Swiggy and other platforms simultaneously."
+        "text": "Not automatically. DineOpen does not sync Zomato orders today: staff record Zomato (and Swiggy) orders on the POS and tag the channel, so aggregator sales show separately in reports. You can keep listing on Zomato while building commission-free direct ordering through QR, your own website and WhatsApp."
       }
     },
     {
@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "Can I use DineOpen instead of Zomato Base?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen gives you Zomato integration plus platform independence, AI voice ordering, and multi-platform support including Swiggy — all while you retain full ownership of your data."
+        "text": "Yes. DineOpen gives you an independent POS, AI voice ordering, channel-wise tracking of Zomato and Swiggy orders (entered on the POS) and commission-free direct ordering — all while you retain full ownership of your data."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "What features does DineOpen have that Zomato Base doesn't?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers AI voice ordering, independent data ownership, Swiggy integration, loyalty programs, and multi-location support — features not available in Zomato Base."
+        "text": "DineOpen offers AI voice ordering, independent data ownership, commission-free direct ordering, loyalty programs, and multi-location support — features not available in Zomato Base."
       }
     }
   ]

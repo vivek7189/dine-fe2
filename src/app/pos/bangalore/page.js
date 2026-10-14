@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Bangalore | GST Billing | DineOpen',
-  description: 'Best restaurant POS for Bangalore restaurants & cafes. GST billing, QR menus, Zomato/Swiggy integration, UPI. AI voice ordering. Trusted by Indiranagar & Koramangala cafes. Free trial.',
+  description: 'Best restaurant POS for Bangalore restaurants & cafes. GST billing, QR menus, Zomato/Swiggy order tracking, UPI. AI voice ordering. Trusted by Indiranagar & Koramangala cafes. Free trial.',
   keywords: 'restaurant POS Bangalore, billing software Bangalore, restaurant management Bangalore, GST billing software Bangalore, cafe POS Bangalore, Indiranagar restaurants, Koramangala cafes, QR menu Bangalore',
   openGraph: {
     title: 'Best Restaurant POS Software in Bangalore | DineOpen',
-    description: 'Restaurant POS for Bangalore. GST billing, Zomato/Swiggy integration. Free trial.',
+    description: 'Restaurant POS for Bangalore. GST billing, Zomato/Swiggy order tracking. Free trial.',
     url: 'https://www.dineopen.com/pos/bangalore',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -30,7 +30,7 @@ export default function BangalorePOSPage() {
     price: '899',
     highlights: [
       'GST-compliant billing for Karnataka',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'UPI, GPay, PhonePe payments',
       'AI voice ordering in English & Kannada',
       'Cloud-first for tech-savvy restaurants',

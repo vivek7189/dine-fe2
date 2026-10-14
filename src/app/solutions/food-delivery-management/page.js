@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Food Delivery Management System | DineOpen',
-  description: 'Manage Zomato, Swiggy, and direct orders from one dashboard. Order aggregation, rider management, prep tracking, and platform analytics with DineOpen POS.',
-  keywords: 'food delivery management, order aggregation, Zomato Swiggy integration, delivery POS, restaurant delivery system, DineOpen, multi-platform orders',
+  description: 'Track Zomato, Swiggy and direct delivery orders in one POS by channel. Commission-free direct ordering, rider management, prep tracking, and platform analytics with DineOpen POS.',
+  keywords: 'food delivery management, delivery channel tracking, Zomato Swiggy order tracking, delivery POS, restaurant delivery system, DineOpen, multi-platform orders',
   openGraph: {
     title: 'Food Delivery Management System | DineOpen',
-    description: 'Manage Zomato, Swiggy, and direct orders from one dashboard. Order aggregation, rider management, prep tracking, and platform analytics with DineOpen POS.',
+    description: 'Track Zomato, Swiggy and direct delivery orders in one POS by channel. Commission-free direct ordering, rider management, prep tracking, and platform analytics with DineOpen POS.',
     url: 'https://www.dineopen.com/solutions/food-delivery-management',
     siteName: 'DineOpen',
     type: 'website',
@@ -17,7 +17,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Food Delivery Management System | DineOpen',
-    description: 'Manage Zomato, Swiggy, and direct orders from one dashboard. Order aggregation, rider management, prep tracking, and platform analytics with DineOpen POS.',
+    description: 'Track Zomato, Swiggy and direct delivery orders in one POS by channel. Commission-free direct ordering, rider management, prep tracking, and platform analytics with DineOpen POS.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/solutions/food-delivery-management',

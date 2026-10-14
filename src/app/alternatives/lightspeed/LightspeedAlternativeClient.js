@@ -14,7 +14,7 @@ const comparisonData = [
   { feature: 'Multi-Location', dineopen: 'Unlimited ($10/outlet)', competitor: 'Per location pricing', winner: 'dineopen' },
   { feature: 'Kitchen Display (KDS)', dineopen: '✓ Included', competitor: '✓ Extra module', winner: 'dineopen' },
   { feature: 'Inventory Management', dineopen: '✓ Included', competitor: '✓ Included', winner: 'tie' },
-  { feature: 'Delivery Integration', dineopen: '✓ Free', competitor: '✓ Available', winner: 'tie' },
+  { feature: 'Delivery Integration', dineopen: 'Talabat (auto); others via manual entry + reports', competitor: '✓ Available', winner: 'competitor' },
   { feature: 'Hardware Required', dineopen: 'No (any device)', competitor: 'iPad required', winner: 'dineopen' },
   { feature: 'Contract', dineopen: 'Month-to-month', competitor: 'Annual contract', winner: 'dineopen' },
 ];

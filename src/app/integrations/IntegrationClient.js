@@ -7,6 +7,17 @@ import { FaCheck, FaPlug, FaArrowRight } from 'react-icons/fa';
 
 export default function IntegrationClient({ data }) {
   const { name, tagline, description, features, benefits, cta } = data;
+  const badge = data.badge || 'Integration';
+  const featuresHeading = data.featuresHeading || `What You Get with ${name} Integration`;
+  const stepsHeading = data.stepsHeading || 'How to Connect';
+  const steps = data.steps || [
+    { step: '1', title: 'Sign Up', desc: 'Create your free DineOpen account' },
+    { step: '2', title: 'Connect', desc: `Link your ${name} account in settings` },
+    { step: '3', title: 'Configure', desc: 'Set up menu sync and preferences' },
+    { step: '4', title: 'Go Live', desc: 'Start receiving orders automatically' },
+  ];
+  const ctaHeading = data.ctaHeading || `Ready to Connect ${name}?`;
+  const ctaNote = data.ctaNote || 'Start your free 7-day trial. Integration is included at no extra cost.';
 
   return (
     <>
@@ -16,7 +27,7 @@ export default function IntegrationClient({ data }) {
         <div style={{ backgroundColor: 'white', padding: '60px 20px', borderBottom: '1px solid #e5e7eb' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#dbeafe', color: '#1e40af', padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', marginBottom: '24px' }}>
-              <FaPlug /> Integration
+              <FaPlug /> {badge}
             </div>
             <h1 style={{ fontSize: '42px', fontWeight: '800', color: '#111827', marginBottom: '16px' }}>
               DineOpen + {name}
@@ -35,7 +46,7 @@ export default function IntegrationClient({ data }) {
         {/* Features */}
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '60px 20px' }}>
           <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '40px' }}>
-            What You Get with {name} Integration
+            {featuresHeading}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {features.map((feature, idx) => (
@@ -70,15 +81,10 @@ export default function IntegrationClient({ data }) {
         <div style={{ padding: '60px 20px' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: '40px' }}>
-              How to Connect
+              {stepsHeading}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-              {[
-                { step: '1', title: 'Sign Up', desc: 'Create your free DineOpen account' },
-                { step: '2', title: 'Connect', desc: `Link your ${name} account in settings` },
-                { step: '3', title: 'Configure', desc: 'Set up menu sync and preferences' },
-                { step: '4', title: 'Go Live', desc: 'Start receiving orders automatically' },
-              ].map((item, idx) => (
+              {steps.map((item, idx) => (
                 <div key={idx} style={{ textAlign: 'center' }}>
                   <div style={{ width: '48px', height: '48px', backgroundColor: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '20px', fontWeight: '700', margin: '0 auto 16px' }}>
                     {item.step}
@@ -95,10 +101,10 @@ export default function IntegrationClient({ data }) {
         <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: '#111827', color: 'white' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '16px' }}>
-              Ready to Connect {name}?
+              {ctaHeading}
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Start your free 7-day trial. Integration is included at no extra cost.
+              {ctaNote}
             </p>
             <Link
               href="https://dineopen.com/login"

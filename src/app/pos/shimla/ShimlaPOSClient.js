@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaMountain, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaGlobe, FaCoffee, FaHotel } from 'react-icons/fa';
+import { FaMountain, FaCheck, FaMapMarkerAlt, FaGlobe, FaCoffee, FaHotel } from 'react-icons/fa';
 
 export default function ShimlaPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function ShimlaPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#e0e7ff' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#4f46e5', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;Our heritage cafe on Mall Road sees massive crowds during snow season. DineOpen&apos;s table management and quick billing helps us serve more tourists without compromising the experience.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Ankit Sharma</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Indian Coffee House, Mall Road, Shimla</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

@@ -22,14 +22,14 @@ export default function CityPOSClient({ cityData }) {
     deliveryPlatforms,
   } = cityData;
 
-  const deliveryDesc = deliveryPlatforms || 'Connect with Zomato, Swiggy & more';
+  const deliveryDesc = deliveryPlatforms || 'Record Zomato, Swiggy & other delivery orders and track them separately in reports';
 
   const features = [
     { title: 'AI Voice Ordering', desc: 'Take orders by voice in local languages' },
     { title: 'QR Code Menus', desc: 'Contactless digital menus for every table' },
     { title: 'POS Billing', desc: 'Fast, accurate billing with tax compliance' },
     { title: 'Inventory Management', desc: 'Track stock levels in real-time' },
-    { title: 'Delivery Integration', desc: deliveryDesc },
+    { title: 'Delivery Orders', desc: deliveryDesc },
     { title: 'Analytics & Reports', desc: 'Understand your business performance' },
   ];
 
@@ -53,7 +53,7 @@ export default function CityPOSClient({ cityData }) {
               Best Restaurant POS in {city}
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px' }}>
-              Built for restaurants in {city}. AI-powered billing, QR menus, and delivery integrations.
+              Built for restaurants in {city}. AI-powered billing, QR menus, and delivery order tracking.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link

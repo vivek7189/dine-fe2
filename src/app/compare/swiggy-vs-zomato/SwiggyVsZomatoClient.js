@@ -184,8 +184,8 @@ export default function SwiggyVsZomatoClient() {
 
         <section style={{ padding: '60px 20px', backgroundColor: '#111827', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Manage Both Platforms in One Place</h2>
-            <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '24px' }}>DineOpen integrates with both Swiggy and Zomato. Auto-accept orders, sync menus, track earnings - all from one dashboard.</p>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Track Both Platforms in One Place</h2>
+            <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '24px' }}>DineOpen does not sync Swiggy or Zomato orders automatically today. Record them on the POS, track each platform&apos;s sales separately in reports, and grow commission-free direct orders.</p>
             <Link href="/india" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Learn More</Link>
           </div>
         </section>

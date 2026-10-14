@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'POS Software for Cloud Kitchens India | DineOpen',
-  description: 'Best POS software for cloud kitchens and ghost kitchens in India. Multi-brand management, delivery integration, order aggregation, real-time analytics.',
+  description: 'Best POS software for cloud kitchens and ghost kitchens in India. Multi-brand management, delivery channel tracking, commission-free direct ordering, real-time analytics.',
   keywords: 'cloud kitchen POS India, ghost kitchen software, delivery kitchen management, multi-brand kitchen POS, dark kitchen software India',
   openGraph: {
     title: 'POS Software for Cloud Kitchens India | DineOpen',
-    description: 'Best POS software for cloud kitchens in India with multi-brand management and delivery integration.',
+    description: 'Best POS software for cloud kitchens in India with multi-brand management and delivery channel tracking.',
     url: 'https://www.dineopen.com/for/cloud-kitchens',
     siteName: 'DineOpen',
     type: 'website',
@@ -36,7 +36,7 @@ const faqSchema = {
       "name": "Does DineOpen integrate with Zomato and Swiggy?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen integrates directly with major delivery platforms like Zomato and Swiggy, allowing you to manage all delivery orders from a single dashboard."
+        "text": "Not automatically today. DineOpen does not sync Zomato or Swiggy orders: staff record them on the POS and tag the channel, so aggregator sales show separately in reports. You can keep using aggregators for discovery while building commission-free direct ordering via QR, your website and WhatsApp."
       }
     },
     {
@@ -52,7 +52,7 @@ const faqSchema = {
       "name": "How much does cloud kitchen POS software cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at just $20/month with a 7-day free trial available. Multi-brand and delivery integrations are included in the paid plans with no hidden fees."
+        "text": "DineOpen starts at just $20/month with a 7-day free trial available. Multi-brand and delivery order tracking are included in the paid plans with no hidden fees."
       }
     },
     {
@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for cloud kitchens?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen provides a 7-day free trial to explore core features. You can upgrade to paid plans anytime to access delivery integrations and multi-brand support."
+        "text": "Yes, DineOpen provides a 7-day free trial to explore core features. You can upgrade to paid plans anytime to access delivery order tracking and multi-brand support."
       }
     }
   ]

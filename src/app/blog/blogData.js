@@ -225,7 +225,7 @@ export const blogPosts = [
   {
     slug: 'best-restaurant-pos-canada-2026',
     title: 'I Tested 7 Canadian Restaurant POS Systems — Here\'s What Actually Works in 2026',
-    excerpt: 'Compare 7 best restaurant POS systems in Canada 2026. TouchBistro (CAD 69/mo), Lightspeed (CAD 89/mo), Square, DineOpen (CAD 39/mo) compared. HST/GST/PST compliant, Skip The Dishes & DoorDash ready.',
+    excerpt: 'Compare 7 best restaurant POS systems in Canada 2026. TouchBistro (CAD 69/mo), Lightspeed (CAD 89/mo), Square, DineOpen (CAD 39/mo) compared. HST/GST/PST compliant, commission-free online ordering.',
     date: '2026-04-18',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -235,7 +235,7 @@ export const blogPosts = [
   {
     slug: 'best-restaurant-pos-australia-2026',
     title: 'Best Restaurant & Cafe POS Systems in Australia 2026: We Compared Pricing, Fees & Features',
-    excerpt: 'Compare 7 best restaurant POS systems in Australia 2026. Lightspeed (AUD 79/mo), Square (1.6% per tap), DineOpen (AUD 39/mo) compared. GST compliant, EFTPOS ready, Uber Eats & Menulog integration.',
+    excerpt: 'Compare 7 best restaurant POS systems in Australia 2026. Lightspeed (AUD 79/mo), Square (1.6% per tap), DineOpen (AUD 39/mo) compared. GST compliant, EFTPOS ready, commission-free QR & online ordering.',
     date: '2026-04-18',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -365,7 +365,7 @@ export const blogPosts = [
   {
     slug: 'takeaway-pos-system-setup-guide',
     title: 'Takeaway POS System: Complete Setup Guide for Indian & UK Restaurants 2026',
-    excerpt: 'Set up a takeaway POS system for your restaurant in 2026. Covers online ordering, delivery integration (Swiggy, Zomato, Deliveroo, Just Eat), kitchen display, and QR menus. Free options available.',
+    excerpt: 'Set up a takeaway POS system for your restaurant in 2026. Covers online ordering, managing delivery-app orders (Swiggy, Zomato, Deliveroo, Just Eat), kitchen display, and QR menus. Free options available.',
     date: '2026-04-16',
     category: 'Operations',
     categoryColor: '#3b82f6',
@@ -385,7 +385,7 @@ export const blogPosts = [
   {
     slug: 'best-epos-indian-takeaway-uk-2026',
     title: 'Best EPOS System for Indian Takeaway UK 2026: Top 5 Compared',
-    excerpt: 'Find the best EPOS system for your Indian takeaway in the UK. Compare DineOpen, Epos Now, iZettle, Square & TouchBistro. VAT billing, Just Eat/Deliveroo integration, spice level customization. From £8/month.',
+    excerpt: 'Find the best EPOS system for your Indian takeaway in the UK. Compare DineOpen, Epos Now, iZettle, Square & TouchBistro. VAT billing, Just Eat/Deliveroo sales tracking, spice level customization. From £16/month.',
     date: '2026-04-16',
     category: 'POS Reviews',
     categoryColor: '#ef4444',
@@ -1863,7 +1863,7 @@ export const blogPostContent = {
         </ul>
 
         <h2>How does that compare to alternatives?</h2>
-        <p>The main difference with modern cloud EPOS is the <em>shape</em> of the cost: no big upfront hardware bill (run it on a tablet), a low flat monthly fee, and no contract. For a small UK restaurant or cafe, that usually works out cheaper and lower-risk. <a href="/uk">DineOpen</a> starts at 8 pounds per month with VAT and allergen handling, Deliveroo/Just Eat integration, and no lock-in — see the full <a href="/blog/epos-now-alternatives-2026">EPOS Now alternatives</a> comparison.</p>
+        <p>The main difference with modern cloud EPOS is the <em>shape</em> of the cost: no big upfront hardware bill (run it on a tablet), a low flat monthly fee, and no contract. For a small UK restaurant or cafe, that usually works out cheaper and lower-risk. <a href="/uk">DineOpen</a> starts at 8 pounds per month with VAT and allergen handling, Deliveroo/Just Eat sales tracked separately in reports, and no lock-in — see the full <a href="/blog/epos-now-alternatives-2026">EPOS Now alternatives</a> comparison.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Does EPOS Now have an upfront cost?</strong> Yes, EPOS Now typically involves an upfront hardware bundle in addition to the monthly software subscription. Always confirm the hardware cost, the monthly fee, the processing rate, and the contract term in your quote.</p>
@@ -1920,7 +1920,7 @@ export const blogPostContent = {
         </ol>
 
         <h2>Is direct online ordering worth it in Canada?</h2>
-        <p>Yes — once you have repeat customers. The apps are excellent for being discovered and expensive for loyalty. <a href="/canada">DineOpen</a> includes commission-free online ordering, QR dine-in, GST/HST/QST handling, and SkipTheDishes/Uber Eats/DoorDash integration in one POS, so you can run marketplace and direct together and steadily shift the mix.</p>
+        <p>Yes — once you have repeat customers. The apps are excellent for being discovered and expensive for loyalty. <a href="/canada">DineOpen</a> includes commission-free online ordering, QR dine-in, GST/HST/QST handling, and SkipTheDishes/Uber Eats/DoorDash orders recorded on the same POS (tagged by channel, so app sales show separately in reports), so you can run marketplace and direct together and steadily shift the mix.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>How much commission does SkipTheDishes take?</strong> SkipTheDishes commission typically ranges from about 15% to 30% of the order value depending on the plan you choose, plus processing and optional marketing fees.</p>
@@ -1981,7 +1981,7 @@ export const blogPostContent = {
         </ol>
 
         <h2>Is direct online ordering worth it in the UK?</h2>
-        <p>Yes — the apps are great for being found, expensive for loyalty. A commission-free ordering page plus a loyalty nudge turns app customers into direct regulars. <a href="/uk">DineOpen</a> includes commission-free online ordering, QR dine-in, and Deliveroo/Just Eat/Uber Eats integration in one EPOS, so you can run both without extra tools.</p>
+        <p>Yes — the apps are great for being found, expensive for loyalty. A commission-free ordering page plus a loyalty nudge turns app customers into direct regulars. <a href="/uk">DineOpen</a> includes commission-free online ordering, QR dine-in, and Deliveroo/Just Eat/Uber Eats orders recorded on the same EPOS and tracked separately in reports, so you can run both without extra tools.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Which is cheaper, Just Eat or Deliveroo?</strong> Just Eat usually has the lower headline commission, particularly if you self-deliver, while Deliveroo and Uber Eats tend to sit higher. The best value also depends on which app generates the most orders in your area.</p>
@@ -2169,7 +2169,7 @@ export const blogPostContent = {
         <p>Menu "price-ups" on delivery apps are common and allowed within each platform's policy — many restaurants set delivery-menu prices 10-15% higher to protect margin. The trade-off is customer perception, so keep it modest and consistent. For pickup and direct orders, keep prices lower to reward the cheaper channel.</p>
 
         <h2>Is direct online ordering actually worth it?</h2>
-        <p>Yes, once you have repeat customers. The apps are excellent for <em>discovery</em>; they are expensive for <em>loyalty</em>. The winning play is to use marketplaces to get found, then move regulars to your own <a href="/products/orders">online ordering</a> at 0% commission. A POS with built-in direct ordering makes this seamless — <a href="/usa">DineOpen</a> includes commission-free online ordering, QR dine-in, and DoorDash/Uber Eats/Grubhub integration in one place.</p>
+        <p>Yes, once you have repeat customers. The apps are excellent for <em>discovery</em>; they are expensive for <em>loyalty</em>. The winning play is to use marketplaces to get found, then move regulars to your own <a href="/products/orders">online ordering</a> at 0% commission. A POS with built-in direct ordering makes this seamless — <a href="/usa">DineOpen</a> includes commission-free online ordering, QR dine-in, and DoorDash/Uber Eats/Grubhub orders recorded on the same POS and tracked by channel in reports.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>How much commission does DoorDash take from restaurants?</strong> DoorDash marketplace commission typically ranges from about 15% to 30% per order depending on the partnership tier you choose, plus payment processing and optional marketing fees.</p>
@@ -2340,7 +2340,7 @@ export const blogPostContent = {
         </table>
 
         <h2>Which EPOS Now alternative is cheapest?</h2>
-        <p>Square and Zettle are cheapest on software (Square is free to start), but remember to include card processing in the comparison — a low monthly fee with a higher swipe rate can cost more overall. For a restaurant that wants proper features (table plans, KOT/kitchen display, allergens, Deliveroo and Just Eat) without a contract, a flat-rate system like <a href="/uk">DineOpen</a> at £8/month with no per-transaction markup is usually the lowest all-in cost.</p>
+        <p>Square and Zettle are cheapest on software (Square is free to start), but remember to include card processing in the comparison — a low monthly fee with a higher swipe rate can cost more overall. For a restaurant that wants proper features (table plans, KOT/kitchen display, allergens, delivery-app sales tracking) without a contract, a flat-rate system like <a href="/uk">DineOpen</a> at £8/month with no per-transaction markup is usually the lowest all-in cost.</p>
 
         <h2>What should you look for when switching EPOS?</h2>
         <ul>
@@ -2354,12 +2354,12 @@ export const blogPostContent = {
         <h2>Frequently asked questions</h2>
         <p><strong>Is there a free alternative to EPOS Now?</strong> Yes — Square offers a free base plan (you pay only card processing), and Zettle and SumUp are low-cost. For full restaurant features without a contract, DineOpen starts at £8/month.</p>
         <p><strong>Can I leave EPOS Now early?</strong> It depends on your contract term. Check your agreement for the notice period and any early-termination charges before you switch, and line up your new EPOS so there is no gap in service.</p>
-        <p><strong>What is the best EPOS Now alternative for a UK restaurant?</strong> For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, VAT and allergen handling, and Deliveroo/Just Eat integration — such as DineOpen — is the best balance of features and cost.</p>
+        <p><strong>What is the best EPOS Now alternative for a UK restaurant?</strong> For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, VAT and allergen handling, and commission-free direct online ordering — such as DineOpen — is the best balance of features and cost.</p>
     `,
     faqs: [
       { q: "Is there a free alternative to EPOS Now?", a: "Yes. Square offers a free base plan where you pay only card processing, and Zettle and SumUp are low-cost options. For full restaurant features without a contract, DineOpen starts at just 8 pounds per month." },
       { q: "Can I leave EPOS Now early?", a: "It depends on your contract term. Check your agreement for the notice period and any early-termination charges before switching, and line up your new EPOS so there is no gap in service." },
-      { q: "What is the best EPOS Now alternative for a UK restaurant?", a: "For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, 20 percent VAT and allergen handling, and Deliveroo and Just Eat integration is the best balance of features and cost." },
+      { q: "What is the best EPOS Now alternative for a UK restaurant?", a: "For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, 20 percent VAT and allergen handling, and commission-free direct online ordering is the best balance of features and cost." },
       { q: "Why do restaurants switch away from EPOS Now?", a: "The most common reasons are long contracts that are hard to exit, upfront hardware and licence costs, add-ons that raise the monthly bill, and mixed experiences with support and cancellation." },
     ],
   },
@@ -2410,7 +2410,7 @@ export const blogPostContent = {
         </ul>
 
         <h2>Where does DineOpen fit?</h2>
-        <p>All three are capable; the trade-off is cost and lock-in. <a href="/canada">DineOpen</a> gives Canadian restaurants the core they actually use — cloud POS, KDS, online ordering, inventory, AI ordering, SkipTheDishes/Uber Eats/DoorDash, GST/HST/QST, bilingual receipts — at a flat <strong>CAD 14/month with zero transaction-fee markup and no contract</strong>. If Lightspeed feels like too much and Square feels like too little, that middle is exactly the gap it fills. See <a href="/alternatives/lightspeed">Lightspeed alternatives</a> and <a href="/alternatives/touchbistro">TouchBistro alternatives</a>.</p>
+        <p>All three are capable; the trade-off is cost and lock-in. <a href="/canada">DineOpen</a> gives Canadian restaurants the core they actually use — cloud POS, KDS, online ordering, inventory, AI ordering, delivery-app sales tracking (SkipTheDishes/Uber Eats/DoorDash), GST/HST/QST, bilingual receipts — at a flat <strong>CAD 14/month with zero transaction-fee markup and no contract</strong>. If Lightspeed feels like too much and Square feels like too little, that middle is exactly the gap it fills. See <a href="/alternatives/lightspeed">Lightspeed alternatives</a> and <a href="/alternatives/touchbistro">TouchBistro alternatives</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Is Lightspeed or TouchBistro better for a Canadian restaurant?</strong> TouchBistro is better for single-site full-service dining thanks to its tableside, coursing and floor-plan tools. Lightspeed is better for multi-location or combined retail-and-restaurant operations that need more depth and reporting — at a higher price.</p>
@@ -2473,7 +2473,7 @@ export const blogPostContent = {
         <p>A 1-location full-service restaurant on a paid tier with a couple of add-ons and $40k/month card volume: roughly <strong>$150–$250/mo software</strong> + <strong>~$12,500/yr processing</strong> + hardware. That is comfortably over <strong>$20,000/year</strong> all-in. Multiply for extra terminals or locations.</p>
 
         <h2>Are there cheaper Toast alternatives?</h2>
-        <p>Yes. If you like Toast's feature set but not the bill, the lever is the <em>cost structure</em>. <a href="/usa">DineOpen</a> offers the same essentials — POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub, US sales tax and tip reporting — at a flat <strong>$10/month with zero transaction-fee markup and no contract</strong>. You keep the swipe fees you were paying anyway and drop the per-transaction premium on top. Compare directly on the <a href="/vs/dineopen-vs-toast">DineOpen vs Toast</a> page, see the full <a href="/blog/square-vs-toast-vs-clover-2026">Square vs Toast vs Clover comparison</a>, or read the <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">founder cost breakdown</a>.</p>
+        <p>Yes. If you like Toast's feature set but not the bill, the lever is the <em>cost structure</em>. <a href="/usa">DineOpen</a> offers the same essentials — POS, KDS, online ordering, inventory, AI ordering, delivery-app sales tracking (DoorDash/Uber Eats/Grubhub), US sales tax and tip reporting — at a flat <strong>$10/month with zero transaction-fee markup and no contract</strong>. You keep the swipe fees you were paying anyway and drop the per-transaction premium on top. Compare directly on the <a href="/vs/dineopen-vs-toast">DineOpen vs Toast</a> page, see the full <a href="/blog/square-vs-toast-vs-clover-2026">Square vs Toast vs Clover comparison</a>, or read the <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">founder cost breakdown</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Is Toast POS really free?</strong> There is a $0 "Starter" software tier, but it comes with a higher payment-processing rate, so you pay through fees rather than a monthly bill. For most restaurants the processing cost dwarfs the software cost.</p>
@@ -2548,7 +2548,7 @@ export const blogPostContent = {
 
         <h2>Where does DineOpen fit in this comparison?</h2>
         <p>Honest take: Square, Toast, and Clover are all solid — the friction is <em>cost structure</em>, not capability. Toast-level features usually mean Toast-level contracts and per-swipe markup; Square-level pricing usually means fewer restaurant-specific features.</p>
-        <p><a href="/usa">DineOpen</a> was built to remove that trade-off: full restaurant features (POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub) at a <strong>flat $10/month</strong>, with <strong>zero transaction fees</strong> (bring your own processor) and <strong>no hardware lock-in or contract</strong>. You keep the swipe fees you were paying anyway and stop paying a per-transaction markup on top. If the numbers above made you wince, that's the point — <a href="/vs/dineopen-vs-toast">compare it side by side with Toast</a>.</p>
+        <p><a href="/usa">DineOpen</a> was built to remove that trade-off: full restaurant features (POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub sales tracking) at a <strong>flat $10/month</strong>, with <strong>zero transaction fees</strong> (bring your own processor) and <strong>no hardware lock-in or contract</strong>. You keep the swipe fees you were paying anyway and stop paying a per-transaction markup on top. If the numbers above made you wince, that's the point — <a href="/vs/dineopen-vs-toast">compare it side by side with Toast</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Is Square or Toast better for restaurants?</strong> Square is better for cafes, QSR, food trucks, and low-volume or new restaurants that want to start free with no contract. Toast is better for full-service and multi-location restaurants that need deep features like coursing, KDS, and advanced inventory — as long as you accept the contract and processing markup.</p>
@@ -3079,7 +3079,7 @@ export const blogPostContent = {
                 </tr>
                 <tr>
                   <td style="padding: 12px; border: 1px solid #e5e7eb;"><strong>Online Order Integration</strong></td>
-                  <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ Swiggy, Zomato</td>
+                  <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ QR, website &amp; WhatsApp (Swiggy/Zomato entered on POS)</td>
                   <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ Supported</td>
                   <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">✅ E-commerce</td>
                 </tr>
@@ -3395,7 +3395,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">Can a cafe POS handle both dine-in and takeaway orders?</h4>
-            <p style="color: #4b5563; margin: 0;">Yes. DineOpen supports dine-in table management, counter takeaway, online ordering via QR menus, and delivery through Zomato/Swiggy integration — all from one screen. Each order type is tracked separately in reports, so you can see which channel drives the most revenue.</p>
+            <p style="color: #4b5563; margin: 0;">Yes. DineOpen supports dine-in table management, counter takeaway, online ordering via QR menus, and Zomato/Swiggy delivery orders (entered on the POS and tagged by channel) — all from one screen. Each order type is tracked separately in reports, so you can see which channel drives the most revenue.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -5346,7 +5346,7 @@ export const blogPostContent = {
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px;">
               <strong style="color: #1f2937;">Swiggy & Zomato</strong>
-              <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 14px;">Manage third-party orders seamlessly</p>
+              <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 14px;">Record app orders on the POS and track them separately in reports</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px;">
               <strong style="color: #1f2937;">Walk-in Orders</strong>
@@ -7654,7 +7654,7 @@ export const blogPostContent = {
 
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">Does DineOpen work for ice cream delivery orders?</h4>
-            <p style="color: #4b5563; margin: 0;">Yes. DineOpen integrates with Zomato and Swiggy for aggregator delivery orders, and also supports direct online ordering via QR code menus. All delivery orders flow into the same POS dashboard, so you manage dine-in, takeaway, and delivery from one screen.</p>
+            <p style="color: #4b5563; margin: 0;">Yes. Zomato and Swiggy orders are recorded on the DineOpen POS and tagged by channel, so aggregator sales show separately in reports (DineOpen does not sync them automatically). DineOpen also offers commission-free direct ordering via QR code menus, your own ordering website and WhatsApp, so you manage dine-in, takeaway, and delivery from one system.</p>
           </div>
 
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -9067,7 +9067,7 @@ export const blogPostContent = {
           <h3 style="color: #991b1b; margin: 0 0 12px; font-size: 20px;">Challenge #4: Order Consolidation</h3>
           <p style="color: #374151; font-size: 16px; margin: 0;">During peak hours, orders flood in from Zomato, Swiggy, your website, and WhatsApp — all at once. If your kitchen staff is checking 4 different tablets, orders get missed and delayed.</p>
         </div>
-        <p style="font-size: 17px; line-height: 1.8; color: #374151;"><strong>Solution:</strong> <a href="/products/pos-software" style="color: #ef4444; font-weight: 600;">DineOpen's Cloud POS</a> consolidates every order onto one screen. Zomato order? Same screen. Swiggy? Same screen. WhatsApp? Same screen. Your <a href="/features/kitchen-display-system" style="color: #ef4444; font-weight: 600;">Kitchen Display System (KDS)</a> shows all orders in priority sequence.</p>
+        <p style="font-size: 17px; line-height: 1.8; color: #374151;"><strong>Solution:</strong> <a href="/products/pos-software" style="color: #ef4444; font-weight: 600;">DineOpen's Cloud POS</a> keeps every order on one screen. Your website, QR and WhatsApp orders arrive directly; Zomato and Swiggy orders are punched into the same POS and tagged by channel. Your <a href="/features/kitchen-display-system" style="color: #ef4444; font-weight: 600;">Kitchen Display System (KDS)</a> shows all orders in priority sequence.</p>
 
         <div style="background: #fef2f2; border-left: 5px solid #ef4444; padding: 24px 28px; border-radius: 12px; margin: 30px 0;">
           <h3 style="color: #991b1b; margin: 0 0 12px; font-size: 20px;">Challenge #5: Food Cost Control</h3>
@@ -9099,8 +9099,8 @@ export const blogPostContent = {
               <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;"><a href="/features/kitchen-display-system" style="color: #ef4444;">KDS</a></td>
             </tr>
             <tr style="background: #f9fafb;">
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Delivery Integration</td>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Sync with Zomato, Swiggy, etc.</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Delivery Channels</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Record Zomato/Swiggy orders and track sales by channel</td>
               <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;"><a href="/integrations/zomato" style="color: #ef4444;">Zomato</a> + <a href="/integrations/swiggy" style="color: #ef4444;">Swiggy</a></td>
             </tr>
             <tr>
@@ -9277,7 +9277,7 @@ export const blogPostContent = {
             <div style="min-width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 20px;">4</div>
             <div>
               <h3 style="color: #111827; margin: 0 0 8px; font-size: 20px;">Set Up Your Tech Stack</h3>
-              <p style="color: #374151; margin: 0; font-size: 16px;">Sign up for <a href="/" style="color: #ef4444; font-weight: 600;">DineOpen</a> (free 7-day trial). Set up your POS, configure your KDS, connect Zomato and Swiggy integration. Upload your menu — or let <a href="/products/ai-agent" style="color: #ef4444; font-weight: 600;">DineOpen's AI</a> extract it from a photo.</p>
+              <p style="color: #374151; margin: 0; font-size: 16px;">Sign up for <a href="/" style="color: #ef4444; font-weight: 600;">DineOpen</a> (free 7-day trial). Set up your POS, configure your KDS, and set up Zomato and Swiggy as order channels so their sales show separately in reports. Upload your menu — or let <a href="/products/ai-agent" style="color: #ef4444; font-weight: 600;">DineOpen's AI</a> extract it from a photo.</p>
             </div>
           </div>
           <div style="display: flex; gap: 20px; margin-bottom: 24px; align-items: flex-start;">
@@ -9956,7 +9956,7 @@ export const blogPostContent = {
           </div>
           <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 24px;">
             <h4 style="color: #166534; margin-bottom: 10px; font-size: 17px;">Online Ordering & Delivery</h4>
-            <p style="font-size: 15px; color: #166534; margin: 0; line-height: 1.6;">Direct ordering, Zomato/Swiggy integration, QR menu ordering, and <a href="/features/online-ordering" style="color: #ef4444; font-weight: 600;">commission-free channels</a></p>
+            <p style="font-size: 15px; color: #166534; margin: 0; line-height: 1.6;">Direct ordering, Zomato/Swiggy sales tracking, QR menu ordering, and <a href="/features/online-ordering" style="color: #ef4444; font-weight: 600;">commission-free channels</a></p>
           </div>
         </div>
 
@@ -11030,7 +11030,7 @@ export const blogPostContent = {
 
         <div style="background: #f8fafc; border-radius: 16px; padding: 28px; margin: 24px 0; border: 1px solid #e2e8f0;">
           <h3 style="margin: 0 0 20px 0; color: #0f172a; font-size: 20px;">Step 5: Start Taking Orders</h3>
-          <p style="color: #334155; line-height: 1.8; margin: 0;">Once recipes are linked to menu items, every order placed through your <a href="/products/pos" style="color:#ef4444;">POS</a>, <a href="/products/orders" style="color:#ef4444;">QR menu</a>, or <a href="/products/integrations" style="color:#ef4444;">Zomato/Swiggy</a> automatically deducts the correct ingredients. Your stock levels stay accurate in real time.</p>
+          <p style="color: #334155; line-height: 1.8; margin: 0;">Once recipes are linked to menu items, every order placed through your <a href="/products/pos" style="color:#ef4444;">POS</a>, <a href="/products/orders" style="color:#ef4444;">QR menu</a>, or for <a href="/products/integrations" style="color:#ef4444;">Zomato/Swiggy</a> (entered on the POS) automatically deducts the correct ingredients. Your stock levels stay accurate in real time.</p>
         </div>
 
         <p style="font-size: 16px; color: #6b7280; text-align: center; margin: 24px 0;">Most restaurants complete setup in <strong>under 30 minutes</strong>. Our team can help — <a href="/#contact" style="color: #ef4444; font-weight: 600;">book a free demo</a>.</p>
@@ -11083,7 +11083,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How does auto-deduction work when an order is placed?</h4>
-            <p style="color: #4b5563; margin: 0; line-height: 1.7;">When you create a recipe in DineOpen and link it to a menu item, every time that dish is ordered through the POS, QR menu, Zomato, or Swiggy, the ingredients are automatically deducted from inventory. For example, if butter chicken requires 250g chicken, 50g butter, and 30ml cream, those exact quantities are subtracted from stock when a customer orders butter chicken. Modifiers like "extra cheese" or "no onions" adjust the deduction accordingly.</p>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">When you create a recipe in DineOpen and link it to a menu item, every time that dish is ordered through the POS (including Zomato or Swiggy orders entered on it) or the QR menu, the ingredients are automatically deducted from inventory. For example, if butter chicken requires 250g chicken, 50g butter, and 30ml cream, those exact quantities are subtracted from stock when a customer orders butter chicken. Modifiers like "extra cheese" or "no onions" adjust the deduction accordingly.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">

@@ -17,7 +17,7 @@ export default function IndiaHubClient() {
     { icon: FaRupeeSign, title: 'GST-Compliant Billing', desc: 'Auto-generate GST invoices with CGST, SGST, IGST. GSTR-1 ready reports.' },
     { icon: FaShieldAlt, title: 'FSSAI Compliant', desc: 'Display FSSAI license on bills, track expiry, stay audit-ready.' },
     { icon: FaMobile, title: 'UPI & Digital Payments', desc: 'GPay, PhonePe, Paytm, Razorpay - all payment modes supported.' },
-    { icon: FaUtensils, title: 'Zomato & Swiggy', desc: 'Direct integration with delivery platforms. Auto-accept orders.' },
+    { icon: FaUtensils, title: 'Zomato & Swiggy Sales', desc: 'Record aggregator orders on the POS and track them separately in reports. No auto-sync today.' },
   ];
 
   const cities = [
@@ -105,7 +105,7 @@ export default function IndiaHubClient() {
               #1 Restaurant POS Software in India
             </h1>
             <p style={{ fontSize: '22px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              GST-compliant billing, FSSAI ready, Zomato/Swiggy integration, UPI payments, Hindi voice ordering.
+              GST-compliant billing, FSSAI ready, Zomato/Swiggy sales tracking, UPI payments, Hindi voice ordering.
               Trusted by 50,000+ restaurants across India.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>

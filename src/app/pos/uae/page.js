@@ -9,7 +9,7 @@ export const metadata = {
   keywords: 'restaurant POS UAE, restaurant software Dubai, POS system Abu Dhabi, VAT billing software UAE, cloud POS Dubai, QR menu UAE, Indian restaurant POS Dubai, cafe billing UAE, restaurant management Dubai',
   openGraph: {
     title: 'Best Restaurant POS Software in UAE | Dubai & Abu Dhabi | DineOpen',
-    description: 'Cloud-based restaurant POS for UAE with VAT compliance, multi-language menus, and delivery integration.',
+    description: 'Cloud-based restaurant POS for UAE with VAT compliance, multi-language menus, and Talabat integration.',
     url: 'https://www.dineopen.com/pos/uae',
     siteName: 'DineOpen',
     type: 'website',
@@ -36,11 +36,11 @@ export default function UAEPOSPage() {
     country: 'United Arab Emirates',
     currency: 'AED ',
     price: '75',
-    deliveryPlatforms: 'Connect with Talabat, Deliveroo & Careem NOW',
+    deliveryPlatforms: 'Talabat integration: orders arrive automatically. Deliveroo & Careem sales tracked in reports',
     highlights: [
       'VAT-compliant billing for UAE',
       'Arabic, English, Hindi, Urdu support',
-      'Talabat & Deliveroo integration',
+      'Talabat integration (orders arrive automatically)',
       'Multi-currency support (AED, USD, INR)',
       'Indian restaurant specialized features',
       'Mall food court & free zone support',
@@ -67,7 +67,7 @@ export default function UAEPOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - UAE",
-    "description": "Best restaurant POS software for UAE with VAT compliance, multi-language support, and delivery integration.",
+    "description": "Best restaurant POS software for UAE with VAT compliance, multi-language support, and Talabat integration.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

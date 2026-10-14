@@ -35,7 +35,7 @@ export default function OnlineClient() {
   ];
 
   const faqs = [
-    { q: 'How is DineOpen different from Zomato or Swiggy?', a: 'DineOpen gives you your own branded ordering page with zero commissions. Zomato and Swiggy take 15-30% of every order and own the customer relationship. With DineOpen, you pay a flat $20/mo (₹299 in India) and keep 100% of order revenue. You also own all customer data.' },
+    { q: 'How is DineOpen different from Zomato or Swiggy?', a: 'DineOpen gives you your own branded ordering page with zero commissions. Zomato and Swiggy take 15-30% of every order and own the customer relationship. With DineOpen, you pay a flat $20/mo (from ₹899/mo in India) and keep 100% of order revenue. You also own all customer data.' },
     { q: 'Do customers need to download an app?', a: 'No. Your ordering page works in any web browser on phone, tablet, or desktop. Customers visit your URL, browse the menu, and place their order. No app download, no account creation required. This removes friction and increases order completion rates.' },
     { q: 'Can I customize my ordering page?', a: 'Yes. Your page features your restaurant name, logo, and full menu with categories, images, modifiers, and descriptions. The layout is clean and optimized for mobile devices where most orders originate.' },
     { q: 'How do I receive online orders?', a: 'Online orders appear instantly on your DineOpen dashboard with sound notifications. They also generate KOTs that show on your kitchen display. You can manage orders from any device - POS terminal, tablet, or phone.' },
@@ -134,7 +134,7 @@ export default function OnlineClient() {
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '1px solid #e5e7eb' }}>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>Starter</h3>
                 <p style={{ fontSize: '40px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$20<span style={{ fontSize: '16px', fontWeight: '400', color: '#6b7280' }}>/mo</span></p>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>₹299/mo in India</p>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '24px' }}>From ₹899/mo in India</p>
                 <Link href="/login?ref=orders" style={{ display: 'block', padding: '14px', backgroundColor: '#ef4444', color: 'white', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
               </div>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', border: '2px solid #ef4444' }}>

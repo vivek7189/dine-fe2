@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Delhi NCR | Delhi, Noida, Gurgaon | DineOpen',
-  description: 'Best restaurant POS software for Delhi NCR restaurants. GST billing, Hindi voice ordering, Zomato/Swiggy integration. Trusted by restaurants in Delhi, Noida, Gurgaon.',
+  description: 'Best restaurant POS software for Delhi NCR restaurants. GST billing, Hindi voice ordering, commission-free QR & online ordering. Trusted by restaurants in Delhi, Noida, Gurgaon.',
   keywords: 'restaurant POS Delhi, billing software Noida, restaurant management Gurgaon, GST billing Delhi NCR, Hindi POS, restaurant software Delhi',
   openGraph: {
     title: 'Restaurant POS Software Delhi NCR | DineOpen',
-    description: 'Top-rated restaurant POS for Delhi NCR. GST billing, Hindi support, delivery integration.',
+    description: 'Top-rated restaurant POS for Delhi NCR. GST billing, Hindi support, commission-free online ordering.',
     url: 'https://www.dineopen.com/india/delhi-ncr',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -29,7 +29,7 @@ export default function DelhiNCRPage() {
       'GST billing with Delhi/UP/Haryana GSTIN',
       'Hindi voice ordering & menu display',
       'Multi-state GST handling (Delhi/UP/Haryana)',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'UPI, GPay, PhonePe payments',
       'Corporate catering support',
     ],

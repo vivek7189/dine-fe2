@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Canada | Toronto, Vancouver | DineOpen',
-  description: 'Restaurant POS software for Canada. Cloud-based billing, HST/GST compliance, QR ordering, Skip & DoorDash integration. Perfect for Canadian restaurants. From $20/month (USD). Free trial.',
+  description: 'Restaurant POS software for Canada. Cloud-based billing, HST/GST compliance, QR ordering, delivery order tracking. Perfect for Canadian restaurants. From $20/month (USD). Free trial.',
   keywords: 'restaurant POS Canada, POS system Toronto, restaurant software Vancouver, HST billing software, cloud POS Canada, QR menu Canada, Indian restaurant POS Toronto, cafe billing Vancouver, restaurant management Canada',
   openGraph: {
     title: 'Best Restaurant POS Software in Canada | DineOpen',
-    description: 'Cloud-based restaurant POS for Canada with HST/GST compliance and delivery integration.',
+    description: 'Cloud-based restaurant POS for Canada with HST/GST compliance and delivery order tracking.',
     url: 'https://www.dineopen.com/pos/canada',
     siteName: 'DineOpen',
     type: 'website',
@@ -36,11 +36,11 @@ export default function CanadaPOSPage() {
     country: 'Canada',
     currency: '$',
     price: '20',
-    deliveryPlatforms: 'Connect with Skip The Dishes, DoorDash & Uber Eats',
+    deliveryPlatforms: 'Track Skip The Dishes, DoorDash & Uber Eats orders in your reports',
     highlights: [
       'HST/GST/PST compliant billing',
       'English & French language support',
-      'Skip The Dishes & DoorDash integration',
+      'Skip The Dishes & DoorDash sales tracked in reports',
       'Tip pooling & gratuity management',
       'Multi-province tax configuration',
       'Winter-ready offline mode',
@@ -67,7 +67,7 @@ export default function CanadaPOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Canada",
-    "description": "Best restaurant POS software for Canada with HST/GST compliance and delivery platform integration.",
+    "description": "Best restaurant POS software for Canada with HST/GST compliance and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

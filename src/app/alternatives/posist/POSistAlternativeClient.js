@@ -13,7 +13,7 @@ const comparisonData = [
   { feature: 'Multi-language Support', dineopen: '10+ Indian languages', competitor: 'Limited', winner: 'dineopen' },
   { feature: 'QR Code Menus', dineopen: '✓ Included', competitor: '✓ Included', winner: 'tie' },
   { feature: 'Kitchen Display (KDS)', dineopen: '✓ Included', competitor: '✓ Extra cost', winner: 'dineopen' },
-  { feature: 'Zomato/Swiggy Integration', dineopen: '✓ Free', competitor: '✓ Available', winner: 'tie' },
+  { feature: 'Zomato/Swiggy Integration', dineopen: 'Manual entry + reports', competitor: '✓ Available', winner: 'competitor' },
   { feature: 'Multi-Outlet Support', dineopen: '₹999/outlet', competitor: 'Custom pricing', winner: 'dineopen' },
   { feature: 'Contract', dineopen: 'Month-to-month', competitor: 'Annual contract', winner: 'dineopen' },
   { feature: 'Customer Support', dineopen: '24/7 WhatsApp', competitor: 'Business hours', winner: 'dineopen' },

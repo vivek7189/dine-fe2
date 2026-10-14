@@ -80,7 +80,7 @@ const faqSchema = {
       "name": "Does DineOpen integrate with Zomato and Swiggy?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen integrates with Zomato and Swiggy for Indian restaurants, as well as DoorDash, Uber Eats, Deliveroo, Just Eat, Talabat, Skip The Dishes, and Menulog for Indian restaurants operating in USA, UK, UAE, Canada, and Australia."
+        "text": "Not automatically today. DineOpen does not sync Zomato or Swiggy orders: staff record them on the POS and tag the channel, so aggregator sales show separately in reports. The same applies to DoorDash, Uber Eats, Deliveroo, Just Eat, Skip The Dishes and Menulog abroad. Talabat (UAE/Gulf) is integrated and orders arrive automatically. DineOpen also offers commission-free QR, website and WhatsApp ordering."
       }
     },
     {
@@ -88,7 +88,7 @@ const faqSchema = {
       "name": "Does DineOpen work for Indian restaurants in USA, UK, and UAE?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Absolutely. DineOpen is used by Indian restaurants across the USA, UK, UAE, Canada, Australia, and India. It handles local tax regulations (sales tax, VAT, GST), local delivery platform integrations, and multi-currency support for each country."
+        "text": "Absolutely. DineOpen is used by Indian restaurants across the USA, UK, UAE, Canada, Australia, and India. It handles local tax regulations (sales tax, VAT, GST), delivery channel tracking, and multi-currency support for each country."
       }
     }
   ]

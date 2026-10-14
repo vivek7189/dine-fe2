@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaIndustry, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaUtensils, FaUsers, FaClock } from 'react-icons/fa';
+import { FaIndustry, FaCheck, FaMapMarkerAlt, FaUtensils, FaUsers, FaClock } from 'react-icons/fa';
 
 export default function MeerutPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function MeerutPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#fff7ed' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#ea580c', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;We run a canteen for 500+ factory workers across 3 shifts. DineOpen&apos;s pre-paid card system and bulk billing saves us hours daily. Perfect for industrial messes.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Rakesh Tyagi</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Modi Industries Canteen, Modipuram, Meerut</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

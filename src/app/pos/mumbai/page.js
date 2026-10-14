@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Mumbai | GST Billing | DineOpen',
-  description: 'Best restaurant POS software for Mumbai restaurants. GST billing, QR menus, Zomato/Swiggy integration, UPI payments. AI voice ordering in Hindi & English. Free 7-day trial.',
-  keywords: 'restaurant POS Mumbai, billing software Mumbai, restaurant management Mumbai, GST billing software Mumbai, cafe POS Mumbai, bar POS Mumbai, Zomato integration Mumbai, Swiggy POS Mumbai, QR menu Mumbai',
+  description: 'Best restaurant POS software for Mumbai restaurants. GST billing, QR menus, Zomato/Swiggy order tracking, UPI payments. AI voice ordering in Hindi & English. Free 7-day trial.',
+  keywords: 'restaurant POS Mumbai, billing software Mumbai, restaurant management Mumbai, GST billing software Mumbai, cafe POS Mumbai, bar POS Mumbai, Zomato order tracking Mumbai, Swiggy POS Mumbai, QR menu Mumbai',
   openGraph: {
     title: 'Best Restaurant POS Software in Mumbai | DineOpen',
-    description: 'Restaurant POS for Mumbai. GST billing, Zomato/Swiggy integration, UPI. Free trial.',
+    description: 'Restaurant POS for Mumbai. GST billing, Zomato/Swiggy order tracking, UPI. Free trial.',
     url: 'https://www.dineopen.com/pos/mumbai',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -30,7 +30,7 @@ export default function MumbaiPOSPage() {
     price: '899',
     highlights: [
       'GST-compliant billing for Maharashtra',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'UPI, GPay, PhonePe payments',
       'AI voice ordering in Hindi & Marathi',
       'Works offline during monsoons',
@@ -42,7 +42,7 @@ export default function MumbaiPOSPage() {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "DineOpen Mumbai",
-    "description": "Restaurant POS and billing software for Mumbai restaurants with GST billing and Zomato/Swiggy integration.",
+    "description": "Restaurant POS and billing software for Mumbai restaurants with GST billing and Zomato/Swiggy order tracking.",
     "url": "https://www.dineopen.com/pos/mumbai",
     "areaServed": { "@type": "City", "name": "Mumbai", "containedInPlace": { "@type": "State", "name": "Maharashtra" } },
     "priceRange": "₹₹",

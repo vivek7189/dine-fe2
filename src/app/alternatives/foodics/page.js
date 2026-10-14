@@ -61,7 +61,7 @@ const faqSchema = {
       "name": "Does DineOpen integrate with Talabat and Deliveroo?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen integrates with Talabat, Deliveroo, and other UAE delivery platforms. Orders flow directly into your POS, just like Foodics, with no extra integration fees."
+        "text": "DineOpen integrates with Talabat: orders arrive in your POS automatically, with no extra integration fees. Deliveroo, Noon and Careem orders are not synced today; staff record them on the POS and tag the channel, so each platform's sales show separately in reports."
       }
     },
     {

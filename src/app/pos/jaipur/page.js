@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Jaipur | Billing System | DineOpen',
-  description: 'Restaurant POS software in Jaipur. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Perfect for Rajasthani thali restaurants, cafes & hotels. Start free trial.',
+  description: 'Restaurant POS software in Jaipur. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Perfect for Rajasthani thali restaurants, cafes & hotels. Start free trial.',
   keywords: 'restaurant POS Jaipur, billing software Jaipur, restaurant software Rajasthan, GST billing Jaipur, cloud POS Jaipur, QR menu Jaipur, thali restaurant POS, hotel POS Jaipur, cafe billing Jaipur',
   openGraph: {
     title: 'Best Restaurant POS Software in Jaipur | DineOpen',
-    description: 'AI-powered restaurant POS for Jaipur. GST compliant billing, QR menus, delivery integration.',
+    description: 'AI-powered restaurant POS for Jaipur. GST compliant billing, QR menus, delivery order tracking.',
     url: 'https://www.dineopen.com/pos/jaipur',
     siteName: 'DineOpen',
     type: 'website',
@@ -32,7 +32,7 @@ export default function JaipurPOSPage() {
       'Perfect for Rajasthani thali restaurants',
       'Tourist-friendly multi-currency display',
       'Hotel restaurant & rooftop cafe support',
-      'Swiggy & Zomato integration for Pink City',
+      'Swiggy & Zomato sales tracking for Pink City',
     ],
     localKeywords: [
       'MI Road', 'C-Scheme', 'Vaishali Nagar', 'Malviya Nagar', 'Mansarovar',

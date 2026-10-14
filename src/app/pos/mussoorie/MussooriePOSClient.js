@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaMountain, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaGlobe, FaCoffee, FaHotel } from 'react-icons/fa';
+import { FaMountain, FaCheck, FaMapMarkerAlt, FaGlobe, FaCoffee, FaHotel } from 'react-icons/fa';
 
 export default function MussooriePOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function MussooriePOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#ccfbf1' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#0d9488', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;Our Mall Road cafe gets packed every weekend with Delhi tourists. DineOpen&apos;s quick billing and table management helps us serve more customers. The seasonal reporting is perfect for planning.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Vikram Rawat</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Mountain View Cafe, Mall Road, Mussoorie</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

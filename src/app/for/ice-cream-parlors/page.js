@@ -95,7 +95,7 @@ const faqSchema = {
       "name": "Can DineOpen help manage ice cream distribution and delivery orders?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen handles both walk-in and delivery orders for ice cream shops. You can manage party pack orders (1L, 2L, 5L tubs), schedule advance bookings for events, track delivery zones, and integrate with delivery platforms. The system also handles take-home pack pricing, dry ice charges, and delivery time slot management."
+        "text": "Yes, DineOpen handles both walk-in and delivery orders for ice cream shops. You can manage party pack orders (1L, 2L, 5L tubs), schedule advance bookings for events, track delivery zones, and tag delivery-app orders by channel. The system also handles take-home pack pricing, dry ice charges, and delivery time slot management."
       }
     },
     {

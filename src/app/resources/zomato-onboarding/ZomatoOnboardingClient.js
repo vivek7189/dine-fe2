@@ -162,8 +162,8 @@ export default function ZomatoOnboardingClient() {
 
         <section style={{ padding: '60px 20px', backgroundColor: '#e23744', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Manage Zomato Orders Seamlessly</h2>
-            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>DineOpen integrates with Zomato. Auto-accept orders, sync menu, track performance - all in one dashboard.</p>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Track Zomato Sales in Your POS</h2>
+            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Record Zomato orders on the DineOpen POS, send KOTs to the kitchen, and see Zomato sales separately in your reports. (No automatic Zomato sync today.)</p>
             <Link href="/india" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#e23744', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Explore Integration</Link>
           </div>
         </section>

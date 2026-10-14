@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'API & Integrations | Connect Your Restaurant Stack | DineOpen',
-  description: 'DineOpen API and integrations for restaurants — connect POS, billing, inventory with Zomato, Swiggy, Razorpay, Stripe, WhatsApp, and more. REST API, webhooks, and third-party connectors.',
-  keywords: 'restaurant API, POS API, restaurant integrations, Zomato integration, Swiggy integration, restaurant webhook, POS integration API, restaurant software API',
+  description: 'DineOpen API and integrations for restaurants — connect POS, billing, inventory with Razorpay, Stripe, WhatsApp, Talabat, and more. REST API, webhooks, and third-party connectors.',
+  keywords: 'restaurant API, POS API, restaurant integrations, Talabat integration, Razorpay integration, restaurant webhook, POS integration API, restaurant software API',
   openGraph: {
     title: 'API & Integrations | Connect Your Restaurant Stack | DineOpen',
-    description: 'Connect DineOpen with Zomato, Swiggy, payment gateways, accounting tools, and more via REST API and pre-built integrations.',
+    description: 'Connect DineOpen with payment gateways, Talabat, WhatsApp, accounting tools, and more via REST API and pre-built integrations.',
     url: 'https://www.dineopen.com/api-docs',
     siteName: 'DineOpen',
     type: 'website',
@@ -37,7 +37,7 @@ export default function ApiDocsPage() {
     "featureList": [
       "REST API for POS, orders, menu, and inventory",
       "Webhook notifications for real-time events",
-      "Zomato and Swiggy order sync",
+      "Talabat order sync (UAE/Gulf)",
       "Razorpay and Stripe payment integration",
       "WhatsApp Business API for notifications",
       "Tally and accounting software export",
@@ -50,10 +50,10 @@ export default function ApiDocsPage() {
     "@type": "FAQPage",
     "mainEntity": [
       { "@type": "Question", "name": "Does DineOpen have an API?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. DineOpen provides a REST API that lets you programmatically access POS data, orders, menu items, inventory, customers, and reports. API access is available on the Pro plan." } },
-      { "@type": "Question", "name": "Which food delivery platforms does DineOpen integrate with?", "acceptedAnswer": { "@type": "Answer", "text": "DineOpen integrates with Zomato and Swiggy for automatic order sync. Online orders appear directly in your POS — no manual entry needed. Menu and availability sync in real-time." } },
+      { "@type": "Question", "name": "Which food delivery platforms does DineOpen integrate with?", "acceptedAnswer": { "@type": "Answer", "text": "Talabat (UAE/Gulf) is integrated - Talabat orders arrive in DineOpen automatically. DineOpen does not sync Zomato or Swiggy orders automatically today: staff record those orders on the POS and mark the channel, so aggregator sales show separately in your reports." } },
       { "@type": "Question", "name": "What payment gateways are supported?", "acceptedAnswer": { "@type": "Answer", "text": "DineOpen supports Razorpay and Stripe for online payments, UPI for direct bank transfers, and all major card terminals. Payment status syncs automatically with your billing system." } },
       { "@type": "Question", "name": "Can I get webhook notifications?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Configure webhooks to receive real-time HTTP callbacks when events occur — new order placed, payment received, inventory low, reservation created, and more. Use webhooks to connect DineOpen with your own systems." } },
-      { "@type": "Question", "name": "Is there a setup fee for integrations?", "acceptedAnswer": { "@type": "Answer", "text": "No. All pre-built integrations (Zomato, Swiggy, Razorpay, WhatsApp) are included at no extra cost on the Pro plan. API access is also included. Custom integration support is available on request." } },
+      { "@type": "Question", "name": "Is there a setup fee for integrations?", "acceptedAnswer": { "@type": "Answer", "text": "No. All pre-built integrations (Razorpay, WhatsApp, Talabat) are included at no extra cost on the Pro plan. API access is also included. Custom integration support is available on request." } },
     ]
   };
 

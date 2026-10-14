@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Gujarat | Ahmedabad, Surat, Vadodara | DineOpen',
-  description: 'Best restaurant POS software for Gujarat restaurants. GST billing, Gujarati voice ordering, Zomato/Swiggy integration. Trusted by restaurants in Ahmedabad, Surat, Vadodara.',
+  description: 'Best restaurant POS software for Gujarat restaurants. GST billing, Gujarati voice ordering, commission-free QR & online ordering. Trusted by restaurants in Ahmedabad, Surat, Vadodara.',
   keywords: 'restaurant POS Gujarat, billing software Ahmedabad, restaurant management Surat, GST billing Gujarat, Gujarati POS, restaurant software Vadodara',
   openGraph: {
     title: 'Restaurant POS Software Gujarat | DineOpen',
-    description: 'Top-rated restaurant POS for Gujarat. GST billing, Gujarati support, delivery integration.',
+    description: 'Top-rated restaurant POS for Gujarat. GST billing, Gujarati support, commission-free online ordering.',
     url: 'https://www.dineopen.com/india/gujarat',
     siteName: 'DineOpen',
     locale: 'en_IN',

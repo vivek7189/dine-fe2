@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Pune | Billing System | DineOpen',
-  description: 'Restaurant POS software in Pune. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 400+ Pune restaurants. Start free trial.',
+  description: 'Restaurant POS software in Pune. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 400+ Pune restaurants. Start free trial.',
   keywords: 'restaurant POS Pune, billing software Pune, restaurant software Maharashtra, GST billing Pune, cloud POS Pune, QR menu Pune, cafe POS Pune, restaurant management Pune',
   openGraph: {
     title: 'Best Restaurant POS Software in Pune | DineOpen',
-    description: 'AI-powered restaurant POS for Pune. GST compliant billing, QR menus, delivery integration.',
+    description: 'AI-powered restaurant POS for Pune. GST compliant billing, QR menus, delivery order tracking.',
     url: 'https://www.dineopen.com/pos/pune',
     siteName: 'DineOpen',
     type: 'website',
@@ -29,7 +29,7 @@ export default function PunePOSPage() {
     highlights: [
       'Marathi language voice ordering support',
       'GST-compliant billing for Maharashtra',
-      'Swiggy & Zomato integration for Koregaon Park',
+      'Swiggy & Zomato sales tracking for Koregaon Park',
       'College crowd quick-service features',
       'IT Park delivery zone optimization',
       'Multi-outlet support for growing chains',
@@ -45,7 +45,7 @@ export default function PunePOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Pune",
-    "description": "Best restaurant POS software for Pune restaurants with Marathi language support, GST billing, and delivery integration.",
+    "description": "Best restaurant POS software for Pune restaurants with Marathi language support, GST billing, and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Noida | Cloud Kitchen & Cafe Billing | DineOpen',
-  description: 'Best restaurant POS for Noida & Greater Noida. Perfect for cloud kitchens, corporate cafeterias, malls, and IT park restaurants. Delivery-first features, Swiggy/Zomato integration. ₹899/month.',
+  description: 'Best restaurant POS for Noida & Greater Noida. Perfect for cloud kitchens, corporate cafeterias, malls, and IT park restaurants. Delivery-first features, Swiggy/Zomato order tracking. ₹899/month.',
   keywords: 'restaurant POS Noida, cloud kitchen software Noida, Greater Noida restaurant billing, IT park cafe POS, corporate cafeteria software, mall food court POS, Noida restaurant management',
   openGraph: {
     title: 'Restaurant POS Software Noida | Cloud Kitchen & Cafe | DineOpen',
-    description: 'POS for Noida restaurants, cloud kitchens, IT parks. Delivery integration, corporate billing.',
+    description: 'POS for Noida restaurants, cloud kitchens, IT parks. Delivery order tracking, corporate billing.',
     url: 'https://www.dineopen.com/pos/noida',
     siteName: 'DineOpen',
     type: 'website',

@@ -15,7 +15,7 @@ const comparisonData = [
   { feature: 'QR Code Menus', dineopen: '\u2713 Included', restroworks: '\u2713 Included', winner: 'tie' },
   { feature: 'Kitchen Display (KDS)', dineopen: '\u2713 Included', restroworks: '\u2713 Included', winner: 'tie' },
   { feature: 'Multi-Location Support', dineopen: '\u2713 Transparent pricing', restroworks: '\u2713 Custom pricing', winner: 'dineopen' },
-  { feature: 'Delivery Integration', dineopen: '\u2713 Built-in', restroworks: '\u2713 Available', winner: 'tie' },
+  { feature: 'Delivery Integration', dineopen: 'Talabat (auto); others via manual entry + reports', restroworks: '\u2713 Available', winner: 'restroworks' },
   { feature: 'Contract Length', dineopen: 'Month-to-month', restroworks: 'Annual contract', winner: 'dineopen' },
   { feature: 'Free Trial', dineopen: '7 days', restroworks: 'Demo only', winner: 'dineopen' },
 ];

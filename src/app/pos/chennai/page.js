@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Chennai | Billing System | DineOpen',
-  description: 'Restaurant POS software in Chennai. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 500+ Chennai restaurants. Start free trial.',
+  description: 'Restaurant POS software in Chennai. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 500+ Chennai restaurants. Start free trial.',
   keywords: 'restaurant POS Chennai, billing software Chennai, restaurant software Tamil Nadu, GST billing Chennai, cloud POS Chennai, QR menu Chennai, restaurant management Chennai, cafe POS Chennai',
   openGraph: {
     title: 'Best Restaurant POS Software in Chennai | DineOpen',
-    description: 'AI-powered restaurant POS for Chennai. GST compliant billing, QR menus, delivery integration.',
+    description: 'AI-powered restaurant POS for Chennai. GST compliant billing, QR menus, delivery order tracking.',
     url: 'https://www.dineopen.com/pos/chennai',
     siteName: 'DineOpen',
     type: 'website',
@@ -29,7 +29,7 @@ export default function ChennaiPOSPage() {
     highlights: [
       'Tamil language support for voice ordering',
       'GST-compliant billing for Tamil Nadu',
-      'Swiggy & Zomato integration for Marina Beach area',
+      'Swiggy & Zomato sales tracking for Marina Beach area',
       'Multi-cuisine support for Chettinad restaurants',
       'Beach-side QR ordering for outdoor venues',
       'South Indian thali management features',
@@ -45,7 +45,7 @@ export default function ChennaiPOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Chennai",
-    "description": "Best restaurant POS software for Chennai restaurants with Tamil language support, GST billing, and delivery integration.",
+    "description": "Best restaurant POS software for Chennai restaurants with Tamil language support, GST billing, and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

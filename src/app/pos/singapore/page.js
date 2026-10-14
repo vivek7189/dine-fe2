@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Singapore | Cloud POS | DineOpen',
-  description: 'Restaurant POS software for Singapore. GST-compliant billing, QR ordering, GrabFood & Foodpanda integration. Perfect for hawker stalls, cafes & restaurants. From $20/month (USD). Free trial.',
-  keywords: 'restaurant POS Singapore, hawker stall POS, cafe billing Singapore, GST POS Singapore, cloud POS Singapore, QR ordering Singapore, GrabFood integration, restaurant software Singapore, kopitiam POS',
+  description: 'Restaurant POS software for Singapore. GST-compliant billing, QR ordering, commission-free online ordering. Perfect for hawker stalls, cafes & restaurants. From $20/month (USD). Free trial.',
+  keywords: 'restaurant POS Singapore, hawker stall POS, cafe billing Singapore, GST POS Singapore, cloud POS Singapore, QR ordering Singapore, GrabFood order tracking, restaurant software Singapore, kopitiam POS',
   openGraph: {
     title: 'Best Restaurant POS Software in Singapore | DineOpen',
-    description: 'Cloud-based restaurant POS for Singapore with GST compliance, hawker stall support, and delivery integration.',
+    description: 'Cloud-based restaurant POS for Singapore with GST compliance, hawker stall support, and delivery order tracking.',
     url: 'https://www.dineopen.com/pos/singapore',
     siteName: 'DineOpen',
     type: 'website',
@@ -36,11 +36,11 @@ export default function SingaporePOSPage() {
     country: 'Singapore',
     currency: '$',
     price: '20',
-    deliveryPlatforms: 'Connect with GrabFood, Foodpanda & Deliveroo',
+    deliveryPlatforms: 'Track GrabFood, Foodpanda & Deliveroo orders in your reports',
     highlights: [
       'GST-compliant billing for Singapore',
       'English, Mandarin, Malay, Tamil support',
-      'GrabFood & Foodpanda integration',
+      'GrabFood & Foodpanda sales tracked in reports',
       'Hawker stall & kopitiam optimized',
       'QR ordering with PayNow/NETS support',
       'Multi-outlet chain management',
@@ -67,7 +67,7 @@ export default function SingaporePOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Singapore",
-    "description": "Best restaurant POS software for Singapore with GST compliance, hawker support, and delivery integration.",
+    "description": "Best restaurant POS software for Singapore with GST compliance, hawker support, and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

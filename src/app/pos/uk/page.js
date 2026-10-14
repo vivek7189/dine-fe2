@@ -41,11 +41,11 @@ export default function UKPOSPage() {
     highlights: [
       'VAT-compliant billing for UK restaurants',
       'AI voice ordering with UK accent support',
-      'Deliveroo, Just Eat, Uber Eats ready',
+      'Deliveroo, Just Eat & Uber Eats sales tracked in reports',
       'Works on any device - iPad, Android, PC',
       'Month-to-month billing, no contracts',
     ],
-    deliveryPlatforms: 'Connect with Deliveroo, Just Eat & Uber Eats',
+    deliveryPlatforms: 'Track Deliveroo, Just Eat & Uber Eats orders in your reports',
     localKeywords: ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Liverpool', 'Bristol', 'Leeds', 'Glasgow', 'Cardiff', 'Brighton'],
     complianceInfo: [
       { title: 'VAT 20% Ready', desc: 'Automatic VAT calculation at 20% standard rate. Handles zero-rated food vs hot takeaway distinctions.' },

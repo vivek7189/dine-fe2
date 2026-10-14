@@ -178,7 +178,7 @@ export default function RestaurantPOSClient() {
     },
     {
       question: 'Does DineOpen work with Zomato and Swiggy orders?',
-      answer: 'Yes. Zomato and Swiggy orders sync into the same POS, so delivery and dine-in orders go to one kitchen screen and one sales report.'
+      answer: 'Yes, as manual entries. DineOpen does not sync Zomato or Swiggy orders automatically today: staff record them on the POS and tag the channel, so they go to the same kitchen screen and show separately in one sales report.'
     },
     {
       question: 'Is there a free trial?',

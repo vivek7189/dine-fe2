@@ -176,7 +176,7 @@ export default function SwiggyOnboardingClient() {
         <section style={{ padding: '60px 20px', backgroundColor: '#fc8019', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Manage Swiggy Orders in Your POS</h2>
-            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>DineOpen integrates with Swiggy. Auto-accept orders, print KOT, track earnings - all in one place.</p>
+            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Record Swiggy orders on the DineOpen POS, print KOTs, and see Swiggy sales separately in your reports. (No automatic Swiggy sync today.)</p>
             <Link href="/india" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#fc8019', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Learn More</Link>
           </div>
         </section>

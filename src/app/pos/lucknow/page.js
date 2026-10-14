@@ -32,7 +32,7 @@ export default function LucknowPOSPage() {
       'Awadhi cuisine & kebab shop features',
       'Biryani portion management (half/full/family)',
       'Sweet shop (mithai) inventory tracking',
-      'Swiggy & Zomato integration for Nawabi city',
+      'Swiggy & Zomato sales tracking for Nawabi city',
     ],
     localKeywords: [
       'Hazratganj', 'Gomti Nagar', 'Aminabad', 'Chowk', 'Alambagh',

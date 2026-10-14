@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaWater, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaLeaf, FaUsers, FaUniversity } from 'react-icons/fa';
+import { FaWater, FaCheck, FaMapMarkerAlt, FaLeaf, FaUsers, FaUniversity } from 'react-icons/fa';
 
 export default function PrayagrajPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function PrayagrajPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#e0f2fe' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#0284c7', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;During Magh Mela, we serve thousands daily. DineOpen&apos;s cloud system helped us scale without any downtime. The pure veg tagging is exactly what Sangam-area restaurants need.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Vinod Tiwari</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Sangam View Restaurant, Jhunsi, Prayagraj</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

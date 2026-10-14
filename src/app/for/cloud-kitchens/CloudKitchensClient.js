@@ -58,7 +58,7 @@ export default function CloudKitchensClient() {
     },
     {
       question: 'Does it integrate with Zomato/Swiggy?',
-      answer: 'You can continue using aggregators for discovery while building your direct ordering channel. Over time, shift more orders to direct and save on commissions.'
+      answer: 'Not automatically today: Zomato/Swiggy orders are entered on the POS and tagged by channel so they show separately in reports. You can continue using aggregators for discovery while building your direct ordering channel. Over time, shift more orders to direct and save on commissions.'
     },
     {
       question: 'How does inventory work with multiple brands?',

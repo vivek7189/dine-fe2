@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software India | GST Billing, FSSAI Compliant | DineOpen',
-  description: 'Best restaurant POS software for Indian restaurants. GST-compliant billing, FSSAI compliance, Zomato/Swiggy integration, UPI payments, Hindi voice ordering. Trusted by 50,000+ restaurants across India.',
-  keywords: 'restaurant POS India, billing software India, restaurant management India, GST billing software, FSSAI compliant POS, Zomato integration, Swiggy POS, QR menu India, restaurant billing India, cafe POS India, bar POS India, hotel POS India',
+  description: 'Best restaurant POS software for Indian restaurants. GST-compliant billing, FSSAI compliance, Zomato/Swiggy sales tracking, UPI payments, Hindi voice ordering. Trusted by 50,000+ restaurants across India.',
+  keywords: 'restaurant POS India, billing software India, restaurant management India, GST billing software, FSSAI compliant POS, Zomato Swiggy sales tracking, QR menu India, restaurant billing India, cafe POS India, bar POS India, hotel POS India',
   openGraph: {
     title: 'Restaurant POS Software India | DineOpen',
-    description: 'Best restaurant POS for India. GST billing, FSSAI compliance, Zomato/Swiggy integration, UPI payments. Free 7-day trial.',
+    description: 'Best restaurant POS for India. GST billing, FSSAI compliance, Zomato/Swiggy sales tracking, UPI payments. Free 7-day trial.',
     url: 'https://www.dineopen.com/india',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -26,7 +26,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Restaurant POS Software India | DineOpen',
-    description: 'Best restaurant POS for India with GST billing, FSSAI compliance, and delivery integration.',
+    description: 'Best restaurant POS for India with GST billing, FSSAI compliance, and commission-free online ordering.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/india',
@@ -51,7 +51,7 @@ export default function IndiaPage() {
     "name": "DineOpen India",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, Android, iOS",
-    "description": "Restaurant POS and billing software for Indian restaurants with GST billing, FSSAI compliance, and Zomato/Swiggy integration.",
+    "description": "Restaurant POS and billing software for Indian restaurants with GST billing, FSSAI compliance, and Zomato/Swiggy sales tracking.",
     "url": "https://www.dineopen.com/india",
     "offers": {
       "@type": "Offer",

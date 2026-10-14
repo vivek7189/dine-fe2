@@ -4,12 +4,12 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Restaurant POS Integrations | Zomato, Swiggy, Razorpay & More | DineOpen',
-  description: 'Connect your restaurant POS with Zomato, Swiggy, Razorpay, and more. Auto-accept aggregator orders, sync menus, accept UPI payments, and manage everything from one dashboard. Free integrations with DineOpen.',
-  keywords: 'restaurant POS integrations, Zomato POS integration, Swiggy POS integration, Razorpay restaurant, food aggregator integration, restaurant payment gateway, POS Zomato Swiggy, restaurant software integrations India',
+  title: 'Restaurant POS Integrations | Razorpay, Talabat & Delivery Sales Tracking | DineOpen',
+  description: 'DineOpen integrates with Razorpay for UPI and card payments and with Talabat in the Gulf. Record Zomato and Swiggy orders on the POS and track them separately in reports (no automatic Zomato/Swiggy sync today).',
+  keywords: 'restaurant POS integrations, Razorpay restaurant, Talabat POS integration, Zomato Swiggy sales tracking, restaurant payment gateway, commission-free online ordering, restaurant software integrations India',
   openGraph: {
-    title: 'Restaurant POS Integrations | Zomato, Swiggy, Razorpay | DineOpen',
-    description: 'Connect with Zomato, Swiggy, Razorpay & more. Auto-accept orders, sync menus, manage payments from one dashboard.',
+    title: 'Restaurant POS Integrations | Razorpay, Talabat | DineOpen',
+    description: 'Razorpay payments, Talabat orders in the Gulf, and Zomato/Swiggy sales tracked separately in your reports.',
     url: 'https://www.dineopen.com/products/integrations',
     siteName: 'DineOpen',
     type: 'website',
@@ -17,7 +17,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Restaurant POS Integrations | DineOpen',
-    description: 'Zomato, Swiggy, Razorpay integrations for restaurants. Auto-accept orders, sync menus, one dashboard.',
+    description: 'Razorpay and Talabat integrations, plus Zomato/Swiggy sales tracking in reports.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/products/integrations',
@@ -31,20 +31,18 @@ export default function IntegrationsPage() {
     "name": "DineOpen Integrations",
     "applicationCategory": "BusinessApplication",
     "applicationSubCategory": "Restaurant POS Integrations",
-    "description": "Connect your restaurant POS with food delivery aggregators like Zomato and Swiggy, payment gateways like Razorpay, and more. Auto-accept orders, sync menus, and manage everything from one dashboard.",
+    "description": "Restaurant POS integrations: Razorpay payment gateway and Talabat order sync (UAE/Gulf). Zomato and Swiggy orders are recorded on the POS and tracked separately in reports; DineOpen does not sync them automatically today.",
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/integrations",
     "offers": [
       { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Integrations included free with all plans" }
     ],
     "featureList": [
-      "Zomato order integration",
-      "Swiggy order integration",
       "Razorpay payment gateway",
-      "Auto-accept aggregator orders",
-      "Real-time menu sync",
-      "Unified order dashboard",
-      "Inventory sync across platforms",
+      "Talabat order sync (UAE/Gulf)",
+      "Zomato and Swiggy sales tracking in reports (manual order entry)",
+      "Commission-free QR, website and WhatsApp ordering",
+      "Unified sales reports by channel",
       "Settlement tracking and reconciliation"
     ]
   };
@@ -58,7 +56,7 @@ export default function IntegrationsPage() {
         "name": "Which food delivery platforms does DineOpen integrate with?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen integrates with Zomato and Swiggy, India's two largest food delivery platforms. Orders from both platforms flow directly into your POS — no manual entry or switching between apps."
+          "text": "Talabat (UAE and Gulf) is integrated - Talabat orders arrive in DineOpen automatically. DineOpen does not sync Zomato or Swiggy orders automatically today: staff record those orders on the POS and mark the channel as Zomato or Swiggy, so aggregator sales show separately in your reports."
         }
       },
       {
@@ -66,23 +64,23 @@ export default function IntegrationsPage() {
         "name": "Do I need to pay extra for integrations?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. All integrations are included free with every DineOpen plan. There are no setup fees, no per-order charges, and no hidden costs for connecting Zomato, Swiggy, or Razorpay."
+          "text": "No. Integrations such as Razorpay are included with every DineOpen plan. There are no setup fees and no per-order charges from DineOpen."
         }
       },
       {
         "@type": "Question",
-        "name": "How does auto-accept work for Zomato and Swiggy orders?",
+        "name": "Does DineOpen auto-accept Zomato and Swiggy orders?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "When enabled, DineOpen automatically accepts incoming orders from Zomato and Swiggy and sends them directly to your kitchen display or printer. No staff member needs to manually accept each order, eliminating missed orders and delays."
+          "text": "No. There is no automatic order import or auto-accept for Zomato or Swiggy today. Staff enter those orders on the DineOpen POS, which sends a KOT to the kitchen and tracks the sale under the right channel."
         }
       },
       {
         "@type": "Question",
-        "name": "Can I sync my menu across Zomato, Swiggy, and dine-in?",
+        "name": "Can I sync my menu to Zomato and Swiggy?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Update your menu once in DineOpen and it syncs automatically to Zomato and Swiggy. Item availability, pricing, and descriptions stay consistent across all platforms. Mark items out of stock and they go offline everywhere instantly."
+          "text": "Not today. Your DineOpen menu powers your POS, QR menu, branded online ordering website and WhatsApp ordering. Zomato and Swiggy menus are managed in their own partner apps."
         }
       },
       {
@@ -98,7 +96,7 @@ export default function IntegrationsPage() {
         "name": "How long does it take to set up integrations?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Most integrations can be connected in under 10 minutes. Link your Zomato or Swiggy merchant account in DineOpen settings, configure your preferences, and you're live. No technical knowledge required."
+          "text": "Most integrations can be connected in under 10 minutes. Link your Razorpay account in DineOpen settings, configure your preferences, and you're live. No technical knowledge required."
         }
       }
     ]

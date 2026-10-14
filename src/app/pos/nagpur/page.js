@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Nagpur | GST Billing | DineOpen',
-  description: 'Best restaurant POS software for Nagpur restaurants. GST billing, Marathi/Hindi menus, Zomato/Swiggy integration, UPI payments. Perfect for Saoji cuisine & orange city restaurants.',
+  description: 'Best restaurant POS software for Nagpur restaurants. GST billing, Marathi/Hindi menus, Zomato/Swiggy order tracking, UPI payments. Perfect for Saoji cuisine & orange city restaurants.',
   keywords: 'restaurant POS Nagpur, billing software Nagpur, restaurant management Nagpur, GST billing software Nagpur, Saoji food POS, Vidarbha cuisine billing, Nagpuri restaurant software',
   openGraph: {
     title: 'Best Restaurant POS Software in Nagpur | DineOpen',
-    description: 'Restaurant POS for Nagpur. GST billing, Marathi support, delivery integration. Free trial.',
+    description: 'Restaurant POS for Nagpur. GST billing, Marathi support, delivery order tracking. Free trial.',
     url: 'https://www.dineopen.com/pos/nagpur',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -31,7 +31,7 @@ export default function NagpurPOSPage() {
     highlights: [
       'GST-compliant billing for Maharashtra',
       'Marathi & Hindi voice ordering',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'Perfect for Saoji restaurants',
       'UPI, GPay, PhonePe payments',
       'Tarri poha shop quick billing',

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaUtensils, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaUsers, FaLeaf, FaClock } from 'react-icons/fa';
+import { FaUtensils, FaCheck, FaMapMarkerAlt, FaUsers, FaLeaf, FaClock } from 'react-icons/fa';
 
 export default function AmritsarPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function AmritsarPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#fef3c7' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#b45309', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;Our dhaba serves 2000+ customers daily. DineOpen handles our rush hours perfectly - quick billing, kitchen display, everything. It understands Punjabi food business.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Gurpreet Singh</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Bade Bhai Ka Dhaba, Town Hall, Amritsar</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

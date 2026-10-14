@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Hyderabad | Billing System | DineOpen',
-  description: 'Restaurant POS software in Hyderabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato integration. Trusted by 600+ Hyderabad restaurants. Start free trial.',
+  description: 'Restaurant POS software in Hyderabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 600+ Hyderabad restaurants. Start free trial.',
   keywords: 'restaurant POS Hyderabad, billing software Hyderabad, restaurant software Telangana, GST billing Hyderabad, cloud POS Hyderabad, QR menu Hyderabad, biryani restaurant POS, restaurant management Hyderabad',
   openGraph: {
     title: 'Best Restaurant POS Software in Hyderabad | DineOpen',
-    description: 'AI-powered restaurant POS for Hyderabad. GST compliant billing, QR menus, delivery integration.',
+    description: 'AI-powered restaurant POS for Hyderabad. GST compliant billing, QR menus, delivery order tracking.',
     url: 'https://www.dineopen.com/pos/hyderabad',
     siteName: 'DineOpen',
     type: 'website',
@@ -29,7 +29,7 @@ export default function HyderabadPOSPage() {
     highlights: [
       'Telugu & Urdu language voice ordering',
       'GST-compliant billing for Telangana',
-      'Swiggy & Zomato integration for HITEC City',
+      'Swiggy & Zomato sales tracking for HITEC City',
       'Biryani restaurant specialized features',
       'High-volume order management for Ramadan',
       'Irani cafe billing optimization',
@@ -45,7 +45,7 @@ export default function HyderabadPOSPage() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "DineOpen Restaurant POS - Hyderabad",
-    "description": "Best restaurant POS software for Hyderabad restaurants with Telugu/Urdu language support, GST billing, and delivery integration.",
+    "description": "Best restaurant POS software for Hyderabad restaurants with Telugu/Urdu language support, GST billing, and delivery order tracking.",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, iOS, Android",
     "offers": {

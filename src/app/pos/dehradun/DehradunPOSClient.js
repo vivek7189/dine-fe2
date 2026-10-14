@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaCoffee, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaGraduationCap, FaMotorcycle, FaMountain } from 'react-icons/fa';
+import { FaCoffee, FaCheck, FaMapMarkerAlt, FaGraduationCap, FaMotorcycle, FaMountain } from 'react-icons/fa';
 
 export default function DehradunPOSClient() {
   const cityFeatures = [
     { icon: <FaCoffee size={24} />, title: 'Cafe Culture Ready', description: 'Perfect for Dehradun\'s booming cafe scene. Quick billing, combo deals, and loyalty programs for regular customers.' },
     { icon: <FaGraduationCap size={24} />, title: 'Student-Friendly Features', description: 'Manage student discounts, meal subscriptions for hostel students, and budget combo meals for college crowds.' },
-    { icon: <FaMotorcycle size={24} />, title: 'Delivery Integration', description: 'Connect with Zomato, Swiggy for Dehradun deliveries. Perfect for Rajpur Road and Clock Tower area restaurants.' },
+    { icon: <FaMotorcycle size={24} />, title: 'Delivery Orders', description: 'Record Zomato & Swiggy orders on the POS and track them separately in reports. Perfect for Rajpur Road and Clock Tower area restaurants.' },
     { icon: <FaMountain size={24} />, title: 'Tourist Season Ready', description: 'Handle weekend tourist rush from Delhi-NCR. Quick table turnover and QR ordering for faster service.' },
   ];
 
@@ -83,16 +83,6 @@ export default function DehradunPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#dbeafe' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#2563eb', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;Our cafe on Rajpur Road was struggling with weekend rushes. DineOpen&apos;s QR ordering lets customers order from their table. Our service speed improved 40% and we handle more covers now.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Aditya Rawat</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>The Coffee Culture, Rajpur Road, Dehradun</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

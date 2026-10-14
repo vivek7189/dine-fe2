@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for biryani restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a 7-day free trial so you can try the POS for your biryani restaurant. Upgrade to paid plans to access delivery integrations and analytics."
+        "text": "Yes, DineOpen offers a 7-day free trial so you can try the POS for your biryani restaurant. Upgrade to paid plans to access delivery order tracking and analytics."
       }
     }
   ]

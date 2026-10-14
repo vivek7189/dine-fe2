@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Indore | GST Billing | DineOpen',
-  description: 'Best restaurant POS software for Indore restaurants. GST billing, Hindi menus, Zomato/Swiggy integration, UPI payments. Perfect for Indori street food & namkeen shops.',
+  description: 'Best restaurant POS software for Indore restaurants. GST billing, Hindi menus, Zomato/Swiggy order tracking, UPI payments. Perfect for Indori street food & namkeen shops.',
   keywords: 'restaurant POS Indore, billing software Indore, restaurant management Indore, GST billing software Indore, Indori food POS, poha jalebi shop billing, namkeen shop POS',
   openGraph: {
     title: 'Best Restaurant POS Software in Indore | DineOpen',
-    description: 'Restaurant POS for Indore. GST billing, Hindi support, delivery integration. Free trial.',
+    description: 'Restaurant POS for Indore. GST billing, Hindi support, delivery order tracking. Free trial.',
     url: 'https://www.dineopen.com/pos/indore',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -31,7 +31,7 @@ export default function IndorePOSPage() {
     highlights: [
       'GST-compliant billing for MP',
       'Hindi voice ordering & menu',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'Perfect for poha-jalebi shops',
       'UPI, GPay, PhonePe payments',
       'Namkeen shop weight-based billing',

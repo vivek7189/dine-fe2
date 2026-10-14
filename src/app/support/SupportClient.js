@@ -55,8 +55,8 @@ export default function SupportClient() {
       answer: 'Navigate to Settings → Staff Management. You can add staff members, assign roles (Owner, Manager, Cashier, Waiter, Kitchen), and set specific permissions for each role to control what they can access.',
     },
     {
-      question: 'Can I integrate with Swiggy and Zomato?',
-      answer: 'Yes. DineOpen integrates directly with Swiggy and Zomato. Online orders appear automatically on your POS — no manual entry needed. Go to Settings → Integrations to connect your accounts.',
+      question: 'Does DineOpen integrate with Swiggy and Zomato?',
+      answer: 'Not automatically today. DineOpen does not import Swiggy or Zomato orders, sync menus or auto-accept orders. Staff record those orders on the POS and mark the payment/channel as Swiggy or Zomato, so aggregator sales show separately in your reports. For commission-free orders, use DineOpen QR ordering, your branded online ordering website or WhatsApp ordering.',
     },
     {
       question: 'How do I generate GST-compliant invoices?',

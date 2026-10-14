@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Surat | GST Billing | DineOpen',
-  description: 'Best restaurant POS software for Surat restaurants. GST billing, Gujarati menus, Zomato/Swiggy integration, UPI payments. Perfect for Surti cuisine & diamond city restaurants.',
+  description: 'Best restaurant POS software for Surat restaurants. GST billing, Gujarati menus, Zomato/Swiggy order tracking, UPI payments. Perfect for Surti cuisine & diamond city restaurants.',
   keywords: 'restaurant POS Surat, billing software Surat, restaurant management Surat, GST billing software Surat, Gujarati POS Surat, Surti food POS, farsan shop billing Surat',
   openGraph: {
     title: 'Best Restaurant POS Software in Surat | DineOpen',
-    description: 'Restaurant POS for Surat. GST billing, Gujarati support, delivery integration. Free trial.',
+    description: 'Restaurant POS for Surat. GST billing, Gujarati support, delivery order tracking. Free trial.',
     url: 'https://www.dineopen.com/pos/surat',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -31,7 +31,7 @@ export default function SuratPOSPage() {
     highlights: [
       'GST-compliant billing for Gujarat',
       'Gujarati voice ordering & menu',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'Perfect for Surti locho, ghari shops',
       'UPI, GPay, PhonePe payments',
       'Farsan shop weight-based billing',

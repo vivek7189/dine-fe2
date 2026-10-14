@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS Software Tamil Nadu | Chennai, Coimbatore | DineOpen',
-  description: 'Best restaurant POS software for Tamil Nadu restaurants. GST billing, Tamil voice ordering, Zomato/Swiggy integration. Trusted by restaurants in Chennai, Coimbatore, Madurai.',
+  description: 'Best restaurant POS software for Tamil Nadu restaurants. GST billing, Tamil voice ordering, commission-free QR & online ordering. Trusted by restaurants in Chennai, Coimbatore, Madurai.',
   keywords: 'restaurant POS Tamil Nadu, billing software Chennai, restaurant management Coimbatore, GST billing Tamil Nadu, Tamil POS, restaurant software Madurai',
   openGraph: {
     title: 'Restaurant POS Software Tamil Nadu | DineOpen',
-    description: 'Top-rated restaurant POS for Tamil Nadu. GST billing, Tamil support, delivery integration.',
+    description: 'Top-rated restaurant POS for Tamil Nadu. GST billing, Tamil support, commission-free online ordering.',
     url: 'https://www.dineopen.com/india/tamil-nadu',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -29,7 +29,7 @@ export default function TamilNaduPage() {
       'GST billing with Tamil Nadu GSTIN support',
       'Tamil voice ordering & menu display',
       'Meals/Mess combo management',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'UPI, GPay, PhonePe payments',
       'Banana leaf meals tracking',
     ],

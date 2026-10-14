@@ -60,7 +60,7 @@ const faqSchema = {
       "name": "Does DineOpen offer a free trial for Chinese restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, DineOpen offers a 7-day free trial to try core features. Upgrade to access combo management, kitchen display systems, and delivery platform integrations."
+        "text": "Yes, DineOpen offers a 7-day free trial to try core features. Upgrade to access combo management, kitchen display systems, and delivery order tracking."
       }
     }
   ]

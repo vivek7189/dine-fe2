@@ -18,7 +18,7 @@ const comparisonData = [
   { feature: 'Birthday Rewards', dineopen: '✓', reelo: '✓', winner: 'tie' },
   { feature: 'Referral Program', dineopen: '✓', reelo: '✓', winner: 'tie' },
   { feature: 'Inventory Management', dineopen: '✓ Included', reelo: '✗ Not available', winner: 'dineopen' },
-  { feature: 'Zomato/Swiggy Integration', dineopen: '✓ Included', reelo: '✓ Available', winner: 'tie' },
+  { feature: 'Zomato/Swiggy Integration', dineopen: 'Manual entry + reports', reelo: '✓ Available', winner: 'reelo' },
   { feature: 'Customer Analytics', dineopen: '✓', reelo: '✓', winner: 'tie' },
   { feature: 'SMS Campaigns', dineopen: '✓', reelo: '✓', winner: 'tie' },
   { feature: 'Free Trial', dineopen: '7 days', reelo: '14 days', winner: 'dineopen' },
@@ -151,7 +151,7 @@ export default function ReeloAlternativeClient() {
                 { title: 'QR Code Menus', desc: 'Contactless ordering from any table. Customers order themselves.' },
                 { title: 'Inventory Management', desc: 'Track stock levels, get low-stock alerts, reduce wastage.' },
                 { title: 'Kitchen Display (KDS)', desc: 'Send orders directly to kitchen screens. No paper tickets.' },
-                { title: 'Zomato/Swiggy Integration', desc: 'Manage delivery orders in the same dashboard as dine-in.' },
+                { title: 'Zomato/Swiggy Order Tracking', desc: 'Record delivery orders on the POS by channel and see them in the same reports as dine-in.' },
               ].map((item, idx) => (
                 <div key={idx} style={{ padding: '24px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderLeft: '4px solid #7c3aed' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{item.title}</h3>

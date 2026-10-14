@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Australia | Sydney, Melbourne | DineOpen',
-  description: 'Restaurant POS software for Australia. Cloud-based billing, GST compliance, QR ordering, Uber Eats & Menulog integration. Perfect for Australian restaurants & cafes. From $20/month (USD). Free trial.',
+  description: 'Restaurant POS software for Australia. Cloud-based billing, GST compliance, QR ordering, delivery order tracking. Perfect for Australian restaurants & cafes. From $20/month (USD). Free trial.',
   keywords: 'restaurant POS Australia, POS system Sydney, restaurant software Melbourne, GST billing software Australia, cloud POS Australia, QR menu Australia, cafe POS Sydney, restaurant management Melbourne, hospitality POS',
   openGraph: {
     title: 'Best Restaurant POS Software in Australia | DineOpen',
-    description: 'Cloud-based restaurant POS for Australia with GST compliance and delivery integration.',
+    description: 'Cloud-based restaurant POS for Australia with GST compliance and delivery order tracking.',
     url: 'https://www.dineopen.com/pos/australia',
     siteName: 'DineOpen',
     type: 'website',
@@ -36,10 +36,10 @@ export default function AustraliaPOSPage() {
     country: 'Australia',
     currency: '$',
     price: '20',
-    deliveryPlatforms: 'Connect with Uber Eats, Menulog & DoorDash',
+    deliveryPlatforms: 'Track Uber Eats, Menulog & DoorDash orders in your reports',
     highlights: [
       'GST-compliant billing for Australia',
-      'Uber Eats & Menulog integration',
+      'Uber Eats & Menulog sales tracked in reports',
       'Cafe culture optimized features',
       'Award wage & penalty rate tracking',
       'Multi-venue management for groups',

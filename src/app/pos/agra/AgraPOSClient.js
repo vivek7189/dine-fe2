@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
-import { FaGlobe, FaCheck, FaQuoteLeft, FaMapMarkerAlt, FaUsers, FaBuilding, FaCamera } from 'react-icons/fa';
+import { FaGlobe, FaCheck, FaMapMarkerAlt, FaUsers, FaBuilding, FaCamera } from 'react-icons/fa';
 
 export default function AgraPOSClient() {
   const cityFeatures = [
@@ -83,16 +83,6 @@ export default function AgraPOSClient() {
           </div>
         </section>
 
-        <section style={{ padding: '60px 20px', backgroundColor: '#ecfeff' }}>
-          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-            <FaQuoteLeft style={{ fontSize: '32px', color: '#0891b2', marginBottom: '20px' }} />
-            <p style={{ fontSize: '20px', color: '#374151', fontStyle: 'italic', marginBottom: '24px', lineHeight: 1.7 }}>
-              &quot;We handle 20+ tour buses daily in peak season. DineOpen&apos;s group billing feature saves us hours. The multi-language menus mean tourists can order themselves. Perfect for Agra tourism.&quot;
-            </p>
-            <p style={{ fontWeight: '700', color: '#111827' }}>Amit Agarwal</p>
-            <p style={{ fontSize: '14px', color: '#6b7280' }}>Taj View Restaurant, Taj Ganj, Agra</p>
-          </div>
-        </section>
 
         <section style={{ padding: '60px 20px', backgroundColor: '#f3f4f6' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>

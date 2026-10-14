@@ -42,7 +42,7 @@ export default function ChineseRestaurantsClient() {
     'Unlimited customization options per item',
     'Easy combo meal builder with variants',
     'Fast checkout for high-volume takeaway',
-    'Delivery platform integration',
+    'Delivery orders tracked by channel',
     'Sauce & ingredient consumption tracking'
   ];
 

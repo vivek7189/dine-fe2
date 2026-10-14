@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Coimbatore | GST Billing | DineOpen',
-  description: 'Best restaurant POS software for Coimbatore restaurants. GST billing, Tamil menus, Zomato/Swiggy integration, UPI payments. Perfect for Kongunadu cuisine & textile city restaurants.',
+  description: 'Best restaurant POS software for Coimbatore restaurants. GST billing, Tamil menus, Zomato/Swiggy order tracking, UPI payments. Perfect for Kongunadu cuisine & textile city restaurants.',
   keywords: 'restaurant POS Coimbatore, billing software Coimbatore, restaurant management Coimbatore, GST billing software Coimbatore, Tamil POS Coimbatore, Kongunadu food POS, South Indian restaurant Coimbatore',
   openGraph: {
     title: 'Best Restaurant POS Software in Coimbatore | DineOpen',
-    description: 'Restaurant POS for Coimbatore. GST billing, Tamil support, delivery integration. Free trial.',
+    description: 'Restaurant POS for Coimbatore. GST billing, Tamil support, delivery order tracking. Free trial.',
     url: 'https://www.dineopen.com/pos/coimbatore',
     siteName: 'DineOpen',
     locale: 'en_IN',
@@ -31,7 +31,7 @@ export default function CoimbatorePOSPage() {
     highlights: [
       'GST-compliant billing for Tamil Nadu',
       'Tamil voice ordering & menu display',
-      'Zomato & Swiggy direct integration',
+      'Zomato & Swiggy sales tracked separately in reports',
       'Perfect for Kongunadu cuisine',
       'UPI, GPay, PhonePe payments',
       'Filter coffee shop management',

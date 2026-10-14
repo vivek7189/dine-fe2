@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Restaurant POS for Canada: GST/HST & French Receipts',
-  description: 'Modern restaurant POS for Canadian restaurants — GST/HST + QST (Quebec), Bill 72 tipping, bilingual (French) receipts, Interac, Apple Pay, SkipTheDishes/Uber Eats/DoorDash. Zero transaction fees, no lock-in. A Lightspeed & TouchBistro alternative from C$14/mo.',
+  description: 'Modern restaurant POS for Canadian restaurants — GST/HST + QST (Quebec), Bill 72 tipping, bilingual (French) receipts, Interac, Apple Pay, commission-free online ordering. Zero transaction fees, no lock-in. A Lightspeed & TouchBistro alternative from US$20/mo.',
   keywords: 'restaurant POS Canada, best restaurant POS Canada, Lightspeed alternative, TouchBistro alternative, restaurant POS Ontario, POS Quebec, GST HST POS, bilingual restaurant POS, Canadian restaurant software',
   alternates: {
     canonical: 'https://www.dineopen.com/canada',
@@ -13,7 +13,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'Restaurant POS System Canada | DineOpen',
-    description: 'A modern Lightspeed & TouchBistro alternative for Canadian restaurants. GST/HST/QST, bilingual receipts, SkipTheDishes/Uber Eats/DoorDash. From C$14/mo.',
+    description: 'A modern Lightspeed & TouchBistro alternative for Canadian restaurants. GST/HST/QST, bilingual receipts, commission-free online ordering. From US$20/mo.',
     url: 'https://www.dineopen.com/canada',
     siteName: 'DineOpen',
     locale: 'en_CA',
@@ -28,22 +28,22 @@ const CANADA_DATA = {
   countryName: 'Canada',
   flag: '🇨🇦',
   competitors: 'Lightspeed, TouchBistro & Square',
-  priceLine: 'from C$14/month',
+  priceLine: 'from US$20/month',
   posLink: '/pos/canada',
   hero: {
     badge: 'Restaurant POS for Canada',
     h1: 'The modern restaurant POS for Canadian restaurants',
-    sub: 'Cloud POS, AI ordering, inventory and analytics — with GST/HST/QST, bilingual receipts and SkipTheDishes built in. A cheaper, no-lock-in alternative to Lightspeed and TouchBistro.',
+    sub: 'Cloud POS, AI ordering, inventory and analytics — with GST/HST/QST, bilingual receipts and commission-free direct ordering built in. A cheaper, no-lock-in alternative to Lightspeed and TouchBistro.',
   },
   stats: [
-    { value: 'C$14/mo', label: 'Starting price' },
+    { value: 'US$20/mo', label: 'Starting price' },
     { value: '0%', label: 'Transaction fees' },
     { value: 'GST/HST', label: '+ QST (Quebec)' },
     { value: '5 min', label: 'Setup' },
   ],
   compliance: ['GST/HST nationwide + QST for Quebec', 'Quebec Bill 72 tipping (pre-tax) ready', 'Bilingual English/French receipts', 'Month-to-month — no long contracts'],
   payments: ['Interac Debit & tap', 'Visa, Mastercard & Amex', 'Apple Pay & Google Pay', 'Split bills, tips & pre-auth tabs'],
-  delivery: ['SkipTheDishes, Uber Eats & DoorDash', 'Direct QR-code & online ordering', 'Kitchen display & KOT printing', 'QuickBooks & Xero export'],
+  delivery: ['SkipTheDishes, Uber Eats & DoorDash sales tracked in reports', 'Direct QR-code & online ordering', 'Kitchen display & KOT printing', 'QuickBooks & Xero export'],
   verticals: [
     { name: 'Bars & Pubs', href: '/for/bars-pubs', desc: 'Tabs & tip-out' },
     { name: 'Pubs & Breweries', href: '/for/pubs-breweries', desc: 'Taproom service' },
@@ -72,10 +72,10 @@ const CANADA_DATA = {
     { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator', desc: 'Free tool' },
   ],
   faqs: [
-    { q: 'What is the best restaurant POS in Canada?', a: 'DineOpen is a modern cloud POS for Canadian restaurants with GST/HST and Quebec QST handling, Bill 72 pre-tax tipping, bilingual English/French receipts, and SkipTheDishes/Uber Eats/DoorDash integrations — from C$14/month with zero transaction fees and no lock-in, making it a cheaper alternative to Lightspeed and TouchBistro.' },
+    { q: 'What is the best restaurant POS in Canada?', a: 'DineOpen is a modern cloud POS for Canadian restaurants with GST/HST and Quebec QST handling, Bill 72 pre-tax tipping, bilingual English/French receipts, and commission-free online ordering — from US$20/month with zero transaction fees and no lock-in, making it a cheaper alternative to Lightspeed and TouchBistro.' },
     { q: 'Does DineOpen handle GST/HST and Quebec QST?', a: 'Yes. DineOpen calculates GST/HST by province and the additional QST for Quebec, supports Quebec’s Bill 72 pre-tax tip presentation, and prints bilingual English/French receipts.' },
-    { q: 'Which Canadian delivery apps and payments are supported?', a: 'DineOpen integrates with SkipTheDishes, Uber Eats and DoorDash, and accepts Interac Debit, Visa, Mastercard, Amex, Apple Pay and Google Pay, with split bills and tips.' },
-    { q: 'How much does DineOpen cost in Canada?', a: 'Plans start at C$14/month with zero transaction fees and no long contracts, plus a free trial with no credit card required.' },
+    { q: 'Which Canadian delivery apps and payments are supported?', a: 'You can record SkipTheDishes, Uber Eats and DoorDash orders on the POS and track each channel separately in reports (no automatic order sync today). DineOpen accepts Interac Debit, Visa, Mastercard, Amex, Apple Pay and Google Pay, with split bills and tips.' },
+    { q: 'How much does DineOpen cost in Canada?', a: 'Plans start at US$20/month with zero transaction fees and no long contracts, plus a free trial with no credit card required.' },
   ],
 };
 

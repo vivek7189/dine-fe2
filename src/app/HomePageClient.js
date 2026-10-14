@@ -1970,7 +1970,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {['GST Compliant', 'UPI Payments', 'Zomato & Swiggy'].map(tag => (
+                {['GST Compliant', 'UPI Payments', 'Zomato & Swiggy Sales Reports'].map(tag => (
                   <span key={tag} style={{
                     fontSize: '11px', fontWeight: '700', color: '#10b981', padding: '3px 8px',
                     background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0'
@@ -2405,7 +2405,7 @@ export default function LandingPage() {
               The AI Agent acts as your digital employee—it takes phone orders using natural voice conversation, processes WhatsApp and web orders, manages table reservations, answers customer questions, and intelligently upsells based on menu knowledge. The system works globally, requires no hardware installation, and runs on any device with internet access.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151' }}>
-              DineOpen is designed for restaurants, cafes, cloud kitchens, bakeries, and food service businesses of all sizes worldwide. Pricing starts at $10/month (or equivalent in local currency), making advanced AI restaurant technology accessible to businesses of any size.
+              DineOpen is designed for restaurants, cafes, cloud kitchens, bakeries, and food service businesses of all sizes worldwide. Pricing starts at $20/month (or equivalent in local currency), making advanced AI restaurant technology accessible to businesses of any size.
             </p>
           </div>
         </div>
@@ -2489,7 +2489,7 @@ export default function LandingPage() {
               Traditional restaurant software requires expensive hardware, lengthy installations, and ongoing IT support. DineOpen is 100% cloud-based—start using it in minutes on any device you already own. No terminals to buy, no software to install, no technical expertise required.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '20px' }}>
-              Most POS providers charge hefty setup fees plus monthly subscriptions that increase as you grow. DineOpen offers transparent pricing starting at $10/month with no hidden fees, no long-term contracts, and no per-transaction charges. The AI Agent is included free in all plans.
+              Most POS providers charge hefty setup fees plus monthly subscriptions that increase as you grow. DineOpen offers transparent pricing starting at $20/month with no hidden fees, no long-term contracts, and no per-transaction charges. The AI Agent is included free in all plans.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151' }}>
               Whether you run a single cafe or a multi-location restaurant group, DineOpen scales with you. The same platform that handles a 10-table bistro can manage a chain with hundreds of locations—all from one unified dashboard.
@@ -2522,7 +2522,7 @@ export default function LandingPage() {
               Is DineOpen suitable for small businesses?
             </h3>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '12px' }}>
-              DineOpen is designed to make enterprise-grade AI technology accessible to businesses of all sizes. Pricing starts at just $10/month—making advanced AI ordering, inventory management, and analytics affordable for even the smallest cafes.
+              DineOpen is designed to make enterprise-grade AI technology accessible to businesses of all sizes. Pricing starts at just $20/month—making advanced AI ordering, inventory management, and analytics affordable for even the smallest cafes.
             </p>
             <p style={{ fontSize: isMobile ? '16px' : '18px', lineHeight: '1.8', color: '#374151', marginBottom: '12px' }}>
               Small restaurants benefit most from DineOpen&apos;s AI Agent—it&apos;s like hiring a staff member that works 24/7 without salary, benefits, or breaks. The system requires no technical expertise, no hardware investment, and no long-term commitments.
@@ -2547,7 +2547,7 @@ export default function LandingPage() {
                 What is DineOpen?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                DineOpen is an AI-powered restaurant management platform with an autonomous AI Agent that handles customer orders via voice calls, WhatsApp, and web. It includes cloud POS, digital QR menus, inventory management, and real-time analytics. Pricing starts at $10/month globally.
+                DineOpen is an AI-powered restaurant management platform with an autonomous AI Agent that handles customer orders via voice calls, WhatsApp, and web. It includes cloud POS, digital QR menus, inventory management, and real-time analytics. Pricing starts at $20/month globally.
               </p>
             </div>
 
@@ -2583,7 +2583,7 @@ export default function LandingPage() {
                 How much does DineOpen cost?
               </h3>
               <p style={{ fontSize: isMobile ? '15px' : '16px', lineHeight: '1.7', color: '#374151' }}>
-                Plans start at $10/month (Starter) or $30/month (Professional). No setup fees, no long-term contracts, no hidden charges. The AI Agent is included free in all plans. Enterprise pricing is available for multi-location businesses with custom requirements.
+                Plans start at $20/month (Starter) or $30/month (Professional). No setup fees, no long-term contracts, no hidden charges. The AI Agent is included free in all plans. Enterprise pricing is available for multi-location businesses with custom requirements.
               </p>
             </div>
 
