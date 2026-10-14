@@ -330,11 +330,11 @@ export default function PricingClient() {
 
   // Competitor comparison row (India)
   const compare = [
-    { name: 'DineOpen Growth',     price: isIndia ? 'Custom' : `${currentPrice.symbol}${fmt(currentPrice.growth.monthly)}/mo`, ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
-    { name: 'Petpooja (real cost)', price: '₹1,800-3,500/mo', ai: false, txn: '0%',     setup: '₹3,000+', kds: 'Paid', captainApp: 'Paid' },
-    { name: 'Restroworks (POSist)', price: '₹2,000-4,000/mo', ai: false, txn: '0%',     setup: '₹5,000+', kds: 'Paid', captainApp: 'Paid' },
-    { name: 'PosBytz Pro',          price: '₹1,499/mo',       ai: false, txn: '0%',     setup: 'Paid',    kds: 'Paid', captainApp: true },
-    { name: 'Limetray',             price: '₹1,500-5,000/mo', ai: false, txn: '0%',     setup: 'Paid',    kds: false,  captainApp: false },
+    { name: 'DineOpen Growth',     price: `${currentPrice.symbol}${fmt(currentPrice.growth.monthly)}/mo`, ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
+    { name: 'Petpooja',             price: '₹12,000 + add-ons', ai: false, txn: '0%',   setup: 'Included', kds: 'Add-on', captainApp: 'Add-on' },
+    { name: 'Restroworks (POSist)', price: 'On request',      ai: false, txn: '0%',     setup: 'On request', kds: 'Paid', captainApp: 'Paid' },
+    { name: 'PosBytz',              price: 'On request',      ai: false, txn: '0%',     setup: 'On request', kds: 'Paid', captainApp: true },
+    { name: 'Limetray',             price: 'On request',      ai: false, txn: '0%',     setup: 'On request', kds: false,  captainApp: false },
     { name: 'Toast (US)',           price: '₹5,800/mo',       ai: false, txn: '2.49%',  setup: 'Paid',    kds: 'Paid', captainApp: true },
     { name: 'Square (US)',          price: '₹0 + 2.6%',       ai: false, txn: '2.6%',   setup: 'Free',    kds: 'Paid', captainApp: false },
   ];
@@ -685,7 +685,7 @@ export default function PricingClient() {
               </table>
             </div>
             <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '16px', fontStyle: 'italic' }}>
-              Pricing data based on publicly available information and customer-reported costs as of 2026. Petpooja headline price (₹833/mo) excludes mandatory add-ons.
+              Pricing data based on publicly available information as of 2026. Petpooja: Base plan ₹12,000; captain app, KDS and QR ordering in the Operations add-on (₹20,000–30,000), ex-GST, per petpooja.com/pricing (Oct 2026).
             </p>
           </div>
         </div>
@@ -796,7 +796,7 @@ export default function PricingClient() {
               🎯 Zero Transaction Fees. Forever.
             </h3>
             <p style={{ color: '#047857', fontSize: '15px', maxWidth: '680px', margin: '0 auto' }}>
-              Square charges 2.6%. Toast charges 2.49%. Petpooja takes commission on online orders.
+              Square charges 2.6%. Toast charges 2.49%.
               DineOpen charges <strong>0%</strong>. On a restaurant doing ₹10 lakh/month, that&apos;s
               <strong> ₹26,000+ saved every month</strong>.
             </p>
