@@ -73,7 +73,7 @@
           "name": "Which is better for cloud kitchen POS — Petpooja or UrbanPiper?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "This is not an apples-to-apples comparison. Petpooja is a full POS system that handles billing, inventory, KDS, and kitchen management. UrbanPiper is aggregator middleware that syncs orders from Zomato, Swiggy, and other platforms to your POS. Many cloud kitchens use both together: Petpooja as the POS and UrbanPiper to handle aggregator order sync. However, DineOpen offers an all-in-one alternative that includes both POS billing and built-in aggregator integration starting at Rs 899/month, eliminating the need for two separate subscriptions."
+            "text": "This is not an apples-to-apples comparison. Petpooja is a full POS system that handles billing, inventory, KDS, and kitchen management. UrbanPiper is aggregator middleware that syncs orders from Zomato, Swiggy, and other platforms to your POS. Many cloud kitchens use both together: Petpooja as the POS and UrbanPiper to handle aggregator order sync. DineOpen is a different trade-off: an all-in-one POS with direct online ordering, WhatsApp ordering and KDS starting at Rs 899/month. It does not sync Swiggy or Zomato orders yet — staff record aggregator orders on the POS and tag the payment as Swiggy or Zomato so aggregator sales show separately in reports."
           }
         },
         {
@@ -97,7 +97,7 @@
           "name": "Can DineOpen replace both Petpooja and UrbanPiper for a cloud kitchen?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, DineOpen is designed to replace both a traditional POS like Petpooja and aggregator middleware like UrbanPiper with a single all-in-one platform. DineOpen includes full cloud kitchen POS billing, built-in Zomato and Swiggy integration (equivalent to what UrbanPiper provides), direct online ordering, multi-brand management, KDS, and inventory — all starting at Rs 899/month. This eliminates the need to pay for and manage two separate systems."
+            "text": "Partly. DineOpen can replace a traditional POS like Petpooja for billing, KOT, KDS, inventory, direct online ordering and WhatsApp ordering, starting at Rs 899/month. It does not replace aggregator middleware like UrbanPiper: DineOpen does not sync Swiggy or Zomato orders or menus yet. You record aggregator orders on the DineOpen POS and mark the payment as Swiggy or Zomato, so aggregator sales show separately in reports. If automatic Swiggy/Zomato order sync is essential for your volume, you still need an integrated POS or middleware."
           }
         },
         {
@@ -105,7 +105,7 @@
           "name": "What are the best POS features a cloud kitchen needs?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "A cloud kitchen POS needs: fast order processing from multiple delivery channels simultaneously, aggregator integration for auto-accepting Zomato and Swiggy orders, multi-brand management from a single kitchen, Kitchen Display System (KDS) for efficient food preparation, packaging and dispatch management, inventory tracking for high-volume cooking, analytics broken down by brand and platform, and ideally direct ordering capabilities to reduce platform commission dependence. Table management is typically not needed for pure cloud kitchens."
+            "text": "A cloud kitchen POS needs: fast order processing from multiple delivery channels simultaneously, aggregator integration (or at least separate tracking) for Zomato and Swiggy orders, multi-brand management from a single kitchen, Kitchen Display System (KDS) for efficient food preparation, packaging and dispatch management, inventory tracking for high-volume cooking, analytics broken down by brand and platform, and ideally direct ordering capabilities to reduce platform commission dependence. Table management is typically not needed for pure cloud kitchens."
           }
         },
         {
@@ -921,9 +921,9 @@
                 <p>UrbanPiper also provides centralized menu management, so you can update your menu, prices, and availability across all aggregator platforms from one dashboard instead of logging into each platform separately. It handles order acceptance, rejection, and cancellation workflows.</p>
                 <p>What UrbanPiper cannot do: process a payment, print a GST bill, manage inventory, run a KOT workflow, or report your daily sales. It has no billing engine. You cannot run a cloud kitchen on UrbanPiper alone. It must be connected to an existing POS system to function.</p>
 
-                <h3>DineOpen: All-in-One POS with Built-in Aggregator Integration</h3>
-                <p>DineOpen is an AI-powered restaurant operating system that combines full POS functionality with built-in aggregator integration. Think of it as Petpooja plus UrbanPiper built into a single platform, at a fraction of the combined cost.</p>
-                <p>DineOpen handles billing, KOT, inventory, GST reporting, KDS, and staff management — everything a full POS does. It also natively integrates with Zomato and Swiggy, so orders flow directly into the DineOpen dashboard without needing a separate middleware subscription. DineOpen additionally provides direct ordering tools (your own website, WhatsApp ordering, QR codes) and AI-powered features like demand forecasting and menu optimization that are uniquely useful for cloud kitchens.</p>
+                <h3>DineOpen: All-in-One POS with Direct Ordering</h3>
+                <p>DineOpen is an AI-powered restaurant operating system that combines full POS functionality with built-in direct ordering. It is not aggregator middleware: DineOpen does not currently sync Swiggy or Zomato orders, so it is not a replacement for UrbanPiper.</p>
+                <p>DineOpen handles billing, KOT, inventory, GST reporting, KDS, and staff management — everything a full POS does. Zomato and Swiggy orders are recorded on the POS by your staff and tagged by platform, so aggregator sales show separately in reports &mdash; automatic order sync isn't available yet. DineOpen additionally provides direct ordering tools (your own website, WhatsApp ordering, QR codes) and AI-powered features like demand forecasting and menu optimization that are uniquely useful for cloud kitchens.</p>
             </div>
 
             <!-- Section 3: The Key Distinction -->
@@ -942,7 +942,7 @@
                     <ul>
                         <li><strong>Option A:</strong> Petpooja (POS) alone — basic aggregator integration, no centralized menu management</li>
                         <li><strong>Option B:</strong> Petpooja + UrbanPiper — full POS plus robust aggregator middleware (two separate subscriptions)</li>
-                        <li><strong>Option C:</strong> DineOpen — all-in-one POS with built-in aggregator integration (single subscription)</li>
+                        <li><strong>Option C:</strong> DineOpen — all-in-one POS with direct ordering; Swiggy/Zomato orders recorded manually and reported separately (single subscription)</li>
                     </ul>
                 </div>
 
@@ -980,14 +980,14 @@
                             <td><strong>Type of Product</strong></td>
                             <td>Full POS</td>
                             <td>Middleware only</td>
-                            <td class="dineopen-col">Full POS + Integration</td>
+                            <td class="dineopen-col">Full POS + Direct Ordering</td>
                             <td>POS + Middleware</td>
                         </tr>
                         <tr>
                             <td><strong>Monthly Cost</strong></td>
                             <td>Rs 12,000 + GST (Base; period not stated)</td>
                             <td>Rs 3,000-6,000</td>
-                            <td class="dineopen-col"><strong>Rs 300-1,000</strong></td>
+                            <td class="dineopen-col"><strong>Rs 899-1,799</strong></td>
                             <td>Rs 12,000 + GST, plus Rs 3,000-6,000/mo</td>
                         </tr>
                         <tr>
@@ -1008,28 +1008,28 @@
                             <td><strong>Zomato Integration</strong></td>
                             <td><span class="partial">Partial</span> Basic</td>
                             <td><span class="check">&#10003;</span> Full</td>
-                            <td class="dineopen-col"><span class="check">&#10003;</span> Full</td>
+                            <td class="dineopen-col"><span class="cross">&#10007;</span> Not yet (manual entry, separate sales reports)</td>
                             <td><span class="check">&#10003;</span> Full</td>
                         </tr>
                         <tr>
                             <td><strong>Swiggy Integration</strong></td>
                             <td><span class="partial">Partial</span> Basic</td>
                             <td><span class="check">&#10003;</span> Full</td>
-                            <td class="dineopen-col"><span class="check">&#10003;</span> Full</td>
+                            <td class="dineopen-col"><span class="cross">&#10007;</span> Not yet (manual entry, separate sales reports)</td>
                             <td><span class="check">&#10003;</span> Full</td>
                         </tr>
                         <tr>
                             <td><strong>Auto-Accept Orders</strong></td>
                             <td><span class="partial">Partial</span></td>
                             <td><span class="check">&#10003;</span></td>
-                            <td class="dineopen-col"><span class="check">&#10003;</span></td>
+                            <td class="dineopen-col"><span class="cross">&#10007;</span></td>
                             <td><span class="check">&#10003;</span></td>
                         </tr>
                         <tr>
                             <td><strong>Centralized Menu Sync</strong></td>
                             <td><span class="cross">&#10007;</span></td>
                             <td><span class="check">&#10003;</span></td>
-                            <td class="dineopen-col"><span class="check">&#10003;</span></td>
+                            <td class="dineopen-col"><span class="cross">&#10007;</span></td>
                             <td><span class="check">&#10003;</span></td>
                         </tr>
                         <tr>
@@ -1064,7 +1064,7 @@
                             <td><strong>Menu Sync (Cross-Platform)</strong></td>
                             <td><span class="cross">&#10007;</span></td>
                             <td><span class="check">&#10003;</span></td>
-                            <td class="dineopen-col"><span class="check">&#10003;</span></td>
+                            <td class="dineopen-col"><span class="cross">&#10007;</span></td>
                             <td><span class="check">&#10003;</span></td>
                         </tr>
                         <tr>
@@ -1104,10 +1104,10 @@
                         </tr>
                         <tr>
                             <td><strong>AI Demand Forecasting</strong></td>
-                            <td><span class="cross">&#10007;</span></td>
+                            <td><span class="partial">AI agent</span> (Base plan)</td>
                             <td><span class="cross">&#10007;</span></td>
                             <td class="dineopen-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
+                            <td><span class="partial">AI agent</span> (Petpooja)</td>
                         </tr>
                         <tr>
                             <td><strong>Table Management</strong></td>
@@ -1134,7 +1134,7 @@
                 </table>
                 </div>
 
-                <p>The green DineOpen column tells the story clearly. DineOpen matches the feature completeness of the combined Petpooja + UrbanPiper setup, adds direct ordering and AI features that neither provides, and does it all from a single subscription at a small fraction of the price.</p>
+                <p>The green DineOpen column tells the story clearly. DineOpen covers the POS side of the combined Petpooja + UrbanPiper setup and adds built-in direct ordering and WhatsApp ordering at a small fraction of the price. Where it falls short is aggregator sync: DineOpen does not currently pull Swiggy or Zomato orders or push menus to them, so those orders are recorded on the POS and reported separately.</p>
             </div>
 
             <!-- Section 5: Pricing Breakdown -->
@@ -1161,14 +1161,14 @@
                         <h4>Petpooja + UrbanPiper</h4>
                         <div class="cost-amount">Rs 12,000 + GST + Rs 3,000-6,000/mo</div>
                         <p>Complete setup for a cloud kitchen. Two separate subscriptions, two dashboards, two support relationships.</p>
-                        <p>Missing: Direct ordering capability, AI features.</p>
+                        <p>Missing: Built-in direct ordering (website sits in a paid Marketing add-on).</p>
                         <p><strong>Annual: roughly Rs 48,000-84,000 (ex-GST)</strong></p>
                     </div>
                     <div class="cost-card recommended">
                         <h4>DineOpen (All-in-One)</h4>
                         <div class="cost-amount">from Rs 899/mo</div>
-                        <p>Full POS + aggregator integration + direct ordering + AI features. Single subscription, single dashboard.</p>
-                        <p>Everything you need and more — at a lower listed price than the Petpooja + UrbanPiper combination.</p>
+                        <p>Full POS + direct ordering + AI features + separate Swiggy/Zomato sales tracking. Single subscription, single dashboard.</p>
+                        <p>No automatic Swiggy/Zomato order sync yet — but a much lower listed price than the Petpooja + UrbanPiper combination.</p>
                         <p><strong>Annual: about Rs 10,788</strong></p>
                     </div>
                 </div>
@@ -1181,7 +1181,7 @@
             <!-- CTA Box Mid -->
             <div class="cta-box">
                 <h3>Run Your Cloud Kitchen on DineOpen</h3>
-                <p>Built-in Zomato and Swiggy integration. Multi-brand management. KDS. Inventory. Direct ordering. All for Rs 899/month. Start free today.</p>
+                <p>Track Zomato and Swiggy sales separately. Multi-brand management. KDS. Inventory. Direct ordering. All for Rs 899/month. Try it free for 7 days.</p>
                 <a href="/login?utm_source=blog&amp;utm_medium=cta&amp;utm_campaign=cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen" class="cta-button">Start Free Trial</a>
                 <a href="/pricing" class="cta-button secondary-cta">See Cloud Kitchen Pricing</a>
             </div>
@@ -1211,9 +1211,9 @@
                 <h3>Use DineOpen if:</h3>
                 <ul>
                     <li><strong>You are starting a new cloud kitchen</strong> and want the most complete technology setup at the lowest cost.</li>
-                    <li><strong>You are currently paying for both Petpooja and UrbanPiper</strong> and want to consolidate to one platform and cut your software bill.</li>
+                    <li><strong>You are currently paying for both Petpooja and UrbanPiper</strong> and want to cut your software bill &mdash; and can manage Swiggy/Zomato orders on their own tablets while recording them in DineOpen for reporting.</li>
                     <li><strong>You want to build direct ordering</strong> capability to reduce your dependence on Zomato and Swiggy commissions over time.</li>
-                    <li><strong>You want AI-powered features</strong> like demand forecasting and menu optimization that can improve profitability — unavailable in either Petpooja or UrbanPiper.</li>
+                    <li><strong>You want AI-powered features</strong> like AI voice ordering, AI menu import, demand forecasting and menu optimization built into the same subscription.</li>
                     <li><strong>You are budget-conscious</strong> and need enterprise-level features without enterprise-level pricing.</li>
                     <li><strong>You want a single dashboard</strong> for everything — no toggling between POS and middleware tools.</li>
                     <li><strong>You run multiple brands</strong> from one kitchen and need brand-level performance analytics.</li>
@@ -1289,7 +1289,7 @@
 
                 <div class="highlight-box">
                     <h3>DineOpen Covers Every Item on This Checklist</h3>
-                    <p>DineOpen is the only product in this comparison that covers every single item on the checklist above from a single subscription. Petpooja's Base plan lists Swiggy/Zomato integrations, but its website and digital display sit in a paid Marketing add-on. UrbanPiper alone misses everything in billing, kitchen operations, and inventory. Petpooja + UrbanPiper together covers most items but still lacks direct ordering tools and AI features — and means paying for two subscriptions.</p>
+                    <p>DineOpen covers the billing, kitchen, multi-brand, inventory and analytics items above from a single subscription, but not the aggregator integration items: it does not sync Swiggy or Zomato orders or menus yet. Petpooja's Base plan lists Swiggy/Zomato integrations, but its website and digital display sit in a paid Marketing add-on. UrbanPiper alone misses everything in billing, kitchen operations, and inventory. Petpooja + UrbanPiper together covers most items, with direct ordering only via a paid add-on &mdash; and means paying for two subscriptions.</p>
                 </div>
             </div>
 
@@ -1399,17 +1399,17 @@
                 <p>Let us be direct. If you are comparing "Petpooja vs UrbanPiper" as if they are equivalent alternatives, the answer is that you are comparing two different categories of tools. Here is the honest verdict for each scenario:</p>
 
                 <h3>For New Cloud Kitchens: DineOpen</h3>
-                <p>If you are launching a cloud kitchen in 2026, there is no good reason to start with Petpooja and separately pay for UrbanPiper. DineOpen gives you the complete technology stack — POS, aggregator integration, direct ordering, multi-brand management, KDS, inventory, and AI forecasting — from a single platform at Rs 899/month. You will spend your first year focused on cooking, marketing, and operations rather than managing two software subscriptions and reconciling data across them.</p>
+                <p>If you are launching a cloud kitchen in 2026, there is no good reason to start with Petpooja and separately pay for UrbanPiper. DineOpen gives you the core technology stack — POS, direct ordering, multi-brand management, KDS, inventory, and AI forecasting — from a single platform at Rs 899/month. Swiggy and Zomato orders are recorded on the POS and reported separately (automatic aggregator sync isn't available yet), so check that this works for your order volume. You will spend your first year focused on cooking, marketing, and operations rather than managing two software subscriptions and reconciling data across them.</p>
 
                 <h3>For Existing Petpooja + UrbanPiper Users: DineOpen is Worth Evaluating</h3>
                 <p>If you are currently paying for Petpooja + UrbanPiper, the math for switching to DineOpen is worth checking. At listed prices (Petpooja Base plus UrbanPiper at Rs 4,500/month, vs DineOpen at Rs 899/month) the saving is roughly Rs 55,000 a year. The switching costs — time, training, potential disruption — are real but are typically recovered within 1-2 months of savings. DineOpen offers free migration support to make the transition smooth.</p>
-                <p>The caveat: if your operation is genuinely dependent on Petpooja-specific features, deep accounting integrations, or you have a large team that is deeply trained on Petpooja's specific workflows, switching introduces risk. Evaluate carefully and use DineOpen's free trial alongside your existing setup before committing.</p>
+                <p>The caveat: DineOpen does not sync Swiggy or Zomato orders yet, so you would go back to accepting aggregator orders on their own tablets and recording them in DineOpen. If your operation is genuinely dependent on automatic aggregator sync, Petpooja-specific features, deep accounting integrations, or you have a large team that is deeply trained on Petpooja's specific workflows, switching introduces risk. Evaluate carefully and use DineOpen's free trial alongside your existing setup before committing.</p>
 
                 <h3>For Large Enterprise Cloud Kitchen Chains: Evaluate Carefully</h3>
                 <p>For cloud kitchen chains operating 15+ kitchens with complex multi-city operations, established ERP integrations, and a dedicated tech team, Petpooja + UrbanPiper remains a proven, enterprise-supported option. DineOpen is growing rapidly in its enterprise capabilities, but large-scale chain operations should run a proper proof-of-concept evaluation.</p>
 
                 <h3>The Bottom Line</h3>
-                <p>DineOpen is the best choice for the majority of Indian cloud kitchens in 2026. It is more affordable, more complete as a standalone product, and the only option that includes both the POS and aggregator integration capabilities you need plus direct ordering tools and AI features to help you build a more profitable, less aggregator-dependent business. The 10-40x price advantage over competing setups is simply too significant to ignore for most operators.</p>
+                <p>DineOpen is the best choice for the majority of Indian cloud kitchens in 2026. It is more affordable, more complete as a standalone product, and includes the POS plus direct ordering tools and AI features to help you build a more profitable, less aggregator-dependent business. The 10-40x price advantage over competing setups is simply too significant to ignore for most operators.</p>
             </div>
 
             <!-- FAQ Section -->
@@ -1426,7 +1426,7 @@
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFAQ(this)">Which is better for cloud kitchen POS — Petpooja or UrbanPiper?</button>
                     <div class="faq-answer">
-                        <p>This is not an apples-to-apples comparison. Petpooja is a full POS system that handles billing, inventory, GST, and kitchen management. UrbanPiper is aggregator middleware that syncs orders from Zomato, Swiggy, and other platforms to your POS. Many cloud kitchens use both together: Petpooja as the POS and UrbanPiper to handle aggregator order sync. However, DineOpen offers an all-in-one alternative that includes both POS billing and built-in aggregator integration starting at Rs 899/month, eliminating the need for two separate subscriptions.</p>
+                        <p>This is not an apples-to-apples comparison. Petpooja is a full POS system that handles billing, inventory, GST, and kitchen management. UrbanPiper is aggregator middleware that syncs orders from Zomato, Swiggy, and other platforms to your POS. Many cloud kitchens use both together: Petpooja as the POS and UrbanPiper to handle aggregator order sync. DineOpen is a different trade-off: an all-in-one POS with direct online ordering, WhatsApp ordering and KDS starting at Rs 899/month. It does not sync Swiggy or Zomato orders yet — staff record aggregator orders on the POS and tag the payment as Swiggy or Zomato so aggregator sales show separately in reports.</p>
                     </div>
                 </div>
 
@@ -1447,14 +1447,14 @@
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFAQ(this)">Can DineOpen replace both Petpooja and UrbanPiper for a cloud kitchen?</button>
                     <div class="faq-answer">
-                        <p>Yes, DineOpen is designed to replace both a traditional POS like Petpooja and aggregator middleware like UrbanPiper with a single all-in-one platform. DineOpen includes full cloud kitchen POS billing, built-in Zomato and Swiggy integration (equivalent to what UrbanPiper provides), direct online ordering, multi-brand management, KDS, and inventory — all starting at Rs 899/month. This eliminates the need to pay for and manage two separate systems.</p>
+                        <p>Partly. DineOpen can replace a traditional POS like Petpooja for billing, KOT, KDS, inventory, direct online ordering and WhatsApp ordering, starting at Rs 899/month. It does not replace aggregator middleware like UrbanPiper: DineOpen does not sync Swiggy or Zomato orders or menus yet. You record aggregator orders on the DineOpen POS and mark the payment as Swiggy or Zomato, so aggregator sales show separately in reports. If automatic Swiggy/Zomato order sync is essential for your volume, you still need an integrated POS or middleware.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFAQ(this)">What are the best POS features a cloud kitchen needs?</button>
                     <div class="faq-answer">
-                        <p>A cloud kitchen POS needs: fast order processing from multiple delivery channels simultaneously, aggregator integration for auto-accepting Zomato and Swiggy orders, multi-brand management from a single kitchen, Kitchen Display System (KDS) for efficient food preparation, packaging and dispatch management, inventory tracking for high-volume cooking, analytics broken down by brand and platform, and ideally direct ordering capabilities to reduce platform commission dependence. Table management is typically not needed for pure cloud kitchens.</p>
+                        <p>A cloud kitchen POS needs: fast order processing from multiple delivery channels simultaneously, aggregator integration (or at least separate tracking) for Zomato and Swiggy orders, multi-brand management from a single kitchen, Kitchen Display System (KDS) for efficient food preparation, packaging and dispatch management, inventory tracking for high-volume cooking, analytics broken down by brand and platform, and ideally direct ordering capabilities to reduce platform commission dependence. Table management is typically not needed for pure cloud kitchens.</p>
                     </div>
                 </div>
 
@@ -1469,7 +1469,7 @@
             <!-- Final CTA -->
             <div class="cta-box">
                 <h3>Ready to Run Your Cloud Kitchen Smarter?</h3>
-                <p>DineOpen gives you everything — Zomato integration, Swiggy integration, POS billing, multi-brand management, KDS, inventory, and direct ordering — all built-in at Rs 899/month. No two-tool complexity. No two-subscription bills. Just a cloud kitchen that works.</p>
+                <p>DineOpen gives you POS billing, Swiggy/Zomato sales tracking, multi-brand management, KDS, inventory, and direct ordering — all built-in at Rs 899/month. No two-tool complexity. No two-subscription bills. Just a cloud kitchen that works.</p>
                 <a href="/login?utm_source=blog&amp;utm_medium=cta&amp;utm_campaign=cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen" class="cta-button">Start Free Trial</a>
                 <a href="/blog/cloud-kitchen-vs-restaurant-india.html" class="cta-button secondary-cta">Read: Cloud Kitchen vs Restaurant</a>
             </div>
@@ -1485,7 +1485,7 @@
 
                 <div class="sidebar-cta">
                     <h3>All-in-One Cloud Kitchen POS</h3>
-                    <p>Built-in Zomato &amp; Swiggy integration. Multi-brand. KDS. Inventory. Starting at Rs 899/month.</p>
+                    <p>Swiggy &amp; Zomato sales tracking. Multi-brand. KDS. Inventory. Growth plan Rs 899/month.</p>
 
                     <a href="/login?utm_source=blog&amp;utm_medium=cta&amp;utm_campaign=cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen" class="sidebar-button">Start Free Trial</a>
                     <a href="/pricing" class="sidebar-button secondary">See Pricing</a>
@@ -1496,10 +1496,10 @@
             <div class="sidebar-card">
                 <h3 style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 16px;">Why Cloud Kitchens Choose DineOpen</h3>
                 <ul class="sidebar-features">
-                    <li>Zomato + Swiggy Integration Built-in</li>
+                    <li>Zomato + Swiggy Sales Tracking</li>
                     <li>Multi-Brand from One Kitchen</li>
-                    <li>Auto-Accept Orders</li>
-                    <li>Centralized Menu Management</li>
+                    <li>Direct Online Ordering</li>
+                    <li>Centralized Menu Management (POS, QR, Website)</li>
                     <li>Kitchen Display System (KDS)</li>
                     <li>Real-Time Inventory Deduction</li>
                     <li>Direct Ordering (Website + WhatsApp)</li>
