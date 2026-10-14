@@ -14803,6 +14803,21 @@ const Admin = () => {
                     )
                   },
                   {
+                    key: 'reprintAfterBillEnabled',
+                    name: 'Re-print after billing is completed',
+                    desc: 'Hide Print on billed orders for other roles',
+                    icon: FaPrint,
+                    alwaysOn: true,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          Once a bill is completed, only these roles see Print (bill and KOT) and Download PDF for it in Order History. Owner and admin always can. Running orders are not affected. Empty = everyone.
+                        </p>
+                        {renderRoleChips('reprintAfterBillRoles')}
+                      </div>
+                    )
+                  },
+                  {
                     key: 'saveKotEnabled',
                     name: 'Save KOT / Place Order button',
                     desc: 'Control who sees the Save KOT (Place Order) button',

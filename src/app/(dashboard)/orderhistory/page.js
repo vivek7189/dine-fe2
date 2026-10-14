@@ -288,6 +288,9 @@ const OrderHistory = () => {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
   const [restaurant, setRestaurant] = useState(null);
+  // Admin → Billing Settings → reprintAfterBillRoles, read on its own: for some staff roles the
+  // `restaurant` above is only { id, name } (no billingSettings), so a rule read from it never applies.
+  const [reprintAfterBillRoles, setReprintAfterBillRoles] = useState(null);
   const [allowOrderDelete, setAllowOrderDelete] = useState(false);
   // KRA-aware bill printing (shared hook) — reprinting a completed bill on a Kenya eTIMS store
   // fiscalises + prints the fiscal receipt, same as the dashboard; elsewhere it prints plainly.
@@ -938,6 +941,19 @@ const OrderHistory = () => {
   }, [router]);
 
   useEffect(() => { if (restaurantId) fetchOrders(true); }, [fetchOrders, restaurantId]);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    let alive = true;
+    const pick = (bs) => { if (alive) setReprintAfterBillRoles(Array.isArray(bs?.reprintAfterBillRoles) ? bs.reprintAfterBillRoles : []); };
+    if (restaurant?.billingSettings) pick(restaurant.billingSettings);
+    apiClient.getRestaurants()
+      .then((res) => { const r = (res?.restaurants || []).find(x => x.id === restaurantId); if (r) pick(r.billingSettings || {}); })
+      .catch(() => {
+        try { const saved = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); if (saved?.id === restaurantId && saved.billingSettings) pick(saved.billingSettings); } catch {}
+      });
+    return () => { alive = false; };
+  }, [restaurantId, restaurant]);
 
   // Fetch print settings when restaurantId is available
   useEffect(() => {
@@ -2176,8 +2192,24 @@ const OrderHistory = () => {
     } catch { return true; }
   };
 
+  // Re-print after billing (Admin → Billing Settings → billingSettings.reprintAfterBillRoles).
+  // Empty (default) = no extra rule, everything as before. When roles are chosen, anyone else
+  // does not see Print (bill / KOT) or Print / Download PDF on a billed order. Owner/admin always can.
+  const canReprintBilled = (order) => {
+    if (!['completed', 'paid', 'settled', 'refunded'].includes(order?.status)) return true;
+    try {
+      const roles = reprintAfterBillRoles;
+      if (!Array.isArray(roles) || roles.length === 0) return true;
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = (user.role || '').toLowerCase();
+      if (role === 'owner' || role === 'admin') return true;
+      return roleInList(roles, role);
+    } catch { return true; }
+  };
+
   const handlePrintBill = (order) => {
     setPrintDropdownOrderId(null);
+    if (!canReprintBilled(order)) return;
     if (!canReprintKind('bill')) {
       setPrintSuccess('You do not have permission to re-print bills.');
       setTimeout(() => setPrintSuccess(null), 3000);
@@ -2216,6 +2248,7 @@ const OrderHistory = () => {
 
   const handlePrintKOT = (order) => {
     setPrintDropdownOrderId(null);
+    if (!canReprintBilled(order)) return;
     if (!canReprintKind('kot')) {
       setPrintSuccess('You do not have permission to re-print KOTs.');
       setTimeout(() => setPrintSuccess(null), 3000);
@@ -4455,7 +4488,7 @@ const OrderHistory = () => {
                                     <FaListAlt size={11} />
                                   </button>
                                 )}
-                                <div style={{ position: 'relative', display: isHeldStatus(order.status) ? 'none' : undefined }}>
+                                <div style={{ position: 'relative', display: (isHeldStatus(order.status) || !canReprintBilled(order)) ? 'none' : undefined }}>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -5040,7 +5073,7 @@ const OrderHistory = () => {
                             >
                               <FaEye size={isMobile ? 11 : 12} /> {!isMobile && t('orderHistory.view')}
                             </button>
-                            <div style={{ position: 'relative', display: isHeldStatus(order.status) ? 'none' : 'inline-block' }} className="flex-shrink-0">
+                            <div style={{ position: 'relative', display: (isHeldStatus(order.status) || !canReprintBilled(order)) ? 'none' : 'inline-block' }} className="flex-shrink-0">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -5278,7 +5311,7 @@ const OrderHistory = () => {
           order={selectedOrderForInvoice}
           restaurant={restaurant}
           onClose={() => setSelectedOrderForInvoice(null)}
-          onDownloadPDF={handleDownloadPDF}
+          onDownloadPDF={canReprintBilled(selectedOrderForInvoice) ? handleDownloadPDF : null}
           calculateOrderTotal={calculateOrderTotal}
           formatDate={formatDate}
         />
@@ -7609,12 +7642,12 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
           <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white no-print">
             <h2 className="text-2xl font-bold text-gray-900">{t('orderHistory.invoiceHash')}{invoiceNumber}</h2>
             <div className="flex items-center gap-2">
-              <button 
+              {onDownloadPDF && <button 
                 onClick={onDownloadPDF}
                 className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-2"
               >
                 <FaDownload /> {t('orderHistory.downloadPDF')}
-              </button>
+              </button>}
               <button 
                 onClick={onClose} 
                 className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
@@ -7813,12 +7846,12 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
           {/* Action Buttons - Non-printable */}
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-t-2 border-gray-200 p-6 no-print">
             <div className="flex gap-3 justify-end">
-              <button 
+              {onDownloadPDF && <button 
                 onClick={onDownloadPDF}
                 className="px-5 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2"
               >
                 <FaPrint /> {t('orderHistory.printDownloadPDF')}
-              </button>
+              </button>}
               <button 
                 onClick={onClose}
                 className="px-5 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
