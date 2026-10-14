@@ -38,9 +38,9 @@ export const DEFAULT_API_BASE =
 export const PG_API_BASE =
   process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineopen.com';
 
-// The cloud backend is ONLY our own GCP box. A saved per-user pin or remote config pointing anywhere
-// else (the retired Vercel / Cloud Run backends — old pins survive in localStorage) → the GCP box.
-// api.dineopen.com = same box behind our domain. The build's own bases stay allowed (dev localhost).
+// The cloud backend is ONLY our own box (AWS, api.dineopen.com). A saved per-user pin or remote config
+// pointing anywhere else (the retired Vercel / Cloud Run backends — old pins survive in localStorage) →
+// api.dineopen.com. The old GCP address (34-93…sslip.io) only forwards to the same box. The build's own bases stay allowed (dev localhost).
 const _hostOf = (u) => { try { return new URL(u).hostname.toLowerCase(); } catch (_) { return ''; } };
 const ALLOWED_CLOUD_HOSTS = new Set(['34-93-129-104.sslip.io', 'api.dineopen.com', _hostOf(DEFAULT_API_BASE), _hostOf(PG_API_BASE)].filter(Boolean));
 function ownCloudBase(url) {
@@ -55,8 +55,9 @@ function followRemoteForSameBox(url) {
   try {
     if (!SAME_BOX_HOSTS.has(_hostOf(url))) return url;
     const remote = window.localStorage.getItem(REMOTE_DEFAULT_KEY);
-    return remote && SAME_BOX_HOSTS.has(_hostOf(remote)) ? remote : url;
-  } catch (_) { return url; }
+    // No remote config fetched yet → the main name (AWS directly), never the old GCP forwarder.
+    return remote && SAME_BOX_HOSTS.has(_hostOf(remote)) ? remote : 'https://api.dineopen.com';
+  } catch (_) { return 'https://api.dineopen.com'; }
 }
 
 // ── Remote backend config (for a one-flip, zero-rebuild cutover) ──────────────
