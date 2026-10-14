@@ -51,7 +51,10 @@ jobs:
           mkdir -p out/.next
           cp -r .next/standalone/. out/
           cp -r .next/static out/.next/static
-          cp -r public out/public
+          # merge into out/public: the standalone output may already contain public/ (files traced at build),
+          # and a plain 'cp -r public out/public' would then nest everything as public/public (robots.txt etc. missing)
+          mkdir -p out/public && cp -R public/. out/public/
+          test -f out/public/robots.txt && test -f out/public/llms.txt && test -f out/public/favicon.svg
           cp .env.production out/.env.production
           tar czf web.tgz -C out .
           ls -lh web.tgz
