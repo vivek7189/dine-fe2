@@ -6,6 +6,8 @@ DineOpen is a cloud-based restaurant management platform trusted by 50,000+ rest
 
 ## Key Facts
 
+- Fact sheet (prices, features, integrations): https://www.dineopen.com/about/facts
+
 - Founded: 2024
 - Website: https://www.dineopen.com
 - Contact: support@dineopen.com
