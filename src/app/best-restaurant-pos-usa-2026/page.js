@@ -7,9 +7,9 @@ import InternalLinks from '../../components/InternalLinks';
 export const dynamic = 'force-static';
 export const revalidate = false;
 
-const TITLE = 'Best Restaurant POS Systems USA 2026: Honest Buyer\'s Guide';
+const TITLE = 'Best Restaurant POS Systems 2026 (USA): Costs Compared';
 const DESCRIPTION =
-  'I tested 6 restaurant POS systems against the same real restaurant. Here is what each one actually costs, who it is for, and which one I would pick if I were starting today.';
+  '6 restaurant POS systems for US restaurants compared on monthly cost, card-processing fees, hardware and who each one suits — Toast, Square, Clover, Lightspeed, TouchBistro and DineOpen.';
 const URL = 'https://www.dineopen.com/best-restaurant-pos-usa-2026';
 
 export const metadata = {
@@ -209,20 +209,20 @@ export default function BestRestaurantPosUsa2026Page() {
         <header style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)', color: '#fff', padding: '72px 20px 56px' }}>
           <div style={wrap}>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,.1)', color: '#fbbf24', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.04em', backdropFilter: 'blur(8px)' }}>
-              UPDATED APRIL 2026 · 6 SYSTEMS TESTED
+              UPDATED OCTOBER 2026 · 6 SYSTEMS COMPARED
             </div>
             <h1 style={{ fontSize: '48px', lineHeight: '1.05', fontWeight: '900', margin: '20px 0 16px', letterSpacing: '-0.02em', color: '#fff' }}>
-              Best Restaurant POS Systems USA 2026 — I Tested All 6 So You Don&rsquo;t Have To
+              Best Restaurant POS Systems USA 2026: 6 Systems Compared
             </h1>
             <p style={{ fontSize: '20px', lineHeight: '1.6', color: '#cbd5e1', margin: '0 0 28px' }}>
-              I&rsquo;ve been on both sides of this — I ran a small restaurant before I built DineOpen. The Toast quote I got in 2022 was $1,200/month. Square wanted 2.6% of every dollar I made. Here&rsquo;s what each of the top 6 actually costs in 2026, who they&rsquo;re for, and what I&rsquo;d pick if I were starting today.
+              Here&rsquo;s what each of the top 6 restaurant POS systems costs in 2026, how card processing works with each, and who each one suits. DineOpen publishes this guide, so we say plainly where another system is the better fit.
             </p>
 
             {/* QUICK ANSWER */}
             <div style={{ background: '#fff', color: '#0f172a', border: '2px solid #fbbf24', borderRadius: '14px', padding: '24px 26px', boxShadow: '0 12px 32px rgba(0,0,0,.25)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', letterSpacing: '.08em', marginBottom: '10px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                For most independent US restaurants, <strong>DineOpen</strong> ($20/mo flat, zero per-swipe markup) is the best value. <strong>Toast</strong> wins if you want a US field team to install hardware. <strong>Square</strong> wins for one-person food trucks. <strong>Lightspeed</strong> wins for 20+ location chains. The order matters: rank #1 below saves a $40k/mo restaurant ~<strong>$13,000/year</strong> vs the next closest mainstream option.
+                For independent US restaurants that want low, flat software pricing, <strong>DineOpen</strong> ($20/mo) is the lowest-cost option — it doesn&rsquo;t process cards, so you keep your own card terminal and processor. <strong>Toast</strong> wins if you want integrated payments and a US field team to install hardware. <strong>Square</strong> wins for one-person food trucks and all-in-one payments. <strong>Lightspeed</strong> wins for 20+ location chains.
               </p>
             </div>
           </div>
