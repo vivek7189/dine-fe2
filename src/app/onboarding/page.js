@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { getApiBase } from '@/lib/apiBase';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar, FaRobot, FaGoogle } from 'react-icons/fa';
+import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar, FaRobot, FaGoogle, FaApple, FaAndroid } from 'react-icons/fa';
 import QRCode from 'qrcode';
 import apiClient from '../../lib/api';
+import { track } from '../../lib/analytics';
+import { FIRST_SALE_FLAG } from '../../components/GetStartedCard';
 import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
 import OnboardingConcierge from '../../components/OnboardingConcierge';
 import { getCurrencyByCountryCode } from '../../lib/currencyData';
@@ -177,7 +179,9 @@ function OnboardingContent() {
   const searchParams = useSearchParams();
   const isTestMode = searchParams.get('test') === '1';
   const initialStep = parseInt(searchParams.get('step')) || 1;
-  const [step, setStep] = useState(initialStep);
+  // Step 6 (a second "all set" checklist screen) was merged into step 5, so an old
+  // ?step=6 link or a saved onboardingStep of 6 lands on the single finish screen.
+  const [step, setStep] = useState(Math.min(initialStep, 5));
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState('forward');
   const [isMobile, setIsMobile] = useState(false);
@@ -265,7 +269,6 @@ function OnboardingContent() {
   const [cuisineDropdownOpen, setCuisineDropdownOpen] = useState(false);
 
   // Step 6
-  const [checklistItems, setChecklistItems] = useState([]);
 
   // Currency auto-detection
   const [currencyInfo, setCurrencyInfo] = useState(null);
@@ -335,7 +338,7 @@ function OnboardingContent() {
           const savedStep = (rest.onboardingStep != null && rest.onboardingStep !== 'complete' && !isNaN(Number(rest.onboardingStep)))
             ? Number(rest.onboardingStep)
             : null;
-          const resumeStep = urlStep || savedStep || 1;
+          const resumeStep = Math.min(urlStep || savedStep || 1, 5);
           if (resumeStep > 1) {
             setStep(resumeStep);
             window.history.replaceState({}, '', `/onboarding?step=${resumeStep}`);
@@ -691,30 +694,6 @@ function OnboardingContent() {
     }).catch(() => {});
   };
 
-  // ─── Build checklist for Step 6 ─────────────────────────────
-  useEffect(() => {
-    if (step === 6) {
-      const data = {
-        businessType,
-        restaurantName,
-        featuresConfigured: selectedFeatures.length > 1,
-        menuSetup: menuSeeded,
-        menuItemCount: uploadedCount || (menuSeeded ? 36 : 0),
-        completedAt: Date.now(),
-      };
-      setChecklistItems([
-        { label: 'Account created', done: true },
-        { label: `${businessLabel} selected`, done: !!businessType },
-        { label: 'Restaurant details saved', done: !!restaurantName },
-        { label: `Menu loaded${data.menuItemCount ? ` (${data.menuItemCount} items)` : ''}`, done: menuSeeded },
-        { label: 'Take your first order', done: false, link: posPath },
-        { label: 'Set up printer', done: false, link: '/admin?tab=print' },
-        { label: 'Invite staff member', done: false, link: '/admin?tab=staff' },
-      ]);
-      localStorage.setItem('onboardingChecklist', JSON.stringify(data));
-    }
-  }, [step, businessType, menuSeeded]);
-
   // ─── Finish onboarding (single source of truth) ───────────────
   // ALWAYS marks setup complete AND seeds the home checklist, no matter which
   // finish button is tapped. Previously the main "Start taking orders" hero was a
@@ -741,6 +720,26 @@ function OnboardingContent() {
       }));
     } catch (_) { /* never block the finish */ }
     router.push(destination || '/home');
+  };
+
+  // The one main action on the finish screen: open the POS with the "Guided first sale"
+  // coach switched on. PostHog (Oct 2026): owners who landed on the POS from the old
+  // Quick Actions got no coach (setup not marked done) and several pressed Logout.
+  const startFirstBill = () => {
+    try {
+      const rid = restaurantId || localStorage.getItem('selectedRestaurantId');
+      if (rid) localStorage.setItem(FIRST_SALE_FLAG, rid);
+    } catch (_) { /* ignore */ }
+    track('onboarding_finish_click', { choice: 'first_bill', mobile: isMobile });
+    completeOnboarding(posPath);
+  };
+
+  // WhatsApp menu help from the finish screen (the step-4 version also moves to the next step).
+  const openWhatsAppMenuHelp = () => {
+    track('onboarding_finish_click', { choice: 'whatsapp_menu', mobile: isMobile });
+    const name = restaurantName || 'my restaurant';
+    const msg = encodeURIComponent(`Hi, I'd like help setting up my menu for ${name}. I just signed up on DineOpen!`);
+    window.open(`https://wa.me/919528632779?text=${msg}`, '_blank');
   };
 
   // ─── Receipt items based on business type ─────────────────────
@@ -839,8 +838,8 @@ function OnboardingContent() {
   };
 
   // Progress over the VISIBLE steps only (step 3 is cut), so the bar + counter stay
-  // clean with no gap (1,2,4,5,6 → "1 of 5" … "5 of 5").
-  const VISIBLE_STEPS = [1, 2, 4, 5, 6];
+  // clean with no gap (1,2,4,5 → "1 of 4" … "4 of 4").
+  const VISIBLE_STEPS = [1, 2, 4, 5];
   const visibleIdx = VISIBLE_STEPS.indexOf(step);
   const totalVisible = VISIBLE_STEPS.length;
   const displayStepNo = visibleIdx >= 0 ? visibleIdx + 1 : step;
@@ -2043,11 +2042,10 @@ function OnboardingContent() {
         </div>
       )}
 
-      {/* ═══════════ STEP 5: Your Restaurant is Ready ═══════════ */}
+      {/* ═══════════ STEP 5: Ready — one clear next step ═══════════ */}
       {step === 5 && (
         <div style={contentStyle}>
-          <div style={{ maxWidth: '800px', width: '100%', textAlign: 'center' }}>
-            {/* Animated success checkmark */}
+          <div style={{ maxWidth: '560px', width: '100%', textAlign: 'center' }}>
             <div className="ob-fadeIn" style={{ marginBottom: '8px' }}>
               <div style={{
                 width: '80px', height: '80px', borderRadius: '50%', margin: '0 auto 16px',
@@ -2063,325 +2061,96 @@ function OnboardingContent() {
                 </svg>
               </div>
               {heading(ob('yourLiveIs', { type: businessLabel.toLowerCase() }))}
-              {subheading(ob('menuReadyShare'))}
+              {subheading(ob('finishOneStep'))}
             </div>
 
-            {/* Live menu URL banner */}
-            {qrUrl && (
-              <div className="ob-fadeIn-d1" style={{
-                margin: '0 auto 24px', padding: '16px 20px', borderRadius: '14px',
-                background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                border: '1px solid #bbf7d0', maxWidth: '480px',
-                display: 'flex', alignItems: 'center', gap: '12px',
-              }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <FaGlobe size={16} color="white" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                  <p style={{ fontSize: '12px', color: '#16a34a', fontWeight: '700', margin: '0 0 2px' }}>{ob('yourLiveMenuUrl')}</p>
-                  <p style={{ fontSize: '14px', color: '#111827', fontWeight: '600', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {qrUrl.replace('https://', '')}
-                  </p>
-                </div>
-                <button onClick={handleCopyLink} style={{
-                  padding: '6px 12px', borderRadius: '8px', border: '1px solid #bbf7d0',
-                  background: 'white', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
-                  color: copySuccess ? '#16a34a' : '#374151', transition: 'all 0.2s', flexShrink: 0,
-                }}>
-                  {copySuccess ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-            )}
-
-            {/* Start taking orders — hero button */}
+            {/* The one main action */}
             <div className="ob-fadeIn-d1" style={{ marginBottom: '28px' }}>
               <button
                 className="ob-btn"
-                onClick={() => completeOnboarding(posPath)}
+                onClick={startFirstBill}
                 style={{
+                  width: isMobile ? '100%' : 'auto',
                   padding: '18px 48px', borderRadius: '16px', border: 'none',
                   background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white',
-                  fontWeight: '800', fontSize: '18px', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: '10px',
+                  fontWeight: '800', fontSize: '19px', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   boxShadow: '0 8px 28px rgba(239,68,68,0.35)',
                   transition: 'all 0.2s',
                 }}
               >
-                <FaRocket size={18} /> {ob('startTakingOrders')}
+                <FaCashRegister size={18} /> {ob('ringFirstBill')}
               </button>
-              <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px' }}>
-                Open your POS and take your first order now
+              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '10px', lineHeight: 1.5 }}>
+                {ob('ringFirstBillHint')}
               </p>
             </div>
 
-            {/* Two-column: QR code + Quick actions */}
-            <div className="ob-fadeIn-d1" style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-              gap: '20px', marginBottom: '28px', textAlign: 'left',
-            }}>
-              {/* QR Code card */}
-              <div style={{
-                background: 'white', borderRadius: '20px', padding: '24px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)',
-                textAlign: 'center',
+            {/* Phone users: the app is easier than the full POS in a phone browser */}
+            {isMobile && (
+              <div className="ob-fadeIn-d1" style={{
+                background: 'white', borderRadius: '16px', padding: '18px', marginBottom: '16px',
+                border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', textAlign: 'left',
               }}>
-                <p style={{ fontWeight: '800', fontSize: '16px', color: '#111827', margin: '0 0 4px' }}>Your QR Menu</p>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px' }}>Customers scan this to order</p>
-                {qrUrl && <p style={{ fontSize: '11px', color: '#ef4444', margin: '0 0 16px', fontWeight: '600' }}>{qrUrl.replace('https://', '')}</p>}
-
-                {qrCodeDataUrl ? (
-                  <img src={qrCodeDataUrl} alt="QR Code" style={{
-                    width: '180px', height: '180px', margin: '0 auto 16px', display: 'block',
-                    borderRadius: '12px', border: '1px solid #f1f5f9',
-                  }} />
-                ) : (
-                  <div style={{
-                    width: '180px', height: '180px', margin: '0 auto 16px',
-                    background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <FaQrcode size={60} color="#d1d5db" />
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                  <button onClick={handleDownloadQR} style={{
-                    padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb',
-                    background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '13px', fontWeight: '600', color: '#374151',
-                  }}>
-                    <FaDownload size={11} /> Download
-                  </button>
-                  <button onClick={handleCopyLink} style={{
-                    padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb',
-                    background: copySuccess ? '#f0fdf4' : 'white', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '13px', fontWeight: '600', color: copySuccess ? '#16a34a' : '#374151',
-                    transition: 'all 0.2s',
-                  }}>
-                    <FaLink size={11} /> {copySuccess ? 'Copied!' : 'Copy Link'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick actions card */}
-              <div style={{
-                background: 'white', borderRadius: '20px', padding: '24px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.06)',
-              }}>
-                <p style={{ fontWeight: '800', fontSize: '16px', color: '#111827', margin: '0 0 4px' }}>Quick Actions</p>
-                <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 20px' }}>Get started in 30 seconds</p>
-
-                {[
-                  { icon: FaRocket, label: 'Take your first order', desc: 'Open POS dashboard', color: '#ef4444', bg: '#fef2f2', onClick: () => router.push(posPath) },
-                  { icon: FaQrcode, label: 'View your QR menu', desc: 'See what customers see', color: '#3b82f6', bg: '#eff6ff', onClick: () => qrUrl && window.open(qrUrl, '_blank') },
-                  { icon: FaCashRegister, label: 'Set up printer', desc: 'Print bills & KOT', color: '#f97316', bg: '#fff7ed', onClick: () => router.push('/admin?tab=print') },
-                  { icon: FaUsers, label: 'Invite staff', desc: 'Add your team', color: '#0ea5e9', bg: '#f0f9ff', onClick: () => router.push('/admin?tab=staff') },
-                ].map((action, i) => {
-                  const Icon = action.icon;
-                  return (
-                    <div
-                      key={i}
-                      onClick={action.onClick}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '12px',
-                        padding: '12px', borderRadius: '12px', cursor: 'pointer',
-                        marginBottom: i < 3 ? '8px' : 0,
-                        transition: 'background 0.15s',
-                        background: 'transparent',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = action.bg}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{
-                        width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
-                        background: action.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <Icon size={16} color={action.color} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: '700', fontSize: '14px', color: '#111827', margin: 0 }}>{action.label}</p>
-                        <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{action.desc}</p>
-                      </div>
-                      <FaArrowRight size={11} color="#d1d5db" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Feature badges */}
-            <div className="ob-fadeIn-d2" style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
-              gap: '10px', marginBottom: '16px',
-            }}>
-              {[
-                { icon: FaQrcode, label: 'QR Menu', desc: 'Ready to use', color: '#3b82f6', bg: '#eff6ff' },
-                { icon: FaChair, label: 'Tables', desc: 'Floor plan ready', color: '#0ea5e9', bg: '#f0f9ff' },
-                { icon: FaGift, label: 'Loyalty', desc: 'Reward customers', color: '#ec4899', bg: '#fdf2f8' },
-                { icon: FaCrown, label: 'AI Voice', desc: 'Voice ordering', color: '#f59e0b', bg: '#fffbeb' },
-              ].map((tip, i) => {
-                const Icon = tip.icon;
-                return (
-                  <div key={i} style={{ padding: '14px', borderRadius: '14px', background: tip.bg, textAlign: 'center' }}>
-                    <Icon size={18} color={tip.color} style={{ marginBottom: '4px' }} />
-                    <p style={{ fontWeight: '700', fontSize: '13px', color: tip.color, margin: 0 }}>{tip.label}</p>
-                    <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>{tip.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button onClick={goNext} style={skipLink}>Skip to setup checklist</button>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════ STEP 6: Checklist ═══════════════════════ */}
-      {step === 6 && (
-        <div style={contentStyle}>
-          <div style={{ maxWidth: '700px', width: '100%', textAlign: 'center' }}>
-            <div className="ob-fadeIn" style={{ position: 'relative' }}>
-              {/* Confetti */}
-              <div style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
-                {['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#0ea5e9'].map((color, i) => (
-                  <div key={i} style={{
-                    position: 'absolute',
-                    width: '8px', height: '8px', borderRadius: i % 2 === 0 ? '50%' : '2px',
-                    background: color,
-                    left: `${(i - 3) * 25}px`, top: 0,
-                    animation: `confetti${(i % 3) + 1} 1.2s ease ${i * 0.1}s forwards`,
-                  }} />
-                ))}
-              </div>
-              <div style={{ fontSize: '48px', marginBottom: '8px' }}>🚀</div>
-              {heading("You're all set!")}
-              {subheading("Here's your progress and what's next.")}
-            </div>
-
-            {/* Checklist card */}
-            <div className="ob-fadeIn-d1" style={{
-              background: 'white', borderRadius: '20px', padding: isMobile ? '20px' : '28px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.06)', textAlign: 'left',
-              marginBottom: '24px', border: '1px solid rgba(0,0,0,0.06)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <p style={{ fontWeight: '800', fontSize: '16px', color: '#111827', margin: 0 }}>Setup Progress</p>
-                <span style={{
-                  fontSize: '13px', fontWeight: '800', padding: '4px 12px', borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #fef2f2, #fff7ed)', color: '#ef4444',
-                }}>
-                  {checklistItems.length > 0 ? Math.round((checklistItems.filter(i => i.done).length / checklistItems.length) * 100) : 0}%
-                </span>
-              </div>
-              <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(0,0,0,0.04)', overflow: 'hidden', marginBottom: '20px' }}>
-                <div className="ob-progress-bar" style={{
-                  height: '100%', borderRadius: '3px',
-                  background: 'linear-gradient(90deg, #ef4444, #f97316)',
-                  width: `${checklistItems.length > 0 ? (checklistItems.filter(i => i.done).length / checklistItems.length) * 100 : 0}%`,
-                }} />
-              </div>
-              {checklistItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => item.link && !item.done && router.push(item.link)}
+                <p style={{ fontWeight: '800', fontSize: '15px', color: '#111827', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FaMobileAlt size={15} color="#ef4444" /> {ob('phoneAppTitle')}
+                </p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>{ob('phoneAppText')}</p>
+                <a
+                  href={(typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)) ? 'https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444' : 'https://www.dineopen.com/download/android'}
+                  target="_blank" rel="noopener noreferrer"
+                  onClick={() => track('onboarding_finish_click', { choice: 'phone_app', mobile: true })}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '12px 10px', borderRadius: '10px',
-                    background: item.done ? '#f0fdf4' : (item.link ? '#fafafa' : 'transparent'),
-                    marginBottom: '6px',
-                    cursor: item.link && !item.done ? 'pointer' : 'default',
-                    transition: 'background 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    padding: '12px', borderRadius: '12px', background: '#111827', color: 'white',
+                    fontWeight: '700', fontSize: '14px', textDecoration: 'none',
                   }}
                 >
-                  <div style={{
-                    width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-                    background: item.done ? '#10b981' : 'rgba(0,0,0,0.04)',
-                    border: item.done ? 'none' : '2px solid #d1d5db',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    ...(item.done ? { animation: 'checkPop 0.3s ease' } : {}),
-                  }}>
-                    {item.done && <FaCheck size={10} color="white" />}
-                  </div>
-                  <span style={{
-                    fontSize: '14px', color: item.done ? '#6b7280' : '#374151',
-                    fontWeight: item.done ? '500' : '600',
-                    textDecoration: item.done ? 'line-through' : 'none',
-                    flex: 1,
-                  }}>
-                    {item.label}
-                  </span>
-                  {item.link && !item.done && <FaArrowRight size={11} color="#9ca3af" />}
-                </div>
-              ))}
-            </div>
+                  {(typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)) ? <><FaApple size={16} /> {ob('iphoneApp')}</> : <><FaAndroid size={16} /> {ob('androidApp')}</>}
+                </a>
+              </div>
+            )}
 
-            {/* Explore DineOpen */}
-            <p className="ob-fadeIn-d2" style={{ fontWeight: '800', fontSize: '16px', color: '#111827', marginBottom: '12px' }}>
-              Explore DineOpen
-            </p>
+            {/* Real menu: we do it for them on WhatsApp */}
             <div className="ob-fadeIn-d2" style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-              gap: '10px', marginBottom: '28px',
+              background: 'white', borderRadius: '16px', padding: '16px 18px', marginBottom: '16px',
+              border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+              display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', flexWrap: isMobile ? 'wrap' : 'nowrap',
             }}>
-              {[
-                { icon: FaCashRegister, label: 'POS & Billing', desc: 'Take orders fast', color: '#ef4444', bg: 'linear-gradient(135deg, #fef2f2, #fecaca)', link: posPath },
-                { icon: FaQrcode, label: 'QR Menu', desc: 'Digital menu', color: '#3b82f6', bg: 'linear-gradient(135deg, #eff6ff, #bfdbfe)', link: '/menu' },
-                { icon: FaCrown, label: 'AI Voice', desc: 'Voice ordering', color: '#f59e0b', bg: 'linear-gradient(135deg, #fffbeb, #fde68a)', link: '/dineai' },
-                { icon: FaGift, label: 'Loyalty', desc: 'Customer rewards', color: '#ec4899', bg: 'linear-gradient(135deg, #fdf2f8, #fbcfe8)', link: '/customers' },
-              ].map((tip, i) => {
-                const Icon = tip.icon;
-                return (
-                  <div
-                    key={i}
-                    className="ob-card"
-                    onClick={() => router.push(tip.link)}
-                    style={{
-                      padding: '16px', borderRadius: '14px', background: tip.bg,
-                      cursor: 'pointer', textAlign: 'center',
-                    }}
-                  >
-                    <Icon size={20} color={tip.color} style={{ marginBottom: '6px' }} />
-                    <p style={{ fontWeight: '700', fontSize: '13px', color: tip.color, margin: 0 }}>{tip.label}</p>
-                    <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>{tip.desc}</p>
-                  </div>
-                );
-              })}
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FaWhatsapp size={20} color="#16a34a" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: '700', fontSize: '14px', color: '#111827', margin: 0 }}>{ob('wellSetItUp')}</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{ob('menuHelpText')}</p>
+              </div>
+              <button onClick={openWhatsAppMenuHelp} style={{
+                width: isMobile ? '100%' : 'auto',
+                padding: isMobile ? '10px 14px' : '8px 14px', borderRadius: '10px', border: '1px solid #bbf7d0', background: '#f0fdf4',
+                color: '#16a34a', fontWeight: '700', fontSize: '13px', cursor: 'pointer', flexShrink: 0,
+              }}>
+                {ob('sendOnWhatsApp')}
+              </button>
             </div>
 
-            <button
-              className="ob-btn"
-              onClick={() => completeOnboarding('/home')}
-              style={{
-                ...btnPrimary, fontSize: '18px', padding: '16px 48px',
-                margin: '0 auto', borderRadius: '16px',
-                background: 'linear-gradient(135deg, #ef4444, #f97316)',
-                boxShadow: '0 6px 20px rgba(239,68,68,0.3)',
-              }}
-            >
-              Explore Your Setup <FaArrowRight size={16} />
-            </button>
+            {/* QR menu link: small, for later */}
+            {qrUrl && (
+              <p className="ob-fadeIn-d2" style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <FaQrcode size={12} /> {ob('yourLiveMenuUrl')}:
+                <a href={qrUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ef4444', fontWeight: '600', textDecoration: 'none', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {qrUrl.replace('https://', '')}
+                </a>
+                {qrCodeDataUrl && (
+                  <button onClick={handleDownloadQR} style={{ background: 'none', border: 'none', color: '#374151', fontWeight: '600', fontSize: '13px', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <FaDownload size={11} /> QR
+                  </button>
+                )}
+              </p>
+            )}
 
-            <button
-              onClick={() => completeOnboarding(posPath)}
-              style={{
-                ...btnSecondary, fontSize: '14px', padding: '10px 24px',
-                margin: '12px auto 0', borderRadius: '12px',
-                display: 'flex', alignItems: 'center', gap: '8px',
-              }}
-            >
-              <FaCashRegister size={13} /> Start Taking Orders
+            <button onClick={() => { track('onboarding_finish_click', { choice: 'home', mobile: isMobile }); completeOnboarding('/home'); }} style={skipLink}>
+              {ob('goHomeInstead')}
             </button>
-
-            <p style={{ marginTop: '20px', fontSize: '14px', color: '#6b7280' }}>
-              Need help?{' '}
-              <a href="https://wa.me/919528632779" target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', fontWeight: '700', textDecoration: 'none' }}>
-                <FaWhatsapp size={14} style={{ verticalAlign: 'middle' }} /> WhatsApp us
-              </a>
-            </p>
           </div>
         </div>
       )}
