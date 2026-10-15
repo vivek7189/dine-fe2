@@ -482,9 +482,12 @@ const KitchenOrderTicket = () => {
     const typeMap = {
       'dine-in': { icon: FaHome, label: t('kot.dineIn'), color: '#6b7280' },
       'delivery': { icon: FaTruck, label: t('kot.delivery'), color: '#6b7280' },
-      'pickup': { icon: FaShoppingBag, label: t('kot.pickup'), color: '#6b7280' }
+      'pickup': { icon: FaShoppingBag, label: t('kot.pickup'), color: '#6b7280' },
+      // Takeaway / parcel orders were falling through to "Dine In" on every kitchen card.
+      'takeaway': { icon: FaShoppingBag, label: t('kot.takeaway'), color: '#6b7280' },
     };
-    return typeMap[type] || typeMap['dine-in'];
+    const k = String(type || '').toLowerCase().replace(/[\s_]+/g, '-');
+    return typeMap[k] || typeMap[k === 'take-away' || k === 'parcel' ? 'takeaway' : k === 'dinein' ? 'dine-in' : ''] || typeMap['dine-in'];
   };
 
   const getVariantName = (item) => {
@@ -1201,6 +1204,15 @@ const KitchenOrderTicket = () => {
                             backgroundColor: '#fce7f3', padding: '2px 6px', borderRadius: '8px'
                           }}>
                             {t('kot.app')}
+                          </span>
+                        )}
+
+                        {(kot.source === 'whatsapp' || kot.origin === 'whatsapp') && (
+                          <span style={{
+                            fontSize: '9px', fontWeight: '600', color: '#15803d',
+                            backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '8px'
+                          }}>
+                            WhatsApp
                           </span>
                         )}
 

@@ -1374,6 +1374,7 @@ const en = {
     dineIn: 'Dine In',
     delivery: 'Delivery',
     pickup: 'Pickup',
+    takeaway: 'Takeaway',
     app: 'App',
     offlinePendingSync: 'Offline - Pending Sync',
     items: '{{count}} item(s)',
