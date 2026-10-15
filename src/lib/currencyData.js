@@ -677,6 +677,20 @@ export const currencyByCountry = {
     locale: 'ru-RU',
     taxLabel: 'НДС'
   },
+  // Kyrgyzstan
+  KG: {
+    countryCode: 'KG',
+    countryName: 'Kyrgyzstan',
+    currencyCode: 'KGS',
+    currencyName: 'Kyrgyzstani Som',
+    currencySymbol: 'сом',
+    symbolPosition: 'after',
+    decimalPlaces: 2,
+    thousandSeparator: ' ',
+    decimalSeparator: ',',
+    locale: 'ky-KG',
+    taxLabel: 'НДС'
+  },
   // South Africa
   ZA: {
     countryCode: 'ZA',
@@ -1326,6 +1340,7 @@ export const dialCodeToCountry = {
   '+968': 'OM',
   '+90': 'TR',
   '+7': 'RU',
+  '+996': 'KG',
   '+27': 'ZA',
   '+20': 'EG',
   '+234': 'NG',

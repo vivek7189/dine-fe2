@@ -63,6 +63,7 @@ const TIMEZONE_TO_COUNTRY = {
   'Europe/Athens': 'GR',
   'Europe/Istanbul': 'TR',
   'Europe/Moscow': 'RU',
+  'Asia/Bishkek': 'KG',
   // Americas
   'America/Sao_Paulo': 'BR',
   'America/Rio_Branco': 'BR',

@@ -68,6 +68,7 @@ const COUNTRIES = [
   { code: 'OM', name: 'Oman', flag: '🇴🇲' },
   { code: 'TR', name: 'Turkey', flag: '🇹🇷' },
   { code: 'RU', name: 'Russia', flag: '🇷🇺' },
+  { code: 'KG', name: 'Kyrgyzstan', flag: '🇰🇬' },
   { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
   { code: 'EG', name: 'Egypt', flag: '🇪🇬' },
   { code: 'NG', name: 'Nigeria', flag: '🇳🇬' },
