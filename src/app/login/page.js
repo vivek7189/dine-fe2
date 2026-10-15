@@ -650,6 +650,17 @@ const Login = () => {
       const match = countries.find(c => c.code === countryCode);
       if (match) setSelectedCountry(match);
     }
+    // Number typed in the homepage hero ("Start free"): kept in sessionStorage, used once
+    try {
+      const raw = sessionStorage.getItem('dineopen_prefill_phone');
+      if (raw) {
+        sessionStorage.removeItem('dineopen_prefill_phone');
+        const { country, number } = JSON.parse(raw);
+        const picked = countries.find(c => c.code === country);
+        if (picked) setSelectedCountry(picked);
+        if (number) setPhoneNumber(String(number).replace(/\D/g, '').slice(0, 15));
+      }
+    } catch { /* storage blocked or bad value: keep the empty form */ }
   }, []);
 
   // Firebase OTP state
