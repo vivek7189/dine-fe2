@@ -1557,11 +1557,15 @@ function AddInvoiceModal(props) {
     showAddInvoiceModal, setShowAddInvoiceModal,
     invoiceFormData, setInvoiceFormData,
     handleInvoiceOCR, processingInvoiceOCR, invoiceFileInputRef,
-    handleSaveInvoice, savingInvoice,
+    handleSaveInvoice, savingInvoice, invoiceError, setInvoiceError, currentRestaurant, createStockFromScan, creatingStockLine,
     suppliers, inventoryItems, getModalStyles, getModalContentStyles
   } = props;
 
-  const update = (field, value) => setInvoiceFormData({ ...invoiceFormData, [field]: value });
+  const update = (field, value) => { setInvoiceFormData({ ...invoiceFormData, [field]: value }); if (invoiceError && setInvoiceError) setInvoiceError(null); };
+  // Kenya restaurants record the KRA (eTIMS) invoice number printed on the supplier's invoice.
+  const cs = currentRestaurant?.currencySettings || {};
+  const isKenya = cs.countryCode === 'KE' || cs.currencyCode === 'KES' || currentRestaurant?.currency === 'KES' || !!currentRestaurant?.etimsConfig?.enabled || !!invoiceFormData.kraInvoiceNumber;
+  const close = () => { setShowAddInvoiceModal(false); if (setInvoiceError) setInvoiceError(null); };
 
   const addItem = () => {
     setInvoiceFormData({
@@ -1584,11 +1588,11 @@ function AddInvoiceModal(props) {
   };
 
   return (
-    <ModalShell show={showAddInvoiceModal} onClose={() => setShowAddInvoiceModal(false)} title="Add Supplier Invoice"
+    <ModalShell show={showAddInvoiceModal} onClose={close} title="Add Supplier Invoice"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddInvoiceModal(false)}>Cancel</button>
+          <button style={secondaryBtn} onClick={close}>Cancel</button>
           <button style={{ ...primaryBtn, ...(savingInvoice ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }} onClick={handleSaveInvoice} disabled={!!savingInvoice}>
             <FaSave /> {savingInvoice ? 'Saving…' : 'Save Invoice'}
           </button>
@@ -1605,8 +1609,21 @@ function AddInvoiceModal(props) {
           <span style={{ fontSize: '13px', color: '#6b7280' }}>Upload a photo to auto-fill fields</span>
         </div>
         <input ref={invoiceFileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-          onChange={e => { if (e.target.files[0]) handleInvoiceOCR(e.target.files[0]); }} />
+          onChange={e => { if (e.target.files[0]) handleInvoiceOCR(e.target.files[0]); e.target.value = ''; }} />
       </div>
+
+      {invoiceError && (
+        <div role="alert" style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '14px', fontWeight: 600 }}>
+          {invoiceError}
+        </div>
+      )}
+      {invoiceFormData.scanned && !invoiceError && (
+        <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e3a8a', fontSize: '13.5px', lineHeight: 1.5 }}>
+          <b>Review the scanned details, then Save.</b> Check the supplier, numbers and every line.
+          {invoiceFormData.items.some(i => !i.inventoryItemId) && <> Lines marked in amber need you to pick the stock item.</>}
+          {invoiceFormData.scannedSupplier && <> The invoice says supplier <b>{invoiceFormData.scannedSupplier}</b>; pick it from the list (or add it under Suppliers).</>}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
@@ -1620,6 +1637,15 @@ function AddInvoiceModal(props) {
           <label style={labelStyle}>Invoice Number</label>
           <FocusInput value={invoiceFormData.invoiceNumber} onChange={e => update('invoiceNumber', e.target.value)} placeholder="INV-001" />
         </div>
+        {isKenya && (
+          <div style={fieldWrap}>
+            <label style={labelStyle}>KRA Invoice No.</label>
+            <FocusInput value={invoiceFormData.kraInvoiceNumber || ''} maxLength={45} onChange={e => update('kraInvoiceNumber', e.target.value.slice(0, 45))} placeholder="KRA / eTIMS invoice number" />
+            <div style={{ fontSize: '11.5px', color: invoiceFormData.scanned && invoiceFormData.kraInvoiceNumber ? '#b45309' : '#64748b', marginTop: '4px' }}>
+              {(invoiceFormData.kraInvoiceNumber || '').length}/45{invoiceFormData.scanned && invoiceFormData.kraInvoiceNumber ? ' · read by scan, check it against the paper invoice' : ''}
+            </div>
+          </div>
+        )}
         <div style={fieldWrap}>
           <label style={labelStyle}>Invoice Date</label>
           <FocusInput type="date" value={invoiceFormData.invoiceDate} onChange={e => update('invoiceDate', e.target.value)} />
@@ -1635,24 +1661,49 @@ function AddInvoiceModal(props) {
           <label style={{ ...labelStyle, marginBottom: 0 }}>Items</label>
           <button style={secondaryBtn} onClick={addItem}><FaPlus /> Add Item</button>
         </div>
-        {invoiceFormData.items.map((item, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
-              onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="1" placeholder="Qty"
-              value={item.quantity} onChange={e => updateItem(index, 'quantity', parseInt(e.target.value) || 1)} />
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder="Price"
-              value={item.unitPrice} onChange={e => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
-            <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
+        {invoiceFormData.items.map((item, index) => {
+          const inv = inventoryItems.find(i => i.id === item.inventoryItemId);
+          const needsPick = !item.inventoryItemId;
+          return (
+          <div key={index} style={{ marginBottom: '10px' }}>
+            <div style={rowStyle}>
+              <FocusSelect style={{ ...inputStyle, flex: 2, ...(needsPick && item.scannedName ? { borderColor: '#f59e0b', background: '#fffbeb' } : {}) }} value={item.inventoryItemId}
+                onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
+                <option value="">Select item</option>
+                {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+              </FocusSelect>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="0" step="any" placeholder={inv?.unit ? `Qty (${inv.unit})` : 'Qty'}
+                value={item.quantity} onChange={e => updateItem(index, 'quantity', e.target.value)} />
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder="Price"
+                value={item.unitPrice} onChange={e => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
+              <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
+            </div>
+            {item.scannedName && (
+              <div style={{ fontSize: '11.5px', marginTop: '3px', color: needsPick ? '#b45309' : '#64748b' }}>
+                On the invoice: “{item.scannedName}”{needsPick ? ' (pick the matching stock item, or ' : ''}
+                {needsPick && createStockFromScan && (
+                  <button type="button" onClick={() => createStockFromScan(index)} disabled={creatingStockLine === index}
+                    style={{ border: 'none', background: 'none', padding: 0, color: '#047857', fontWeight: 700, fontSize: '11.5px', cursor: 'pointer', textDecoration: 'underline' }}>
+                    {creatingStockLine === index ? 'adding…' : 'add it as a new stock item'}
+                  </button>
+                )}{needsPick ? ')' : ''}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
         {invoiceFormData.items.length === 0 && (
           <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: '14px' }}>No items added yet. Use OCR or add manually.</p>
         )}
       </div>
+
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', cursor: 'pointer' }}>
+        <input type="checkbox" checked={invoiceFormData.addToStock !== false} onChange={e => update('addToStock', e.target.checked)} style={{ marginTop: '3px', width: '16px', height: '16px', accentColor: '#16a34a' }} />
+        <span style={{ fontSize: '13.5px', color: '#14532d', lineHeight: 1.45 }}>
+          <b>Add these items to stock</b><br />
+          <span style={{ color: '#166534' }}>Untick if you already received these goods through a purchase order or goods receipt.</span>
+        </span>
+      </label>
 
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>

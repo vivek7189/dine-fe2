@@ -501,7 +501,11 @@ export default function ProcurementTab({
             <tbody>
               {supplierInvoices.map(inv => (
                 <tr key={inv.id || inv._id}>
-                  <td style={{ ...td, fontWeight: 600 }}>{inv.invoiceNumber || inv.id || inv._id}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>
+                    {inv.invoiceNumber || inv.id || inv._id}
+                    {inv.kraInvoiceNumber && <div style={{ fontSize: '11.5px', fontWeight: 500, color: '#64748b', wordBreak: 'break-all' }}>KRA: {inv.kraInvoiceNumber}</div>}
+                    {inv.stockAdded && <div style={{ fontSize: '11px', fontWeight: 600, color: '#15803d' }}>Stock added</div>}
+                  </td>
                   <td style={td}>{inv.supplierName || inv.supplier || (suppliers.find(s => (s.id || s._id) === (inv.supplierId || inv.supplier_id))?.name) || '-'}</td>
                   <td style={td}>{fmtDate(inv.invoiceDate || inv.date || inv.invoice_date || inv.receivedDate || inv.createdAt)}</td>
                   <td style={td}>{formatCurrency(inv.totalAmount || inv.amount || inv.total || inv.subtotal || 0)}</td>

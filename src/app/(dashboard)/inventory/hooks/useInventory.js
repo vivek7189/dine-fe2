@@ -90,8 +90,10 @@ export default function useInventory() {
 
   const [invoiceFormData, setInvoiceFormData] = useState({
     supplierId: '', invoiceNumber: '', invoiceDate: new Date().toISOString().split('T')[0],
-    items: [], totalAmount: 0, imageUrl: '', notes: ''
+    items: [], totalAmount: 0, imageUrl: '', notes: '', kraInvoiceNumber: '', addToStock: true, scanned: false
   });
+  // Shown inside the Add Invoice popup (the page banner sits behind the popup).
+  const [invoiceError, setInvoiceError] = useState(null);
 
   const [returnFormData, setReturnFormData] = useState({
     purchaseOrderId: '', supplierId: '', items: [], returnType: 'damaged', reason: '', notes: ''
@@ -1188,41 +1190,72 @@ export default function useInventory() {
   const handleInvoiceOCR = async (file) => {
     if (!currentRestaurant || !file) return;
     try {
-      setProcessingInvoiceOCR(true); setError(null);
-      const formDataUpload = new FormData();
-      formDataUpload.append('invoice', file);
-      const response = await apiClient.processInvoiceOCR(currentRestaurant.id, formDataUpload);
-      if (response.success) {
+      setProcessingInvoiceOCR(true); setError(null); setInvoiceError(null);
+      // api.processInvoiceOCR(imageFile, restaurantId) → POST /api/invoice/ocr (multipart "image")
+      const response = await apiClient.processInvoiceOCR(file, currentRestaurant.id);
+      if (response?.success) {
+        const items = (response.items || []).map(it => ({
+          inventoryItemId: it.inventoryItemId || '', scannedName: it.scannedName || it.name || '',
+          quantity: Number(it.quantity) || 1, unitPrice: Number(it.unitPrice) || 0,
+        }));
         setInvoiceFormData(prev => ({
           ...prev,
+          supplierId: response.supplierId || prev.supplierId,
           invoiceNumber: response.invoiceNumber || prev.invoiceNumber,
+          kraInvoiceNumber: response.kraInvoiceNumber || prev.kraInvoiceNumber,
           invoiceDate: response.invoiceDate || prev.invoiceDate,
-          items: response.items || prev.items,
-          totalAmount: response.totalAmount || prev.totalAmount
+          items: items.length ? items : prev.items,
+          totalAmount: response.totalAmount || prev.totalAmount,
+          scanned: true,
+          scannedSupplier: !response.supplierId && response.supplierName ? response.supplierName : '',
         }));
-        setSuccess('Invoice scanned successfully!');
+        const unmatched = items.filter(i => !i.inventoryItemId).length;
+        setInvoiceError(null);
+        setSuccess(unmatched ? `Invoice scanned. Pick the stock item for ${unmatched} line${unmatched > 1 ? 's' : ''}, check the details, then Save.` : 'Invoice scanned. Check the details, then Save.');
+      } else {
+        setInvoiceError(response?.error || 'Could not read this invoice. Try a clearer photo.');
       }
     } catch (error) {
       console.error('Invoice OCR error:', error);
-      setError(error.message || 'Failed to scan invoice');
+      setInvoiceError(error.message || 'Could not read this invoice. Try a clearer photo.');
     } finally { setProcessingInvoiceOCR(false); }
+  };
+
+  // A scanned line with no matching stock item → create it (stock 0; saving the invoice adds the qty).
+  const [creatingStockLine, setCreatingStockLine] = useState(null);
+  const createStockFromScan = async (index) => {
+    const line = invoiceFormData.items[index]; if (!currentRestaurant || !line?.scannedName) return;
+    const m = String(line.scannedName).match(/^(.*?)\s*\((kg|g|gm|l|ltr|litre|ml|pcs|pc|dozen|box|pack|bottle|can)s?\)\s*$/i);
+    const name = (m ? m[1] : line.scannedName).trim().slice(0, 80);
+    const unit = m ? m[2].toLowerCase().replace(/^gm$/, 'g').replace(/^(ltr|litre)$/, 'l').replace(/^pc$/, 'pcs') : 'pcs';
+    try {
+      setCreatingStockLine(index); setInvoiceError(null);
+      const res = await apiClient.createInventoryItem(currentRestaurant.id, { name, unit, currentStock: 0, minStock: 0, costPerUnit: Number(line.unitPrice) || 0, category: 'Other' });
+      const item = res?.item || res; if (!item?.id) throw new Error('Could not add the stock item');
+      setInventoryItems(prev => [...prev, item]);
+      setInvoiceFormData(prev => ({ ...prev, items: prev.items.map((it, i) => i === index ? { ...it, inventoryItemId: item.id } : it) }));
+    } catch (e) { setInvoiceError(e.message || 'Could not add the stock item'); }
+    finally { setCreatingStockLine(null); }
   };
 
   // Save supplier invoice to backend
   const handleSaveInvoice = async () => {
-    if (!currentRestaurant) { setError('No restaurant selected'); return; }
-    if (!invoiceFormData.supplierId) { setError('Please select a supplier'); return; }
-    if (!invoiceFormData.invoiceNumber?.trim()) { setError('Please enter an invoice number'); return; }
-    if (!invoiceFormData.invoiceDate) { setError('Please select an invoice date'); return; }
-    if (!invoiceFormData.items || invoiceFormData.items.length === 0) { setError('Please add at least one item'); return; }
+    const fail = (m) => { setInvoiceError(m); };
+    if (!currentRestaurant) { fail('No restaurant selected'); return; }
+    if (!invoiceFormData.supplierId) { fail('Select the supplier'); return; }
+    if (!invoiceFormData.invoiceNumber?.trim()) { fail('Enter the invoice number'); return; }
+    if ((invoiceFormData.kraInvoiceNumber || '').trim().length > 45) { fail('KRA invoice number can be at most 45 characters'); return; }
+    if (!invoiceFormData.invoiceDate) { fail('Select the invoice date'); return; }
+    if (!invoiceFormData.items || invoiceFormData.items.length === 0) { fail('Add at least one item'); return; }
     // Validate all items have inventoryItemId
     const invalidItem = invoiceFormData.items.find(it => !it.inventoryItemId);
-    if (invalidItem) { setError('Please select an inventory item for each line'); return; }
+    if (invalidItem) { fail(invalidItem.scannedName ? `Pick the stock item for "${invalidItem.scannedName}"` : 'Pick the stock item on every line'); return; }
+    if (invoiceFormData.items.some(it => !((parseFloat(it.quantity) || 0) > 0))) { fail('Every line needs a quantity above 0'); return; }
     if (savingInvoice) return; // a save is already in flight — never submit the same invoice twice
 
     try {
       setSavingInvoice(true);
-      setError(null);
+      setError(null); setInvoiceError(null);
       // Enrich items with names and compute totals
       const enrichedItems = invoiceFormData.items.map(it => {
         const invItem = inventoryItems.find(inv => inv.id === it.inventoryItemId);
@@ -1245,7 +1278,7 @@ export default function useInventory() {
       const dueDate = new Date(invoiceDate);
       dueDate.setDate(dueDate.getDate() + 30);
 
-      await apiClient.createSupplierInvoice(currentRestaurant.id, {
+      const saved = await apiClient.createSupplierInvoice(currentRestaurant.id, {
         supplierId: invoiceFormData.supplierId,
         invoiceNumber: invoiceFormData.invoiceNumber.trim(),
         invoiceDate: invoiceFormData.invoiceDate,
@@ -1258,14 +1291,18 @@ export default function useInventory() {
         paymentStatus: 'unpaid',
         notes: invoiceFormData.notes || '',
         imageUrl: invoiceFormData.imageUrl || null,
+        kraInvoiceNumber: (invoiceFormData.kraInvoiceNumber || '').trim() || null,
+        addToStock: invoiceFormData.addToStock !== false,
       });
 
-      setSuccess('Supplier invoice saved successfully!');
+      const added = Number(saved?.stockAdded) || 0;
+      setSuccess(added ? `Invoice saved. Stock added for ${added} item${added > 1 ? 's' : ''}.` : 'Supplier invoice saved.');
+      if (added) { try { loadInventoryData?.(); } catch (_) {} }
       setShowAddInvoiceModal(false);
       // Reset form
       setInvoiceFormData({
         supplierId: '', invoiceNumber: '', invoiceDate: new Date().toISOString().split('T')[0],
-        items: [], totalAmount: 0, imageUrl: '', notes: ''
+        items: [], totalAmount: 0, imageUrl: '', notes: '', kraInvoiceNumber: '', addToStock: true, scanned: false
       });
       // Reload invoices
       try {
@@ -1274,7 +1311,7 @@ export default function useInventory() {
       } catch (_) {}
     } catch (error) {
       console.error('Save invoice error:', error);
-      setError(error.message || 'Failed to save supplier invoice');
+      setInvoiceError(error.message || 'Could not save the invoice. Try again.');
     } finally {
       setSavingInvoice(false);
     }
@@ -1467,7 +1504,7 @@ export default function useInventory() {
     showAddSupplierModal, setShowAddSupplierModal, showAddPurchaseOrderModal, setShowAddPurchaseOrderModal,
     editingPurchaseOrderId, handleEditPurchaseOrder, resetPurchaseOrderForm,
     showAddRecipeModal, setShowAddRecipeModal, showAddGRNModal, setShowAddGRNModal,
-    showAddRequisitionModal, setShowAddRequisitionModal, showAddInvoiceModal, setShowAddInvoiceModal,
+    showAddRequisitionModal, setShowAddRequisitionModal, showAddInvoiceModal, setShowAddInvoiceModal, invoiceError, setInvoiceError, createStockFromScan, creatingStockLine,
     showAddReturnModal, setShowAddReturnModal, showAddTransferModal, setShowAddTransferModal,
     showQuickStockModal, setShowQuickStockModal, editingItem,
     showEditRecipeModal, setShowEditRecipeModal, editingRecipe, setEditingRecipe,
