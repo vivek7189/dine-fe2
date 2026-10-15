@@ -98,7 +98,7 @@ export default function HomeHero({ onDemo }) {
           <ul className="hh-trust">
             {['7-day free trial', 'No card needed', 'Free menu setup', '9 languages'].map((t) => <li key={t}><FaCheck size={11} />{t}</li>)}
           </ul>
-          <p className="hh-alt">Prefer email or Google? <a href="/login" onClick={() => track('home_hero_click', { choice: 'other_signup' })}>Sign up here</a></p>
+          <p className="hh-alt">Prefer email or Google? <Link href="/login" onClick={() => track('home_hero_click', { choice: 'other_signup' })}>Sign up here</Link></p>
         </div>
 
         <div className="hh-demo">
