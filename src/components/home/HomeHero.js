@@ -10,14 +10,16 @@ import { useRouter } from 'next/navigation';
 import { FaReceipt, FaQrcode, FaWhatsapp, FaUtensils, FaMobileAlt, FaBoxes, FaChartBar, FaStar, FaCheck } from 'react-icons/fa';
 import { track } from '../../lib/analytics';
 import { detectCountry } from '../../lib/detectCountry';
+import { DIAL_COUNTRIES } from '../../lib/dialCountries';
 
 export const PREFILL_PHONE_KEY = 'dineopen_prefill_phone';
 const WHATSAPP_DEMO_URL = 'https://wa.me/919528632779?text=' + encodeURIComponent("Hi DineOpen, I'd like a demo for my restaurant.");
 
-const DIAL = [
-  ['IN', '+91'], ['AE', '+971'], ['SA', '+966'], ['QA', '+974'], ['OM', '+968'], ['KW', '+965'], ['BH', '+973'],
-  ['GB', '+44'], ['US', '+1'], ['CA', '+1'], ['AU', '+61'], ['SG', '+65'], ['KE', '+254'], ['NG', '+234'], ['PK', '+92'],
-];
+// Where most restaurants sign up from — listed first; every other country follows A–Z.
+const POPULAR = ['IN', 'AE', 'SA', 'QA', 'OM', 'KW', 'BH', 'GB', 'US', 'CA', 'AU', 'SG', 'KE', 'NG', 'PK'];
+const BY_CODE = new Map(DIAL_COUNTRIES.map((c) => [c.code, c]));
+const TOP = POPULAR.map((c) => BY_CODE.get(c)).filter(Boolean);
+const REST = DIAL_COUNTRIES.filter((c) => !POPULAR.includes(c.code)).sort((a, b) => a.name.localeCompare(b.name));
 
 const WORDS = ['Restaurants', 'Cafes', 'Bars', 'Cloud Kitchens', 'Food Trucks', 'Bakeries'];
 
@@ -42,7 +44,7 @@ export default function HomeHero({ onDemo }) {
 
   useEffect(() => {
     const { countryCode } = detectCountry();
-    if (countryCode && DIAL.some(([c]) => c === countryCode)) setCountry(countryCode);
+    if (countryCode && BY_CODE.has(countryCode)) setCountry(countryCode);
   }, []);
 
   useEffect(() => {
@@ -86,9 +88,17 @@ export default function HomeHero({ onDemo }) {
           <p className="hh-lead">Start free. Your POS is ready in minutes.</p>
           <form className="hh-form" onSubmit={start}>
             <label htmlFor="hero-dial" className="sr">Country code</label>
-            <select id="hero-dial" value={country} onChange={(e) => setCountry(e.target.value)}>
-              {DIAL.map(([c, d]) => <option key={c} value={c}>{c} {d}</option>)}
-            </select>
+            <span className="hh-dial">
+              <span aria-hidden="true">{BY_CODE.get(country)?.flag} {BY_CODE.get(country)?.dialCode}</span>
+              <select id="hero-dial" value={country} onChange={(e) => setCountry(e.target.value)}>
+                <optgroup label="Popular">
+                  {TOP.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name} ({c.dialCode})</option>)}
+                </optgroup>
+                <optgroup label="All countries">
+                  {REST.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name} ({c.dialCode})</option>)}
+                </optgroup>
+              </select>
+            </span>
             <label htmlFor="hero-phone" className="sr">Mobile number</label>
             <input id="hero-phone" type="tel" inputMode="tel" autoComplete="tel-national" placeholder="Your mobile number"
               value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
@@ -127,7 +137,9 @@ export default function HomeHero({ onDemo }) {
         .hh-lead{font-weight:800;font-size:17px;color:#111827;margin:0 0 12px}
         .hh-form{display:flex;border:2px solid #e5e7eb;border-radius:14px;background:#fff;padding:5px;transition:border-color .2s,box-shadow .2s}
         .hh-form:focus-within{border-color:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.1)}
-        .hh-form select{border:0;background:#f8fafc;border-radius:10px;padding:0 10px;font:inherit;font-weight:700;font-size:14px;color:#111827;cursor:pointer}
+        .hh-dial{position:relative;display:flex;align-items:center;gap:6px;background:#f8fafc;border-radius:10px;padding:0 28px 0 12px;font-weight:700;font-size:15px;color:#111827;white-space:nowrap}
+        .hh-dial::after{content:'';position:absolute;right:11px;top:50%;width:7px;height:7px;margin-top:-5px;border:solid #6b7280;border-width:0 2px 2px 0;transform:rotate(45deg);pointer-events:none}
+        .hh-dial select{position:absolute;inset:0;width:100%;opacity:0;border:0;font:inherit;font-size:16px;cursor:pointer}
         .hh-form input{flex:1;min-width:0;border:0;outline:0;padding:13px 14px;font:inherit;font-size:16px;color:#111827;background:transparent}
         .hh-form button{border:0;border-radius:10px;padding:0 24px;font:inherit;font-weight:800;font-size:16px;color:#fff;cursor:pointer;background:linear-gradient(135deg,#ef4444,#dc2626);white-space:nowrap;box-shadow:0 8px 20px -8px rgba(239,68,68,.6)}
         .hh-form button:hover{background:#dc2626}
@@ -147,7 +159,6 @@ export default function HomeHero({ onDemo }) {
         @media (max-width:860px){.hh-cards{grid-template-columns:repeat(2,1fr)}}
         @media (max-width:520px){
           .hh{padding:36px 16px 60px}
-          .hh-form select{font-size:16px}
           .hh-in{display:flex;flex-direction:column;align-items:stretch}
           .hh-badge{align-self:center}
           .hh-cards{order:9;margin:32px 0 0}
@@ -158,7 +169,7 @@ export default function HomeHero({ onDemo }) {
           .hh-card small{display:none}
           .hh-start{padding:18px 14px 14px}
           .hh-form{flex-wrap:wrap;gap:6px}
-          .hh-form select{padding:12px 8px}
+          .hh-dial{padding-block:12px}
           .hh-form input{flex:1 1 160px}
           .hh-form button{flex:1 1 100%;padding:14px}
         }
