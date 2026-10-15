@@ -334,6 +334,8 @@ async function printViaElectron({ html, type, stationId, printSettings }) {
       stationId,
       copies,
       printerWidth: printSettings.printerWidth || 80,
+      // Safe KOT printing (printSettings.kotSafePrint, default off): no pre-print connection probe.
+      safeTcp: printSettings.kotSafePrint === true,
     });
 
     // Check if the print actually succeeded (especially for TCP printers which

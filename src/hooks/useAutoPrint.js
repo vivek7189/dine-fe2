@@ -288,11 +288,13 @@ export function useAutoPrint(restaurantId, printSettings) {
     }
   }, [restaurantId, processQueue]);
 
-  // Cache print stations config (refreshed on mount)
+  // Cache print stations config (refreshed on mount; with Safe KOT printing also every minute, so a
+  // station switched on/off in the admin applies without restarting the app)
   const printStationsRef = useRef({ stations: [], mode: 'single', loaded: false });
+  const safeKotRefresh = printSettings?.kotSafePrint === true;
   useEffect(() => {
     if (!restaurantId) return;
-    apiClient.getPrintStations(restaurantId).then(res => {
+    const load = (ttl) => apiClient.getPrintStations(restaurantId, ttl).then(res => {
       if (res?.success) {
         printStationsRef.current = {
           stations: (res.printStations || []).filter(s => s.enabled),
@@ -301,7 +303,11 @@ export function useAutoPrint(restaurantId, printSettings) {
         };
       }
     }).catch(() => {});
-  }, [restaurantId]);
+    load();
+    if (!safeKotRefresh) return;
+    const timer = setInterval(() => load(55 * 1000), 60 * 1000);
+    return () => clearInterval(timer);
+  }, [restaurantId, safeKotRefresh]);
 
   // ── Shared handlers used by both Pusher and LAN hub ──
   const handleKotCreated = useCallback(async (data) => {

@@ -1329,7 +1329,10 @@ const OrderSummary = ({
       };
       (async () => {
         try {
-          const res = await apiClient.getPrintStations(restaurantId);
+          // Safe KOT printing (printSettings.kotSafePrint, default off): fresh station list (1 min),
+          // and each station printed on its own (see the loop below).
+          const safeKot = printSettings?.kotSafePrint === true;
+          const res = await apiClient.getPrintStations(restaurantId, safeKot ? 60 * 1000 : undefined);
           const stations = (res?.printStations || []).filter(s => s.enabled);
           if (stations.length === 0) { await printCombinedFallback(); return; }
           const hasDefaultStation = stations.some(s => s.isDefault);
@@ -1337,6 +1340,8 @@ const OrderSummary = ({
           const isIncremental = !!orderSuccess.kotData?.isIncremental;
           let printedAny = false;
           for (const station of stations) {
+           let stationHtml = null;
+           try {
             const rd = await apiClient.getKOTRender(restaurantId, thisOrderId, { stationId: station.id, newOnly: isIncremental });
             const items = rd?.kot?.items || [];
             const removedItems = rd?.kot?.removedItems || [];
@@ -1347,6 +1352,7 @@ const OrderSummary = ({
             }
             const kotData = { ...rd.kot, restaurantName: rd?.restaurant?.name || rd.kot.restaurantName || '' };
             const html = generateKOTHTML(kotData, kotPS, kotLabels);
+            stationHtml = html;
             if (html) {
               await printDocument({ html, type: 'kot', orderId: `${thisOrderId}-${station.id}`, stationId: station.id, restaurantId, printSettings: printSettings || {}, dedupKey: buildKotDedupKey(rd.kot, station.id) });
               printedAny = true;
@@ -1358,6 +1364,18 @@ const OrderSummary = ({
                 console.log(`[KOT][station:${station.name}] new → items:${items.length}`);
               }
             }
+           } catch (stationErr) {
+            if (!safeKot) throw stationErr; // today's behaviour: one failure → whole-order fallback below
+            // Safe mode: this station alone failed. Its own ticket goes to the default KOT printer;
+            // the other stations keep printing (no whole-order duplicate, no lost tickets).
+            console.warn(`[KOT][station:${station.name}] print failed (${stationErr?.message}) → this station's ticket to the default printer`);
+            if (stationHtml) {
+              try {
+                await printDocument({ html: stationHtml, type: 'kot', orderId: `${thisOrderId}-${station.id}-fallback`, restaurantId, printSettings: printSettings || {}, dedupKey: null });
+                printedAny = true;
+              } catch (fbErr) { console.warn(`[KOT][station:${station.name}] fallback print failed too:`, fbErr?.message); }
+            }
+           }
           }
           // No default station → send a combined KOT to the default printer so unassigned items aren't lost.
           if (!hasDefaultStation) {

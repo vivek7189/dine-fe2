@@ -3653,8 +3653,8 @@ class ApiClient {
   }
 
   // Print Stations (kitchen routing) endpoints
-  async getPrintStations(restaurantId) {
-    return this.cachedGet(`/api/admin/print-stations/${restaurantId}`, 10 * 60 * 1000);
+  async getPrintStations(restaurantId, ttlMs = 10 * 60 * 1000) {
+    return this.cachedGet(`/api/admin/print-stations/${restaurantId}`, ttlMs);
   }
 
   async updatePrintStations(restaurantId, printStations, kotPrintingMode) {

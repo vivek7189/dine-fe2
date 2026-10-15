@@ -985,7 +985,7 @@ ipcMain.handle('electron:print', (event, args) => {
   return task;
 });
 
-async function _doPrintJob(event, { html, copies, type, printerWidth, stationId, printerOverride }) {
+async function _doPrintJob(event, { html, copies, type, printerWidth, stationId, printerOverride, safeTcp }) {
   const settings = loadSettings();
   // Route to the correct printer based on job type and optional station
   let deviceName;
@@ -1048,7 +1048,10 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
 
     // Quick reachability check (500ms) — catches offline printers faster than
     // waiting for the full 3s connect timeout on every retry attempt.
-    const reachable = await probeTcpPort(host, port, 500);
+    // Safe KOT printing: no probe before the print — on printers that take one connection at a
+    // time the probe can hold the slot and the real ticket gets refused (ECONNRESET, nothing
+    // printed). The probe then runs only after a failure, to explain it.
+    let reachable = safeTcp ? true : await probeTcpPort(host, port, 500);
     if (!reachable) {
       console.warn('[Print] TCP printer not reachable at', host + ':' + port, '— will still attempt print with retries');
     }
@@ -1103,6 +1106,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
     }
 
     console.error('[Print] TCP print failed after', TCP_MAX_RETRIES, 'attempts:', lastErr?.message);
+    if (safeTcp) reachable = await probeTcpPort(host, port, 500);
     logPrintEvent({
       type: type || 'unknown', method: 'tcp', success: false,
       configuredDeviceName: deviceName, host, port,
