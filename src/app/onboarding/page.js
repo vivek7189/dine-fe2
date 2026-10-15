@@ -600,7 +600,10 @@ function OnboardingContent() {
 
   const handleWhatsAppSetup = () => {
     const name = restaurantName || 'my restaurant';
-    const msg = encodeURIComponent(`Hi, I'd like help setting up my menu for ${name}. I just signed up on DineOpen!`);
+    // "Ref: <restaurantId>" lets the WhatsApp assistant put the menu into THIS new restaurant
+    // (instead of making a second account for the WhatsApp number).
+    const rid = restaurantId || (typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : '') || '';
+    const msg = encodeURIComponent(`Hi, I'd like help setting up my menu for ${name}. I just signed up on DineOpen!${rid ? ` (Ref: ${rid})` : ''}`);
     window.open(`https://wa.me/919528632779?text=${msg}`, '_blank');
     goNext();
   };
@@ -738,7 +741,10 @@ function OnboardingContent() {
   const openWhatsAppMenuHelp = () => {
     track('onboarding_finish_click', { choice: 'whatsapp_menu', mobile: isMobile });
     const name = restaurantName || 'my restaurant';
-    const msg = encodeURIComponent(`Hi, I'd like help setting up my menu for ${name}. I just signed up on DineOpen!`);
+    // "Ref: <restaurantId>" lets the WhatsApp assistant put the menu into THIS new restaurant
+    // (instead of making a second account for the WhatsApp number).
+    const rid = restaurantId || (typeof window !== 'undefined' ? localStorage.getItem('selectedRestaurantId') : '') || '';
+    const msg = encodeURIComponent(`Hi, I'd like help setting up my menu for ${name}. I just signed up on DineOpen!${rid ? ` (Ref: ${rid})` : ''}`);
     window.open(`https://wa.me/919528632779?text=${msg}`, '_blank');
   };
 
