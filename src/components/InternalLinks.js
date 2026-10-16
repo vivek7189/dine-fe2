@@ -97,6 +97,7 @@ const tools = [
   { name: 'Menu Description AI', href: '/tools/menu-description-generator' },
   { name: 'Bill Splitter', href: '/tools/bill-splitter' },
   { name: 'Tip Calculator', href: '/tools/tip-calculator' },
+  { name: 'Tip Pooling Calculator', href: '/tools/tip-pooling-calculator' },
   { name: 'Menu Card Maker', href: '/tools/menu-card-maker' },
   { name: 'Business Plan Generator', href: '/tools/business-plan-generator' },
   { name: 'Calorie Calculator', href: '/tools/calorie-calculator' },
