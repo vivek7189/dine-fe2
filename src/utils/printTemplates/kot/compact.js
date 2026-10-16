@@ -59,7 +59,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
   const { html: itemsHtml, footerText, hasChanges } = buildKOTItemsSections(k, renderRow, L);
   const titleEn = hasChanges ? L.kotUpdate : L.kitchenOrder;
   const title = showAr ? dualTitle(titleEn, hasChanges ? AR.kotUpdate : AR.kitchenOrder, showAr) : titleEn;
-  const css = getCompactCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
+  const css = getCompactCSS(printSettings.kotFontScale || printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
   const finalCss = showAr ? css + getBillDualCSS() : css;
 
   // Compact: skip restaurant name, minimal header

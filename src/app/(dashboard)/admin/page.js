@@ -5025,7 +5025,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                   {/* Font Size — compact slider */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Font Size</span>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{printSettings.kotFontScale ? 'Bill Font Size' : 'Font Size (Bill + KOT)'}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827', background: '#f3f4f6', borderRadius: '6px', padding: '2px 8px' }}>
                           {printSettings.billFontScale || 100}%
@@ -5038,6 +5038,25 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                     <input type="range" min="50" max="150" step="5" value={printSettings.billFontScale || 100}
                       onChange={(e) => setPrintSettings(prev => ({ ...prev, billFontScale: parseInt(e.target.value) }))}
                       style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.billFontScale || 100) - 50)}%, #e5e7eb ${((printSettings.billFontScale || 100) - 50)}%, #e5e7eb 100%)`, outline: 'none', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  {/* KOT Font Size — its own size; unset = same as the bill */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>KOT Font Size</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827', background: '#f3f4f6', borderRadius: '6px', padding: '2px 8px' }}>
+                          {printSettings.kotFontScale ? `${printSettings.kotFontScale}%` : `Same as bill (${printSettings.billFontScale || 100}%)`}
+                        </span>
+                        {!!printSettings.kotFontScale && (
+                          <button onClick={() => setPrintSettings(prev => ({ ...prev, kotFontScale: null }))} style={{ fontSize: '10px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline', padding: 0 }}>Same as bill</button>
+                        )}
+                      </div>
+                    </div>
+                    <input type="range" min="50" max="150" step="5" value={printSettings.kotFontScale || printSettings.billFontScale || 100}
+                      onChange={(e) => setPrintSettings(prev => ({ ...prev, kotFontScale: parseInt(e.target.value) }))}
+                      style={{ width: '100%', height: '4px', borderRadius: '2px', appearance: 'none', WebkitAppearance: 'none', background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((printSettings.kotFontScale || printSettings.billFontScale || 100) - 50)}%, #e5e7eb ${((printSettings.kotFontScale || printSettings.billFontScale || 100) - 50)}%, #e5e7eb 100%)`, outline: 'none', cursor: 'pointer' }}
                     />
                   </div>
 

@@ -88,7 +88,7 @@ export function render(kotData, printSettings = {}, labels = {}) {
     totalItems = (k.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0);
   }
 
-  const css = getBoldKOTCSS(printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
+  const css = getBoldKOTCSS(printSettings.kotFontScale || printSettings.billFontScale || printSettings.billFontSize, printSettings.billFontFamily, printSettings.printerWidth, printSettings);
   const finalCss = showAr ? css + getBillDualCSS() : css;
 
   const bodyHtml =

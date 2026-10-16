@@ -96,7 +96,7 @@ function emitPrintEvent(type, orderId, status) {
 // present), keeping the server payload's DATA + content toggles. Falls back to the server payload
 // verbatim when device settings aren't loaded — so nothing changes for the no-device-settings case.
 const PRINT_FORMAT_KEYS = [
-  'printerWidth', 'printContentWidth', 'billFontScale', 'billFontSize',
+  'printerWidth', 'printContentWidth', 'billFontScale', 'kotFontScale', 'billFontSize',
   'billFontFamily', 'printLeftMargin', 'kotTemplate', 'billTemplate',
 ];
 function mergeDeviceFormatting(serverPs, devicePs) {
