@@ -5,12 +5,43 @@ import { FaPrint, FaTimes, FaSpinner, FaSave, FaCheckCircle, FaReceipt, FaBell, 
 import Link from 'next/link';
 import apiClient from '../lib/api';
 import dynamic from 'next/dynamic';
+import { getEffectivePageAccess } from '../lib/pageAccessConfig';
+import { KOT_TEMPLATE_LIST } from '../utils/printTemplates/index';
 
 const NativePrinterSettings = dynamic(() => import('./NativePrinterSettings'), { ssr: false });
 
 // Check platform
 const getIsWeb = () => typeof window !== 'undefined' && !window.electronAPI && !window.__TAURI__ && !window.Capacitor;
 const getIsNative = () => typeof window !== 'undefined' && (!!window.electronAPI || !!window.__TAURI__ || !!window.Capacitor);
+
+// Print size (bill / KOT font size, KOT layout) follows the staff member's "Printer Settings"
+// permission (on unless the owner switched it off for them). Owners/admins always. The server
+// applies the same rule on save.
+const canChangePrintSize = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user) return false;
+    if (['owner', 'admin'].includes(String(user.role || '').toLowerCase())) return true;
+    const pa = getEffectivePageAccess(user);
+    return !(pa && pa.printer === false);
+  } catch (_) { return false; }
+};
+
+// One size slider row (50–150%).
+const SizeRow = ({ label, value, shown, onChange, action }) => (
+  <div style={{ padding: '10px 12px', backgroundColor: '#faf5f7', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+      <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '12px', fontWeight: '700', color: '#111827', background: 'white', borderRadius: '6px', padding: '2px 8px', border: '1px solid #e5e7eb' }}>{shown}</span>
+        {action}
+      </div>
+    </div>
+    <input type="range" min="50" max="150" step="5" value={value} aria-label={label}
+      onChange={(e) => onChange(parseInt(e.target.value, 10))}
+      style={{ width: '100%', accentColor: '#ef4444', cursor: 'pointer' }} />
+  </div>
+);
 
 // ─── Toggle Row ───────────────────────────────────────────────────────────────
 const ToggleRow = ({ title, description, icon, enabled, onToggle }) => (
@@ -62,6 +93,13 @@ export default function PrinterQuickSetupModal({ isOpen, onClose, restaurantId, 
 
   const isWeb = getIsWeb();
   const isNative = getIsNative();
+  const [sizeAllowed, setSizeAllowed] = useState(false);
+  useEffect(() => { if (isOpen) setSizeAllowed(canChangePrintSize()); }, [isOpen]);
+
+  const setValue = useCallback((key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setDirty(true);
+  }, []);
 
   // Load settings
   useEffect(() => {
@@ -173,6 +211,35 @@ export default function PrinterQuickSetupModal({ isOpen, onClose, restaurantId, 
                 }}>
                   <FaCheckCircle size={12} />
                   {saveMsg.text}
+                </div>
+              )}
+
+              {/* ── Print size: bill + KOT font size and KOT layout ── */}
+              {sizeAllowed && (
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Print Size
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <SizeRow label="Bill size" value={settings.billFontScale || 100} shown={`${settings.billFontScale || 100}%`}
+                      onChange={(v) => setValue('billFontScale', v)} />
+                    <SizeRow label="KOT size" value={settings.kotFontScale || settings.billFontScale || 100}
+                      shown={settings.kotFontScale ? `${settings.kotFontScale}%` : `Same as bill (${settings.billFontScale || 100}%)`}
+                      onChange={(v) => setValue('kotFontScale', v)}
+                      action={settings.kotFontScale ? (
+                        <button type="button" onClick={() => setValue('kotFontScale', null)} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline', padding: 0 }}>Same as bill</button>
+                      ) : null} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#faf5f7', borderRadius: '10px', border: '1px solid #f1f5f9', gap: '8px' }}>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937', margin: 0 }}>KOT layout</p>
+                        <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0 0' }}>Compact saves the most paper</p>
+                      </div>
+                      <select value={settings.kotTemplate || 'classic'} onChange={(e) => setValue('kotTemplate', e.target.value)} aria-label="KOT layout"
+                        style={{ fontSize: '12px', padding: '5px 8px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', color: '#111827', fontWeight: '600', cursor: 'pointer' }}>
+                        {KOT_TEMPLATE_LIST.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
 
