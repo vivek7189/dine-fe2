@@ -83,6 +83,7 @@ const products = [
 
 const tools = [
   { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
+  { name: 'POS Hardware Kit Builder', href: '/tools/restaurant-pos-hardware' },
   { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
   { name: 'QR Menu Generator', href: '/tools/qr-menu-generator' },
   { name: 'Free QR Menu Maker', href: '/tools/qr-menu-maker' },

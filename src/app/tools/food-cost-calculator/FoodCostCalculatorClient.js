@@ -1,1006 +1,515 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import css from 'styled-jsx/css';
 import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
-import { FaCalculator, FaRupeeSign, FaPercent, FaChartPie, FaLightbulb, FaArrowRight, FaPlus, FaTrash } from 'react-icons/fa';
+import { tipToolStyles } from '../../../components/tools/tipToolStyles';
+import { detectCountry } from '../../../lib/detectCountry';
+import { track } from '../../../lib/analytics';
+import { BENCHMARKS, STEPS, LOWER_COST, FAQ, RELATED } from './foodCostContent';
 
-const defaultIngredients = [
-  { name: 'Paneer', purchaseCost: 320, purchaseQty: 1, purchaseUnit: 'kg', usedQty: 250, usedUnit: 'g' },
-  { name: 'Butter', purchaseCost: 520, purchaseQty: 1, purchaseUnit: 'kg', usedQty: 50, usedUnit: 'g' },
-  { name: 'Cream', purchaseCost: 280, purchaseQty: 1, purchaseUnit: 'L', usedQty: 100, usedUnit: 'ml' },
-  { name: 'Tomato', purchaseCost: 40, purchaseQty: 1, purchaseUnit: 'kg', usedQty: 300, usedUnit: 'g' },
-  { name: 'Spices & Oil', purchaseCost: 200, purchaseQty: 1, purchaseUnit: 'kg', usedQty: 30, usedUnit: 'g' },
-];
+const STORE_KEY = 'dineopen_food_cost_v1';
+const CURRENCIES = ['USD', 'CAD', 'GBP', 'EUR', 'AUD', 'NZD', 'ZAR', 'INR', 'AED', 'SAR', 'QAR', 'KES', 'SGD', 'MYR'];
+const COUNTRY_CURRENCY = {
+  US: 'USD', CA: 'CAD', GB: 'GBP', AU: 'AUD', NZ: 'NZD', ZA: 'ZAR', IN: 'INR', AE: 'AED', SA: 'SAR', QA: 'QAR', KE: 'KES', SG: 'SGD', MY: 'MYR',
+  DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR', NL: 'EUR', IE: 'EUR', AT: 'EUR', BE: 'EUR', PT: 'EUR', FI: 'EUR', GR: 'EUR',
+};
+// Typical sales tax / VAT / GST on restaurant food, used only as the default when "prices include tax" is ticked.
+const DEFAULT_TAX = { GBP: 20, EUR: 20, AED: 5, SAR: 15, ZAR: 15, AUD: 10, NZD: 15, INR: 5, KES: 16, SGD: 9, MYR: 6 };
+// Rough price level against USD, so the metric example looks sensible in any currency.
+const PRICE_LEVEL = { USD: 1, CAD: 1.38, GBP: 0.79, EUR: 0.92, AUD: 1.53, NZD: 1.68, ZAR: 17.5, AED: 3.67, SAR: 3.75, QAR: 3.64, KES: 129, SGD: 1.3, MYR: 4.4 };
 
-const unitOptions = ['g', 'kg', 'ml', 'L', 'pcs'];
+const UNITS = { g: ['mass', 1], kg: ['mass', 1000], oz: ['mass', 28.3495], lb: ['mass', 453.592], ml: ['vol', 1], L: ['vol', 1000], 'fl oz': ['vol', 29.5735], cup: ['vol', 236.588], tbsp: ['vol', 14.787], tsp: ['vol', 4.929], each: ['each', 1] };
+const UNIT_LIST = Object.keys(UNITS);
+const TARGETS = [25, 28, 30, 32, 35];
+const TABLE_TARGETS = [22, 25, 28, 30, 32, 35, 40];
+const ROUNDING = [['exact', 'Exact'], ['99', '.99'], ['whole', 'Whole'], ['five', 'To 5']];
 
-function convertToBase(qty, unit) {
-  const q = parseFloat(qty) || 0;
-  if (unit === 'g') return { value: q / 1000, baseUnit: 'kg' };
-  if (unit === 'ml') return { value: q / 1000, baseUnit: 'L' };
-  if (unit === 'kg') return { value: q, baseUnit: 'kg' };
-  if (unit === 'L') return { value: q, baseUnit: 'L' };
-  return { value: q, baseUnit: 'pcs' };
+const ing = (name, buyPrice, buyQty, buyUnit, useQty, useUnit) => ({ name, buyPrice: String(buyPrice), buyQty: String(buyQty), buyUnit, useQty: String(useQty), useUnit });
+
+function example(currency) {
+  if (currency === 'INR') {
+    return { dish: 'Paneer butter masala', portions: '4', items: [
+      ing('Paneer', 360, 1, 'kg', 600, 'g'), ing('Butter', 540, 1, 'kg', 60, 'g'), ing('Fresh cream', 260, 1, 'L', 150, 'ml'),
+      ing('Tomatoes', 40, 1, 'kg', 600, 'g'), ing('Onions', 35, 1, 'kg', 200, 'g'), ing('Cashews', 900, 1, 'kg', 40, 'g'),
+    ] };
+  }
+  if (currency === 'USD' || currency === 'CAD') {
+    const k = PRICE_LEVEL[currency];
+    const p = (n) => (n * k).toFixed(2);
+    return { dish: 'Classic cheeseburger with fries', portions: '1', items: [
+      ing('Ground beef 80/20', p(5.99), 1, 'lb', 6, 'oz'), ing('Brioche buns', p(4.2), 8, 'each', 1, 'each'),
+      ing('American cheese', p(6.5), 24, 'each', 1, 'each'), ing('Lettuce, tomato, onion', p(2.4), 1, 'lb', 2.5, 'oz'),
+      ing('Burger sauce', p(4.5), 32, 'fl oz', 1, 'fl oz'), ing('Frozen fries', p(36), 30, 'lb', 6, 'oz'),
+    ] };
+  }
+  const k = PRICE_LEVEL[currency] || 1;
+  const p = (n) => (k >= 50 ? Math.round(n * k) : (n * k).toFixed(2));
+  return { dish: 'Classic cheeseburger with fries', portions: '1', items: [
+    ing('Beef mince', p(13.2), 1, 'kg', 170, 'g'), ing('Brioche buns', p(4.2), 8, 'each', 1, 'each'),
+    ing('Cheese slices', p(6.5), 24, 'each', 1, 'each'), ing('Salad (lettuce, tomato, onion)', p(5.3), 1, 'kg', 70, 'g'),
+    ing('Burger sauce', p(4.5), 1, 'L', 30, 'ml'), ing('Frozen chips / fries', p(2.65), 1, 'kg', 170, 'g'),
+  ] };
+}
+
+const num = (v) => Math.max(0, parseFloat(v) || 0);
+
+function lineCost(it) {
+  const bu = UNITS[it.buyUnit]; const uu = UNITS[it.useUnit];
+  const buyQty = num(it.buyQty);
+  if (!bu || !uu || !buyQty) return { cost: 0, ok: true };
+  if (bu[0] !== uu[0]) return { cost: 0, ok: false };
+  return { cost: (num(it.buyPrice) / (buyQty * bu[1])) * num(it.useQty) * uu[1], ok: true };
+}
+
+function roundPrice(p, mode) {
+  if (!(p > 0)) return 0;
+  // Nearest menu-friendly price, never below the smallest step.
+  if (mode === '99') return Math.max(1, Math.round(p)) - 0.01;
+  if (mode === 'whole') return Math.max(1, Math.round(p));
+  if (mode === 'five') return Math.max(5, Math.round(p / 5) * 5);
+  return Math.round(p * 100) / 100;
 }
 
 export default function FoodCostCalculatorClient() {
-  const [isMobile, setIsMobile] = useState(false);
-  const [dishName, setDishName] = useState('Paneer Butter Masala');
-  const [targetFoodCost, setTargetFoodCost] = useState(30);
-  const [ingredients, setIngredients] = useState(defaultIngredients.map(i => ({ ...i })));
-  const [portions, setPortions] = useState(4);
-  const [sellingPrice, setSellingPrice] = useState(320);
-  const [openFaq, setOpenFaq] = useState(null);
-
-  // Results
-  const [results, setResults] = useState(null);
+  const [currency, setCurrency] = useState('USD');
+  const [locale, setLocale] = useState('en-US');
+  const [mode, setMode] = useState('recipe');
+  const [dish, setDish] = useState('');
+  const [items, setItems] = useState([]);
+  const [portions, setPortions] = useState('1');
+  const [extras, setExtras] = useState('5');
+  const [plateCost, setPlateCost] = useState('');
+  const [target, setTarget] = useState(30);
+  const [customTarget, setCustomTarget] = useState('');
+  const [rounding, setRounding] = useState('99');
+  const [yourPrice, setYourPrice] = useState('');
+  const [inclTax, setInclTax] = useState(false);
+  const [taxRate, setTaxRate] = useState('');
+  const [period, setPeriod] = useState({ open: '', buy: '', close: '', sales: '' });
+  const [copied, setCopied] = useState(false);
+  const loaded = useRef(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    if (navigator.language) setLocale(navigator.language);
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch { /* storage blocked */ }
+    if (saved && saved.currency) {
+      setCurrency(saved.currency); setMode(saved.mode || 'recipe'); setDish(saved.dish || ''); setItems(saved.items || []);
+      setPortions(saved.portions || '1'); setExtras(saved.extras ?? '5'); setPlateCost(saved.plateCost || '');
+      setTarget(saved.target || 30); setCustomTarget(saved.customTarget || ''); setRounding(saved.rounding || '99');
+      setYourPrice(saved.yourPrice || ''); setInclTax(!!saved.inclTax); setTaxRate(saved.taxRate || '');
+    } else {
+      const { countryCode } = detectCountry();
+      const cur = COUNTRY_CURRENCY[countryCode] || 'USD';
+      const ex = example(cur);
+      setCurrency(cur); setDish(ex.dish); setItems(ex.items); setPortions(ex.portions);
+      if (cur === 'INR') setRounding('five');
+    }
+    loaded.current = true;
   }, []);
 
   useEffect(() => {
-    calculateResults();
-  }, [ingredients, portions, sellingPrice, targetFoodCost]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!loaded.current) return;
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ currency, mode, dish, items, portions, extras, plateCost, target, customTarget, rounding, yourPrice, inclTax, taxRate }));
+    } catch { /* storage blocked */ }
+  }, [currency, mode, dish, items, portions, extras, plateCost, target, customTarget, rounding, yourPrice, inclTax, taxRate]);
 
-  const calculateResults = () => {
-    const ingredientCosts = ingredients.map(ing => {
-      const purchaseBase = convertToBase(ing.purchaseQty, ing.purchaseUnit);
-      const usedBase = convertToBase(ing.usedQty, ing.usedUnit);
-      const cost = purchaseBase.value > 0 ? ((parseFloat(ing.purchaseCost) || 0) / purchaseBase.value) * usedBase.value : 0;
-      return { name: ing.name, cost };
-    });
+  const fmt = useMemo(() => {
+    const opts = { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 };
+    let nf;
+    try { nf = new Intl.NumberFormat(locale, opts); } catch { nf = new Intl.NumberFormat('en-US', opts); }
+    return (n) => nf.format(Number.isFinite(n) ? n : 0);
+  }, [currency, locale]);
 
-    const totalRecipeCost = ingredientCosts.reduce((sum, i) => sum + i.cost, 0);
-    const portionCount = parseFloat(portions) || 1;
-    const costPerPortion = totalRecipeCost / portionCount;
-    const price = parseFloat(sellingPrice) || 0;
-    const target = parseFloat(targetFoodCost) || 30;
-    const suggestedPrice = costPerPortion / (target / 100);
+  const lines = items.map(lineCost);
+  const recipeTotal = lines.reduce((s, l) => s + l.cost, 0);
+  const portionsN = Math.max(1, Math.round(num(portions)) || 1);
+  const extrasPct = Math.min(100, num(extras));
+  const cost = mode === 'recipe' ? (recipeTotal / portionsN) * (1 + extrasPct / 100) : num(plateCost);
 
-    let foodCostPercent = null;
-    let grossProfit = null;
-    let profitMargin = null;
+  const targetPct = customTarget !== '' ? Math.min(95, Math.max(1, num(customTarget))) : target;
+  const tax = inclTax ? Math.min(100, num(taxRate)) / 100 : 0;
+  const toMenu = (net) => net * (1 + tax);
+  const toNet = (menu) => menu / (1 + tax);
+  const suggested = roundPrice(toMenu(cost / (targetPct / 100)), rounding);
+  const yourN = num(yourPrice);
+  const price = yourN > 0 ? yourN : suggested;
+  const net = toNet(price);
+  const fcPct = net > 0 ? (cost / net) * 100 : 0;
+  const profit = net - cost;
+  const markup = cost > 0 ? net / cost : 0;
+  const status = !(cost > 0 && net > 0) ? null : fcPct <= targetPct + 0.05 ? ['ok', 'On target'] : fcPct <= targetPct + 5 ? ['warn', 'A bit high'] : ['bad', 'Too high'];
 
-    if (price > 0) {
-      foodCostPercent = (costPerPortion / price) * 100;
-      grossProfit = price - costPerPortion;
-      profitMargin = (grossProfit / price) * 100;
-    }
+  const p = { open: num(period.open), buy: num(period.buy), close: num(period.close), sales: num(period.sales) };
+  const used = Math.max(0, p.open + p.buy - p.close);
+  const periodPct = p.sales > 0 ? (used / p.sales) * 100 : 0;
 
-    const breakdown = ingredientCosts.map(i => ({
-      name: i.name,
-      cost: i.cost,
-      percent: totalRecipeCost > 0 ? (i.cost / totalRecipeCost) * 100 : 0
-    }));
-
-    setResults({
-      totalRecipeCost,
-      costPerPortion,
-      foodCostPercent,
-      suggestedPrice,
-      grossProfit,
-      profitMargin,
-      breakdown
-    });
+  const setItem = (i, key, val) => setItems((arr) => arr.map((it, j) => (j === i ? { ...it, [key]: val } : it)));
+  const addItem = () => setItems((arr) => [...arr, ing('', '', 1, UNITS[arr[arr.length - 1]?.buyUnit] ? arr[arr.length - 1].buyUnit : 'kg', '', arr[arr.length - 1]?.useUnit || 'g')]);
+  const removeItem = (i) => setItems((arr) => arr.filter((_, j) => j !== i));
+  const loadExample = () => { const ex = example(currency); setDish(ex.dish); setItems(ex.items); setPortions(ex.portions); setExtras('5'); setMode('recipe'); setYourPrice(''); };
+  const clearAll = () => { setDish(''); setItems([ing('', '', 1, 'kg', '', 'g')]); setPortions('1'); setPlateCost(''); setYourPrice(''); };
+  const changeCurrency = (c) => {
+    setCurrency(c);
+    if (inclTax && taxRate === '' && DEFAULT_TAX[c]) setTaxRate(String(DEFAULT_TAX[c]));
+  };
+  const toggleTax = (on) => {
+    setInclTax(on);
+    if (on && taxRate === '') setTaxRate(String(DEFAULT_TAX[currency] || 10));
   };
 
-  const addIngredient = () => {
-    setIngredients([...ingredients, { name: '', purchaseCost: '', purchaseQty: '', purchaseUnit: 'g', usedQty: '', usedUnit: 'g' }]);
+  const copy = async () => {
+    const out = [
+      dish ? `${dish}` : 'Dish',
+      `Cost per plate: ${fmt(cost)}`,
+      `Suggested price (${targetPct}% food cost): ${fmt(suggested)}`,
+    ];
+    if (yourN > 0) out.push(`Your price ${fmt(yourN)}: food cost ${fcPct.toFixed(1)}%, profit ${fmt(profit)} per plate`);
+    if (mode === 'recipe') items.forEach((it, i) => { if (it.name || lines[i].cost) out.push(`  ${it.name || 'Ingredient'}: ${fmt(lines[i].cost / portionsN)}`); });
+    try { await navigator.clipboard.writeText(out.join('\n')); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* clipboard blocked */ }
+    track('tool_food_cost_copy', { mode, currency });
   };
-
-  const removeIngredient = (index) => {
-    if (ingredients.length > 1) {
-      setIngredients(ingredients.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateIngredient = (index, field, value) => {
-    const updated = [...ingredients];
-    updated[index] = { ...updated[index], [field]: value };
-    setIngredients(updated);
-  };
-
-  const resetCalculator = () => {
-    setDishName('Paneer Butter Masala');
-    setTargetFoodCost(30);
-    setIngredients(defaultIngredients.map(i => ({ ...i })));
-    setPortions(4);
-    setSellingPrice(320);
-  };
-
-  const getFoodCostStatus = (percent) => {
-    if (percent === null || percent === undefined) return null;
-    if (percent <= 28) return { color: '#22c55e', status: 'Excellent', message: 'Your food cost is well optimized!' };
-    if (percent <= 32) return { color: '#f59e0b', status: 'Good — Industry Standard', message: 'Your food cost is within industry standard range.' };
-    if (percent <= 38) return { color: '#f97316', status: 'High — Optimize', message: 'Consider optimizing ingredient costs or adjusting pricing.' };
-    return { color: '#ef4444', status: 'Too High — Needs Attention', message: 'Your food cost needs immediate attention. Review ingredients and pricing.' };
-  };
-
-  const status = results ? getFoodCostStatus(results.foodCostPercent) : null;
-
-  const inputStyle = {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    fontSize: '14px',
-    outline: 'none',
-    backgroundColor: '#fff',
-    boxSizing: 'border-box'
-  };
-
-  const labelStyle = {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: '6px'
-  };
-
-  const smallSelectStyle = {
-    padding: '10px 6px',
-    borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    fontSize: '13px',
-    outline: 'none',
-    backgroundColor: '#fff',
-    width: '65px',
-    boxSizing: 'border-box'
-  };
-
-  const faqs = [
-    {
-      q: 'What is a good food cost percentage for a restaurant?',
-      a: 'Most restaurants aim for 28-35%. QSR targets 25-30%, casual dining 28-32%, fine dining 30-35%. Below 25% may indicate quality concerns. Above 38% needs immediate attention — check ingredient costs, portion sizes, and supplier pricing.'
-    },
-    {
-      q: 'How do you calculate food cost percentage?',
-      a: 'Food Cost % = (Total Ingredient Cost per Portion \u00f7 Selling Price) \u00d7 100. For a recipe with \u20b9120 ingredient cost making 4 portions, cost per portion is \u20b930. If selling at \u20b9100, food cost is 30%.'
-    },
-    {
-      q: 'What\u2019s the difference between food cost and food cost percentage?',
-      a: 'Food cost is the absolute rupee value of ingredients (\u20b980). Food cost percentage is that amount relative to selling price (\u20b980/\u20b9250 = 32%). Percentage is more useful for comparison and benchmarking across dishes.'
-    },
-    {
-      q: 'How often should I calculate food cost?',
-      a: 'Calculate food cost for every new menu item and review monthly. Ingredient prices fluctuate — especially vegetables and dairy. Use software like DineOpen to track food costs automatically with every sale.'
-    },
-    {
-      q: 'What causes food cost to be too high?',
-      a: 'Common causes: over-portioning, ingredient waste, theft/pilferage, not tracking inventory, not updating prices when ingredients get costlier, and buying from a single supplier without comparing prices.'
-    }
-  ];
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+    <>
       <CommonHeader />
+      <main className="tt fc">
+        <div className="wrap">
+          <nav className="crumb" aria-label="Breadcrumb"><Link href="/">Home</Link> › <Link href="/tools">Free tools</Link> › Food cost calculator</nav>
 
-      {/* Hero Section */}
-      <section style={{
-        background: 'linear-gradient(180deg, #111827 0%, #1f2937 100%)',
-        padding: isMobile ? '48px 20px' : '72px 32px'
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            borderRadius: '20px',
-            marginBottom: '20px',
-            border: '1px solid rgba(255,255,255,0.15)'
-          }}>
-            <FaCalculator size={14} color="#22c55e" />
-            <span style={{ fontSize: '13px', color: '#d1d5db', fontWeight: '600' }}>
-              Free Tool — No Login Required
-            </span>
-          </div>
+          <header className="head">
+            <h1>Food Cost Calculator</h1>
+            <p className="lede">Work out what each dish costs to make, its food cost percentage, and the menu price that hits your target. Add ingredients in any unit, or just enter the plate cost.</p>
+          </header>
 
-          <h1 style={{
-            fontSize: isMobile ? '30px' : '44px',
-            fontWeight: '800',
-            color: '#ffffff',
-            marginBottom: '16px',
-            lineHeight: '1.15'
-          }}>
-            Food Cost Calculator
-          </h1>
-          <p style={{
-            fontSize: isMobile ? '16px' : '18px',
-            color: '#9ca3af',
-            maxWidth: '600px',
-            margin: '0 auto',
-            lineHeight: '1.6'
-          }}>
-            Calculate food cost percentage, profit margins, and ideal selling price for every dish on your menu. Add ingredients, set portions, and get instant results.
-          </p>
-        </div>
-      </section>
-
-      {/* Calculator Section */}
-      <section style={{ padding: isMobile ? '32px 16px' : '60px 32px', backgroundColor: '#f9fafb' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1.2fr 0.8fr',
-            gap: '28px',
-            alignItems: 'start'
-          }}>
-            {/* LEFT: Inputs */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: isMobile ? '20px' : '28px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-            }}>
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#111827',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <FaRupeeSign color="#16a34a" /> Recipe Details
-              </h2>
-
-              {/* Dish Name & Target Food Cost */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                gap: '16px',
-                marginBottom: '20px'
-              }}>
-                <div>
-                  <label style={labelStyle}>Dish Name (optional)</label>
-                  <input
-                    type="text"
-                    value={dishName}
-                    onChange={(e) => setDishName(e.target.value)}
-                    placeholder="e.g., Paneer Butter Masala"
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>Target Food Cost %</label>
-                  <input
-                    type="number"
-                    value={targetFoodCost}
-                    onChange={(e) => setTargetFoodCost(e.target.value)}
-                    placeholder="30"
-                    style={inputStyle}
-                  />
+          <div className="app">
+            <section className="card" aria-label="Food cost calculator">
+              <div className="field">
+                <div className="lbl"><span>Plate cost</span></div>
+                <div className="seg" role="group" aria-label="How to enter the cost">
+                  {[['recipe', 'Build from ingredients'], ['quick', 'I know the plate cost']].map(([v, l]) => (
+                    <button key={v} type="button" className={mode === v ? 'on' : ''} aria-pressed={mode === v} onClick={() => setMode(v)}>{l}</button>
+                  ))}
                 </div>
               </div>
 
-              {/* Ingredient Table */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ ...labelStyle, marginBottom: '10px' }}>Ingredients</label>
-                <div style={{
-                  overflowX: isMobile ? 'auto' : 'visible',
-                  WebkitOverflowScrolling: 'touch'
-                }}>
-                  <table style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    minWidth: isMobile ? '600px' : 'auto',
-                    fontSize: '13px'
-                  }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#f3f4f6' }}>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Ingredient</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Purchase Cost ({'\u20b9'})</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Purchase Qty</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Unit</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Qty Used</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px' }}>Unit</th>
-                        <th style={{ padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb', fontSize: '12px', width: '36px' }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ingredients.map((ing, idx) => (
-                        <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6' }}>
-                            <input
-                              type="text"
-                              value={ing.name}
-                              onChange={(e) => updateIngredient(idx, 'name', e.target.value)}
-                              placeholder="Name"
-                              style={{ ...inputStyle, padding: '8px 8px', fontSize: '13px' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6' }}>
-                            <input
-                              type="number"
-                              value={ing.purchaseCost}
-                              onChange={(e) => updateIngredient(idx, 'purchaseCost', e.target.value)}
-                              placeholder="0"
-                              style={{ ...inputStyle, padding: '8px 8px', fontSize: '13px', width: '80px' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6' }}>
-                            <input
-                              type="number"
-                              value={ing.purchaseQty}
-                              onChange={(e) => updateIngredient(idx, 'purchaseQty', e.target.value)}
-                              placeholder="0"
-                              style={{ ...inputStyle, padding: '8px 8px', fontSize: '13px', width: '70px' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6' }}>
-                            <select
-                              value={ing.purchaseUnit}
-                              onChange={(e) => updateIngredient(idx, 'purchaseUnit', e.target.value)}
-                              style={smallSelectStyle}
-                            >
-                              {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                          </td>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6' }}>
-                            <input
-                              type="number"
-                              value={ing.usedQty}
-                              onChange={(e) => updateIngredient(idx, 'usedQty', e.target.value)}
-                              placeholder="0"
-                              style={{ ...inputStyle, padding: '8px 8px', fontSize: '13px', width: '70px' }}
-                            />
-                          </td>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6' }}>
-                            <select
-                              value={ing.usedUnit}
-                              onChange={(e) => updateIngredient(idx, 'usedUnit', e.target.value)}
-                              style={smallSelectStyle}
-                            >
-                              {unitOptions.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                          </td>
-                          <td style={{ padding: '6px 4px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
-                            <button
-                              onClick={() => removeIngredient(idx)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: ingredients.length > 1 ? 'pointer' : 'not-allowed',
-                                color: ingredients.length > 1 ? '#ef4444' : '#d1d5db',
-                                padding: '4px',
-                                fontSize: '14px'
-                              }}
-                              disabled={ingredients.length <= 1}
-                            >
-                              <FaTrash size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <button
-                  onClick={addIngredient}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginTop: '10px',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    backgroundColor: '#f0fdf4',
-                    color: '#16a34a',
-                    border: '1px solid #bbf7d0',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}
-                >
-                  <FaPlus size={11} /> Add Ingredient
-                </button>
-              </div>
+              {mode === 'recipe' ? (
+                <>
+                  <div className="field">
+                    <label className="lbl" htmlFor="fc-dish">Dish name <small>optional</small></label>
+                    <input id="fc-dish" className="inp" placeholder="e.g. Chicken burger" value={dish} onChange={(e) => setDish(e.target.value)} />
+                  </div>
 
-              {/* Portions & Selling Price */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '16px',
-                marginBottom: '24px'
-              }}>
-                <div>
-                  <label style={labelStyle}>Number of Portions</label>
-                  <input
-                    type="number"
-                    value={portions}
-                    onChange={(e) => setPortions(e.target.value)}
-                    placeholder="1"
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label style={labelStyle}>Selling Price ({'\u20b9'}) <span style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</span></label>
-                  <input
-                    type="number"
-                    value={sellingPrice}
-                    onChange={(e) => setSellingPrice(e.target.value)}
-                    placeholder="e.g., 320"
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={calculateResults}
-                  style={{
-                    flex: 1,
-                    padding: '13px 24px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-                    color: 'white',
-                    fontWeight: '700',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <FaCalculator size={14} /> Calculate
-                </button>
-                <button
-                  onClick={resetCalculator}
-                  style={{
-                    padding: '13px 20px',
-                    borderRadius: '10px',
-                    background: 'white',
-                    color: '#6b7280',
-                    fontWeight: '600',
-                    border: '1px solid #d1d5db',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-
-            {/* RIGHT: Results */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: isMobile ? '20px' : '28px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-            }}>
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#111827',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <FaChartPie color="#16a34a" /> Results {dishName && <span style={{ fontWeight: '400', fontSize: '14px', color: '#6b7280' }}>— {dishName}</span>}
-              </h2>
-
-              {results ? (
-                <div>
-                  {/* Food Cost % — Big Card */}
-                  {results.foodCostPercent !== null && status && (
-                    <div style={{
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      padding: '20px',
-                      marginBottom: '14px',
-                      border: `2px solid ${status.color}`,
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Food Cost Percentage</div>
-                      <div style={{ fontSize: '40px', fontWeight: '800', color: status.color }}>
-                        {results.foodCostPercent.toFixed(1)}%
+                  <div className="field">
+                    <div className="lbl"><span>Ingredients</span><small>Recipe total {fmt(recipeTotal)}</small></div>
+                    {items.map((it, i) => (
+                      <div className="ing" key={i}>
+                        <div className="ing-top">
+                          <label className="sr" htmlFor={`fc-n${i}`}>Ingredient {i + 1} name</label>
+                          <input id={`fc-n${i}`} className="inp sm" placeholder={`Ingredient ${i + 1}`} value={it.name} onChange={(e) => setItem(i, 'name', e.target.value)} />
+                          <span className={'ing-cost' + (lines[i].ok ? '' : ' err')}>{lines[i].ok ? fmt(lines[i].cost) : 'Check units'}</span>
+                          <button type="button" className="del" aria-label={`Remove ${it.name || `ingredient ${i + 1}`}`} onClick={() => removeItem(i)}>×</button>
+                        </div>
+                        <div className="ing-bot">
+                          <div className="grp">
+                            <span>You paid</span>
+                            <div className="trio">
+                              <input aria-label="Price paid" type="number" inputMode="decimal" min="0" step="0.01" placeholder="Price" value={it.buyPrice} onChange={(e) => setItem(i, 'buyPrice', e.target.value)} />
+                              <em>for</em>
+                              <input aria-label="Amount bought" type="number" inputMode="decimal" min="0" step="any" placeholder="Qty" value={it.buyQty} onChange={(e) => setItem(i, 'buyQty', e.target.value)} />
+                              <select aria-label="Unit bought" value={it.buyUnit} onChange={(e) => setItem(i, 'buyUnit', e.target.value)}>
+                                {UNIT_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="grp">
+                            <span>Recipe uses</span>
+                            <div className="trio">
+                              <input aria-label="Amount used in recipe" type="number" inputMode="decimal" min="0" step="any" placeholder="Qty" value={it.useQty} onChange={(e) => setItem(i, 'useQty', e.target.value)} />
+                              <select aria-label="Unit used" value={it.useUnit} onChange={(e) => setItem(i, 'useUnit', e.target.value)}>
+                                {UNIT_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{
-                        display: 'inline-block',
-                        padding: '4px 14px',
-                        backgroundColor: `${status.color}18`,
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: status.color,
-                        marginTop: '6px'
-                      }}>
-                        {status.status}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Metric Cards */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '10px',
-                    marginBottom: '14px'
-                  }}>
-                    <div style={{
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '10px',
-                      padding: '14px',
-                      textAlign: 'center',
-                      border: '1px solid #f3f4f6'
-                    }}>
-                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Total Recipe Cost</div>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{'\u20b9'}{results.totalRecipeCost.toFixed(2)}</div>
-                    </div>
-                    <div style={{
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '10px',
-                      padding: '14px',
-                      textAlign: 'center',
-                      border: '1px solid #f3f4f6'
-                    }}>
-                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cost Per Portion</div>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{'\u20b9'}{results.costPerPortion.toFixed(2)}</div>
+                    ))}
+                    <div className="ing-acts">
+                      <button type="button" className="btn ghost sm" onClick={addItem}>+ Add ingredient</button>
+                      <button type="button" className="linkish" onClick={loadExample}>Load example</button>
+                      <button type="button" className="linkish" onClick={clearAll}>Clear</button>
                     </div>
                   </div>
 
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '10px',
-                    marginBottom: '14px'
-                  }}>
-                    <div style={{
-                      backgroundColor: '#fef3c7',
-                      borderRadius: '10px',
-                      padding: '14px',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '4px' }}>Suggested Price</div>
-                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#92400e' }}>{'\u20b9'}{results.suggestedPrice.toFixed(2)}</div>
-                      <div style={{ fontSize: '10px', color: '#a16207' }}>at {targetFoodCost}% food cost</div>
+                  <div className="field row2">
+                    <div>
+                      <label className="lbl" htmlFor="fc-por">Recipe makes</label>
+                      <div className="unit-in"><input id="fc-por" className="inp" type="number" inputMode="numeric" min="1" step="1" value={portions} onChange={(e) => setPortions(e.target.value)} /><span>portions</span></div>
                     </div>
-                    {results.grossProfit !== null ? (
-                      <div style={{
-                        backgroundColor: '#f0fdf4',
-                        borderRadius: '10px',
-                        padding: '14px',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{ fontSize: '11px', color: '#166534', marginBottom: '4px' }}>Gross Profit</div>
-                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>{'\u20b9'}{results.grossProfit.toFixed(2)}</div>
-                      </div>
-                    ) : (
-                      <div style={{
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '10px',
-                        padding: '14px',
-                        textAlign: 'center',
-                        border: '1px solid #f3f4f6'
-                      }}>
-                        <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Gross Profit</div>
-                        <div style={{ fontSize: '14px', color: '#9ca3af' }}>Enter selling price</div>
-                      </div>
-                    )}
+                    <div>
+                      <label className="lbl" htmlFor="fc-ext">Extras &amp; waste</label>
+                      <div className="unit-in"><input id="fc-ext" className="inp" type="number" inputMode="decimal" min="0" max="100" value={extras} onChange={(e) => setExtras(e.target.value)} /><span>%</span></div>
+                    </div>
                   </div>
-
-                  {results.profitMargin !== null && (
-                    <div style={{
-                      backgroundColor: '#f0fdf4',
-                      borderRadius: '10px',
-                      padding: '14px',
-                      textAlign: 'center',
-                      marginBottom: '14px',
-                      border: '1px solid #bbf7d0'
-                    }}>
-                      <div style={{ fontSize: '11px', color: '#166534', marginBottom: '4px' }}>Profit Margin</div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#16a34a' }}>{results.profitMargin.toFixed(1)}%</div>
-                    </div>
-                  )}
-
-                  {/* Ingredient Breakdown */}
-                  {results.breakdown && results.breakdown.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>Ingredient Breakdown</div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                        <thead>
-                          <tr style={{ backgroundColor: '#f3f4f6' }}>
-                            <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Ingredient</th>
-                            <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Cost ({'\u20b9'})</th>
-                            <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>% of Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {results.breakdown.map((item, idx) => (
-                            <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                              <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{item.name || '—'}</td>
-                              <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', color: '#111827', fontWeight: '500' }}>{'\u20b9'}{item.cost.toFixed(2)}</td>
-                              <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'right', color: '#6b7280' }}>{item.percent.toFixed(1)}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+                  <p className="hint">Extras &amp; waste covers oil, spices, garnish and trim you didn’t list. 3–10% is typical.</p>
+                </>
               ) : (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
-                  <FaPercent size={36} style={{ marginBottom: '16px', opacity: 0.4 }} />
-                  <p style={{ fontSize: '14px' }}>Add ingredients to see results</p>
+                <div className="field">
+                  <label className="lbl" htmlFor="fc-plate">Cost to make one plate</label>
+                  <div className="money">
+                    <label htmlFor="fc-cur1" className="sr">Currency</label>
+                    <select id="fc-cur1" value={currency} onChange={(e) => changeCurrency(e.target.value)}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input id="fc-plate" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" autoComplete="off" value={plateCost} onChange={(e) => setPlateCost(e.target.value)} />
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* SEO Content Section */}
-      <section style={{ padding: isMobile ? '40px 20px' : '64px 32px', backgroundColor: '#ffffff' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-
-          {/* H2: What is Food Cost Percentage? */}
-          <div style={{ marginBottom: '48px' }}>
-            <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              What is Food Cost Percentage?
-            </h2>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              Food cost percentage is the ratio of ingredient costs to the menu selling price, expressed as a percentage. It is the single most important metric for restaurant profitability because it directly measures how much of every rupee earned goes toward ingredients versus profit.
-            </p>
-            <div style={{
-              backgroundColor: '#f3f4f6',
-              borderRadius: '10px',
-              padding: '16px 20px',
-              marginBottom: '12px',
-              fontFamily: 'monospace',
-              fontSize: '15px',
-              color: '#374151'
-            }}>
-              Food Cost % = (Ingredient Cost {'\u00f7'} Selling Price) {'\u00d7'} 100
-            </div>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              For example, if a dish costs {'\u20b9'}80 to make and sells for {'\u20b9'}250, the food cost percentage is 32%. Most successful restaurants in India keep their food cost between 28-35%, depending on the type of restaurant and the segment they serve.
-            </p>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8' }}>
-              Tracking this metric consistently helps you price your menu correctly, identify dishes that are losing money, and maintain healthy profit margins across your entire menu. Without knowing your food cost percentage, you are essentially guessing whether your restaurant is making money on each dish.
-            </p>
-          </div>
-
-          {/* H2: Ideal Food Cost Percentage by Restaurant Type */}
-          <div style={{ marginBottom: '48px' }}>
-            <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              Ideal Food Cost Percentage by Restaurant Type
-            </h2>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '20px' }}>
-              Different restaurant formats have different ideal food cost targets. The table below shows industry benchmarks that you can use to evaluate your own food cost performance.
-            </p>
-            <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', minWidth: '500px' }}>
-                <thead>
-                  <tr style={{ background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)' }}>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#ffffff', borderBottom: '2px solid #374151' }}>Restaurant Type</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#ffffff', borderBottom: '2px solid #374151' }}>Ideal Food Cost %</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#ffffff', borderBottom: '2px solid #374151' }}>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['Quick Service (QSR)', '25-30%', 'High volume, lower prices'],
-                    ['Casual Dining', '28-32%', 'Balanced approach'],
-                    ['Fine Dining', '30-35%', 'Premium ingredients, higher prices'],
-                    ['Cloud Kitchen', '25-28%', 'No dine-in costs'],
-                    ['Bakery & Cafe', '20-25%', 'High-margin beverages'],
-                    ['Bar & Pub', '20-25% (food), 18-22% (drinks)', 'Beverages are profit centers'],
-                  ].map((row, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                      <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', color: '#111827' }}>{row[0]}</td>
-                      <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#16a34a' }}>{row[1]}</td>
-                      <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', color: '#6b7280' }}>{row[2]}</td>
-                    </tr>
+              <div className="field">
+                <div className="lbl"><span>Target food cost</span><small>{targetPct}%</small></div>
+                <div className="chips c5" role="group" aria-label="Target food cost percentage">
+                  {TARGETS.map((t) => (
+                    <button key={t} type="button" className={'chip' + (customTarget === '' && target === t ? ' on' : '')} aria-pressed={customTarget === '' && target === t}
+                      onClick={() => { setTarget(t); setCustomTarget(''); }}>{t}%</button>
                   ))}
+                </div>
+                <label className="sr" htmlFor="fc-ct">Custom target percentage</label>
+                <input id="fc-ct" className="inp" style={{ marginTop: 10 }} type="number" inputMode="decimal" min="1" max="95" placeholder="Custom %" value={customTarget} onChange={(e) => setCustomTarget(e.target.value)} />
+              </div>
+
+              <div className="field row2">
+                <div>
+                  <div className="lbl"><span>Round the price</span></div>
+                  <div className="seg" role="group" aria-label="Round the suggested price">
+                    {ROUNDING.map(([v, l]) => (
+                      <button key={v} type="button" className={rounding === v ? 'on' : ''} aria-pressed={rounding === v} onClick={() => setRounding(v)}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="lbl" htmlFor="fc-yp">Your menu price <small>optional</small></label>
+                  <div className="money sm">
+                    {mode === 'recipe' ? (
+                      <>
+                        <label htmlFor="fc-cur2" className="sr">Currency</label>
+                        <select id="fc-cur2" value={currency} onChange={(e) => changeCurrency(e.target.value)}>
+                          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </>
+                    ) : <b className="cur">{currency}</b>}
+                    <input id="fc-yp" type="number" inputMode="decimal" min="0" step="0.01" placeholder="Check a price" value={yourPrice} onChange={(e) => setYourPrice(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="field">
+                <label className="toggle"><input type="checkbox" checked={inclTax} onChange={(e) => toggleTax(e.target.checked)} /> Menu prices include tax (VAT / GST)</label>
+                {inclTax && (
+                  <>
+                    <div className="unit-in" style={{ marginTop: 10, maxWidth: 220 }}>
+                      <label className="sr" htmlFor="fc-tax">Tax rate</label>
+                      <input id="fc-tax" className="inp" type="number" inputMode="decimal" min="0" max="100" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} /><span>% tax</span>
+                    </div>
+                    <p className="hint">Food cost is worked out on the price without tax, because the tax isn’t yours to keep.</p>
+                  </>
+                )}
+              </div>
+            </section>
+
+            <aside className="res" aria-live="polite">
+              <div className="k">Suggested menu price</div>
+              <div className="big">{fmt(suggested)}</div>
+              <div className="sub">{targetPct}% food cost{inclTax ? `, incl. ${num(taxRate)}% tax` : ''}{dish && mode === 'recipe' ? ` · ${dish}` : ''}</div>
+              <div className="grid">
+                <div><span>Cost per plate</span><b>{fmt(cost)}</b></div>
+                <div><span>Profit per plate</span><b>{fmt(profit)}</b></div>
+                <div><span>Food cost %</span><b>{fcPct.toFixed(1)}%</b></div>
+                <div><span>Markup</span><b>{markup ? `${markup.toFixed(2)}×` : '–'}</b></div>
+              </div>
+              {yourN > 0 && status && (
+                <p className={'verdict ' + status[0]}><b>{status[1]}.</b> At your price of {fmt(yourN)} the food cost is {fcPct.toFixed(1)}%{status[0] === 'ok' ? '.' : `, above your ${targetPct}% target. ${fmt(suggested)} would hit it.`}</p>
+              )}
+              {!yourN && cost > 0 && <p className="note">Figures are at the suggested price. Enter your menu price to check it.</p>}
+              {mode === 'recipe' && lines.some((l) => !l.ok) && <p className="note warn-t">One ingredient mixes weight and volume units, so it isn’t counted. Use the same kind of unit for “paid” and “uses”.</p>}
+              <div className="acts no-print">
+                <button type="button" onClick={copy}>{copied ? '✓ Copied' : 'Copy result'}</button>
+                <button type="button" onClick={() => { window.print(); track('tool_food_cost_print', {}); }}>Print</button>
+              </div>
+              <p className="note">Saved on this device only.</p>
+            </aside>
+          </div>
+
+          <section className="sec" id="price-table">
+            <h2>Menu price at each food cost %</h2>
+            <p className="intro">{cost > 0 ? `For a plate that costs ${fmt(cost)} to make.` : 'Add ingredients or a plate cost above to fill this table.'}{inclTax ? ` Prices include ${num(taxRate)}% tax.` : ''}</p>
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Food cost</th><th className="num">Menu price</th><th className="num">Profit per plate</th><th className="num">Markup</th></tr></thead>
+                <tbody>
+                  {TABLE_TARGETS.map((t) => {
+                    const pr = toMenu(cost / (t / 100));
+                    return (
+                      <tr key={t} className={t === targetPct ? 'hl' : ''}>
+                        <td>{t}%</td><td className="num">{fmt(pr)}</td><td className="num">{fmt(toNet(pr) - cost)}</td><td className="num">{(100 / t).toFixed(2)}×</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7' }}>
-              Use these benchmarks as a starting point. Your actual target should account for your rent, labor costs, and desired profit margin.
-            </p>
-          </div>
+          </section>
 
-          {/* H2: How to Calculate Food Cost — Step by Step */}
-          <div style={{ marginBottom: '48px' }}>
-            <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              How to Calculate Food Cost — Step by Step
-            </h2>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '16px' }}>
-              Follow these five steps to calculate the food cost for any dish on your menu. This process is exactly what our calculator above automates for you.
-            </p>
-            <div style={{ marginBottom: '20px' }}>
-              {[
-                { step: 1, title: 'List all ingredients used in the recipe', desc: 'Write down every ingredient that goes into the dish, including oil, spices, and garnishes. Missing even small items can add up to 5-10% error in your food cost calculation.' },
-                { step: 2, title: 'Record the purchase cost and quantity for each ingredient', desc: 'Note the price you paid and the quantity you bought. For example, paneer at \u20b9320 per kg, butter at \u20b9520 per kg. Always use the most recent purchase price for accuracy.' },
-                { step: 3, title: 'Calculate the cost of the quantity actually used', desc: 'If you bought 1 kg of paneer for \u20b9320 but only used 250g, the cost for that ingredient is \u20b980. Divide the purchase cost by purchase quantity, then multiply by the quantity used.' },
-                { step: 4, title: 'Sum all ingredient costs to get total recipe cost', desc: 'Add up the individual ingredient costs. This gives you the total raw material cost for the entire recipe batch.' },
-                { step: 5, title: 'Divide by portions, then calculate food cost percentage', desc: 'Divide total recipe cost by the number of portions to get cost per portion. Then divide by selling price and multiply by 100 to get food cost percentage.' },
-              ].map((item) => (
-                <div key={item.step} style={{
-                  display: 'flex',
-                  gap: '14px',
-                  marginBottom: '16px',
-                  alignItems: 'flex-start'
-                }}>
-                  <div style={{
-                    minWidth: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: '#16a34a',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: '700',
-                    fontSize: '14px',
-                    marginTop: '2px'
-                  }}>
-                    {item.step}
+          <section className="sec" id="period-food-cost">
+            <h2>Weekly or monthly food cost %</h2>
+            <p className="intro">Recipe costs show what a dish <em>should</em> cost. Your stock count shows what you <em>really</em> spent, including waste and over-portioning.</p>
+            <div className="card period">
+              <div className="pgrid">
+                {[['open', 'Opening stock value'], ['buy', 'Food purchases'], ['close', 'Closing stock value'], ['sales', 'Food sales (before tax)']].map(([k, l]) => (
+                  <div key={k}>
+                    <label className="lbl" htmlFor={`fp-${k}`}>{l}</label>
+                    <div className="money sm"><b className="cur">{currency}</b>
+                      <input id={`fp-${k}`} type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={period[k]} onChange={(e) => setPeriod((s) => ({ ...s, [k]: e.target.value }))} />
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>{item.title}</div>
-                    <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>{item.desc}</div>
-                  </div>
-                </div>
+                ))}
+              </div>
+              <div className="pres">
+                <div><span>Food used</span><b>{fmt(used)}</b></div>
+                <div><span>Food cost %</span><b>{p.sales > 0 ? `${periodPct.toFixed(1)}%` : '–'}</b></div>
+                <div><span>Gross profit on food</span><b>{fmt(p.sales - used)}</b></div>
+              </div>
+              <p className="formula" style={{ marginTop: 14 }}>Food cost % = (Opening stock + Purchases − Closing stock) ÷ Food sales × 100</p>
+            </div>
+          </section>
+
+          <section className="sec" id="how-to-calculate-food-cost">
+            <h2>How to calculate food cost</h2>
+            <p className="intro">Three steps for any dish. The calculator above does them for you.</p>
+            <p className="formula">Food cost % = Plate cost ÷ Menu price × 100 &nbsp;·&nbsp; Menu price = Plate cost ÷ Target %</p>
+            <div className="steps" style={{ marginTop: 16 }}>
+              {STEPS.map(([t, d], i) => <div className="step" key={t}><i>{i + 1}</i><h3>{t}</h3><p>{d}</p></div>)}
+            </div>
+            <div className="prose">
+              <h3>Worked example: a cheeseburger</h3>
+              <p>A 6 oz patty from beef at $5.99 a pound costs $2.25. Add the bun ($0.53), a cheese slice ($0.27), salad ($0.38), sauce ($0.14) and fries ($0.45), and the plate costs $4.01. With 5% for extras and waste, that’s $4.21.</p>
+              <p>For a 30% food cost, the price is $4.21 ÷ 0.30 = $14.03. Round it to $13.99 and the food cost is 30.1%. That leaves $9.78 to pay for staff, rent and profit.</p>
+            </div>
+          </section>
+
+          <section className="sec" id="food-cost-benchmarks">
+            <h2>What food cost % should you aim for?</h2>
+            <p className="intro">Typical ranges by type of business. Your own target depends on your prices, rent and staff costs.</p>
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Type of business</th><th>Typical food cost</th><th>Why</th></tr></thead>
+                <tbody>{BENCHMARKS.map(([w, r, n]) => <tr key={w}><td><b>{w}</b></td><td>{r}</td><td style={{ color: '#64748b' }}>{n}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="sec" id="lower-food-cost">
+            <h2>6 ways to lower your food cost</h2>
+            <div className="steps">
+              {LOWER_COST.map(([t, d], i) => <div className="step" key={t}><i>{i + 1}</i><h3>{t}</h3><p>{d}</p></div>)}
+            </div>
+          </section>
+
+          <section className="sec" id="faq">
+            <h2>Food cost FAQ</h2>
+            <div className="faq">
+              {FAQ.map(([q, a], i) => (
+                <details key={q} open={i === 0}><summary><h3>{q}</h3></summary><p>{a}</p></details>
               ))}
             </div>
-            <div style={{
-              backgroundColor: '#f3f4f6',
-              borderRadius: '10px',
-              padding: '16px 20px',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              color: '#374151',
-              lineHeight: '1.8'
-            }}>
-              Total Recipe Cost = Sum of all (Purchase Cost / Purchase Qty {'\u00d7'} Qty Used)<br />
-              Cost Per Portion = Total Recipe Cost / Number of Portions<br />
-              Food Cost % = (Cost Per Portion / Selling Price) {'\u00d7'} 100
+          </section>
+
+          <section className="sec">
+            <h2>More free tools</h2>
+            <div className="related">
+              {RELATED.map(([href, t, d]) => <Link key={href} href={href}><b>{t}</b><span>{d}</span></Link>)}
             </div>
-          </div>
+          </section>
 
-          {/* H2: 5 Ways to Reduce Your Food Cost */}
-          <div style={{ marginBottom: '48px' }}>
-            <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              5 Ways to Reduce Your Food Cost
-            </h2>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '20px' }}>
-              If your food cost percentage is higher than your target, here are five proven strategies to bring it down without sacrificing quality.
-            </p>
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
-                <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>1. Track inventory religiously</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Use a proper <Link href="/products/inventory" style={{ color: '#16a34a', textDecoration: 'underline' }}>inventory management system</Link> to track every ingredient that comes in and goes out. Without tracking, you cannot identify waste, theft, or over-ordering. Even a 5% reduction in waste can save lakhs annually.
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
-                <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>2. Standardize recipes and portions</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Create standard recipe cards with exact measurements for every dish. Train your kitchen staff to follow them. Consistent output means predictable costs. A cook who adds an extra 50g of paneer per dish can cost you thousands per month.
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
-                <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>3. Negotiate with multiple suppliers</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Never rely on a single supplier. Get quotes from 2-3 vendors for every major ingredient. Even a 5-10% better price on paneer, oil, or chicken can significantly lower your overall food cost percentage.
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
-                <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>4. Use seasonal ingredients</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Seasonal produce is 30-50% cheaper than off-season alternatives. Design your menu to feature seasonal vegetables and fruits. This also improves the taste and freshness of your dishes, which customers notice and appreciate.
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'flex-start' }}>
-                <FaLightbulb size={18} color="#f59e0b" style={{ marginTop: '3px', minWidth: '18px' }} />
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '15px', marginBottom: '4px' }}>5. Analyze your menu with menu engineering</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.7' }}>
-                    Use <Link href="/tools/menu-engineering" style={{ color: '#16a34a', textDecoration: 'underline' }}>menu engineering techniques</Link> to identify which dishes are profitable and popular, and which are dragging down your margins. Remove or re-price dishes that have high food costs and low sales.
-                  </div>
-                </div>
-              </div>
+          <section className="owner no-print">
+            <div>
+              <h2>Track food cost without spreadsheets</h2>
+              <p>DineOpen is a restaurant POS with recipes and stock built in.</p>
+              <ul>
+                <li>Recipes take stock off on every sale</li>
+                <li>Expected vs counted stock</li>
+                <li>Food cost in your profit &amp; loss</li>
+                <li>Menu engineering report</li>
+              </ul>
             </div>
-          </div>
+            <Link className="btn" href="/login?utm_source=dineopen&utm_medium=tool&utm_campaign=food-cost-calculator"
+              onClick={() => track('tool_cta_click', { tool: 'food-cost-calculator' })}>Try DineOpen free →</Link>
+          </section>
 
-          {/* H2: Food Cost vs Food Cost Percentage */}
-          <div style={{ marginBottom: '48px' }}>
-            <h2 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '700', color: '#111827', marginBottom: '16px', lineHeight: '1.3' }}>
-              Food Cost vs Food Cost Percentage — What{'\u2019'}s the Difference?
-            </h2>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              Food cost is the actual rupee amount you spend on ingredients for a dish. For example, if the ingredients for a paneer butter masala cost {'\u20b9'}80, that is your food cost. It is an absolute number.
-            </p>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              Food cost percentage, on the other hand, is a relative metric. It tells you what percentage of the selling price goes toward ingredients. If you sell that dish for {'\u20b9'}250, your food cost percentage is ({'\u20b9'}80 / {'\u20b9'}250) {'\u00d7'} 100 = 32%.
-            </p>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', marginBottom: '12px' }}>
-              The percentage is far more useful than the absolute number because it lets you compare across dishes regardless of price point, track trends over time, and benchmark against industry standards. A {'\u20b9'}500 ingredient cost sounds high, but it is fine for a {'\u20b9'}2000 dish (25% food cost) and terrible for a {'\u20b9'}600 dish (83% food cost).
-            </p>
-            <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8' }}>
-              Always use food cost percentage rather than absolute food cost when making pricing and menu decisions. This is the metric that lets you see the full picture and make informed business choices.
-            </p>
-          </div>
+          <p className="updated">Updated October 2026 · Benchmarks are typical industry ranges, not rules.</p>
         </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section style={{ padding: isMobile ? '40px 20px' : '64px 32px', backgroundColor: '#f9fafb' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{
-            fontSize: isMobile ? '22px' : '26px',
-            fontWeight: '700',
-            color: '#111827',
-            marginBottom: '24px',
-            textAlign: 'center'
-          }}>
-            Frequently Asked Questions
-          </h2>
-          <div>
-            {faqs.map((faq, idx) => (
-              <div key={idx} style={{
-                marginBottom: '12px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                backgroundColor: '#ffffff'
-              }}>
-                <button
-                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  style={{
-                    width: '100%',
-                    padding: '16px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    color: '#111827'
-                  }}
-                >
-                  <span>{faq.q}</span>
-                  <span style={{
-                    fontSize: '18px',
-                    color: '#9ca3af',
-                    transform: openFaq === idx ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s ease',
-                    minWidth: '20px',
-                    textAlign: 'center'
-                  }}>
-                    {'\u25BC'}
-                  </span>
-                </button>
-                {openFaq === idx && (
-                  <div style={{
-                    padding: '0 20px 16px 20px',
-                    fontSize: '14px',
-                    color: '#6b7280',
-                    lineHeight: '1.7'
-                  }}>
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section style={{ padding: isMobile ? '40px 20px' : '60px 32px' }}>
-        <div style={{
-          maxWidth: '700px',
-          margin: '0 auto',
-          textAlign: 'center',
-          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)',
-          borderRadius: '20px',
-          padding: isMobile ? '32px 24px' : '48px 40px'
-        }}>
-          <h3 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#ffffff', marginBottom: '12px' }}>
-            Want to Track Food Costs Automatically?
-          </h3>
-          <p style={{ fontSize: '15px', color: '#9ca3af', marginBottom: '24px', maxWidth: '500px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-            DineOpen tracks your inventory, calculates food costs per dish automatically with every sale, and alerts you when costs rise above your target.
-          </p>
-          <Link
-            href="/#pricing"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '14px 32px',
-              borderRadius: '10px',
-              backgroundColor: '#ef4444',
-              color: 'white',
-              fontWeight: '700',
-              textDecoration: 'none',
-              fontSize: '15px'
-            }}
-          >
-            Get Started with DineOpen <FaArrowRight size={14} />
-          </Link>
-        </div>
-      </section>
-
-      {/* Related Tools */}
-      <section style={{ padding: isMobile ? '20px' : '40px 32px', backgroundColor: '#f9fafb' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280', marginBottom: '16px' }}>
-            More Free Tools
-          </h3>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/tools/menu-price-calculator" style={{
-              padding: '10px 20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              color: '#374151',
-              textDecoration: 'none',
-              border: '1px solid #e5e7eb'
-            }}>
-              Menu Price Calculator
-            </Link>
-            <Link href="/tools/recipe-cost-calculator" style={{
-              padding: '10px 20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              color: '#374151',
-              textDecoration: 'none',
-              border: '1px solid #e5e7eb'
-            }}>
-              Recipe Cost Calculator
-            </Link>
-            <Link href="/tools/break-even-calculator" style={{
-              padding: '10px 20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              color: '#374151',
-              textDecoration: 'none',
-              border: '1px solid #e5e7eb'
-            }}>
-              Break Even Calculator
-            </Link>
-          </div>
-        </div>
-      </section>
-
+      </main>
       <InternalLinks currentPath="/tools/food-cost-calculator" variant="tool" />
       <Footer />
-    </div>
+      <style jsx>{tipToolStyles}</style>
+      <style jsx>{fcStyles}</style>
+    </>
   );
 }
+
+const fcStyles = css.global`
+  .fc .chips.c5{grid-template-columns:repeat(5,1fr)}
+  .fc .inp.sm{padding:9px 11px}
+  .fc .ing{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--soft)}
+  .fc .ing+.ing{margin-top:10px}
+  .fc .ing-top{display:flex;gap:8px;align-items:center}
+  .fc .ing-top .inp{flex:1;min-width:0;font-weight:700}
+  .fc .ing-cost{font-weight:800;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;font-size:15px;min-width:64px;text-align:right}
+  .fc .ing-cost.err{color:var(--red-d);font-size:13px}
+  .fc .del{flex-shrink:0;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:20px;cursor:pointer}
+  .fc .del:hover{color:var(--red);border-color:#fca5a5}
+  .fc .ing-bot{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:10px;margin-top:10px}
+  .fc .grp>span{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px}
+  .fc .trio{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .fc .trio:focus-within{border-color:var(--red)}
+  .fc .trio input{min-width:0;flex:1;width:100%;border:0;outline:0;padding:9px 10px;font:inherit;font-size:16px;color:var(--ink);background:transparent}
+  .fc .trio em{display:grid;place-items:center;padding:0 6px;font-style:normal;color:var(--muted);font-size:13px;font-weight:600;background:var(--soft);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  .fc .trio select{border:0;border-left:1px solid var(--line);background:var(--soft);font:inherit;font-size:15px;font-weight:700;color:var(--ink);padding:0 4px;cursor:pointer;max-width:72px}
+  .fc .ing-acts{display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .fc .btn.sm{padding:10px 16px;min-height:44px;font-size:14.5px}
+  .fc .linkish{border:0;background:none;padding:10px 2px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .fc .linkish:hover{color:var(--red)}
+  .fc .unit-in{display:flex;align-items:center;gap:8px}
+  .fc .unit-in .inp{flex:1;min-width:0}
+  .fc .unit-in span{font-size:14px;font-weight:600;color:var(--muted)}
+  .fc .money.sm input{font-size:18px;padding:11px 12px}
+  .fc .money .cur{display:grid;place-items:center;padding:0 10px;background:var(--soft);border-right:1px solid var(--line);font-size:14px;color:var(--ink)}
+  .fc .verdict{margin:14px 0 0;padding:12px 14px;border-radius:12px;font-size:14px;line-height:1.5}
+  .fc .verdict.ok{background:rgba(22,163,74,.18);color:#bbf7d0}
+  .fc .verdict.warn{background:rgba(245,158,11,.18);color:#fde68a}
+  .fc .verdict.bad{background:rgba(239,68,68,.2);color:#fecaca}
+  .fc .note.warn-t{color:#fde68a}
+  .fc .period{max-width:860px}
+  .fc .pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .fc .pres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:18px}
+  .fc .pres div{background:#fff;padding:14px 16px}
+  .fc .pres span{display:block;font-size:12.5px;font-weight:600;color:var(--muted)}
+  .fc .pres b{display:block;font-size:20px;font-weight:800;color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums}
+  .fc .steps+.prose{margin-top:8px}
+  @media (max-width:860px){
+    .fc .pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (max-width:520px){
+    .fc .ing-bot{grid-template-columns:minmax(0,1fr)}
+    .fc .chips.c5{grid-template-columns:repeat(5,1fr);gap:6px}
+    .fc .chips.c5 .chip{font-size:14px}
+    .fc .pgrid{grid-template-columns:minmax(0,1fr)}
+    .fc .pres{grid-template-columns:minmax(0,1fr)}
+    .fc .seg button{font-size:13px;padding:10px 4px}
+  }
+`;
