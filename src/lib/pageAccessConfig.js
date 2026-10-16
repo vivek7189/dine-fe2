@@ -24,6 +24,7 @@ export const PAGE_ACCESS_CONFIG = [
 
   // App-level features (default enabled, owner can disable per staff)
   { key: 'printer', label: 'Printer Settings', icon: 'FaPrint', category: 'main' },
+  { key: 'voiceTicket', label: 'Voice Ticket (speak orders)', icon: 'FaMicrophone', category: 'main' },
 
   // "More" sub-pages
   { key: 'hotel', label: 'Hotel PMS', icon: 'FaHotel', category: 'more' },
@@ -45,6 +46,7 @@ export const PAGE_ACCESS_CONFIG = [
 // Used by layout.js (route guard) and Sidebar (nav filtering)
 export const ROUTE_TO_ACCESS_KEY = {
   '/dashboard': 'dashboard',
+  '/voice': 'voiceTicket',
   '/orders': 'history',
   '/orderhistory': 'history',
   '/tables': 'tables',
@@ -89,7 +91,7 @@ export const WAITER_ENFORCEABLE_KEYS = new Set(['dashboard', 'history', 'tables'
 // Keys added after staff records already existed: ON unless the owner explicitly turned them off
 // (a missing key = allowed). The server still decides — e.g. the calendar API answers 403 to staff
 // when the owner switched "Staff can view" off, and the nav entry then hides itself.
-export const DEFAULT_ON_ACCESS_KEYS = new Set(['calendar']);
+export const DEFAULT_ON_ACCESS_KEYS = new Set(['calendar', 'voiceTicket']);
 
 // Resolve a default-on key: undefined/null → true; otherwise the usual truthiness rules.
 export function defaultOnAccessAllowed(pageAccess, key) {
@@ -121,6 +123,7 @@ export function getAllAccessKeys() {
 // Maps sidebar nav item `id` to the corresponding pageAccess key.
 export const NAV_ID_TO_ACCESS_KEY = {
   'pos': 'dashboard',
+  'voice': 'voiceTicket',
   'orders': 'history',
   'open-orders': 'history',
   'tables': 'tables',

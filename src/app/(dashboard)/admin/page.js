@@ -13806,6 +13806,75 @@ const Admin = () => {
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
 
+            {/* Voice Ticket — speak an order, check it, print it in the kitchen (off by default) */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
+                Voice Ticket (speak orders)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  aria-label="Turn Voice Ticket on or off"
+                  onClick={() => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), enabled: !prev.voiceTicket?.enabled } }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.voiceTicket?.enabled
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Turn on Voice Ticket</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Staff tap the mic, say the whole order (table or to-go name, items, “no lettuce”), check the ticket and send it to the kitchen printer. Adds “Voice Ticket” to the menu.</div>
+                </div>
+              </div>
+              {posSettings.voiceTicket?.enabled && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', paddingLeft: '38px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      aria-label="Ask who is taking the order"
+                      onClick={() => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), askServer: !prev.voiceTicket?.askServer } }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.voiceTicket?.askServer
+                        ? <FaToggleOn size={24} color="#ef4444" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <span style={{ fontSize: '13px', color: '#374151' }}>Shared tablet — ask “who’s taking it?” on each order</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', color: '#374151', minWidth: '210px' }}>After the ticket is sent</span>
+                    <select value={posSettings.voiceTicket?.afterSend || 'keep_open'}
+                      onChange={(e) => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), afterSend: e.target.value } }))}
+                      style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
+                      <option value="keep_open">Keep the order open — bill it later in DineOpen</option>
+                      <option value="mark_served">Mark it served — kitchen tickets only (payment taken elsewhere)</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', color: '#374151', minWidth: '210px' }}>Language staff speak</span>
+                    <select value={posSettings.voiceTicket?.language || 'auto'}
+                      onChange={(e) => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), language: e.target.value } }))}
+                      style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
+                      <option value="auto">Detect automatically</option>
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="hi">Hindi</option>
+                      <option value="ta">Tamil</option>
+                      <option value="ar">Arabic</option>
+                      <option value="fr">French</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="sw">Swahili</option>
+                    </select>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Save, then open Voice Ticket from the menu. Staff need “Voice Ticket” in their permissions (on by default).</div>
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
+
             {/* KOT Settings */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>

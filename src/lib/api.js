@@ -4038,6 +4038,21 @@ class ApiClient {
   }
 
   // Voice Assistant endpoint
+  // ── Voice Ticket: spoken order → checked kitchen ticket (posSettings.voiceTicket) ──
+  async getVoiceTicketSettings(restaurantId) {
+    return this.request(`/api/voice-ticket/${restaurantId}/settings`);
+  }
+  // audio: a Blob from MediaRecorder; or transcript text (typed / testing)
+  async voiceTicketUnderstand(restaurantId, { audio = null, transcript = '' } = {}) {
+    if (audio) {
+      const fd = new FormData();
+      const ext = /mp4|m4a|aac/i.test(audio.type || '') ? 'm4a' : /ogg/i.test(audio.type || '') ? 'ogg' : 'webm';
+      fd.append('audio', audio, `order.${ext}`);
+      return this.request(`/api/voice-ticket/${restaurantId}/understand`, { method: 'POST', body: fd });
+    }
+    return this.request(`/api/voice-ticket/${restaurantId}/understand`, { method: 'POST', body: { transcript } });
+  }
+
   async processVoiceOrder(transcript, restaurantId) {
     return this.request(`/api/voice/process-order`, {
       method: 'POST',

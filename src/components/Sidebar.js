@@ -40,6 +40,7 @@ import {
   FaHotel,
   FaBroom,
   FaRegClock,
+  FaMicrophone,
 } from 'react-icons/fa';
 import { BiRestaurant } from 'react-icons/bi';
 import Link from 'next/link';
@@ -343,6 +344,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'home', name: t('nav.home'), icon: FaHome, href: '/home', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
     // --- Core POS ---
     { id: 'pos', name: selectedRestaurant?.businessType === 'bar' ? t('nav.barPOS') : t('nav.dashboardBilling'), icon: FaCashRegister, href: selectedRestaurant?.businessType === 'bar' ? '/dashboard/bar' : '/dashboard', color: '#ef4444', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
+    ...(selectedRestaurant?.posSettings?.voiceTicket?.enabled ? [{ id: 'voice', name: 'Voice Ticket', icon: FaMicrophone, href: '/voice', color: '#dc2626', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier', 'employee'] }] : []),
     { id: 'orders', name: t('nav.history'), icon: FaClipboardList, href: '/orderhistory', color: '#f59e0b', roles: ['owner', 'admin', 'manager', 'waiter', 'cashier'] },
     { id: 'open-orders', name: 'Open orders', icon: FaHourglassHalf, href: '/open-orders', color: '#d97706', roles: ['owner', 'admin', 'manager'], badge: openAged },
     { id: 'kot', name: t('nav.kot'), icon: FaFire, href: '/kot', color: '#f97316', roles: ['owner', 'admin', 'manager', 'waiter'] },
@@ -391,6 +393,13 @@ export default function Sidebar({ isDashboardPage = false }) {
       if (calendarAccess === 'denied') return false;
       const key = NAV_ID_TO_ACCESS_KEY[item.id];
       return DEFAULT_ON_ACCESS_KEYS.has(key) ? defaultOnAccessAllowed(pageAccess, key) : true;
+    }
+
+    // Voice Ticket (only listed when the restaurant turned it on): owners/admins always; staff unless
+    // the owner switched "Voice Ticket" off for them.
+    if (item.id === 'voice') {
+      if (['owner', 'admin'].includes(user.role)) return true;
+      return defaultOnAccessAllowed(pageAccess, 'voiceTicket');
     }
 
     // Home and Profile are always accessible to all users (bypass role check)
