@@ -52,10 +52,11 @@ export default function VoiceTicketPage() {
   const [noteDraft, setNoteDraft] = useState('');
   const [tickets, setTickets] = useState([]);
   const [toast, setToast] = useState('');
+  const [conflict, setConflict] = useState(null); // table already has an open order → offer to add to it
   const [secs, setSecs] = useState(0);
   const [levels, setLevels] = useState(() => Array(14).fill(0.08));
 
-  const rec = useRef({ stream: null, recorder: null, chunks: [], timer: null, raf: null, ctx: null, started: 0 });
+  const rec = useRef({ stream: null, recorder: null, chunks: [], timer: null, raf: null, ctx: null, started: 0, metered: false, voiced: 0 });
   const toastTimer = useRef(null);
   const flash = useCallback((msg) => {
     clearTimeout(toastTimer.current);
@@ -155,13 +156,15 @@ export default function VoiceTicketPage() {
       const mimeType = pickMime();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const r = rec.current;
-      r.stream = stream; r.recorder = recorder; r.chunks = []; r.started = Date.now();
+      r.stream = stream; r.recorder = recorder; r.chunks = []; r.started = Date.now(); r.metered = false; r.voiced = 0;
       recorder.ondataavailable = (e) => { if (e.data && e.data.size) r.chunks.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(r.chunks, { type: recorder.mimeType || mimeType || 'audio/webm' });
         const dur = (Date.now() - r.started) / 1000;
         stopMeters();
-        if (dur < 0.8 || blob.size < 1500) { setPhase(ticket ? 'check' : 'idle'); setError('That was too short — tap the mic and say the order'); return; }
+        if (dur < 0.8) { setPhase(ticket ? 'check' : 'idle'); setError('That was too short — tap the mic and say the order'); return; }
+        // nobody actually spoke (mic muted / far away): never send silence — a speech model can invent words
+        if ((r.metered && r.voiced < 15) || blob.size < 1500) { setPhase(ticket ? 'check' : 'idle'); setError('Didn\u2019t hear anything — check the mic and speak a little closer'); return; }
         understand({ audio: blob });
       };
       // live level meter
@@ -171,8 +174,11 @@ export default function VoiceTicketPage() {
         const an = ctx.createAnalyser(); an.fftSize = 64;
         ctx.createMediaStreamSource(stream).connect(an);
         const data = new Uint8Array(an.frequencyBinCount);
+        r.metered = true;
         const loop = () => {
           an.getByteFrequencyData(data);
+          let sum = 0; for (let k = 2; k < 24; k++) sum += data[k] || 0;
+          if (sum / 22 > 22) r.voiced += 1; // a frame with real voice energy
           const out = Array.from({ length: 14 }, (_, i) => Math.max(0.08, Math.min(1, (data[i + 2] || 0) / 200)));
           setLevels(out);
           r.raf = requestAnimationFrame(loop);
@@ -229,15 +235,15 @@ export default function VoiceTicketPage() {
   const startOver = () => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setError(''); setPhase('idle'); };
 
   // ── send + print ──
-  const printTicket = useCallback(async (orderId, order, { reprint = false } = {}) => {
+  const printTicket = useCallback(async (orderId, order, { reprint = false, incremental = false } = {}) => {
     if (printSettings.kotPrinterEnabled === false) return 'kds';
     if (printSettings.multiTerminalPrinting && !isElectron()) return 'terminal';
     if (!reprint && typeof window !== 'undefined') { window.__lastLocalPrintedKOT = orderId; window.__lastKOTPrintedByEffect = orderId; }
     try {
-      const routed = await printKOTByStations({ restaurantId: rid, orderId, order, restaurantName: restaurant?.name || '', categories: restaurant?.categories || [], printSettings, posSettings: restaurant?.posSettings || {}, t, currencySymbol: getCurrencySymbol() });
+      const routed = await printKOTByStations({ restaurantId: rid, orderId, order, restaurantName: restaurant?.name || '', categories: restaurant?.categories || [], printSettings, posSettings: restaurant?.posSettings || {}, t, currencySymbol: getCurrencySymbol(), isIncremental: incremental });
       if (routed?.handled) return 'stations';
     } catch { /* fall back to one printer */ }
-    const rd = await apiClient.getKOTRender(rid, orderId);
+    const rd = await apiClient.getKOTRender(rid, orderId, { newOnly: incremental });
     if (!rd?.kot) return 'none';
     const kot = { ...rd.kot, restaurantName: rd?.restaurant?.name || restaurant?.name || '', ...(reprint ? { isReprint: true } : {}) };
     const html = generateKOTHTML(kot, { ...printSettings, showPriceOnKot: !!restaurant?.posSettings?.showPriceOnKot, currencySymbol: getCurrencySymbol() });
@@ -248,26 +254,70 @@ export default function VoiceTicketPage() {
   const canSend = ticket && ticket.lines.length > 0 && ticket.unclear.length === 0 && !ticket.lines.some((l) => l.needsVariant) && phase === 'check'
     && (!isDineIn(ticket.orderType) || !!String(ticket.tableNumber || '').trim() || true);
 
-  const send = async () => {
-    if (!canSend) return;
+  const toItems = (tk) => tk.lines.map((l) => ({
+    menuItemId: l.menuItemId, name: l.name, price: l.price, quantity: l.quantity, total: l.price * l.quantity,
+    notes: l.notes.join(', '), categoryId: l.categoryId || undefined, noteLine: true,
+    ...(l.variant ? { selectedVariant: { name: l.variant, price: l.price } } : {}),
+  }));
+  const finishSent = (tk, orderId, order, printed, added) => {
+    const dine = isDineIn(tk.orderType);
+    const who = server || {};
+    const head = dine ? (tk.tableNumber ? `Table ${tk.tableNumber}` : 'Dine-in') : `${label(tk.orderType)}${tk.customerName ? ' · ' + tk.customerName : ''}`;
+    const count = tk.lines.reduce((a, l) => a + l.quantity, 0);
+    const entry = { orderId, head: added ? `${head} (added)` : head, count, who: who.name || '', at: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), number: order?.dailyOrderId || order?.orderNumber || order?.kotNumber || '' };
+    setTickets((prev) => {
+      const next = [entry, ...prev.filter((x) => !(x.orderId === entry.orderId && x.head === entry.head && x.at === entry.at))].slice(0, 80);
+      writeJSON(todayKey(rid), next);
+      return next;
+    });
+    setPhase('sent'); setConflict(null);
+    flash(printed === 'failed' ? 'Saved — but the printer did not answer. Use Reprint.' : printed === 'kds' ? 'Sent to the kitchen screen' : added ? `Added to ${head} — sent to the kitchen` : `${head} sent to the kitchen`);
+    setTimeout(() => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setPhase((p) => (p === 'sent' ? 'idle' : p)); }, 1600);
+  };
+
+  // The table already has an open order: add these items to it (kitchen gets only the new items).
+  const addToOpenOrder = async () => {
+    if (!conflict || !ticket) return;
+    setPhase('sending'); setError('');
+    try {
+      const full = await apiClient.getOrderById(conflict.orderId);
+      const existing = full?.order || (Array.isArray(full?.orders) ? full.orders[0] : null) || full?.data || full;
+      if (!existing?.id || ['completed', 'cancelled', 'paid', 'settled'].includes(existing.status)) throw new Error('That order is already closed — send this as a new order');
+      const who = server || {};
+      const res = await apiClient.updateOrder(existing.id, {
+        restaurantId: rid,
+        items: [...(existing.items || []), ...toItems(ticket)],
+        updatedAt: new Date().toISOString(),
+        lastUpdatedBy: { name: who.name || 'Staff Member', id: who.id || 'unknown' },
+      });
+      if (!(res?.data || res?.success || res?.order)) throw new Error(res?.error || 'Could not add to the order');
+      let printed = 'none';
+      try { printed = await printTicket(existing.id, null, { incremental: true }); } catch { printed = 'failed'; }
+      finishSent(ticket, existing.id, existing, printed, true);
+    } catch (e) {
+      setError(e?.message || 'Could not add to the open order');
+      setPhase('check');
+    }
+  };
+
+  const send = async ({ tableNotSetUp = false } = {}) => {
+    if (!canSend && !tableNotSetUp) return;
     setPhase('sending'); setError('');
     const tk = ticket;
     const dine = isDineIn(tk.orderType);
     const who = server || {};
+    setConflict(null);
     const orderData = {
       restaurantId: rid,
       idempotencyKey: 'vt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      items: tk.lines.map((l) => ({
-        menuItemId: l.menuItemId, name: l.name, price: l.price, quantity: l.quantity, total: l.price * l.quantity,
-        notes: l.notes.join(', '), categoryId: l.categoryId || undefined,
-        ...(l.variant ? { selectedVariant: { name: l.variant, price: l.price } } : {}),
-      })),
+      items: toItems(tk),
       orderType: tk.orderType || orderTypes[0] || 'dine-in',
-      tableNumber: dine && tk.tableNumber ? String(tk.tableNumber) : null,
+      // a table the restaurant hasn't set up: no table link, the number goes on the ticket instead
+      tableNumber: dine && tk.tableNumber && !tableNotSetUp ? String(tk.tableNumber) : null,
       customerInfo: { name: tk.customerName || '', tableNumber: dine ? (tk.tableNumber || null) : null },
       customerName: tk.customerName || undefined,
       staffInfo: { userId: who.id || null, name: who.name || '', role: who.role || '' },
-      specialInstructions: tk.orderNotes || '',
+      specialInstructions: [tableNotSetUp && tk.tableNumber ? `TABLE ${tk.tableNumber}` : '', tk.orderNotes || ''].filter(Boolean).join(' · '),
       notes: 'Voice order',
       paymentMethod: 'cash',
       status: 'confirmed',
@@ -280,16 +330,22 @@ export default function VoiceTicketPage() {
       let printed = 'none';
       try { printed = await printTicket(orderId, { ...orderData, id: orderId }); } catch { printed = 'failed'; }
       if (settings?.afterSend === 'mark_served') { try { await apiClient.markServed(orderId); } catch { /* stays open */ } }
-      const head = dine ? (tk.tableNumber ? `Table ${tk.tableNumber}` : 'Dine-in') : `${label(tk.orderType)}${tk.customerName ? ' · ' + tk.customerName : ''}`;
-      const count = tk.lines.reduce((a, l) => a + l.quantity, 0);
-      const entry = { orderId, head, count, who: who.name || '', at: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), number: order?.dailyOrderId || order?.orderNumber || order?.kotNumber || '' };
-      const next = [entry, ...tickets].slice(0, 80);
-      setTickets(next); writeJSON(todayKey(rid), next);
-      setPhase('sent');
-      flash(printed === 'failed' ? 'Saved — but the printer did not answer. Use Reprint.' : printed === 'kds' ? 'Sent to the kitchen screen' : `${head} sent to the kitchen`);
-      setTimeout(() => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setPhase((p) => (p === 'sent' ? 'idle' : p)); }, 1600);
+      finishSent(tk, orderId, order, printed, false);
     } catch (e) {
-      setError(e?.message || 'Could not send — nothing was printed. Please try again.');
+      const msg = e?.message || '';
+      // Table already taken by an open order → offer to add to it instead of a dead end
+      if (dine && tk.tableNumber && /occupied|already/i.test(msg)) {
+        try {
+          const open = await apiClient.getOpenOrders(rid);
+          const hit = (open?.openOrders || []).find((o) => String(o.tableNumber || '') === String(tk.tableNumber) && !['completed', 'cancelled'].includes(o.status));
+          if (hit) { setConflict({ orderId: hit.id, number: hit.orderNumber || '', items: hit.itemCount || (hit.items || []).length, table: tk.tableNumber }); setPhase('check'); return; }
+        } catch { /* fall through to the plain message */ }
+      }
+      // Table number the restaurant hasn't set up in DineOpen → offer to send with the number on the ticket
+      if (dine && tk.tableNumber && !tableNotSetUp && /not found/i.test(msg)) {
+        setConflict({ missing: true, table: tk.tableNumber }); setPhase('check'); return;
+      }
+      setError(msg || 'Could not send — nothing was printed. Please try again.');
       setPhase('check');
     }
   };
@@ -459,6 +515,25 @@ export default function VoiceTicketPage() {
         </aside>
       </div>
 
+      {conflict && !conflict.missing && (
+        <div className="vt-conflict" role="alert">
+          <div><b>Table {conflict.table} already has an open order.</b> Add these items to it? The kitchen gets only the new items.</div>
+          <div className="vt-row">
+            <button type="button" className="done" onClick={addToOpenOrder} disabled={phase === 'sending'}>Add to Table {conflict.table}&apos;s order</button>
+            <button type="button" onClick={() => setConflict(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {conflict && conflict.missing && (
+        <div className="vt-conflict" role="alert">
+          <div><b>Table {conflict.table} isn&apos;t set up in DineOpen.</b> Send it anyway with “Table {conflict.table}” printed on the kitchen ticket?</div>
+          <div className="vt-row">
+            <button type="button" className="done" onClick={() => send({ tableNotSetUp: true })} disabled={phase === 'sending'}>Send with Table {conflict.table} on the ticket</button>
+            <button type="button" onClick={() => { setConflict(null); setEditHead(true); }}>Change table</button>
+          </div>
+        </div>
+      )}
+
       <footer className="vt-bar">
         <button type="button" className={'vt-mic' + (listening ? ' live' : '')} onClick={listening ? stopListening : startListening} disabled={busy} aria-label={listening ? 'Stop listening' : 'Start speaking'}>
           {listening ? <StopIcon /> : <MicIcon size={30} />}
@@ -569,6 +644,8 @@ const CSS = `
 .vt-send{height:72px;flex:0 1 260px;border:0;border-radius:18px;background:#111;color:#fff;font:600 18px inherit;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
 .vt-send span{font:600 14px 'IBM Plex Mono',monospace;background:#3F3F46;border-radius:8px;padding:2px 8px}
 .vt-send:disabled{background:#DCDBD7;color:#8A8A90;cursor:not-allowed}.vt-send:disabled span{background:#C9C8C4}
+.vt-conflict{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#FFF6E0;border:2px solid #E8A317;border-radius:16px;padding:12px 16px;margin-bottom:10px;color:#7A3E06;font-size:15px}
+.vt-conflict .vt-row button{height:44px}
 .vt-toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:#111;color:#fff;border-radius:14px;padding:12px 20px;font-size:15px;font-weight:500;z-index:50;box-shadow:0 18px 40px -14px rgba(0,0,0,.5)}
 @media (max-width:640px){.vt-send{flex:1 1 100%}.vt-wrap{padding:12px 12px 0}}
 @keyframes vtspin{to{transform:rotate(360deg)}}
