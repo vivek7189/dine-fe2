@@ -15,6 +15,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FaExclamationTriangle, FaTimes, FaLock, FaArrowRight, FaInfoCircle } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import DesktopUpdatePrompt from './DesktopUpdatePrompt';
+import { publishTrialNotice, TrialEndedModal } from './TrialNotice';
 
 const POLL_MS = 90 * 1000;
 // On the Billing page we re-check much faster so the gate lifts right after payment
@@ -58,13 +59,14 @@ export default function AccountNoticeGate() {
 
   // fresh=true bypasses the 90s client cache (used after payment / on focus / route change).
   const fetchNotice = useCallback(async (fresh = false) => {
-    if (!rid) { setNotice(null); setBroadcasts([]); setAppUpdate(null); return; }
+    if (!rid) { setNotice(null); setBroadcasts([]); setAppUpdate(null); publishTrialNotice(null); return; }
     try {
       if (fresh) apiClient.invalidateCache(`/api/restaurants/${rid}/billing-notice`);
       const res = await apiClient.getBillingNotice(rid);
       setNotice((res && res.billingNotice) || null);
       setBroadcasts(Array.isArray(res && res.broadcasts) ? res.broadcasts : []);
       setAppUpdate((res && res.appUpdate) || null);
+      publishTrialNotice((res && res.trialNotice) || null);
     } catch (_) { /* keep last state — a failed poll must never gate the app */ }
   }, [rid]);
 
@@ -113,8 +115,10 @@ export default function AccountNoticeGate() {
     .sort((a, b) => RANK[levelOf(a)] - RANK[levelOf(b)]);
   const active = candidates[0] || null;
 
+  // Trial-ended popup (new owners only) — skipped while a super-admin notice is showing.
+  const trialModal = !active ? <TrialEndedModal restaurantId={rid} /> : null;
   const updatePrompt = appUpdate ? <DesktopUpdatePrompt update={appUpdate} /> : null;
-  if (!active) return updatePrompt;
+  if (!active) return <>{updatePrompt}{trialModal}</>;
 
   const isBilling = active._kind === 'billing';
   const level = levelOf(active);

@@ -22,6 +22,7 @@ import SyncStatusDot from '../../components/SyncStatusDot';
 // Local-first: no online/offline routing switch. A read-only SyncStatusDot floats top-right.
 import OfflineFallback from '../../components/OfflineFallback';
 import AccountNoticeGate from '../../components/AccountNoticeGate';
+import { TrialEndedBar } from '../../components/TrialNotice';
 import StaffAccessGate from '../../components/StaffAccessGate';
 import { useKraRetryQueue } from '../../hooks/useKraRetryQueue';
 import { KraStatusContext } from '../../contexts/KraStatusContext';
@@ -507,6 +508,9 @@ function DashboardLayoutContent({ children }) {
                   </button>
                 </div>
               )}
+
+              {/* Trial ended — new owners only, until they pay (hidden on /billing) */}
+              <TrialEndedBar />
 
               {/* Demo menu banner — show on all pages except /menu */}
               {hasDefaultMenu && pathname !== '/menu' && (
