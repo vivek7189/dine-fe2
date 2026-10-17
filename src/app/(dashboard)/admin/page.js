@@ -6007,6 +6007,38 @@ function AutoUpdateSection() {
   );
 }
 
+// Staff gender (optional) — stored as male / female / other.
+const STAFF_GENDER_OPTIONS = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+];
+const staffGenderLabel = (g) => (STAFF_GENDER_OPTIONS.find(o => o.value === g) || {}).label || '';
+
+function StaffGenderPicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+      {STAFF_GENDER_OPTIONS.map(o => {
+        const on = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(on ? '' : o.value)}
+            style={{
+              padding: '8px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: on ? 600 : 500, cursor: 'pointer',
+              border: on ? '1px solid #ef4444' : '1px solid #e5e7eb',
+              background: on ? '#fef2f2' : '#fff', color: on ? '#b91c1c' : '#374151'
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const Admin = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -6110,6 +6142,7 @@ const Admin = () => {
     phone: '',
     email: '',
     address: '',
+    gender: '',
     username: '',
     role: 'employee',
     startDate: new Date().toISOString().split('T')[0],
@@ -7129,6 +7162,7 @@ const Admin = () => {
         phone: '',
         email: '',
         address: '',
+        gender: '',
         username: '',
         role: 'employee',
         startDate: new Date().toISOString().split('T')[0],
@@ -7201,6 +7235,7 @@ const Admin = () => {
       name: selectedStaff.name || '',
       phone: selectedStaff.phone || '',
       email: selectedStaff.email || '',
+      gender: selectedStaff.gender || '',
       role: selectedStaff.role || 'employee',
       isDeliveryPartner: selectedStaff.isDeliveryPartner || false,
       assignedFloorIds: selectedStaff.assignedFloorIds || [],
@@ -7236,7 +7271,7 @@ const Admin = () => {
 
     setEditStaffSaving(true);
     try {
-      const updateData = { name: name.trim(), phone: phone.trim(), role };
+      const updateData = { name: name.trim(), phone: phone.trim(), role, gender: editStaffForm.gender || null };
       if (email.trim()) updateData.email = email.trim();
       else updateData.email = '';
 
@@ -8367,6 +8402,7 @@ const Admin = () => {
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
                     <SortableTh label={t('staffList.col.name')} sortKey="name" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} />
                     <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Phone</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Gender</th>
                     <SortableTh label={t('staffList.col.role')} sortKey="role" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} />
                     <SortableTh label={t('staffList.col.status')} sortKey="status" sort={staffSortCtl.sort} onSort={staffSortCtl.setSort} align="center" />
                     <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Restaurants</th>
@@ -8398,6 +8434,7 @@ const Admin = () => {
                           </div>
                         </td>
                         <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>{member.phone || '—'}</td>
+                        <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>{staffGenderLabel(member.gender) || '—'}</td>
                         <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
                           <span style={{
                             padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
@@ -8447,6 +8484,7 @@ const Admin = () => {
                                   name: member.name || '',
                                   phone: member.phone || '',
                                   email: member.email || '',
+                                  gender: member.gender || '',
                                   role: member.role || 'employee',
                                   pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
                                 });
@@ -8920,6 +8958,7 @@ const Admin = () => {
                           name: member.name || '',
                           phone: member.phone || '',
                           email: member.email || '',
+                          gender: member.gender || '',
                           role: member.role || 'employee',
                           pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(member.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[member.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
                         });
@@ -9868,6 +9907,12 @@ const Admin = () => {
                       value={newStaff.startDate}
                       onChange={(e) => setNewStaff({ ...newStaff, startDate: e.target.value })}
                     />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? undefined : '1 / -1' }}>
+                    <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                      Gender
+                    </label>
+                    <StaffGenderPicker value={newStaff.gender} onChange={(g) => setNewStaff({ ...newStaff, gender: g })} />
                   </div>
                   <div style={{ gridColumn: isMobile ? undefined : '1 / -1' }}>
                     <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
@@ -11022,6 +11067,10 @@ const Admin = () => {
                           placeholder="Optional"
                         />
                       </div>
+                      <div style={{ marginBottom: '10px' }}>
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#374151' }}>Gender</label>
+                        <StaffGenderPicker value={editStaffForm.gender || ''} onChange={(g) => setEditStaffForm(f => ({ ...f, gender: g }))} />
+                      </div>
                       <div style={{ marginBottom: '4px' }}>
                         <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#374151' }}>Role</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -11156,6 +11205,7 @@ const Admin = () => {
                       <div style={{ marginBottom: '8px' }}><strong>Name:</strong> {selectedStaff.name || 'N/A'}</div>
                       <div style={{ marginBottom: '8px' }}><strong>Phone:</strong> {selectedStaff.phone || 'N/A'}</div>
                       <div style={{ marginBottom: '8px' }}><strong>Email:</strong> {selectedStaff.email || 'N/A'}</div>
+                      <div style={{ marginBottom: '8px' }}><strong>Gender:</strong> {staffGenderLabel(selectedStaff.gender) || 'Not set'}</div>
                       <div style={{ marginBottom: '8px' }}><strong>Role:</strong> {getRoleInfo(selectedStaff.role || 'employee').label}</div>
                       <div style={{ marginBottom: '8px' }}><strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}</div>
                       {selectedStaff.isDeliveryPartner && (
