@@ -13845,6 +13845,19 @@ const Admin = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <button
                       type="button"
+                      aria-label="Show Voice as a tab in the phone app"
+                      onClick={() => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), showTab: !prev.voiceTicket?.showTab } }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.voiceTicket?.showTab
+                        ? <FaToggleOn size={24} color="#ef4444" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <span style={{ fontSize: '13px', color: '#374151' }}>Show “Voice” as a bottom tab in the phone / tablet app (otherwise it is under More)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
                       aria-label="Hands-free listening"
                       onClick={() => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), handsFree: prev.voiceTicket?.handsFree === false } }))}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
