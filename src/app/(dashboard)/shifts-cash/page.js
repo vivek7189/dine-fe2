@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import apiClient from '@/lib/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import ProvisionalSyncBanner from '@/components/ProvisionalSyncBanner';
+import CashShortExtra from '@/components/staff/CashShortExtra';
 import { getDenominationLabels, buildDenomState, getQuickPresets, computeDenomTotal } from '@/lib/denominationData';
 import { FaEnvelope, FaSpinner, FaClock as FaClockIcon } from 'react-icons/fa';
 import {
@@ -660,6 +661,9 @@ export default function ShiftsCashPage() {
             setShowHistory={setShowHistory}
             formatCurrency={formatCurrency}
           />
+
+          {/* Cash short / extra per cashier (owner / admin: everyone; staff: their own) */}
+          <CashShortExtra restaurantId={restaurantId} title={isOwnerAdmin ? 'Cash short / extra by staff' : 'My cash short / extra'} style={cardStyle} />
         </>
       ) : (
         /* ── Active Shift Dashboard ──────────────────────────────────── */
@@ -926,6 +930,9 @@ export default function ShiftsCashPage() {
             setShowHistory={setShowHistory}
             formatCurrency={formatCurrency}
           />
+
+          {/* Cash short / extra per cashier (owner / admin: everyone; staff: their own) */}
+          <CashShortExtra restaurantId={restaurantId} title={isOwnerAdmin ? 'Cash short / extra by staff' : 'My cash short / extra'} style={cardStyle} />
 
           {/* Close Shift Modal */}
           {showCloseModal && (

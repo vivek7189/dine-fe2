@@ -2860,6 +2860,7 @@ class ApiClient {
   closeShift(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/close`, { method: 'POST', body: data }); }
   shiftCashInOut(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/cash-in-out`, { method: 'POST', body: data }); }
   getAllActiveShifts(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/active-all`); }
+  getShiftCashVariance(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/shifts-cash/${restaurantId}/cash-variance${qs}`); }
   getShiftHistory(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/shifts-cash/${restaurantId}/history${qs}`); }
   // Same shifts as the xlsx/csv, as data — for Shifts & Cash → Print Report.
   async getShiftReportData(restaurantId, opts = {}) {

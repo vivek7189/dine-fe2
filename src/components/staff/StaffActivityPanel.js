@@ -5,7 +5,7 @@
 // "Active now" = the person's app/POS talked to the server in the last 15 minutes.
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { FaTimes, FaSyncAlt, FaSpinner, FaCircle, FaSearch } from 'react-icons/fa';
+import { FaTimes, FaSyncAlt, FaSpinner, FaCircle, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { fmtTime, fmtDateTime } from '../../lib/restaurantTime';
 
@@ -40,6 +40,46 @@ const card = { background: 'white', border: '1px solid #eef0f3', borderRadius: '
 const th = { padding: '9px 12px', textAlign: 'left', fontSize: '11.5px', fontWeight: 700, color: '#6b7280', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap' };
 const td = { padding: '9px 12px', fontSize: '13px', color: '#111827', borderBottom: '1px solid #f8fafc', whiteSpace: 'nowrap' };
 
+// Staff list sorting: tap a column to sort, tap again to flip. Dates start newest first.
+// Empty values (never active / never logged in / no app) always go to the bottom.
+const toMs = (v) => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
+const SORTS = {
+  name: { first: 'asc', value: (m) => String(m.name || '').toLowerCase() },
+  role: { first: 'asc', value: (m) => String(m.role || '').toLowerCase() || null },
+  lastActive: { first: 'desc', value: (m) => (m.activeNow ? Date.now() : toMs(m.lastSeenAt)) },
+  app: { first: 'asc', value: (m) => { const p = m.lastSeenPlatform || m.lastLoginPlatform; return p ? platformLabel(p).toLowerCase() : null; } },
+  lastLogin: { first: 'desc', value: (m) => toMs(m.lastLogin) },
+};
+
+function sortStaff(list, sort) {
+  if (!sort) return list;
+  const { value } = SORTS[sort.key];
+  const sign = sort.dir === 'desc' ? -1 : 1;
+  return [...list].sort((a, b) => {
+    const x = value(a); const y = value(b);
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;
+    const r = typeof x === 'number' ? x - y : x.localeCompare(y, undefined, { numeric: true });
+    return r * sign || String(a.name || '').localeCompare(String(b.name || ''));
+  });
+}
+
+function SortTh({ label, sortKey, sort, onSort }) {
+  const active = sort?.key === sortKey;
+  const Icon = !active ? FaSort : sort.dir === 'asc' ? FaSortUp : FaSortDown;
+  return (
+    <th style={{ ...th, padding: 0 }} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" onClick={() => onSort(sortKey)}
+        title={active ? (sort.dir === 'asc' ? 'Ascending — tap for descending' : 'Descending — tap for ascending') : 'Sort'}
+        style={{ ...th, border: 'none', borderBottom: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', width: '100%', color: active ? '#111827' : th.color }}>
+        {label}
+        <Icon size={10} style={{ color: active ? '#2563eb' : '#cbd5e1', flexShrink: 0 }} />
+      </button>
+    </th>
+  );
+}
+
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Active now' },
@@ -56,6 +96,10 @@ export default function StaffActivityPanel({ restaurantId, restaurantName, onClo
   const [roleFilter, setRoleFilter] = useState('');
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState(null); // null = server order (active first)
+  const onSort = (key) => setSort((s) => (s?.key === key
+    ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+    : { key, dir: SORTS[key].first }));
   const isToday = date === localDate();
 
   const load = useCallback(async (quiet) => {
@@ -82,7 +126,7 @@ export default function StaffActivityPanel({ restaurantId, restaurantName, onClo
 
   const staff = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (data?.staff || []).filter((m) => {
+    return sortStaff((data?.staff || []).filter((m) => {
       if (roleFilter && m.role !== roleFilter) return false;
       if (q && !String(m.name).toLowerCase().includes(q)) return false;
       if (filter === 'active') return m.activeNow;
@@ -90,8 +134,8 @@ export default function StaffActivityPanel({ restaurantId, restaurantName, onClo
       if (filter === 'notUsed') return !m.usedAppOnDate && m.status !== 'inactive';
       if (filter === 'never') return m.neverLoggedIn;
       return true;
-    });
-  }, [data, roleFilter, filter, search]);
+    }), sort);
+  }, [data, roleFilter, filter, search, sort]);
 
   const sm = data?.summary || { total: 0, activeNow: 0, usedAppOnDate: 0, neverLoggedIn: 0 };
   const dayWord = isToday ? 'today' : new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
@@ -212,8 +256,11 @@ export default function StaffActivityPanel({ restaurantId, restaurantName, onClo
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '680px' }}>
                   <thead>
                     <tr>
-                      <th style={th}>Staff</th><th style={th}>Role</th><th style={th}>Last active</th>
-                      <th style={th}>App</th><th style={th}>Last login</th>
+                      <SortTh label="Staff" sortKey="name" sort={sort} onSort={onSort} />
+                      <SortTh label="Role" sortKey="role" sort={sort} onSort={onSort} />
+                      <SortTh label="Last active" sortKey="lastActive" sort={sort} onSort={onSort} />
+                      <SortTh label="App" sortKey="app" sort={sort} onSort={onSort} />
+                      <SortTh label="Last login" sortKey="lastLogin" sort={sort} onSort={onSort} />
                     </tr>
                   </thead>
                   <tbody>

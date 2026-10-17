@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
 import StaffActivityPanel from '../../../components/staff/StaffActivityPanel';
+import CashShortExtra from '../../../components/staff/CashShortExtra';
 import { useStaffSort, SortableTh, StaffSortFilterBar } from '../../../components/staff/StaffSortControls';
 import CalendarSettingsPanel from '../../../components/calendar/CalendarSettingsPanel';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -11245,6 +11246,12 @@ const Admin = () => {
                   <>
                     <StaffIdDocuments key={`id-${selectedStaff.id}`} staffId={selectedStaff.id} isMobile={isClient && isMobile} />
                     <StaffProfile staffId={selectedStaff.id} canEdit isMobile={isClient && isMobile} />
+                    <CashShortExtra
+                      key={`cash-${selectedStaff.id}`}
+                      restaurantId={selectedRestaurant?.id}
+                      staffId={selectedStaff.id}
+                      style={{ backgroundColor: '#f8fafc', padding: isClient && isMobile ? '12px' : '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}
+                    />
                   </>
                 )}
 
