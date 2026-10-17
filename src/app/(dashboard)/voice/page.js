@@ -69,6 +69,14 @@ export default function VoiceTicketPage() {
   const convoRef = useRef(false);
   const chainRef = useRef(Promise.resolve());
   const ticketRef = useRef(null);
+  const [log, setLog] = useState([]); // what was said / done / answered, newest last
+  const [floor, setFloor] = useState([]); // [{ n, busy }]
+  const [showToday, setShowToday] = useState(false);
+  const logEnd = useRef(null);
+  const pushLog = useCallback((kind, text) => {
+    if (!text) return;
+    setLog((l) => [...l, { id: Date.now() + Math.random(), kind, text: String(text).slice(0, 240) }].slice(-24));
+  }, []);
   const toastTimer = useRef(null);
   const flash = useCallback((msg) => {
     clearTimeout(toastTimer.current);
@@ -114,6 +122,27 @@ export default function VoiceTicketPage() {
   }, []);
 
   useEffect(() => { ticketRef.current = ticket; }, [ticket]);
+  useEffect(() => { try { logEnd.current && logEnd.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch { /* ignore */ } }, [log]);
+
+  // Tables at a glance: free / has an order (refreshed every 30 s and after each send)
+  const loadFloor = useCallback(async () => {
+    if (!rid) return;
+    try {
+      const res = await apiClient.getFloors(rid);
+      const list = [];
+      (res?.floors || []).forEach((f) => (f.tables || []).forEach((t) => {
+        const n = t.number ?? t.tableNumber ?? t.name;
+        if (n != null && String(n).trim()) list.push({ n: String(n).trim(), busy: t.status === 'occupied' || !!t.currentOrderId });
+      }));
+      list.sort((a, b) => a.n.localeCompare(b.n, undefined, { numeric: true }));
+      setFloor(list.slice(0, 60));
+    } catch { /* chips are a convenience */ }
+  }, [rid]);
+  useEffect(() => {
+    loadFloor();
+    const t = setInterval(loadFloor, 30000);
+    return () => clearInterval(t);
+  }, [loadFloor]);
 
   useEffect(() => () => {
     try { vadRef.current && vadRef.current.stop(); } catch { /* gone */ }
@@ -141,6 +170,8 @@ export default function VoiceTicketPage() {
       const res = await apiClient.voiceTicketUnderstand(rid, payload);
       if (!res?.success) throw new Error(res?.error || 'Could not build the ticket');
       setHeard(res.transcript || '');
+      pushLog('you', `“${res.transcript || ''}”`);
+      pushLog('did', `${res.ticket.lines.length ? `Added ${res.ticket.lines.reduce((a, l) => a + l.quantity, 0)} item(s)` : 'Nothing added'}${res.ticket.unclear.length ? ` · ${res.ticket.unclear.length} to check` : ''}`);
       setTicket((prev) => {
         // speaking again adds to the ticket being checked
         if (prev && (prev.lines.length || prev.unclear.length)) {
@@ -160,7 +191,7 @@ export default function VoiceTicketPage() {
       setError(e?.message || 'Voice service had a problem — please try again');
       setPhase(ticket ? 'check' : 'idle');
     }
-  }, [rid, ticket]);
+  }, [rid, ticket, pushLog]);
 
   const startListening = async () => {
     setError('');
@@ -279,6 +310,7 @@ export default function VoiceTicketPage() {
     stopConvo();
     setPhase('check');
     setAutoSend({ left: 3 });
+    pushLog('say', 'Sending to the kitchen — tap Undo to keep editing');
   };
 
   const handleSegment = (blob) => {
@@ -291,7 +323,10 @@ export default function VoiceTicketPage() {
         if (res.heardNothing || !convoRef.current) return;
         setError('');
         setHeard(res.transcript || '');
+        pushLog('you', `“${res.transcript}”`);
         const tk = applyAgent(res);
+        if (res.touched || res.cancel) pushLog('did', res.say || (res.cancel ? 'Cleared the ticket' : 'Updated the ticket'));
+        else if (res.say) pushLog('say', res.say);
         // Speak only what needs ears — answers, "sending", "cancelled". Order edits are on the ticket;
         // speaking them would pause the mic (it must not hear its own voice) while staff keep talking.
         if (res.say) { setReply(res.say); if (!res.touched || res.send || res.cancel) speak(res.say); }
@@ -363,7 +398,7 @@ export default function VoiceTicketPage() {
     });
     setPhase('check'); setAdding(false); setSearch('');
   };
-  const startOver = () => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setError(''); setPhase('idle'); };
+  const startOver = () => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setError(''); setPhase('idle'); setLog([]); };
 
   // ── send + print ──
   const printTicket = useCallback(async (orderId, order, { reprint = false, incremental = false } = {}) => {
@@ -403,7 +438,8 @@ export default function VoiceTicketPage() {
     });
     setPhase('sent'); setConflict(null);
     flash(printed === 'failed' ? 'Saved — but the printer did not answer. Use Reprint.' : printed === 'kds' ? 'Sent to the kitchen screen' : added ? `Added to ${head} — sent to the kitchen` : `${head} sent to the kitchen`);
-    setTimeout(() => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setPhase((p) => (p === 'sent' ? 'idle' : p)); }, 1600);
+    loadFloor();
+    setTimeout(() => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setLog([]); setPhase((p) => (p === 'sent' ? 'idle' : p)); }, 1600);
   };
 
   // Same item already on the open order (same item / size / options, and no kitchen note of its own)
@@ -529,7 +565,7 @@ export default function VoiceTicketPage() {
     : 'NEW ORDER';
 
   const handsFree = settings?.handsFree !== false;
-  let status = { tone: '', title: 'Ready', text: handsFree ? 'Tap the mic and just talk — say “that’s it” to send' : 'Tap the mic and say the whole order' };
+  let status = { tone: '', title: handsFree ? 'Tap and just talk' : 'Tap and say the order', text: handsFree ? 'Say the table or to-go name, then the items. No need to tap again between sentences — say “that’s it” to send.' : 'Say the table or to-go name, then each item and any changes. Tap again when you’re done.' };
   if (autoSend) status = { tone: 'ok', title: `Sending in ${autoSend.left}`, text: 'Tap Undo to keep editing' };
   else if (convo) status = { tone: 'live', title: hearing ? 'Hearing you' : thinking ? 'Got it…' : 'Listening', text: 'Talk naturally · ask anything · say “that’s it” to send' };
   else if (phase === 'listening') status = { tone: 'live', title: `Listening · 0:${String(secs).padStart(2, '0')}`, text: 'Tap again when you’re done' };
@@ -557,6 +593,16 @@ export default function VoiceTicketPage() {
   const listening = phase === 'listening';
   const busy = phase === 'thinking' || phase === 'sending';
 
+  const orbLive = convo || listening;
+  const eyebrow = autoSend ? 'Order complete' : error ? 'Problem' : orbLive ? 'Listening' : phase === 'sent' ? 'Sent' : busy ? 'Working' : 'Ready';
+  const estTotal = ticket ? ticket.lines.reduce((a, l) => a + (Number(l.price) || 0) * l.quantity, 0) : 0;
+  const examples = [
+    { kind: 'Order', say: 'Table five, two cheeseburgers, one no onion, and a Coke' },
+    { kind: 'Change', say: 'Make it two Cokes, no ice' },
+    { kind: 'Ask', say: 'What’s on table twelve, and how much is the bill?' },
+    { kind: 'Send', say: handsFree ? 'That’s it' : 'Tap Send when it looks right' },
+  ];
+
   return (
     <div className="vt-wrap">
       <header className="vt-top">
@@ -567,122 +613,56 @@ export default function VoiceTicketPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <span className="vt-mark" aria-hidden="true"><MicIcon size={16} /></span>
-          <b>Voice Ticket</b>
+          <span className="vt-brand-t"><b>Voice Ticket</b>{restaurant?.name ? <small>{restaurant.name}</small> : null}</span>
         </div>
-        {settings.askServer && (
-          <div className="vt-servers" role="group" aria-label="Who is taking the order">
-            <span>Taken by</span>
-            {[server, ...staff.filter((s) => s.id !== server?.id)].filter(Boolean).slice(0, 8).map((s) => (
-              <button key={s.id || s.name} type="button" className={'vt-chip' + (server?.id === s.id && server?.name === s.name ? ' on' : '')} onClick={() => setServer(s)}>{s.name.split(' ')[0]}</button>
-            ))}
+
+        {floor.length > 0 && (
+          <div className="vt-floor" aria-label="Tables">
+            <span className="vt-floor-l">Tables</span>
+            {floor.map((t) => {
+              const mine = ticket && isDineIn(ticket.orderType) && String(ticket.tableNumber || '') === t.n;
+              return <span key={t.n} className={'vt-tb' + (mine ? ' mine' : t.busy ? ' busy' : '')} title={mine ? 'This ticket' : t.busy ? 'Has an order' : 'Free'}>{t.n}</span>;
+            })}
+            <span className="vt-floor-key"><i className="free" />free <i className="busy" />has an order</span>
           </div>
         )}
+
+        <div className="vt-topr">
+          {settings.askServer && (
+            <div className="vt-servers" role="group" aria-label="Who is taking the order">
+              <span>Taken by</span>
+              {[server, ...staff.filter((s) => s.id !== server?.id)].filter(Boolean).slice(0, 6).map((s) => (
+                <button key={s.id || s.name} type="button" className={'vt-chip' + (server?.id === s.id && server?.name === s.name ? ' on' : '')} onClick={() => setServer(s)}>{s.name.split(' ')[0]}</button>
+              ))}
+            </div>
+          )}
+          <button type="button" className="vt-todaybtn" onClick={() => setShowToday(true)} aria-label={`Today's tickets: ${tickets.length}`}>
+            <PrintIcon /> Today <span>{tickets.length}</span>
+          </button>
+        </div>
       </header>
 
       <div className="vt-main">
-        <section className="vt-stage" aria-label="Ticket">
-          <article className={'vt-paper' + (phase === 'sent' ? ' sent' : '')} aria-live="polite">
-            <div className="vt-sub">KITCHEN TICKET</div>
-            <button type="button" className={'vt-head' + (ticket ? '' : ' ghost')} onClick={() => ticket && setEditHead((v) => !v)} disabled={!ticket} aria-label="Change table or name">{headText}</button>
-            {editHead && ticket && (
-              <div className="vt-headedit">
-                <div className="vt-seg" role="group" aria-label="Order type">
-                  {orderTypes.slice(0, 4).map((ot) => (
-                    <button key={ot} type="button" className={ticket.orderType === ot ? 'on' : ''} onClick={() => setTicket((tk) => ({ ...tk, orderType: ot }))}>{label(ot) === 'Dine-in' && !/^dine/i.test(ot) ? ot : label(ot)}</button>
-                  ))}
-                </div>
-                {isDineIn(ticket.orderType) ? (
-                  <label className="vt-field">Table<input id="vt-table" inputMode="numeric" value={ticket.tableNumber || ''} onChange={(e) => setTicket((tk) => ({ ...tk, tableNumber: e.target.value.slice(0, 20) }))} /></label>
-                ) : (
-                  <label className="vt-field">Name<input id="vt-name" value={ticket.customerName || ''} onChange={(e) => setTicket((tk) => ({ ...tk, customerName: e.target.value.slice(0, 60) }))} /></label>
-                )}
-                <button type="button" className="vt-btn vt-btn-dark" onClick={() => setEditHead(false)}>Done</button>
-              </div>
+        <section className="vt-convo" aria-label="Conversation">
+          <div className={'vt-orbcard' + (autoSend ? ' ok' : '')}>
+            {handsFree ? (
+              <button type="button" className={'vt-orb' + (convo ? ' live' : '') + (hearing ? ' hearing' : '') + (autoSend ? ' ok' : '')} onClick={convo ? stopConvo : startConvo} disabled={phase === 'sending' || !!autoSend} aria-label={convo ? 'Stop listening' : 'Start talking'}>
+                {convo && <><span className="vt-ringa" aria-hidden="true" /><span className="vt-ringa two" aria-hidden="true" /></>}
+                {convo ? <span className="vt-obars" aria-hidden="true">{levels.slice(3, 8).map((v, i) => <i key={i} style={{ height: `${Math.round(10 + (hearing ? v : 0.15) * 34)}px` }} />)}</span> : autoSend ? <CheckIcon /> : <MicIcon size={44} />}
+              </button>
+            ) : (
+              <button type="button" className={'vt-orb' + (listening ? ' live hearing' : '')} onClick={listening ? stopListening : startListening} disabled={busy} aria-label={listening ? 'Stop listening' : 'Start speaking'}>
+                {listening && <><span className="vt-ringa" aria-hidden="true" /><span className="vt-ringa two" aria-hidden="true" /></>}
+                {listening ? <span className="vt-obars" aria-hidden="true">{levels.slice(3, 8).map((v, i) => <i key={i} style={{ height: `${Math.round(10 + v * 34)}px` }} />)}</span> : <MicIcon size={44} />}
+              </button>
             )}
-            <div className="vt-meta"><span>{server?.name ? `Server: ${server.name.split(' ')[0]}` : ''}</span><span>{itemCount ? `${itemCount} ITEM${itemCount === 1 ? '' : 'S'}` : ''}</span></div>
-            <div className="vt-rule" />
-
-            <div className="vt-items">
-              {!ticket && phase !== 'thinking' && (
-                <div className="vt-empty">Tap the mic and say the order —<br />table or to-go name first, then each item and any changes.</div>
-              )}
-              {phase === 'thinking' && !ticket && <div className="vt-empty"><span className="vt-spin" /> Building the ticket…</div>}
-
-              {ticket && ticket.lines.map((l) => (
-                <div key={l.key} className={'vt-line' + (sel === l.key ? ' sel' : '')}>
-                  <button type="button" className="vt-linebtn" onClick={() => { setSel(sel === l.key ? null : l.key); setNoteDraft(''); }} aria-label={`Change ${l.name}`}>
-                    <span className="vt-q">{l.quantity}</span>
-                    <span className="vt-name">{l.name.toUpperCase()}{l.variant ? ` (${l.variant.toUpperCase()})` : ''}</span>
-                  </button>
-                  {l.notes.map((n, k) => (
-                    <div key={k} className={'vt-note ' + (/^(no|hold|without)\b/i.test(n) ? 'no' : /^(extra|add|with)\b/i.test(n) ? 'add' : '')}>** {n.toUpperCase()}</div>
-                  ))}
-                  {l.needsVariant && (
-                    <div className="vt-pick"><p>Which size?</p><div>{l.variants.map((v) => <button key={v} type="button" onClick={() => setVariant(l, v)}>{v}</button>)}</div></div>
-                  )}
-                  {sel === l.key && (
-                    <div className="vt-edit">
-                      <div className="vt-row">
-                        <button type="button" aria-label="One less" onClick={() => upd(l.key, (x) => ({ ...x, quantity: Math.max(1, x.quantity - 1) }))}>−</button>
-                        <button type="button" aria-label="One more" onClick={() => upd(l.key, (x) => ({ ...x, quantity: x.quantity + 1 }))}>+</button>
-                        <button type="button" className="rm" onClick={() => removeLine(l.key)}>Remove</button>
-                        <button type="button" className="done" onClick={() => setSel(null)}>Done</button>
-                      </div>
-                      {l.notes.length > 0 && (
-                        <div className="vt-row">{l.notes.map((n, k) => <button key={k} type="button" className="vt-x" onClick={() => upd(l.key, (x) => ({ ...x, notes: x.notes.filter((_, j) => j !== k) }))}>{n} ✕</button>)}</div>
-                      )}
-                      <form className="vt-row" onSubmit={(e) => { e.preventDefault(); addNote(l); }}>
-                        <input id={`vt-note-${l.key}`} placeholder="Add a note, e.g. No onion" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} />
-                        <button type="submit">Add</button>
-                      </form>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {ticket && ticket.unclear.map((u) => (
-                <div key={u.key} className="vt-pick big" role="group" aria-label="Check this item">
-                  <p>{u.reason === 'sold_out' ? `${u.heard} is sold out.` : `Heard “${u.heard}”.`} {u.options.length ? 'Which one?' : 'Not on the menu.'}{u.quantity > 1 ? ` (×${u.quantity})` : ''}</p>
-                  <div>
-                    {u.options.map((o) => <button key={o.menuItemId} type="button" onClick={() => resolve(u, o)}>{o.name}</button>)}
-                    <button type="button" className="ghost" onClick={() => { dropUnclear(u); setAdding(true); setSearch(u.heard); }}>Search menu</button>
-                    <button type="button" className="ghost" onClick={() => dropUnclear(u)}>Remove</button>
-                  </div>
-                </div>
-              ))}
+            <div className="vt-orbtxt">
+              <span className={'vt-eyebrow ' + (autoSend || phase === 'sent' ? 'ok' : error ? 'err' : '')}>{eyebrow}{(busy || (convo && thinking > 0)) && <span className="vt-spin sm" aria-hidden="true" />}</span>
+              <span className="vt-otitle">{error ? 'Something went wrong' : status.title}</span>
+              <span className={'vt-otext' + (error ? ' err' : '')} role={error ? 'alert' : undefined}>{error || status.text}</span>
+              {heard && orbLive && <span className="vt-live">“{heard}”</span>}
             </div>
-
-            <div className="vt-rule" />
-            <div className="vt-foot">
-              <button type="button" className="vt-link" onClick={() => setAdding((v) => !v)}>+ Add item</button>
-              {ticket && <button type="button" className="vt-link" onClick={startOver}>Start over</button>}
-            </div>
-            {adding && (
-              <div className="vt-add">
-                <input id="vt-search" autoFocus placeholder="Search the menu" value={search} onChange={(e) => setSearch(e.target.value)} />
-                <div className="vt-results">
-                  {results.map((m) => <button key={m.id} type="button" onClick={() => addItem(m)}>{m.name}</button>)}
-                  {!results.length && <span className="vt-none">No match</span>}
-                </div>
-              </div>
-            )}
-          </article>
-          {heard && <p className="vt-heard"><b>Heard:</b> “{heard}”</p>}
-        </section>
-
-        <aside className="vt-today" aria-label="Today's tickets">
-          <div className="vt-today-h"><b>Today</b><span>{tickets.length} tickets</span></div>
-          {!tickets.length && <p className="vt-none">Sent tickets show here for reprint.</p>}
-          <ul>
-            {tickets.map((e, i) => (
-              <li key={`${e.orderId}-${e.at}-${i}`}>
-                <div><b>{e.head}</b><span>{[e.number && `#${e.number}`, e.who, `${e.count} items`, e.at].filter(Boolean).join(' · ')}</span></div>
-                <button type="button" aria-label={`Reprint ${e.head}`} onClick={() => reprint(e)}><PrintIcon /></button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      </div>
+          </div>
 
       {conflict && !conflict.missing && (
         <div className="vt-conflict" role="alert">
@@ -693,7 +673,7 @@ export default function VoiceTicketPage() {
           </div>
         </div>
       )}
-      {conflict && conflict.missing && (
+          {conflict && conflict.missing && (
         <div className="vt-conflict" role="alert">
           <div><b>Table {conflict.table} isn&apos;t set up in DineOpen.</b> Send it anyway with “Table {conflict.table}” printed on the kitchen ticket?</div>
           <div className="vt-row">
@@ -703,37 +683,151 @@ export default function VoiceTicketPage() {
         </div>
       )}
 
-      <footer className="vt-bar">
-        {handsFree ? (
-          <button type="button" className={'vt-mic' + (convo ? ' live' : '') + (hearing ? ' hearing' : '')} onClick={convo ? stopConvo : startConvo} disabled={phase === 'sending' || !!autoSend} aria-label={convo ? 'Stop listening' : 'Start talking'}>
-            {convo ? <StopIcon /> : <MicIcon size={30} />}
-          </button>
-        ) : (
-          <button type="button" className={'vt-mic' + (listening ? ' live' : '')} onClick={listening ? stopListening : startListening} disabled={busy} aria-label={listening ? 'Stop listening' : 'Start speaking'}>
-            {listening ? <StopIcon /> : <MicIcon size={30} />}
-          </button>
-        )}
-        <div className="vt-status">
-          {(listening || convo) && <div className={'vt-wave' + (convo && !hearing ? ' calm' : '')} aria-hidden="true">{levels.map((v, i) => <i key={i} style={{ height: `${Math.round(6 + v * 26)}px` }} />)}</div>}
-          {(busy || (convo && thinking > 0)) && <span className="vt-spin" aria-hidden="true" />}
-          <div className="vt-status-t">
-            <div className={'vt-st ' + status.tone}>{error ? 'Problem' : status.title}</div>
-            <div className={'vt-sx' + (error ? ' err' : '')} role={error ? 'alert' : undefined}>{error || status.text}</div>
-          </div>
-        </div>
-        {autoSend ? (
-          <button type="button" className="vt-send vt-undo" onClick={() => { setAutoSend(null); flash('Not sent — keep editing'); }}>
-            Undo <span>{autoSend.left}</span>
-          </button>
-        ) : (
-          <button type="button" className="vt-send" onClick={() => send()} disabled={!canSend}>
-            Send to kitchen{itemCount ? <span>{itemCount}</span> : null}
-          </button>
-        )}
-      </footer>
-      {reply && (convo || autoSend || phase === 'check') && (
-        <div className="vt-reply" role="status" aria-live="polite">
-          <span className="vt-reply-dot" aria-hidden="true"><MicIcon size={12} /></span>{reply}
+          {log.length === 0 ? (
+            <div className="vt-examples">
+              <span className="vt-cap">{handsFree ? 'Just talk — for example' : 'Tap the mic and say the whole order — for example'}</span>
+              <div className="vt-exgrid">
+                {examples.map((x) => (
+                  <div key={x.kind} className="vt-ex"><span>{x.kind}</span>“{x.say}”</div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <ol className="vt-log" aria-label="What was said" aria-live="polite">
+                {log.map((t) => (
+                  <li key={t.id} className={'vt-turn ' + t.kind}>
+                    <span className="vt-tb2" aria-hidden="true">{t.kind === 'you' ? 'You' : t.kind === 'did' ? '✓' : 'AI'}</span>
+                    <div><span className="vt-who">{t.kind === 'you' ? 'You said' : t.kind === 'did' ? 'Done' : 'Answer'}</span><span className="vt-tt">{t.text}</span></div>
+                  </li>
+                ))}
+                <li ref={logEnd} aria-hidden="true" className="vt-logend" />
+              </ol>
+              {handsFree && (
+                <div className="vt-try"><span>Try</span><i>“remove the fries”</i><i>“what’s on table 12?”</i><i>“that’s it”</i></div>
+              )}
+            </>
+          )}
+        </section>
+
+        <aside className="vt-side" aria-label="Kitchen ticket">
+            <article className={'vt-paper' + (phase === 'sent' ? ' sent' : '')} aria-live="polite">
+              <div className="vt-sub">KITCHEN TICKET</div>
+              <button type="button" className={'vt-head' + (ticket ? '' : ' ghost')} onClick={() => ticket && setEditHead((v) => !v)} disabled={!ticket} aria-label="Change table or name">{headText}</button>
+              {editHead && ticket && (
+                <div className="vt-headedit">
+                  <div className="vt-seg" role="group" aria-label="Order type">
+                    {orderTypes.slice(0, 4).map((ot) => (
+                      <button key={ot} type="button" className={ticket.orderType === ot ? 'on' : ''} onClick={() => setTicket((tk) => ({ ...tk, orderType: ot }))}>{label(ot) === 'Dine-in' && !/^dine/i.test(ot) ? ot : label(ot)}</button>
+                    ))}
+                  </div>
+                  {isDineIn(ticket.orderType) ? (
+                    <label className="vt-field">Table<input id="vt-table" inputMode="numeric" value={ticket.tableNumber || ''} onChange={(e) => setTicket((tk) => ({ ...tk, tableNumber: e.target.value.slice(0, 20) }))} /></label>
+                  ) : (
+                    <label className="vt-field">Name<input id="vt-name" value={ticket.customerName || ''} onChange={(e) => setTicket((tk) => ({ ...tk, customerName: e.target.value.slice(0, 60) }))} /></label>
+                  )}
+                  <button type="button" className="vt-btn vt-btn-dark" onClick={() => setEditHead(false)}>Done</button>
+                </div>
+              )}
+              <div className="vt-meta"><span>{server?.name ? `Server: ${server.name.split(' ')[0]}` : ''}</span><span>{itemCount ? `${itemCount} ITEM${itemCount === 1 ? '' : 'S'}` : ''}</span></div>
+              <div className="vt-rule" />
+
+              <div className="vt-items">
+                {!ticket && phase !== 'thinking' && (
+                  <div className="vt-empty">The ticket builds itself as you talk.<br />Table or to-go name first, then the items.</div>
+                )}
+                {phase === 'thinking' && !ticket && <div className="vt-empty"><span className="vt-spin" /> Building the ticket…</div>}
+
+                {ticket && ticket.lines.map((l) => (
+                  <div key={l.key} className={'vt-line' + (sel === l.key ? ' sel' : '')}>
+                    <button type="button" className="vt-linebtn" onClick={() => { setSel(sel === l.key ? null : l.key); setNoteDraft(''); }} aria-label={`Change ${l.name}`}>
+                      <span className="vt-q">{l.quantity}</span>
+                      <span className="vt-name">{l.name.toUpperCase()}{l.variant ? ` (${l.variant.toUpperCase()})` : ''}</span>
+                    </button>
+                    {l.notes.map((n, k) => (
+                      <div key={k} className={'vt-note ' + (/^(no|hold|without)\b/i.test(n) ? 'no' : /^(extra|add|with)\b/i.test(n) ? 'add' : '')}>** {n.toUpperCase()}</div>
+                    ))}
+                    {l.needsVariant && (
+                      <div className="vt-pick"><p>Which size?</p><div>{l.variants.map((v) => <button key={v} type="button" onClick={() => setVariant(l, v)}>{v}</button>)}</div></div>
+                    )}
+                    {sel === l.key && (
+                      <div className="vt-edit">
+                        <div className="vt-row">
+                          <button type="button" aria-label="One less" onClick={() => upd(l.key, (x) => ({ ...x, quantity: Math.max(1, x.quantity - 1) }))}>−</button>
+                          <button type="button" aria-label="One more" onClick={() => upd(l.key, (x) => ({ ...x, quantity: x.quantity + 1 }))}>+</button>
+                          <button type="button" className="rm" onClick={() => removeLine(l.key)}>Remove</button>
+                          <button type="button" className="done" onClick={() => setSel(null)}>Done</button>
+                        </div>
+                        {l.notes.length > 0 && (
+                          <div className="vt-row">{l.notes.map((n, k) => <button key={k} type="button" className="vt-x" onClick={() => upd(l.key, (x) => ({ ...x, notes: x.notes.filter((_, j) => j !== k) }))}>{n} ✕</button>)}</div>
+                        )}
+                        <form className="vt-row" onSubmit={(e) => { e.preventDefault(); addNote(l); }}>
+                          <input id={`vt-note-${l.key}`} placeholder="Add a note, e.g. No onion" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} />
+                          <button type="submit">Add</button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {ticket && ticket.unclear.map((u) => (
+                  <div key={u.key} className="vt-pick big" role="group" aria-label="Check this item">
+                    <p>{u.reason === 'sold_out' ? `${u.heard} is sold out.` : `Heard “${u.heard}”.`} {u.options.length ? 'Which one?' : 'Not on the menu.'}{u.quantity > 1 ? ` (×${u.quantity})` : ''}</p>
+                    <div>
+                      {u.options.map((o) => <button key={o.menuItemId} type="button" onClick={() => resolve(u, o)}>{o.name}</button>)}
+                      <button type="button" className="ghost" onClick={() => { dropUnclear(u); setAdding(true); setSearch(u.heard); }}>Search menu</button>
+                      <button type="button" className="ghost" onClick={() => dropUnclear(u)}>Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="vt-rule" />
+              <div className="vt-foot">
+                <button type="button" className="vt-link" onClick={() => setAdding((v) => !v)}>+ Add item</button>
+                {ticket && <button type="button" className="vt-link" onClick={startOver}>Start over</button>}
+              </div>
+              {adding && (
+                <div className="vt-add">
+                  <input id="vt-search" autoFocus placeholder="Search the menu" value={search} onChange={(e) => setSearch(e.target.value)} />
+                  <div className="vt-results">
+                    {results.map((m) => <button key={m.id} type="button" onClick={() => addItem(m)}>{m.name}</button>)}
+                    {!results.length && <span className="vt-none">No match</span>}
+                  </div>
+                </div>
+              )}
+            </article>
+            <div className="vt-sendwrap">
+              {ticket && ticket.lines.length > 0 && <span className="vt-est">Est. {getCurrencySymbol()}{estTotal.toFixed(2)}</span>}
+              {autoSend ? (
+                <button type="button" className="vt-send vt-undo" onClick={() => { setAutoSend(null); flash('Not sent — keep editing'); pushLog('say', 'Not sent — keep editing'); }}>
+                  <span className="vt-undofill" aria-hidden="true" />
+                  <b>Sending in {autoSend.left} — tap to Undo</b>
+                </button>
+              ) : (
+                <button type="button" className="vt-send" onClick={() => send()} disabled={!canSend}>
+                  Send to kitchen{itemCount ? <span>{itemCount}</span> : null}
+                </button>
+              )}
+              {handsFree && !autoSend && <span className="vt-hint">or just say “that’s it”</span>}
+            </div>
+        </aside>
+      </div>
+
+      {showToday && (
+        <div className="vt-drawerbg" onClick={(e) => { if (e.target === e.currentTarget) setShowToday(false); }}>
+          <aside className="vt-drawer" role="dialog" aria-modal="true" aria-label="Today's tickets">
+            <div className="vt-today-h"><b>Today</b><span>{tickets.length} tickets</span><button type="button" className="vt-x2" aria-label="Close" onClick={() => setShowToday(false)}>✕</button></div>
+            {!tickets.length && <p className="vt-none">Sent tickets show here for reprint.</p>}
+            <ul>
+              {tickets.map((e, i) => (
+                <li key={`${e.orderId}-${e.at}-${i}`}>
+                  <div><b>{e.head}</b><span>{[e.number && `#${e.number}`, e.who, `${e.count} items`, e.at].filter(Boolean).join(' · ')}</span></div>
+                  <button type="button" aria-label={`Reprint ${e.head}`} onClick={() => reprint(e)}><PrintIcon /></button>
+                </li>
+              ))}
+            </ul>
+          </aside>
         </div>
       )}
 
@@ -746,6 +840,9 @@ export default function VoiceTicketPage() {
 function MicIcon({ size = 20 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /></svg>;
 }
+function CheckIcon() {
+  return <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>;
+}
 function StopIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="3" /></svg>;
 }
@@ -754,8 +851,8 @@ function PrintIcon() {
 }
 
 const CSS = `
-.vt-wrap{--vt-bg:#EEEDEA;--vt-surface:#fff;--vt-ink:#18181B;--vt-muted:#5B5B63;--vt-line:#E4E3DF;--vt-red:#D92D20;--vt-ok:#0F7A43;--vt-warn:#B45309;
-  font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--vt-ink);background:var(--vt-bg);min-height:100vh;min-height:100dvh;width:100%;display:flex;flex-direction:column;padding:16px 20px 0;box-sizing:border-box}
+.vt-wrap{--vt-bg:#F8F1EF;--vt-head:#FFFAF8;--vt-surface:#fff;--vt-ink:#1C1917;--vt-muted:#57534E;--vt-line:#EFDDD8;--vt-red:#D92D20;--vt-deep:#9F1F14;--vt-soft:#FDE8E5;--vt-ok:#0F7A43;--vt-warn:#B45309;
+  font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--vt-ink);background:var(--vt-bg);min-height:100vh;min-height:100dvh;width:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box}
 .vt-wrap *{box-sizing:border-box}
 .vt-msg{padding:40px;text-align:center;color:var(--vt-muted)}
 .vt-off{max-width:520px;margin:60px auto;background:var(--vt-surface);border-radius:20px;padding:32px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
@@ -848,4 +945,79 @@ const CSS = `
 @keyframes vtin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.vt-wrap *{animation:none!important;transition:none!important}}
 .vt-wrap button:focus-visible,.vt-wrap input:focus-visible{outline:3px solid var(--vt-red);outline-offset:2px}
+/* ── 2026-10 redesign: conversation left, ticket right, red theme ── */
+.vt-top{margin:0;padding:12px 24px;background:var(--vt-head);border-bottom:1px solid var(--vt-line);gap:16px}
+.vt-brand-t{display:flex;flex-direction:column;line-height:1.15}.vt-brand-t b{font-size:18px}.vt-brand-t small{font-size:12px;color:var(--vt-muted)}
+.vt-floor{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 360px;justify-content:center;min-width:0}
+.vt-floor-l{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-muted);margin-right:4px}
+.vt-tb{min-width:34px;height:34px;padding:0 8px;border-radius:9px;display:inline-grid;place-items:center;font:600 14px 'IBM Plex Mono',ui-monospace,monospace;background:#fff;color:var(--vt-ink);border:1.5px solid #CFCAC4}
+.vt-tb.busy{background:var(--vt-soft);color:var(--vt-deep);border-color:var(--vt-red)}
+.vt-tb.mine{background:var(--vt-red);color:#fff;border-color:var(--vt-red)}
+.vt-floor-key{display:flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--vt-muted)}
+.vt-floor-key i{width:10px;height:10px;border-radius:3px;display:inline-block}.vt-floor-key i.free{border:1.5px solid #9C9893}.vt-floor-key i.busy{background:var(--vt-soft);border:1.5px solid var(--vt-red);margin-left:6px}
+.vt-topr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vt-chip.on{background:var(--vt-red);border-color:var(--vt-red);color:#fff}
+.vt-todaybtn{height:42px;padding:0 14px;border-radius:12px;border:1px solid var(--vt-line);background:#fff;color:var(--vt-ink);font:600 14px 'IBM Plex Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px}
+.vt-todaybtn span{font:600 12px 'IBM Plex Mono',monospace;background:var(--vt-soft);color:var(--vt-deep);border-radius:6px;padding:2px 7px}
+.vt-main{flex:1;display:flex;flex-wrap:wrap;gap:28px;padding:24px;max-width:1480px;width:100%;margin:0 auto;align-items:flex-start;grid-template-columns:none}
+.vt-convo{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.vt-side{flex:1 1 380px;max-width:460px;min-width:0;display:flex;flex-direction:column;gap:14px;position:sticky;top:16px}
+.vt-side .vt-paper{max-width:none;width:100%}
+.vt-orbcard{display:flex;align-items:center;gap:26px;padding:24px 28px;background:#fff;border-radius:24px;border:1px solid var(--vt-line)}
+.vt-orb{position:relative;width:128px;height:128px;flex:0 0 128px;border-radius:50%;border:0;padding:0;cursor:pointer;background:var(--vt-red);color:#fff;display:grid;place-items:center;box-shadow:0 22px 44px -20px rgba(217,45,32,.75)}
+.vt-orb.live{box-shadow:0 0 0 10px rgba(217,45,32,.12),0 22px 44px -18px rgba(217,45,32,.75)}
+.vt-orb.ok{background:var(--vt-ok);box-shadow:0 22px 44px -20px rgba(15,122,67,.7)}
+.vt-orb:disabled{cursor:default}
+.vt-ringa{position:absolute;inset:0;border-radius:50%;border:2px solid var(--vt-red);animation:vtRingA 1.8s ease-out infinite;pointer-events:none}
+.vt-ringa.two{animation-delay:.9s}
+.vt-orb:not(.hearing) .vt-ringa{animation-duration:3.2s;opacity:.4}
+@keyframes vtRingA{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.55);opacity:0}}
+.vt-obars{display:flex;align-items:center;gap:5px;height:46px}.vt-obars i{display:block;width:5px;border-radius:3px;background:#fff;transition:height .08s}
+.vt-orbtxt{display:flex;flex-direction:column;gap:5px;min-width:0}
+.vt-eyebrow{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--vt-red);display:flex;align-items:center;gap:8px}
+.vt-eyebrow.ok{color:var(--vt-ok)}.vt-eyebrow.err{color:#B42318}
+.vt-otitle{font-size:28px;font-weight:600;line-height:1.15;letter-spacing:-.01em}
+.vt-otext{font-size:16px;color:var(--vt-muted);line-height:1.45}.vt-otext.err{color:#B42318;font-weight:600}
+.vt-live{font-size:16px;font-style:italic;margin-top:2px;color:var(--vt-ink)}
+.vt-spin.sm{width:14px;height:14px;border-width:2px}
+.vt-cap{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-muted)}
+.vt-examples{display:flex;flex-direction:column;gap:12px}
+.vt-exgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vt-ex{background:#fff;border:1px solid var(--vt-line);border-radius:18px;padding:16px 18px;font-size:17px;line-height:1.4;display:flex;flex-direction:column;gap:6px}
+.vt-ex span{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--vt-deep)}
+.vt-log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 340px);overflow:auto}
+.vt-turn{display:flex;gap:14px;align-items:flex-start;padding:13px 16px;border-radius:18px}
+.vt-turn > div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vt-tb2{flex:0 0 auto;min-width:28px;height:28px;padding:0 8px;border-radius:8px;display:grid;place-items:center;font:700 12px 'IBM Plex Sans',sans-serif}
+.vt-who{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#78716C}
+.vt-tt{font-size:17px;line-height:1.45}
+.vt-turn.you .vt-tb2{background:#fff;border:1px solid var(--vt-line);color:#44403C}.vt-turn.you .vt-tt{color:#44403C}
+.vt-turn.did{background:#fff;border:1px solid var(--vt-line)}.vt-turn.did .vt-tb2{background:var(--vt-ok);color:#fff}.vt-turn.did .vt-tt{font-weight:500}
+.vt-turn.say{background:var(--vt-soft);border:1px solid var(--vt-red)}.vt-turn.say .vt-tb2{background:var(--vt-red);color:#fff;font-size:11px}.vt-turn.say .vt-tt{color:var(--vt-deep);font-weight:600}
+.vt-logend{height:1px}
+.vt-try{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--vt-muted)}
+.vt-try i{font-style:normal;font-size:14px;background:#fff;border:1px solid var(--vt-line);border-radius:999px;padding:7px 13px;color:var(--vt-ink)}
+.vt-conflict{margin:0;border-radius:18px}
+.vt-sendwrap{display:flex;flex-direction:column;gap:8px}
+.vt-est{text-align:right;font-size:14px;color:var(--vt-muted)}
+.vt-side .vt-send{flex:none;width:100%;height:76px;border-radius:20px;background:var(--vt-red);font-size:20px;position:relative;overflow:hidden}
+.vt-side .vt-send span{background:var(--vt-deep)}
+.vt-side .vt-send:disabled{background:#E7E1DE;color:#8A8580}.vt-side .vt-send:disabled span{background:#D6CFCB}
+.vt-side .vt-send.vt-undo{background:var(--vt-ok)}
+.vt-undofill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.18);animation:vtFill 3s linear forwards}
+.vt-side .vt-send b{position:relative;font-weight:600}
+@keyframes vtFill{from{width:100%}to{width:0%}}
+.vt-hint{text-align:center;font-size:13px;color:var(--vt-muted)}
+.vt-btn-dark{background:var(--vt-red)}
+.vt-toast{background:var(--vt-deep)}
+.vt-drawerbg{position:fixed;inset:0;background:rgba(28,25,23,.35);z-index:60;display:flex;justify-content:flex-end}
+.vt-drawer{width:min(420px,100vw);height:100%;background:var(--vt-bg);padding:18px;display:flex;flex-direction:column;gap:12px;overflow:auto;box-shadow:-20px 0 40px -20px rgba(0,0,0,.4)}
+.vt-drawer .vt-today-h{display:flex;align-items:center;gap:10px}.vt-drawer .vt-today-h b{font-size:20px;flex:1}
+.vt-drawer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.vt-drawer li{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--vt-line);border-radius:14px;padding:12px}
+.vt-drawer li div{flex:1;display:flex;flex-direction:column;gap:2px}.vt-drawer li span{font-size:12px;color:var(--vt-muted)}
+.vt-drawer li button,.vt-x2{width:44px;height:44px;border-radius:12px;border:1px solid var(--vt-line);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--vt-ink)}
+@media (prefers-reduced-motion:reduce){.vt-ringa,.vt-undofill{animation:none}}
+@media (max-width:900px){.vt-side{position:static;max-width:none}.vt-orbcard{gap:18px;padding:18px}.vt-orb{width:96px;height:96px;flex-basis:96px}.vt-otitle{font-size:22px}.vt-exgrid{grid-template-columns:minmax(0,1fr)}.vt-log{max-height:none}.vt-floor{justify-content:flex-start;order:3;flex-basis:100%}}
+@media (max-width:767px){.vt-top{padding-left:64px}}
 `;
