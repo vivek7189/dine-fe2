@@ -195,6 +195,8 @@ export const DineBotProvider = ({ children }) => {
     setRestaurantId(null);
   }, []);
 
+  const onVoicePage = /\/voice(\.html)?\/?$/.test(String(pathname || '').split('?')[0]);
+
   const value = useMemo(() => ({
     isOpen,
     restaurantId,
@@ -205,8 +207,9 @@ export const DineBotProvider = ({ children }) => {
   return (
     <DineBotContext.Provider value={value}>
       {children}
-      <DineBotButton />
-      {nudge && (
+      {/* Voice Ticket is a full-screen order station: its mic sits bottom-left, so no floating bot there. */}
+      {!onVoicePage && <DineBotButton />}
+      {nudge && !onVoicePage && (
         <DineBotNudge
           text={nudge}
           onClick={() => {
