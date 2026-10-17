@@ -32,7 +32,7 @@ import {
 import { buildShiftSummaryHtml } from '@/utils/printTemplates/shift/summary';
 import { buildReportSlip } from '@/utils/printTemplates/report';
 import { printReport } from '@/utils/printReport';
-import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
+import { fmtTime, fmtDate, restaurantDateKey } from '../../../lib/restaurantTime';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -109,6 +109,44 @@ function formatDate(dateStr) {
 function formatDateTime(dateStr) {
   if (!dateStr) return '-';
   return `${formatDate(dateStr)}, ${formatTime(dateStr)}`;
+}
+
+// A shift that has stayed open for more than a day keeps adding every sale since it was opened
+// (yesterday's + today's). A normal day shift is up to ~24 h (e.g. 10 pm → 10 pm), so warn past 26 h.
+const STALE_SHIFT_HOURS = 26;
+function staleShiftInfo(openedAt) {
+  const opened = openedAt ? new Date(openedAt) : null;
+  if (!opened || isNaN(opened.getTime())) return null;
+  const hours = Math.floor((Date.now() - opened.getTime()) / 3600000);
+  if (hours < STALE_SHIFT_HOURS) return null;
+  // The dates (restaurant clock) whose sales are inside this shift.
+  const days = [];
+  const seen = new Set();
+  for (let t = opened.getTime(); t <= Date.now() + 1; t += 3600000) {
+    const k = restaurantDateKey(new Date(t));
+    if (k && !seen.has(k)) { seen.add(k); days.push(k); }
+  }
+  const label = (k) => fmtDate(`${k}T12:00:00Z`, 'en-IN', { day: 'numeric', month: 'short' }, k);
+  return { hours, days: days.map(label) };
+}
+
+function StaleShiftBanner({ openedAt, who }) {
+  const info = staleShiftInfo(openedAt);
+  if (!info) return null;
+  const span = info.hours >= 48 ? `${Math.floor(info.hours / 24)} days` : `${info.hours} hours`;
+  return (
+    <div role="alert" style={{
+      display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '14px 16px', marginBottom: '16px',
+      borderRadius: '14px', background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e',
+    }}>
+      <LuCircleAlert size={20} style={{ flexShrink: 0, marginTop: '1px' }} />
+      <div style={{ fontSize: '13.5px', lineHeight: 1.5 }}>
+        <div style={{ fontWeight: 700, fontSize: '14px' }}>{who ? `${who}'s shift` : 'This shift'} has been open for {span}</div>
+        Opened {formatDateTime(openedAt)}, so the figures below include sales from <strong>{info.days.join(', ')}</strong>.
+        Count the cash and close this shift, then open a new one, so each day&apos;s sales stay separate.
+      </div>
+    </div>
+  );
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -566,6 +604,12 @@ export default function ShiftsCashPage() {
                     <LuClock size={12} />
                     {hrs}h {mins}m
                   </div>
+                  {staleShiftInfo(s.openedAt) && (
+                    <span title={`Open since ${formatDateTime(s.openedAt)} — figures include every day since then. Close it and open a new one.`}
+                      style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '999px', padding: '2px 8px' }}>
+                      Open since {formatDate(s.openedAt)}: close it
+                    </span>
+                  )}
                   <div style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a', fontFamily: 'monospace', minWidth: '80px', textAlign: 'right' }}>
                     {formatCurrency(s.totalSales || 0)}
                   </div>
@@ -668,6 +712,8 @@ export default function ShiftsCashPage() {
       ) : (
         /* ── Active Shift Dashboard ──────────────────────────────────── */
         <>
+          <StaleShiftBanner openedAt={shift.openedAt} />
+
           {/* Shift Info Bar */}
           <div style={{
             ...cardStyle,
@@ -1225,7 +1271,7 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                {['Date', 'Opened By', 'Opening', 'Total Sales', 'Orders', 'Closing', 'Difference', 'Status'].map(h => (
+                {['Date', 'Opened By', 'Opening', 'Total Sales (all payments)', 'Orders', 'Cash Expected', 'Cash Counted', 'Short / Extra', 'Status'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '10px 8px', color: '#64748b', fontWeight: '600', whiteSpace: 'nowrap', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>
                     {h}
                   </th>
@@ -1235,28 +1281,41 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
             <tbody>
               {shiftHistory.map((s, i) => {
                 const diff = s.cashDifference ?? (s.closingCash != null && s.expectedCash != null ? s.closingCash - s.expectedCash : null);
+                const isClosed = s.status !== 'open';
+                // Closed without counting (blank count, or ₹0 counted while cash was expected) — not a shortage.
+                const notCounted = isClosed && (s.cashCounted === false || (s.cashCounted == null && Number(s.closingCash || 0) === 0 && Number(s.expectedCash || 0) > 0));
+                const exact = diff != null && Math.abs(diff) < 0.011;
+                const openedDay = formatDate(s.openedAt);
+                const closedDay = s.closedAt ? formatDate(s.closedAt) : null;
+                const cell = { padding: '10px 8px', color: '#475569', fontFamily: 'monospace', whiteSpace: 'nowrap' };
                 return (
                   <tr key={s.id || i} style={{ borderBottom: '1px solid #f8fafc' }}>
                     <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: '#0f172a', fontWeight: '500' }}>
-                      {formatDate(s.openedAt)}
+                      {openedDay}
+                      <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>
+                        {formatTime(s.openedAt)} → {s.closedAt ? `${closedDay !== openedDay ? `${closedDay}, ` : ''}${formatTime(s.closedAt)}` : 'still open'}
+                      </div>
                     </td>
                     <td style={{ padding: '10px 8px', color: '#475569' }}>
                       {typeof s.openedBy === 'object' ? s.openedBy.name : (s.openedBy || '-')}
                     </td>
-                    <td style={{ padding: '10px 8px', color: '#475569', fontFamily: 'monospace' }}>
+                    <td style={cell}>
                       {formatCurrency(s.openingCash || 0)}
                     </td>
-                    <td style={{ padding: '10px 8px', color: '#0f172a', fontWeight: '600', fontFamily: 'monospace' }}>
+                    <td style={{ ...cell, color: '#0f172a', fontWeight: '600' }}>
                       {s.totalSales != null ? formatCurrency(s.totalSales) : '-'}
                     </td>
                     <td style={{ padding: '10px 8px', color: '#475569', textAlign: 'center' }}>
                       {s.orderCount ?? '-'}
                     </td>
-                    <td style={{ padding: '10px 8px', color: '#475569', fontFamily: 'monospace' }}>
-                      {s.closingCash != null ? formatCurrency(s.closingCash) : '-'}
+                    <td style={cell} title="Opening cash + cash sales + cash in − cash out">
+                      {s.expectedCash != null ? formatCurrency(s.expectedCash) : '-'}
                     </td>
-                    <td style={{ padding: '10px 8px', fontWeight: '600', fontFamily: 'monospace', color: diff == null ? '#94a3b8' : diff >= 0 ? '#16a34a' : '#dc2626' }}>
-                      {diff != null ? `${diff >= 0 ? '+' : ''}${formatCurrency(diff)}` : '-'}
+                    <td style={cell}>
+                      {!isClosed || s.closingCash == null ? '-' : notCounted ? <span style={{ color: '#b45309', fontFamily: 'inherit' }}>not counted</span> : formatCurrency(s.closingCash)}
+                    </td>
+                    <td style={{ ...cell, fontWeight: '600', color: notCounted || diff == null || exact ? '#94a3b8' : diff > 0 ? '#16a34a' : '#dc2626' }}>
+                      {!isClosed || diff == null ? '-' : notCounted ? '—' : exact ? 'Exact' : `${diff > 0 ? '+' : '−'}${formatCurrency(Math.abs(diff))} ${diff > 0 ? 'extra' : 'short'}`}
                     </td>
                     <td style={{ padding: '10px 8px' }}>
                       <span style={{
@@ -1277,6 +1336,10 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
               })}
             </tbody>
           </table>
+          <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '8px' }}>
+            Total Sales counts every payment type; Cash Expected is only the cash that should be in the drawer, so the two differ when card / UPI / other payments were taken.
+            An owner / admin shift counts every bill in the restaurant. To stop a cashier&apos;s shift and the owner&apos;s shift both counting the same bills, turn on &quot;Each bill in one shift only&quot; in Admin → Settings.
+          </div>
         </div>
       )}
     </div>

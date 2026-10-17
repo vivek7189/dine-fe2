@@ -12372,6 +12372,23 @@ const Admin = () => {
                   <div style={{ fontSize: '11px', color: '#9ca3af' }}>Per-staff shift tracking with cash drawer management</div>
                 </div>
               </div>
+              {posSettings.enableShiftsCash && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', marginLeft: '18px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettings(prev => ({ ...prev, shiftBillsInOneShift: !prev.shiftBillsInOneShift }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                  >
+                    {posSettings.shiftBillsInOneShift
+                      ? <FaToggleOn size={28} color="#ef4444" />
+                      : <FaToggleOff size={28} color="#d1d5db" />}
+                  </button>
+                  <div>
+                    <span style={{ fontSize: '13px', color: '#374151' }}>Each bill in one shift only</span>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>A bill counts in the shift of the person who billed it. The owner / admin shift no longer also counts it, so shift totals add up to real sales.</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Weighing Scale (Electron desktop only) */}

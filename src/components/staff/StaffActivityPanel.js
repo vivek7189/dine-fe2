@@ -71,7 +71,8 @@ function SortTh({ label, sortKey, sort, onSort }) {
   return (
     <th style={{ ...th, padding: 0 }} aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
       <button type="button" onClick={() => onSort(sortKey)}
-        title={active ? (sort.dir === 'asc' ? 'Ascending — tap for descending' : 'Descending — tap for ascending') : 'Sort'}
+        aria-label={`Sort by ${label}`}
+        title={active ? (sort.dir === 'asc' ? 'Ascending — tap for descending' : 'Descending — tap for ascending') : `Sort by ${label}`}
         style={{ ...th, border: 'none', borderBottom: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', width: '100%', color: active ? '#111827' : th.color }}>
         {label}
         <Icon size={10} style={{ color: active ? '#2563eb' : '#cbd5e1', flexShrink: 0 }} />
