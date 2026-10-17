@@ -8,7 +8,8 @@ import { gtagEvent, gtagAdsConversion, ADS_SIGNUP_LABEL, ADS_LEAD_LABEL } from '
 const enabled = () => typeof window !== 'undefined' && !!window.__posthogInitialized && !window.electronAPI;
 
 // Funnel events that also go to Google (GA4 key events → Google Ads conversions).
-const GOOGLE_EVENTS = { restaurant_created: 'restaurant_created', subscription_payment_verified: 'purchase' };
+// first_bill = the owner rang their first order — the best signal of a real restaurant from an ad.
+const GOOGLE_EVENTS = { restaurant_created: 'restaurant_created', first_order_created: 'first_bill', subscription_payment_verified: 'purchase' };
 
 export function track(event, props = {}) {
   if (GOOGLE_EVENTS[event]) gtagEvent(GOOGLE_EVENTS[event]);
