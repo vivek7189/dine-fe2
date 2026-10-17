@@ -6166,6 +6166,7 @@ const Admin = () => {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetResult, setResetResult] = useState(null); // { temporaryPassword, loginId, username } after generate
   const [showResetTempPassword, setShowResetTempPassword] = useState(false);
+  const [showResetTypedPassword, setShowResetTypedPassword] = useState(false);
   // Terminal PIN management (shared-terminal lock)
   const [pinStaff, setPinStaff] = useState(null); // member whose PIN is being managed
   const [pinMode, setPinMode] = useState('set'); // 'set' | 'generate' | 'disable'
@@ -7526,6 +7527,7 @@ const Admin = () => {
     setResetUsername(member?.username || '');
     setResetResult(null);
     setShowResetTempPassword(false);
+    setShowResetTypedPassword(false);
     setShowResetPasswordModal(true);
   };
 
@@ -7537,6 +7539,7 @@ const Admin = () => {
     setResetConfirmPassword('');
     setResetUsername('');
     setShowResetTempPassword(false);
+    setShowResetTypedPassword(false);
     setResetPasswordMode('generate');
   };
 
@@ -10640,39 +10643,63 @@ const Admin = () => {
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                       New password
                     </label>
-                    <input
-                      type="password"
-                      value={resetNewPassword}
-                      onChange={(e) => setResetNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showResetTypedPassword ? 'text' : 'password'}
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        autoComplete="new-password"
+                        style={{
+                          width: '100%',
+                          padding: '12px 44px 12px 16px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResetTypedPassword(v => !v)}
+                        title={showResetTypedPassword ? 'Hide password' : 'Show password'}
+                        aria-label={showResetTypedPassword ? 'Hide password' : 'Show password'}
+                        style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', padding: '8px', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      >
+                        {showResetTypedPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                      </button>
+                    </div>
                   </div>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
                       Confirm password
                     </label>
-                    <input
-                      type="password"
-                      value={resetConfirmPassword}
-                      onChange={(e) => setResetConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showResetTypedPassword ? 'text' : 'password'}
+                        value={resetConfirmPassword}
+                        onChange={(e) => setResetConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        autoComplete="new-password"
+                        style={{
+                          width: '100%',
+                          padding: '12px 44px 12px 16px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResetTypedPassword(v => !v)}
+                        title={showResetTypedPassword ? 'Hide password' : 'Show password'}
+                        aria-label={showResetTypedPassword ? 'Hide password' : 'Show password'}
+                        style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', padding: '8px', border: 'none', background: 'transparent', color: '#6b7280', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      >
+                        {showResetTypedPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="button"
