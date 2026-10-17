@@ -15,6 +15,7 @@ import { printDocument, buildKotDedupKey } from '../../../utils/printBridge';
 import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateKOTHTML } from '../../../utils/printHtmlGenerator';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { getOrderItemKey } from '../../../utils/orderItemKey';
 
 const MAX_SECONDS = 60;
 const todayKey = (rid) => `vt:tickets:${rid}:${new Date().toISOString().slice(0, 10)}`;
@@ -275,6 +276,26 @@ export default function VoiceTicketPage() {
     setTimeout(() => { setTicket(null); setHeard(''); setSel(null); setEditHead(false); setPhase((p) => (p === 'sent' ? 'idle' : p)); }, 1600);
   };
 
+  // Same item already on the open order (same item / size / options, and no kitchen note of its own)
+  // → raise that line's quantity, like the POS does. The server then marks it "updated +N", so the
+  // kitchen ticket shows the extra quantity. (Sending it as a separate line let the server merge it
+  // into the old line after marking, and the extra never reached the kitchen.) Lines with a note
+  // stay separate (noteLine), as before.
+  const mergeIntoOpenOrder = (existingItems, newItems) => {
+    const merged = (existingItems || []).map((it) => ({ ...it }));
+    for (const it of newItems) {
+      const k = getOrderItemKey(it);
+      const idx = merged.findIndex((x) => getOrderItemKey(x) === k);
+      if (idx >= 0) {
+        const q = (Number(merged[idx].quantity) || 0) + (Number(it.quantity) || 0);
+        merged[idx] = { ...merged[idx], quantity: q, total: (Number(merged[idx].price) || 0) * q };
+      } else {
+        merged.push(it);
+      }
+    }
+    return merged;
+  };
+
   // The table already has an open order: add these items to it (kitchen gets only the new items).
   const addToOpenOrder = async () => {
     if (!conflict || !ticket) return;
@@ -286,7 +307,7 @@ export default function VoiceTicketPage() {
       const who = server || {};
       const res = await apiClient.updateOrder(existing.id, {
         restaurantId: rid,
-        items: [...(existing.items || []), ...toItems(ticket)],
+        items: mergeIntoOpenOrder(existing.items, toItems(ticket)),
         updatedAt: new Date().toISOString(),
         lastUpdatedBy: { name: who.name || 'Staff Member', id: who.id || 'unknown' },
       });
@@ -397,6 +418,11 @@ export default function VoiceTicketPage() {
     <div className="vt-wrap">
       <header className="vt-top">
         <div className="vt-brand">
+          {/* Full screen (no side nav): the menu opens the nav as an overlay, like the dashboard. */}
+          <button type="button" className="vt-menu" aria-label="Open menu" title="Menu"
+            onClick={() => { try { window.dispatchEvent(new Event('openNavSidebar')); } catch { /* ignore */ } }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
           <span className="vt-mark" aria-hidden="true"><MicIcon size={16} /></span>
           <b>Voice Ticket</b>
         </div>
@@ -505,8 +531,8 @@ export default function VoiceTicketPage() {
           <div className="vt-today-h"><b>Today</b><span>{tickets.length} tickets</span></div>
           {!tickets.length && <p className="vt-none">Sent tickets show here for reprint.</p>}
           <ul>
-            {tickets.map((e) => (
-              <li key={e.orderId}>
+            {tickets.map((e, i) => (
+              <li key={`${e.orderId}-${e.at}-${i}`}>
                 <div><b>{e.head}</b><span>{[e.number && `#${e.number}`, e.who, `${e.count} items`, e.at].filter(Boolean).join(' · ')}</span></div>
                 <button type="button" aria-label={`Reprint ${e.head}`} onClick={() => reprint(e)}><PrintIcon /></button>
               </li>
@@ -569,7 +595,7 @@ function PrintIcon() {
 
 const CSS = `
 .vt-wrap{--vt-bg:#EEEDEA;--vt-surface:#fff;--vt-ink:#18181B;--vt-muted:#5B5B63;--vt-line:#E4E3DF;--vt-red:#D92D20;--vt-ok:#0F7A43;--vt-warn:#B45309;
-  font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--vt-ink);background:var(--vt-bg);min-height:100%;display:flex;flex-direction:column;padding:16px 20px 0;box-sizing:border-box}
+  font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--vt-ink);background:var(--vt-bg);min-height:100vh;min-height:100dvh;width:100%;display:flex;flex-direction:column;padding:16px 20px 0;box-sizing:border-box}
 .vt-wrap *{box-sizing:border-box}
 .vt-msg{padding:40px;text-align:center;color:var(--vt-muted)}
 .vt-off{max-width:520px;margin:60px auto;background:var(--vt-surface);border-radius:20px;padding:32px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
@@ -578,6 +604,9 @@ const CSS = `
 .vt-btn-dark{background:var(--vt-ink);color:#fff}
 .vt-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .vt-brand{display:flex;align-items:center;gap:10px;font-size:19px}
+.vt-menu{width:40px;height:40px;border-radius:12px;border:1px solid var(--vt-line);background:var(--vt-surface);color:var(--vt-ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.vt-menu:hover{background:#F4F4F2}
+@media (max-width:767px){.vt-menu{display:none}.vt-top{padding-left:52px}}
 .vt-mark{width:32px;height:32px;border-radius:9px;background:var(--vt-red);color:#fff;display:grid;place-items:center}
 .vt-servers{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--vt-muted);font-size:14px}
 .vt-chip{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--vt-line);background:var(--vt-surface);color:var(--vt-ink);font:600 14px inherit;font-family:inherit;cursor:pointer}

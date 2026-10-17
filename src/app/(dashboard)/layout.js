@@ -93,7 +93,9 @@ function DashboardLayoutContent({ children }) {
   const isDashboardPage =
     _navPath.endsWith('/dashboard') ||
     _navPath.endsWith('/dashboard/bar') ||
-    _navPath.endsWith('/dashboard/v2');
+    _navPath.endsWith('/dashboard/v2') ||
+    // Voice Ticket: full-screen order station — the nav opens as an overlay from its menu button.
+    _navPath.endsWith('/voice');
 
   // ─── Order Notifications (global Pusher listener) ───
   const {
