@@ -13842,6 +13842,31 @@ const Admin = () => {
                     </button>
                     <span style={{ fontSize: '13px', color: '#374151' }}>Shared tablet — ask “who’s taking it?” on each order</span>
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      aria-label="Hands-free listening"
+                      onClick={() => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), handsFree: prev.voiceTicket?.handsFree === false } }))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >
+                      {posSettings.voiceTicket?.handsFree !== false
+                        ? <FaToggleOn size={24} color="#ef4444" />
+                        : <FaToggleOff size={24} color="#d1d5db" />}
+                    </button>
+                    <span style={{ fontSize: '13px', color: '#374151' }}>Hands-free — keep listening, change the order by voice, ask questions; “that’s it” sends (3 s to undo)</span>
+                  </div>
+                  {posSettings.voiceTicket?.handsFree !== false && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '13px', color: '#374151', minWidth: '210px' }}>Answers</span>
+                      <select value={posSettings.voiceTicket?.replies || 'text'}
+                        onChange={(e) => setPosSettings(prev => ({ ...prev, voiceTicket: { ...(prev.voiceTicket || {}), replies: e.target.value } }))}
+                        style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', background: '#fff' }}>
+                        <option value="text">Show on screen</option>
+                        <option value="voice">Show and speak out loud (device voice, no extra cost)</option>
+                        <option value="off">Off</option>
+                      </select>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '13px', color: '#374151', minWidth: '210px' }}>After the ticket is sent</span>
                     <select value={posSettings.voiceTicket?.afterSend || 'keep_open'}

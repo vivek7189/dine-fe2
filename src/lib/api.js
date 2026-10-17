@@ -4053,6 +4053,21 @@ class ApiClient {
     return this.request(`/api/voice-ticket/${restaurantId}/understand`, { method: 'POST', body: { transcript } });
   }
 
+  // Hands-free Voice Ticket: one spoken sentence + the current draft → ops on the draft + a short reply.
+  async voiceTicketConverse(restaurantId, { audio = null, transcript = '', draft = null } = {}) {
+    const compact = draft ? {
+      orderType: draft.orderType || null, tableNumber: draft.tableNumber || null, customerName: draft.customerName || null,
+      lines: (draft.lines || []).map((l) => ({ key: l.key, menuItemId: l.menuItemId, name: l.name, quantity: l.quantity, variant: l.variant || null, notes: l.notes || [] })),
+    } : null;
+    if (audio) {
+      const fd = new FormData();
+      fd.append('audio', audio, 'sentence.wav');
+      if (compact) fd.append('draft', JSON.stringify(compact));
+      return this.request(`/api/voice-ticket/${restaurantId}/converse`, { method: 'POST', body: fd });
+    }
+    return this.request(`/api/voice-ticket/${restaurantId}/converse`, { method: 'POST', body: { transcript, draft: compact } });
+  }
+
   async processVoiceOrder(transcript, restaurantId) {
     return this.request(`/api/voice/process-order`, {
       method: 'POST',

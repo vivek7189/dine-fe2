@@ -16,6 +16,7 @@ import { printKOTByStations } from '../../../utils/printKotStations';
 import { generateKOTHTML } from '../../../utils/printHtmlGenerator';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { getOrderItemKey } from '../../../utils/orderItemKey';
+import { startVadSession } from '../../../utils/voiceVad';
 
 const MAX_SECONDS = 60;
 const todayKey = (rid) => `vt:tickets:${rid}:${new Date().toISOString().slice(0, 10)}`;
@@ -58,6 +59,16 @@ export default function VoiceTicketPage() {
   const [levels, setLevels] = useState(() => Array(14).fill(0.08));
 
   const rec = useRef({ stream: null, recorder: null, chunks: [], timer: null, raf: null, ctx: null, started: 0, metered: false, voiced: 0 });
+  // hands-free conversation (settings.handsFree)
+  const [convo, setConvo] = useState(false);
+  const [hearing, setHearing] = useState(false);
+  const [thinking, setThinking] = useState(0);
+  const [reply, setReply] = useState('');
+  const [autoSend, setAutoSend] = useState(null); // { left: seconds } — "done" said → send unless Undo
+  const vadRef = useRef(null);
+  const convoRef = useRef(false);
+  const chainRef = useRef(Promise.resolve());
+  const ticketRef = useRef(null);
   const toastTimer = useRef(null);
   const flash = useCallback((msg) => {
     clearTimeout(toastTimer.current);
@@ -102,7 +113,11 @@ export default function VoiceTicketPage() {
     })();
   }, []);
 
+  useEffect(() => { ticketRef.current = ticket; }, [ticket]);
+
   useEffect(() => () => {
+    try { vadRef.current && vadRef.current.stop(); } catch { /* gone */ }
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch { /* none */ }
     const r = rec.current;
     clearInterval(r.timer); cancelAnimationFrame(r.raf);
     try { r.recorder && r.recorder.state !== 'inactive' && r.recorder.stop(); } catch { /* gone */ }
@@ -201,6 +216,121 @@ export default function VoiceTicketPage() {
   };
   const stopListening = () => { try { rec.current.recorder && rec.current.recorder.state !== 'inactive' && rec.current.recorder.stop(); } catch { /* stopped */ } };
 
+  // ── hands-free conversation ──
+  const speak = (text) => {
+    if (settings?.replies !== 'voice' || !text || typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      const u = new window.SpeechSynthesisUtterance(text);
+      u.rate = 1.05;
+      vadRef.current && vadRef.current.pause(); // do not hear our own reply
+      // resume when speech ends — or after its expected length: some engines never report "end"
+      let resumed = false;
+      const resume = () => { if (resumed) return; resumed = true; if (convoRef.current && vadRef.current) vadRef.current.resume(); };
+      u.onend = resume; u.onerror = resume;
+      setTimeout(resume, Math.min(8000, 900 + text.split(/\s+/).length * 330));
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch { /* speech not available — the reply is on screen */ }
+  };
+
+  const applyAgent = (res) => {
+    if (res.cancel) { ticketRef.current = null; setTicket(null); setHeard(''); return null; }
+    const base = ticketRef.current || { orderType: orderTypes[0] || 'dine-in', tableNumber: null, customerName: null, orderNotes: null, lines: [], unclear: [] };
+    const removed = new Set(res.remove || []);
+    let tk = { ...base, lines: base.lines.filter((l) => !removed.has(l.key)), unclear: [...(base.unclear || [])] };
+    if (res.header) tk = { ...tk, ...res.header };
+    for (const c of res.changes || []) {
+      tk.lines = tk.lines.map((l) => {
+        if (l.key !== c.key) return l;
+        const x = { ...l, notes: [...(l.notes || [])] };
+        if (c.quantity) x.quantity = c.quantity;
+        if (c.variant) {
+          const item = menu.find((m) => m.id === l.menuItemId) || {};
+          const v = (item.variants || []).find((o) => o && o.name && o.name.toLowerCase() === c.variant.toLowerCase());
+          if (v) { x.variant = v.name; x.needsVariant = false; if (Number(v.price)) x.price = Number(v.price); }
+          else if (!x.notes.includes(c.variant)) x.notes.push(c.variant);
+        }
+        const drop = (c.removeNotes || []).map((n) => n.toLowerCase());
+        x.notes = [...x.notes.filter((n) => !drop.includes(n.toLowerCase())), ...(c.addNotes || []).filter((n) => !x.notes.includes(n))];
+        return x;
+      });
+    }
+    tk.lines = [...tk.lines, ...(res.addLines || [])];
+    tk.unclear = [...tk.unclear, ...(res.unclear || [])];
+    const empty = !tk.lines.length && !tk.unclear.length && !tk.tableNumber && !tk.customerName;
+    ticketRef.current = empty ? null : tk;
+    setTicket(empty ? null : tk);
+    return ticketRef.current;
+  };
+
+  const stopConvo = () => {
+    convoRef.current = false;
+    setConvo(false); setHearing(false);
+    try { vadRef.current && vadRef.current.stop(); } catch { /* gone */ }
+    vadRef.current = null;
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch { /* none */ }
+    setLevels(Array(14).fill(0.08));
+    setPhase(ticketRef.current ? 'check' : 'idle');
+  };
+
+  const requestAutoSend = (tk) => {
+    if (!tk || !tk.lines.length) { const m = 'Nothing on the ticket yet.'; setReply(m); speak(m); return; }
+    if (tk.unclear.length || tk.lines.some((l) => l.needsVariant)) { const m = 'Pick the highlighted item first, then say send.'; setReply(m); speak(m); return; }
+    stopConvo();
+    setPhase('check');
+    setAutoSend({ left: 3 });
+  };
+
+  const handleSegment = (blob) => {
+    chainRef.current = chainRef.current.then(async () => {
+      if (!convoRef.current) return;
+      setThinking((n) => n + 1);
+      try {
+        const res = await apiClient.voiceTicketConverse(rid, { audio: blob, draft: ticketRef.current });
+        if (!res?.success) throw new Error(res?.error || 'Could not understand that');
+        if (res.heardNothing || !convoRef.current) return;
+        setError('');
+        setHeard(res.transcript || '');
+        const tk = applyAgent(res);
+        // Speak only what needs ears — answers, "sending", "cancelled". Order edits are on the ticket;
+        // speaking them would pause the mic (it must not hear its own voice) while staff keep talking.
+        if (res.say) { setReply(res.say); if (!res.touched || res.send || res.cancel) speak(res.say); }
+        if (res.send) requestAutoSend(tk);
+      } catch (e) {
+        setError(e?.message || 'Voice service had a problem — keep talking or tap to edit');
+      } finally {
+        setThinking((n) => Math.max(0, n - 1));
+      }
+    });
+  };
+
+  const startConvo = async () => {
+    setError(''); setReply(''); setAutoSend(null);
+    if (!navigator.mediaDevices?.getUserMedia) { setError('This device cannot record here. Use Add item instead.'); return; }
+    try {
+      convoRef.current = true;
+      setConvo(true); setPhase('listening');
+      vadRef.current = await startVadSession({
+        onSegment: handleSegment,
+        onLevels: setLevels,
+        onSpeaking: setHearing,
+        onIdle: () => { if (convoRef.current) { stopConvo(); flash('Stopped listening — tap the mic to talk again'); } },
+      });
+      if (!convoRef.current) { vadRef.current.stop(); vadRef.current = null; }
+    } catch (e) {
+      convoRef.current = false; setConvo(false); setPhase(ticketRef.current ? 'check' : 'idle');
+      setError(e?.name === 'NotAllowedError' ? 'Microphone is blocked — allow it in the browser / device settings' : 'Could not start the microphone');
+    }
+  };
+
+  // "That's it" → 3 s to Undo, then the normal send (auto: an occupied table gets the items added)
+  useEffect(() => {
+    if (!autoSend) return undefined;
+    if (autoSend.left <= 0) { setAutoSend(null); send({ auto: true }); return undefined; }
+    const t = setTimeout(() => setAutoSend((a) => (a ? { left: a.left - 1 } : a)), 1000);
+    return () => clearTimeout(t);
+  }, [autoSend]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── ticket edits ──
   const upd = (key, fn) => setTicket((tk) => ({ ...tk, lines: tk.lines.map((l) => (l.key === key ? fn(l) : l)) }));
   const removeLine = (key) => { setTicket((tk) => ({ ...tk, lines: tk.lines.filter((l) => l.key !== key) })); setSel(null); };
@@ -252,7 +382,7 @@ export default function VoiceTicketPage() {
     return 'printer';
   }, [printSettings, restaurant, rid]);
 
-  const canSend = ticket && ticket.lines.length > 0 && ticket.unclear.length === 0 && !ticket.lines.some((l) => l.needsVariant) && phase === 'check'
+  const canSend = ticket && ticket.lines.length > 0 && ticket.unclear.length === 0 && !ticket.lines.some((l) => l.needsVariant) && (phase === 'check' || (convo && phase === 'listening'))
     && (!isDineIn(ticket.orderType) || !!String(ticket.tableNumber || '').trim() || true);
 
   const toItems = (tk) => tk.lines.map((l) => ({
@@ -283,9 +413,12 @@ export default function VoiceTicketPage() {
   // stay separate (noteLine), as before.
   const mergeIntoOpenOrder = (existingItems, newItems) => {
     const merged = (existingItems || []).map((it) => ({ ...it }));
+    // same dish (item / size / options / seat) AND the same kitchen notes — a plain burger never joins
+    // "burger, no lettuce"; an existing POS line (no noteLine flag) still counts as the same dish.
+    const dish = (it) => getOrderItemKey({ ...it, noteLine: false });
+    const notesOf = (it) => (Array.isArray(it.notes) ? it.notes.join(',') : String(it.notes || '')).toLowerCase().split(',').map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean).sort().join(',');
     for (const it of newItems) {
-      const k = getOrderItemKey(it);
-      const idx = merged.findIndex((x) => getOrderItemKey(x) === k);
+      const idx = merged.findIndex((x) => dish(x) === dish(it) && notesOf(x) === notesOf(it));
       if (idx >= 0) {
         const q = (Number(merged[idx].quantity) || 0) + (Number(it.quantity) || 0);
         merged[idx] = { ...merged[idx], quantity: q, total: (Number(merged[idx].price) || 0) * q };
@@ -297,11 +430,11 @@ export default function VoiceTicketPage() {
   };
 
   // The table already has an open order: add these items to it (kitchen gets only the new items).
-  const addToOpenOrder = async () => {
-    if (!conflict || !ticket) return;
+  const addToOpenOrder = async (conf = conflict) => {
+    if (!conf || !ticket) return;
     setPhase('sending'); setError('');
     try {
-      const full = await apiClient.getOrderById(conflict.orderId);
+      const full = await apiClient.getOrderById(conf.orderId);
       const existing = full?.order || (Array.isArray(full?.orders) ? full.orders[0] : null) || full?.data || full;
       if (!existing?.id || ['completed', 'cancelled', 'paid', 'settled'].includes(existing.status)) throw new Error('That order is already closed — send this as a new order');
       const who = server || {};
@@ -321,8 +454,10 @@ export default function VoiceTicketPage() {
     }
   };
 
-  const send = async ({ tableNotSetUp = false } = {}) => {
-    if (!canSend && !tableNotSetUp) return;
+  const send = async ({ tableNotSetUp = false, auto = false } = {}) => {
+    const ready = ticket && ticket.lines.length > 0 && ticket.unclear.length === 0 && !ticket.lines.some((l) => l.needsVariant);
+    if (!canSend && !tableNotSetUp && !(auto && ready)) return;
+    if (convoRef.current) stopConvo();
     setPhase('sending'); setError('');
     const tk = ticket;
     const dine = isDineIn(tk.orderType);
@@ -359,7 +494,12 @@ export default function VoiceTicketPage() {
         try {
           const open = await apiClient.getOpenOrders(rid);
           const hit = (open?.openOrders || []).find((o) => String(o.tableNumber || '') === String(tk.tableNumber) && !['completed', 'cancelled'].includes(o.status));
-          if (hit) { setConflict({ orderId: hit.id, number: hit.orderNumber || '', items: hit.itemCount || (hit.items || []).length, table: tk.tableNumber }); setPhase('check'); return; }
+          if (hit) {
+            const conf = { orderId: hit.id, number: hit.orderNumber || '', items: hit.itemCount || (hit.items || []).length, table: tk.tableNumber };
+            // spoken "Table 5 … that's it" for a table that is already eating → add to its order
+            if (auto) { setPhase('check'); await addToOpenOrder(conf); return; }
+            setConflict(conf); setPhase('check'); return;
+          }
         } catch { /* fall through to the plain message */ }
       }
       // Table number the restaurant hasn't set up in DineOpen → offer to send with the number on the ticket
@@ -388,8 +528,11 @@ export default function VoiceTicketPage() {
     ? (isDineIn(ticket.orderType) ? (ticket.tableNumber ? `TABLE ${ticket.tableNumber}` : 'DINE-IN') : `${label(ticket.orderType).toUpperCase()}${ticket.customerName ? ' · ' + ticket.customerName.toUpperCase() : ''}`)
     : 'NEW ORDER';
 
-  let status = { tone: '', title: 'Ready', text: 'Tap the mic and say the whole order' };
-  if (phase === 'listening') status = { tone: 'live', title: `Listening · 0:${String(secs).padStart(2, '0')}`, text: 'Tap again when you’re done' };
+  const handsFree = settings?.handsFree !== false;
+  let status = { tone: '', title: 'Ready', text: handsFree ? 'Tap the mic and just talk — say “that’s it” to send' : 'Tap the mic and say the whole order' };
+  if (autoSend) status = { tone: 'ok', title: `Sending in ${autoSend.left}`, text: 'Tap Undo to keep editing' };
+  else if (convo) status = { tone: 'live', title: hearing ? 'Hearing you' : thinking ? 'Got it…' : 'Listening', text: 'Talk naturally · ask anything · say “that’s it” to send' };
+  else if (phase === 'listening') status = { tone: 'live', title: `Listening · 0:${String(secs).padStart(2, '0')}`, text: 'Tap again when you’re done' };
   else if (phase === 'thinking') status = { tone: '', title: 'Building the ticket', text: 'Matching what you said to the menu…' };
   else if (phase === 'sending') status = { tone: '', title: 'Sending', text: 'Placing the order and printing…' };
   else if (phase === 'sent') status = { tone: 'ok', title: 'Sent', text: 'Printed in the kitchen' };
@@ -545,7 +688,7 @@ export default function VoiceTicketPage() {
         <div className="vt-conflict" role="alert">
           <div><b>Table {conflict.table} already has an open order.</b> Add these items to it? The kitchen gets only the new items.</div>
           <div className="vt-row">
-            <button type="button" className="done" onClick={addToOpenOrder} disabled={phase === 'sending'}>Add to Table {conflict.table}&apos;s order</button>
+            <button type="button" className="done" onClick={() => addToOpenOrder()} disabled={phase === 'sending'}>Add to Table {conflict.table}&apos;s order</button>
             <button type="button" onClick={() => setConflict(null)}>Cancel</button>
           </div>
         </div>
@@ -561,21 +704,38 @@ export default function VoiceTicketPage() {
       )}
 
       <footer className="vt-bar">
-        <button type="button" className={'vt-mic' + (listening ? ' live' : '')} onClick={listening ? stopListening : startListening} disabled={busy} aria-label={listening ? 'Stop listening' : 'Start speaking'}>
-          {listening ? <StopIcon /> : <MicIcon size={30} />}
-        </button>
+        {handsFree ? (
+          <button type="button" className={'vt-mic' + (convo ? ' live' : '') + (hearing ? ' hearing' : '')} onClick={convo ? stopConvo : startConvo} disabled={phase === 'sending' || !!autoSend} aria-label={convo ? 'Stop listening' : 'Start talking'}>
+            {convo ? <StopIcon /> : <MicIcon size={30} />}
+          </button>
+        ) : (
+          <button type="button" className={'vt-mic' + (listening ? ' live' : '')} onClick={listening ? stopListening : startListening} disabled={busy} aria-label={listening ? 'Stop listening' : 'Start speaking'}>
+            {listening ? <StopIcon /> : <MicIcon size={30} />}
+          </button>
+        )}
         <div className="vt-status">
-          {listening && <div className="vt-wave" aria-hidden="true">{levels.map((v, i) => <i key={i} style={{ height: `${Math.round(6 + v * 26)}px` }} />)}</div>}
-          {busy && <span className="vt-spin" aria-hidden="true" />}
+          {(listening || convo) && <div className={'vt-wave' + (convo && !hearing ? ' calm' : '')} aria-hidden="true">{levels.map((v, i) => <i key={i} style={{ height: `${Math.round(6 + v * 26)}px` }} />)}</div>}
+          {(busy || (convo && thinking > 0)) && <span className="vt-spin" aria-hidden="true" />}
           <div className="vt-status-t">
             <div className={'vt-st ' + status.tone}>{error ? 'Problem' : status.title}</div>
             <div className={'vt-sx' + (error ? ' err' : '')} role={error ? 'alert' : undefined}>{error || status.text}</div>
           </div>
         </div>
-        <button type="button" className="vt-send" onClick={send} disabled={!canSend}>
-          Send to kitchen{itemCount ? <span>{itemCount}</span> : null}
-        </button>
+        {autoSend ? (
+          <button type="button" className="vt-send vt-undo" onClick={() => { setAutoSend(null); flash('Not sent — keep editing'); }}>
+            Undo <span>{autoSend.left}</span>
+          </button>
+        ) : (
+          <button type="button" className="vt-send" onClick={() => send()} disabled={!canSend}>
+            Send to kitchen{itemCount ? <span>{itemCount}</span> : null}
+          </button>
+        )}
       </footer>
+      {reply && (convo || autoSend || phase === 'check') && (
+        <div className="vt-reply" role="status" aria-live="polite">
+          <span className="vt-reply-dot" aria-hidden="true"><MicIcon size={12} /></span>{reply}
+        </div>
+      )}
 
       {toast && <div className="vt-toast" role="status">{toast}</div>}
       <style>{CSS}</style>
@@ -663,6 +823,13 @@ const CSS = `
 .vt-mic{width:72px;height:72px;border-radius:50%;border:0;background:var(--vt-red);color:#fff;display:grid;place-items:center;cursor:pointer;flex-shrink:0;box-shadow:0 10px 22px -10px rgba(217,45,32,.7)}
 .vt-mic.live{background:#111;box-shadow:0 0 0 6px rgba(217,45,32,.25)}
 .vt-mic:disabled{opacity:.5;cursor:wait}
+.vt-mic.live.hearing{background:var(--vt-red);animation:vtPulse 1.1s ease-in-out infinite}
+@keyframes vtPulse{0%,100%{box-shadow:0 0 0 6px rgba(217,45,32,.25)}50%{box-shadow:0 0 0 14px rgba(217,45,32,.12)}}
+@media (prefers-reduced-motion:reduce){.vt-mic.live.hearing{animation:none}}
+.vt-wave.calm i{background:#C9C8C4}
+.vt-send.vt-undo{background:var(--vt-ok)}.vt-send.vt-undo span{background:rgba(255,255,255,.22)}
+.vt-reply{position:fixed;left:50%;bottom:118px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));display:flex;align-items:center;gap:10px;background:var(--vt-surface);color:var(--vt-ink);border:1px solid var(--vt-line);border-radius:16px;padding:12px 16px;font-size:15px;line-height:1.35;box-shadow:0 18px 40px -18px rgba(0,0,0,.35);z-index:40}
+.vt-reply-dot{width:24px;height:24px;border-radius:8px;background:var(--vt-red);color:#fff;display:grid;place-items:center;flex-shrink:0}
 .vt-status{flex:1 1 260px;min-width:0;min-height:72px;border-radius:18px;background:var(--vt-surface);padding:10px 18px;display:flex;align-items:center;gap:14px}
 .vt-status-t{min-width:0}
 .vt-st{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-muted)}
