@@ -145,7 +145,7 @@ export default function VoiceTicketPage() {
       const list = [];
       (res?.floors || []).forEach((f) => (f.tables || []).forEach((t) => {
         const n = t.number ?? t.tableNumber ?? t.name;
-        if (n != null && String(n).trim()) list.push({ n: String(n).trim(), busy: t.status === 'occupied' || !!t.currentOrderId });
+        if (n != null && String(n).trim()) list.push({ n: String(n).trim(), busy: t.status === 'occupied' || !!t.currentOrderId, orderId: t.currentOrderId || null });
       }));
       list.sort((a, b) => a.n.localeCompare(b.n, undefined, { numeric: true }));
       setFloor(list.slice(0, 60));
@@ -563,6 +563,28 @@ export default function VoiceTicketPage() {
   };
 
   // The table already has an open order: add these items to it (kitchen gets only the new items).
+  // The ticket's table already has an order → show what is on it, and Send adds to it
+  const [onTable, setOnTable] = useState(null); // { orderId, number, items: [{name, quantity}], table }
+  const tkTable = ticket && isDineIn(ticket.orderType) && ticket.tableNumber ? String(ticket.tableNumber) : '';
+  const tkTableBusy = !!(tkTable && floor.some((t) => t.n === tkTable && t.busy));
+  useEffect(() => {
+    if (!rid || !tkTable || !tkTableBusy) { setOnTable(null); return undefined; }
+    let alive = true;
+    // the floor knows the table's current order → load it directly (an older order is outside the
+    // open-orders lookback); else look through the open orders
+    const ft = floor.find((t) => t.n === tkTable);
+    const CLOSED = ['completed', 'cancelled', 'paid', 'settled', 'deleted', 'merged'];
+    const byId = ft && ft.orderId
+      ? apiClient.getOrderById(ft.orderId).then((full) => { const o = full?.order || (Array.isArray(full?.orders) ? full.orders[0] : null) || full?.data || full; return o && o.id && !CLOSED.includes(o.status) ? o : null; }).catch(() => null)
+      : Promise.resolve(null);
+    byId.then((o) => o || apiClient.getOpenOrders(rid).then((open) => (open?.openOrders || []).find((x) => String(x.tableNumber || '') === tkTable && !CLOSED.includes(x.status)) || null)).then((hit) => {
+      if (!alive) return;
+      setOnTable(hit ? { orderId: hit.id, number: hit.dailyOrderId || hit.kotNumber || '', table: tkTable,
+        items: (hit.items || []).filter((i) => i && Number(i.quantity) > 0).map((i) => ({ name: i.name, quantity: Number(i.quantity) || 1 })) } : null);
+    }).catch(() => { if (alive) setOnTable(null); });
+    return () => { alive = false; };
+  }, [rid, tkTable, tkTableBusy]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const addToOpenOrder = async (conf = conflict) => {
     const ticket = ticketRef.current; // eslint-disable-line no-shadow
     if (!conf || !ticket) return;
@@ -594,6 +616,11 @@ export default function VoiceTicketPage() {
     const ready = tk && tk.lines.length > 0 && tk.unclear.length === 0 && !tk.lines.some((l) => l.needsVariant);
     if (!canSend && !(tableNotSetUp && ready) && !(auto && ready)) { reportSend('Nothing ready to send.'); return; }
     if (convoRef.current) stopConvo();
+    // table already eating → straight onto its order (no failed "new order" first)
+    if (onTable && isDineIn(tk.orderType) && String(tk.tableNumber || '') === onTable.table && !tableNotSetUp) {
+      await addToOpenOrder({ orderId: onTable.orderId, number: onTable.number, items: onTable.items.length, table: onTable.table });
+      return;
+    }
     setPhase('sending'); setError('');
     const dine = isDineIn(tk.orderType);
     const who = server || {};
@@ -854,6 +881,14 @@ export default function VoiceTicketPage() {
                 )}
                 {phase === 'thinking' && !ticket && <div className="vt-empty"><span className="vt-spin" /> Building the ticket…</div>}
 
+                {ticket && onTable && (
+                  <div className="vt-already">
+                    <div className="vt-already-h">Already on Table {onTable.table}{onTable.number ? ` · #${onTable.number}` : ''}</div>
+                    {onTable.items.length ? onTable.items.slice(0, 12).map((i, k) => <div key={k} className="vt-already-l"><span>{i.quantity}</span>{i.name}</div>) : <div className="vt-already-l">(no items yet)</div>}
+                    {onTable.items.length > 12 && <div className="vt-already-l">+ {onTable.items.length - 12} more</div>}
+                    <div className="vt-already-new">New</div>
+                  </div>
+                )}
                 {ticket && ticket.lines.map((l) => (
                   <div key={l.key} className={'vt-line' + (sel === l.key ? ' sel' : '')}>
                     <button type="button" className="vt-linebtn" onClick={() => { setSel(sel === l.key ? null : l.key); setNoteDraft(''); }} aria-label={`Change ${l.name}`}>
@@ -922,7 +957,7 @@ export default function VoiceTicketPage() {
                 </button>
               ) : (
                 <button type="button" className="vt-send" onClick={() => send()} disabled={!canSend}>
-                  Send to kitchen{itemCount ? <span>{itemCount}</span> : null}
+                  {onTable ? `Add to Table ${onTable.table}’s order` : 'Send to kitchen'}{itemCount ? <span>{itemCount}</span> : null}
                 </button>
               )}
               {handsFree && !autoSend && <span className="vt-hint">or just say “that’s it”</span>}
@@ -1073,6 +1108,11 @@ const CSS = `
 .vt-floor{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 360px;justify-content:center;min-width:0}
 .vt-floor-l{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-muted);margin-right:4px}
 .vt-tb{min-width:34px;height:34px;padding:0 8px;border-radius:9px;display:inline-grid;place-items:center;font:600 14px 'IBM Plex Mono',ui-monospace,monospace;background:#fff;color:var(--vt-ink);border:1.5px solid #CFCAC4}
+.vt-already{border-bottom:1px dashed var(--vt-line);margin:0 0 10px;padding:0 0 8px}
+.vt-already-h{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-muted,#8a7f78);font-weight:700;margin-bottom:4px}
+.vt-already-l{display:flex;gap:10px;font-size:14px;color:var(--vt-muted,#8a7f78);padding:2px 0}
+.vt-already-l span{min-width:18px;font-weight:700}
+.vt-already-new{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-red);font-weight:800;margin-top:8px}
 .vt-tb.busy{background:var(--vt-soft);color:var(--vt-deep);border-color:var(--vt-red)}
 .vt-tb.mine{background:var(--vt-red);color:#fff;border-color:var(--vt-red)}
 .vt-floor-key{display:flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--vt-muted)}
