@@ -47,6 +47,7 @@ export default function StaffSalesPage() {
   // Search filter for table
   const [searchTerm, setSearchTerm] = useState('');
   const [openStaff, setOpenStaff] = useState(null);   // row showing the items that person sold
+  const [itemsMode, setItemsMode] = useState('served'); // expanded row: items they served | items they took
   const [showAllTop, setShowAllTop] = useState(false);
 
   // Load restaurant info (same resolution as sales-summary page)
@@ -665,15 +666,17 @@ export default function StaffSalesPage() {
                         const rowKey = s.staffId || String(i);
                         const isOpen = openStaff === rowKey;
                         const items = s.items || [];
+                        const takenItems = s.takenItems || [];
+                        const shown = itemsMode === 'taken' && !pseudo ? takenItems : items;
                         return (
                           <Fragment key={rowKey}>
-                          <tr onClick={() => items.length && setOpenStaff(isOpen ? null : rowKey)}
-                            className={`${pseudo ? 'bg-gray-50 text-gray-500' : 'hover:bg-gray-50/80 transition-colors'} ${items.length ? 'cursor-pointer' : ''}`}>
+                          <tr onClick={() => (items.length || takenItems.length) && setOpenStaff(isOpen ? null : rowKey)}
+                            className={`${pseudo ? 'bg-gray-50 text-gray-500' : 'hover:bg-gray-50/80 transition-colors'} ${(items.length || takenItems.length) ? 'cursor-pointer' : ''}`}>
                             <td className="px-4 py-3 text-center">
                               {pseudo ? <span className="text-gray-300">—</span> : getRankDisplay(originalRank)}
                             </td>
                             <td className="px-4 py-3">
-                              {items.length > 0 && <FaChevronRight className={`inline mr-1.5 text-[10px] text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />}
+                              {(items.length > 0 || takenItems.length > 0) && <FaChevronRight className={`inline mr-1.5 text-[10px] text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />}
                               <span className={`font-medium text-sm ${pseudo ? 'text-gray-500 italic' : 'text-gray-800'}`}>{displayName(s)}</span>
                               {isCounterRow(s) && <span className="block text-[11px] text-gray-400">Typed at the counter with no waiter chosen — pick &quot;Served by&quot; on the POS to credit a waiter</span>}
                               {roleTag(s) && <span className="ml-2 text-[10px] uppercase tracking-wide bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{roleTag(s)} login</span>}
@@ -695,17 +698,26 @@ export default function StaffSalesPage() {
                             <tr className="bg-blue-50/30">
                               <td></td>
                               <td colSpan={9} className="px-4 pb-4 pt-1">
+                                {!pseudo && (
+                                  <div className="flex items-center gap-1 mb-2">
+                                    {[['served', `Served · ${s.ordersHandled || 0} orders`], ['taken', `Took the order · ${s.ordersTaken || 0}`]].map(([k, l]) => (
+                                      <button key={k} type="button" onClick={(e) => { e.stopPropagation(); setItemsMode(k); }}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold border ${itemsMode === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
+                                    ))}
+                                  </div>
+                                )}
                                 <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                                  {shown.length === 0 ? <p className="px-3 py-3 text-sm text-gray-500">{itemsMode === 'taken' ? 'No orders typed by this person in this period.' : 'No orders served by this person in this period.'}</p> : (
                                   <table className="w-full text-sm">
                                     <thead>
                                       <tr className="bg-gray-50 text-left text-[11px] text-gray-500 uppercase">
-                                        <th className="px-3 py-1.5 font-semibold">Item sold by {displayName(s)}</th>
+                                        <th className="px-3 py-1.5 font-semibold">Items {itemsMode === 'taken' && !pseudo ? 'ordered through' : 'sold by'} {displayName(s)}</th>
                                         <th className="px-3 py-1.5 font-semibold text-center">Qty</th>
                                         <th className="px-3 py-1.5 font-semibold text-right">Sales</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                      {items.map((it, j) => (
+                                      {shown.map((it, j) => (
                                         <tr key={j} className={it.promo ? 'bg-amber-50/60' : ''}>
                                           <td className="px-3 py-1.5 text-gray-800">
                                             {it.promo && <FaStar className="inline mr-1.5 text-amber-500 text-[11px] -mt-0.5" title="Promo item (featured on QR menu)" />}
@@ -717,6 +729,7 @@ export default function StaffSalesPage() {
                                       ))}
                                     </tbody>
                                   </table>
+                                  )}
                                 </div>
                               </td>
                             </tr>

@@ -126,6 +126,7 @@ function MySalesCard({ currencySymbol = '₹' }) {
   }, []);
   if (!d) return null;
   const money = `${currencySymbol}${Math.round(d.sales || 0).toLocaleString()}`;
+  const fmt = (n) => `${currencySymbol}${Math.round(n || 0).toLocaleString()}`;
   return (
     <div className="animate-in" style={{ marginBottom: '20px', borderRadius: '14px', padding: '14px 16px', background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)', border: '1px solid #e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
       <div>
@@ -137,6 +138,28 @@ function MySalesCard({ currencySymbol = '₹' }) {
         {d.openOrders > 0 && <div><strong>{d.openOrders}</strong> still open · {currencySymbol}{Math.round(d.openAmount || 0).toLocaleString()}</div>}
         {d.tips > 0 && <div>Tips {currencySymbol}{Math.round(d.tips).toLocaleString()}</div>}
       </div>
+      {/* Served vs taken (incentives) + the tables I served */}
+      {d.served && d.taken && (
+        <div style={{ flexBasis: '100%', borderTop: '1px solid #e0e7ff', paddingTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tables I served</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#1e1b4b' }}>{fmt(d.served.sales)} <span style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280' }}>· {d.served.orders} order{d.served.orders === 1 ? '' : 's'}</span></div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Orders I took</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#1e1b4b' }}>{fmt(d.taken.sales)} <span style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280' }}>· {d.taken.orders} order{d.taken.orders === 1 ? '' : 's'}</span></div>
+          </div>
+          {Array.isArray(d.tables) && d.tables.length > 0 && (
+            <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {d.tables.slice(0, 12).map(t => (
+                <span key={t.table} style={{ fontSize: '12px', background: '#fff', border: '1px solid #e0e7ff', borderRadius: '999px', padding: '3px 10px', color: '#3730a3' }}>
+                  {t.isTable ? `Table ${t.table}` : t.table} · <strong>{fmt(t.sales)}</strong>{t.orders > 1 ? ` (${t.orders})` : ''}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
