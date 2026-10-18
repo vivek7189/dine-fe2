@@ -22,6 +22,11 @@ export function adaptStaffSales(res) {
       avgRevenuePerStaff: num(d.avgRevenuePerStaff),
       totalTips: num(d.totalTips),
     },
+    // promo items = menu items featured on the QR menu; biggest bills of the period
+    promoItems: arr(d.promoItems),
+    promoSales: num(d.promoSales),
+    promoQty: num(d.promoQty),
+    topOrders: arr(d.topOrders),
   };
 }
 

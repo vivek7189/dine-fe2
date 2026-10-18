@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { adaptStaffSales } from '../../../lib/reportAdapters';
@@ -16,6 +16,9 @@ import {
   FaChartBar,
   FaTrophy,
   FaUserCheck,
+  FaStar,
+  FaChevronRight,
+  FaReceipt,
 } from 'react-icons/fa';
 
 export default function StaffSalesPage() {
@@ -43,6 +46,8 @@ export default function StaffSalesPage() {
 
   // Search filter for table
   const [searchTerm, setSearchTerm] = useState('');
+  const [openStaff, setOpenStaff] = useState(null);   // row showing the items that person sold
+  const [showAllTop, setShowAllTop] = useState(false);
 
   // Load restaurant info (same resolution as sales-summary page)
   useEffect(() => {
@@ -226,6 +231,12 @@ export default function StaffSalesPage() {
   const assignedOrders = staffData.reduce((sum, s) => sum + (s.assignedOrders || 0), 0);
   const showServerHint = totalOrders > 0 && assignedOrders / totalOrders < 0.5;
 
+  const promoItems = data?.promoItems || [];
+  const promoSales = data?.promoSales || 0;
+  const topOrders = data?.topOrders || [];
+  const catLabel = (c) => String(c || '').replace(/--/g, ' & ').replace(/[-_]/g, ' ');
+  const fmtWhen = (iso) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
+
   // Filtered staff data for table
   const filteredStaffData = searchTerm
     ? staffData.filter(s => {
@@ -285,6 +296,24 @@ export default function StaffSalesPage() {
       { wch: 16 },
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Staff Sales');
+    // Item-wise per staff (promo = featured on the QR menu)
+    const itemRows = [['Staff Name', 'Item', 'Category', 'Promo item', 'Qty', 'Sales']];
+    staffData.forEach((s) => (s.items || []).forEach((it) => itemRows.push([displayName(s), it.name, it.category || '', it.promo ? 'Yes' : '', it.qty || 0, it.revenue || 0])));
+    const wsItems = XLSX.utils.aoa_to_sheet(itemRows);
+    wsItems['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 16 }, { wch: 10 }, { wch: 8 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsItems, 'Items by Staff');
+    if (promoItems.length) {
+      const wsPromo = XLSX.utils.aoa_to_sheet([['Promo item', 'Category', 'Qty sold', 'Sales', 'Top seller', 'Top seller qty'],
+        ...promoItems.map((p) => [p.name, p.category || '', p.qty || 0, p.revenue || 0, p.topSeller?.name || '', p.topSeller?.qty || 0])]);
+      wsPromo['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 22 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, wsPromo, 'Promo Items');
+    }
+    if (topOrders.length) {
+      const wsTop = XLSX.utils.aoa_to_sheet([['#', 'Order', 'Date / time', 'Table', 'Type', 'Server', 'Items', 'Amount'],
+        ...topOrders.map((o, i) => [i + 1, o.orderNumber || o.id, o.createdAt ? new Date(o.createdAt).toLocaleString() : '', o.tableNumber || '', o.orderType || '', o.server || '', o.itemCount || 0, o.amount || 0])]);
+      wsTop['!cols'] = [{ wch: 4 }, { wch: 24 }, { wch: 20 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 7 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, wsTop, 'Top Bills');
+    }
     XLSX.writeFile(wb, `staff-sales-report-${activePeriod}.xlsx`);
   };
 
@@ -484,6 +513,98 @@ export default function StaffSalesPage() {
               </div>
             )}
 
+            {/* Promo items = items switched on as "Feature on the public (QR) menu" */}
+            <div className="bg-white rounded-xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
+              <div className="px-4 py-3 border-b border-amber-100 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                  <FaStar className="text-amber-500" /> Promo item sales
+                  <span className="text-xs text-gray-500 font-normal">items featured on your QR menu</span>
+                </h3>
+                {promoItems.length > 0 && (
+                  <div className="text-sm text-gray-700">
+                    <b>{formatCurrency(promoSales)}</b>
+                    <span className="text-gray-500"> · {data?.promoQty || 0} sold{totalRevenue > 0 ? ` · ${(promoSales / totalRevenue * 100).toFixed(1)}% of sales` : ''}</span>
+                  </div>
+                )}
+              </div>
+              {promoItems.length === 0 ? (
+                <p className="px-4 py-4 text-sm text-gray-500">
+                  No promo items yet. Menu → edit an item → turn on <b>Feature on the public (QR) menu</b>. Those items are tracked here and in each waiter&apos;s item list.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                        <th className="px-4 py-2 font-semibold">Item</th>
+                        <th className="px-4 py-2 font-semibold text-center">Qty sold</th>
+                        <th className="px-4 py-2 font-semibold text-right">Sales</th>
+                        <th className="px-4 py-2 font-semibold">Top seller</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {promoItems.map((p) => (
+                        <tr key={p.name} className={p.qty ? '' : 'text-gray-400'}>
+                          <td className="px-4 py-2.5"><span className="font-medium">{p.name}</span>{p.category ? <span className="ml-2 text-[11px] text-gray-400">{catLabel(p.category)}</span> : null}</td>
+                          <td className="px-4 py-2.5 text-center tabular-nums">{p.qty || 0}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{formatCurrency(p.revenue || 0)}</td>
+                          <td className="px-4 py-2.5">{p.topSeller ? <span>{p.topSeller.name} <span className="text-gray-400">· {p.topSeller.qty}</span></span> : <span className="text-gray-300">—</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Biggest bills of the period */}
+            {topOrders.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
+                  <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <FaReceipt className="text-emerald-600" /> Highest bills
+                    <span className="text-xs text-gray-400 font-normal">biggest first</span>
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                        <th className="px-4 py-2 font-semibold text-center">#</th>
+                        <th className="px-4 py-2 font-semibold">Order</th>
+                        <th className="px-4 py-2 font-semibold">Time</th>
+                        <th className="px-4 py-2 font-semibold">Table</th>
+                        <th className="px-4 py-2 font-semibold">Server</th>
+                        <th className="px-4 py-2 font-semibold text-center">Items</th>
+                        <th className="px-4 py-2 font-semibold text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {(showAllTop ? topOrders : topOrders.slice(0, 10)).map((o, i) => (
+                        <tr key={o.id} className="hover:bg-gray-50/80">
+                          <td className="px-4 py-2.5 text-center text-gray-400 tabular-nums">{i + 1}</td>
+                          <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">
+                            {o.orderNumber || o.id.slice(0, 8)}
+                            {o.hasPromo && <FaStar className="inline ml-1.5 text-amber-500 text-[11px]" title="Has a promo item" />}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{fmtWhen(o.createdAt)}</td>
+                          <td className="px-4 py-2.5 text-gray-600">{o.tableNumber || <span className="text-gray-400 capitalize">{String(o.orderType || '').replace(/[_-]/g, ' ')}</span>}</td>
+                          <td className="px-4 py-2.5 text-gray-600">{o.server || '—'}</td>
+                          <td className="px-4 py-2.5 text-center tabular-nums text-gray-600">{o.itemCount || 0}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900">{formatCurrency(o.amount || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {topOrders.length > 10 && (
+                  <button type="button" onClick={() => setShowAllTop(v => !v)} className="w-full py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border-t border-gray-100">
+                    {showAllTop ? 'Show top 10' : `Show top ${topOrders.length}`}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Staff Data Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -493,7 +614,7 @@ export default function StaffSalesPage() {
                     ({staffData.length} staff members)
                   </span>
                   <span className="block text-xs text-gray-500 font-normal mt-1">
-                    Sales go to the table&apos;s server (Tables → Assign Server), else the waiter chosen in &quot;Served by&quot; on the POS, else whoever took the order. Orders typed on a counter login (owner / manager / cashier) with no waiter go to &quot;Counter (no waiter)&quot;. &quot;Orders taken&quot; shows who typed the orders.
+                    Tap a name to see the items they sold (★ = promo item). Sales go to the table&apos;s server (Tables → Assign Server), else the waiter chosen in &quot;Served by&quot; on the POS, else whoever took the order. Orders typed on a counter login (owner / manager / cashier) with no waiter go to &quot;Counter (no waiter)&quot;. &quot;Orders taken&quot; shows who typed the orders.
                   </span>
                 </h3>
                 <div className="flex items-center gap-2">
@@ -530,6 +651,7 @@ export default function StaffSalesPage() {
                         <th className="px-4 py-2.5 font-semibold text-right">Avg Ticket</th>
                         <th className="px-4 py-2.5 font-semibold text-right">Tips Earned</th>
                         <th className="px-4 py-2.5 font-semibold text-right">Revenue Share</th>
+                        <th className="px-4 py-2.5 font-semibold text-right"><FaStar className="inline text-amber-500 mr-1 -mt-0.5" />Promo items</th>
                         <th className="px-4 py-2.5 font-semibold text-center">Orders Taken</th>
                         <th className="px-4 py-2.5 font-semibold text-right">Sales (taken)</th>
                       </tr>
@@ -540,12 +662,18 @@ export default function StaffSalesPage() {
                         const pseudo = isPseudoRow(s);
                         const originalRank = pseudo ? null : staffData.filter(x => !isPseudoRow(x)).indexOf(s) + 1;
                         const revenueShare = totalRevenue > 0 ? ((s.totalSales || 0) / totalRevenue * 100) : 0;
+                        const rowKey = s.staffId || String(i);
+                        const isOpen = openStaff === rowKey;
+                        const items = s.items || [];
                         return (
-                          <tr key={s.staffId || i} className={pseudo ? 'bg-gray-50 text-gray-500' : 'hover:bg-gray-50/80 transition-colors'}>
+                          <Fragment key={rowKey}>
+                          <tr onClick={() => items.length && setOpenStaff(isOpen ? null : rowKey)}
+                            className={`${pseudo ? 'bg-gray-50 text-gray-500' : 'hover:bg-gray-50/80 transition-colors'} ${items.length ? 'cursor-pointer' : ''}`}>
                             <td className="px-4 py-3 text-center">
                               {pseudo ? <span className="text-gray-300">—</span> : getRankDisplay(originalRank)}
                             </td>
                             <td className="px-4 py-3">
+                              {items.length > 0 && <FaChevronRight className={`inline mr-1.5 text-[10px] text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />}
                               <span className={`font-medium text-sm ${pseudo ? 'text-gray-500 italic' : 'text-gray-800'}`}>{displayName(s)}</span>
                               {isCounterRow(s) && <span className="block text-[11px] text-gray-400">Typed at the counter with no waiter chosen — pick &quot;Served by&quot; on the POS to credit a waiter</span>}
                               {roleTag(s) && <span className="ml-2 text-[10px] uppercase tracking-wide bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{roleTag(s)} login</span>}
@@ -559,9 +687,41 @@ export default function StaffSalesPage() {
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(s.avgTicket || 0)}</td>
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(s.tipsEarned || 0)}</td>
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{revenueShare.toFixed(1)}%</td>
+                            <td className="px-4 py-3 text-right text-sm text-gray-600 whitespace-nowrap">{s.promoQty ? <>{formatCurrency(s.promoSales || 0)} <span className="text-gray-400">· {s.promoQty}</span></> : <span className="text-gray-300">—</span>}</td>
                             <td className="px-4 py-3 text-center text-sm text-gray-600">{s.ordersTaken || 0}</td>
                             <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(s.takenSales || 0)}</td>
                           </tr>
+                          {isOpen && (
+                            <tr className="bg-blue-50/30">
+                              <td></td>
+                              <td colSpan={9} className="px-4 pb-4 pt-1">
+                                <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="bg-gray-50 text-left text-[11px] text-gray-500 uppercase">
+                                        <th className="px-3 py-1.5 font-semibold">Item sold by {displayName(s)}</th>
+                                        <th className="px-3 py-1.5 font-semibold text-center">Qty</th>
+                                        <th className="px-3 py-1.5 font-semibold text-right">Sales</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                      {items.map((it, j) => (
+                                        <tr key={j} className={it.promo ? 'bg-amber-50/60' : ''}>
+                                          <td className="px-3 py-1.5 text-gray-800">
+                                            {it.promo && <FaStar className="inline mr-1.5 text-amber-500 text-[11px] -mt-0.5" title="Promo item (featured on QR menu)" />}
+                                            {it.name}{it.category ? <span className="ml-2 text-[11px] text-gray-400">{catLabel(it.category)}</span> : null}
+                                          </td>
+                                          <td className="px-3 py-1.5 text-center tabular-nums">{it.qty}</td>
+                                          <td className="px-3 py-1.5 text-right tabular-nums">{formatCurrency(it.revenue || 0)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          </Fragment>
                         );
                       })}
                     </tbody>
@@ -580,6 +740,7 @@ export default function StaffSalesPage() {
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(data.summary?.totalTips || 0)}</td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">100%</td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-600">{promoSales ? formatCurrency(promoSales) : '—'}</td>
                         <td className="px-4 py-3 text-center text-sm text-gray-600">{staffData.reduce((sum, s) => sum + (s.ordersTaken || 0), 0)}</td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(staffData.reduce((sum, s) => sum + (s.takenSales || 0), 0))}</td>
                       </tr>
