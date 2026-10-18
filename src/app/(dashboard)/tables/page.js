@@ -45,6 +45,7 @@ import { isLocalServerMode } from '../../../lib/localServer';
 import useTimedMenu from '../../../hooks/useTimedMenu';
 import { fmtTime, fmtDate } from '../../../lib/restaurantTime';
 
+const QrMenusPanel = dynamic(() => import('../../../components/QrMenusPanel'), { ssr: false });
 const DeliveryTakeawayPanel = dynamic(
   () => import('../../../components/DeliveryTakeawayPanel'),
   { ssr: false }
@@ -387,7 +388,7 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
           {/* QR mode toggle: one per table, or one per seat/chair */}
           {(
             <div style={{ display: 'inline-flex', gap: '4px', padding: '4px', background: '#f3f4f6', borderRadius: '10px', marginBottom: '16px' }}>
-              {[{ id: 'table', label: 'Per Table' }, { id: 'seat', label: 'Per Seat / Chair' }, { id: 'takeaway', label: 'Takeaway' }].map(opt => (
+              {[{ id: 'table', label: 'Per Table' }, { id: 'seat', label: 'Per Seat / Chair' }, { id: 'takeaway', label: 'Takeaway' }, { id: 'menus', label: 'QR menus' }].map(opt => (
                 <button key={opt.id} onClick={() => setQrMode(opt.id)} style={{
                   padding: '7px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                   background: qrMode === opt.id ? '#fff' : 'transparent', color: qrMode === opt.id ? '#7c3aed' : '#6b7280',
@@ -398,7 +399,9 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
           )}
 
           {/* All Tables Grid */}
-          {qrMode === 'takeaway' ? (
+          {qrMode === 'menus' ? (
+            <QrMenusPanel restaurant={restaurant} />
+          ) : qrMode === 'takeaway' ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '12px 0 24px' }}>
               <div style={{ padding: '20px', background: '#fafafa', borderRadius: '16px', border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', maxWidth: '320px' }}>
                 {takeawayQr ? (

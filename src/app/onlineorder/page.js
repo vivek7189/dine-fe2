@@ -335,6 +335,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // resolve to a blank/"same" table). `chairParam` is the optional seat/chair, carried separately.
   const tableParam = searchParams.get('table') || tableNumberProp || '';
   const chairParam = searchParams.get('seat') || '';
+  // A QR menu (Tables → QR menus): ?menu=<id> shows only that menu's items; its id goes with the order.
+  const qrMenuParam = String(searchParams.get('menu') || '').slice(0, 40);
+  const menuCacheKey = qrMenuParam ? `menu:${qrMenuParam}` : 'menu';
+  const [qrMenuInfo, setQrMenuInfo] = useState(null);
 
   useEffect(() => {
     if (!tableParam) return; // no table in the URL → don't blank a value the customer may type
@@ -538,7 +542,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         }
 
         // STEP 1: Show cached data immediately (instant UI)
-        const cachedMenu = getCachedData(restaurantId, 'menu');
+        const cachedMenu = getCachedData(restaurantId, menuCacheKey);
         const cachedOffers = getCachedData(restaurantId, 'offers');
         const cachedSettings = getCachedData(restaurantId, 'settings');
 
@@ -560,16 +564,18 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         }
 
         // STEP 2: Fetch fresh menu data (required)
-        const response = await apiClient.getPublicMenu(restaurantId);
+        const response = await apiClient.getPublicMenu(restaurantId, qrMenuParam);
 
         if (response.success && response.restaurant && response.menu) {
           setRestaurant(response.restaurant);
+          setQrMenuInfo(response.qrMenu || null);
+          if (response.qrMenu?.orderType === 'takeaway') setOrderType('takeaway');
           setMenu(response.menu);
           setCategories(['all', ...orderCategoryNames(response.categories, response.menu)]);
           setMenuCategoryObjs(Array.isArray(response.categories) ? response.categories : []);
 
           // Cache the fresh menu data (incl. categories so the ordered tabs survive a reload)
-          setCachedData(restaurantId, 'menu', {
+          setCachedData(restaurantId, menuCacheKey, {
             restaurant: response.restaurant,
             menu: response.menu,
             categories: response.categories || []
@@ -613,7 +619,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       } catch (apiError) {
         console.error('API error:', apiError);
         // Only show error if we don't have cached data
-        const cachedMenu = getCachedData(restaurantId, 'menu');
+        const cachedMenu = getCachedData(restaurantId, menuCacheKey);
         if (!cachedMenu?.data) {
           if (apiError.status === 404 || apiError.message?.includes('not found')) {
             setError(`Restaurant not found. Please check the QR code or contact the restaurant.`);
@@ -1300,6 +1306,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null,
       tableNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || null) : null,
       chairNumber: (orderType === 'table' && chairParam) ? String(chairParam).trim() : null, // optional per-seat sub-QR
+      ...(qrMenuParam ? { qrMenuId: qrMenuParam } : {}), // ordered from a QR menu — the server checks its items
       items: cart.map(item => ({
         menuItemId: item.id,
         name: item.name,
@@ -2285,6 +2292,16 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             fontWeight: '500'
           }}>
             Menu view only. Visit the restaurant to order!
+          </div>
+        </div>
+      )}
+
+      {/* Opened through a QR menu (e.g. "Corporate lunch"): its name + note above the items */}
+      {qrMenuInfo && (
+        <div style={{ maxWidth: '960px', margin: '12px auto 0', padding: '0 16px' }}>
+          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '10px 14px', color: '#9a3412' }}>
+            <div style={{ fontWeight: 700, fontSize: '15px' }}>{qrMenuInfo.name}</div>
+            {qrMenuInfo.note ? <div style={{ fontSize: '13px', marginTop: '2px' }}>{qrMenuInfo.note}</div> : null}
           </div>
         </div>
       )}

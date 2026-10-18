@@ -2635,6 +2635,7 @@ const MenuManagement = () => {
     // Public-menu merchandising (display-only): feature on the QR menu + a badge
     featured: false,
     badge: '',
+    hideOnQr: false, // not on the QR / online menu (POS only)
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
@@ -3408,6 +3409,7 @@ const MenuManagement = () => {
             pricingRules: itemData.pricingRules,
             featured: itemData.featured || false,
             badge: itemData.badge || '',
+            hideOnQr: itemData.hideOnQr === true,
           };
           await queueOfflineOrder({
             restaurantId: currentRestaurant.id,
@@ -3719,6 +3721,7 @@ const MenuManagement = () => {
       hsnCode: item.hsnCode || '',
       featured: item.featured || false,
       badge: item.badge || '',
+      hideOnQr: item.hideOnQr === true,
       // Pre-populate channel prices from pricing rules
       dineInPrice: (() => {
         const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
@@ -7477,6 +7480,18 @@ const MenuManagement = () => {
               </div>
               </div>{/* END RIGHT COLUMN */}
               </div>{/* END TWO-COLUMN GRID */}
+
+              {/* ── Hide from the QR / online menu (staff still sell it at the POS) ── */}
+              <div style={{ marginTop: '4px', marginBottom: '10px', padding: '14px 18px', borderRadius: '16px', background: formData.hideOnQr ? '#fef2f2' : '#f8fafc', border: `1px solid ${formData.hideOnQr ? '#fecaca' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: formData.hideOnQr ? '#b91c1c' : '#374151' }}>Hide from the QR / online menu</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Customers scanning a QR won&apos;t see or order it. Staff can still sell it at the POS.</div>
+                </div>
+                <button type="button" aria-label="Hide from QR menu" onClick={() => setFormData({ ...formData, hideOnQr: !formData.hideOnQr })}
+                  style={{ position: 'relative', width: '48px', height: '27px', borderRadius: '999px', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, background: formData.hideOnQr ? '#dc2626' : '#e5e7eb', transition: 'background 0.2s ease' }}>
+                  <span style={{ position: 'absolute', top: '3px', left: formData.hideOnQr ? '24px' : '3px', width: '21px', height: '21px', borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.2s ease' }} />
+                </button>
+              </div>
 
               {/* ── Public-menu merchandising — feature on the QR menu + badge (full-width, last) ── */}
               <div style={{

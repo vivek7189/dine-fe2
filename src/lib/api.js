@@ -1607,8 +1607,8 @@ class ApiClient {
   }
 
   // Public API endpoints (no authentication required)
-  async getPublicMenu(restaurantId) {
-    return this.request(`/api/public/menu/${restaurantId}`);
+  async getPublicMenu(restaurantId, qrMenuId = '') {
+    return this.request(`/api/public/menu/${restaurantId}${qrMenuId ? `?menu=${encodeURIComponent(qrMenuId)}` : ''}`);
   }
 
   async placePublicOrder(restaurantId, orderData) {
