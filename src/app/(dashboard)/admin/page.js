@@ -13824,9 +13824,29 @@ const Admin = () => {
                 </button>
                 <div>
                   <span style={{ fontSize: '13px', color: '#374151' }}>Turn on the Daily Diary</span>
-                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Each day the manager notes what they expect (target, focus, staffing) and how it went (rating, incidents like a quarrel, theft, great or low sales). Takes a few minutes; incidents and follow-ups show in the calendar. Owner and managers only.</div>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Each day the manager notes what they expect (target, focus, staffing) and how it went (rating, incidents like a quarrel, theft, great or low sales). Takes a few minutes; incidents and follow-ups show in the calendar.</div>
                 </div>
               </div>
+              {posSettings.dailyDiary && (() => {
+                const picked = Array.isArray(posSettings.dailyDiaryRoles) ? posSettings.dailyDiaryRoles : ['manager'];
+                return (
+                  <div style={{ marginTop: '12px', paddingLeft: '38px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Who can write the diary <span style={{ fontWeight: 400, color: '#9ca3af' }}>— owner &amp; admin always</span></div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {['manager', 'captain', 'supervisor', 'cashier', 'waiter', 'kitchen'].map(r => {
+                        const on = picked.includes(r);
+                        return (
+                          <button key={r} type="button"
+                            onClick={() => setPosSettings(prev => { const cur = Array.isArray(prev.dailyDiaryRoles) ? prev.dailyDiaryRoles : ['manager']; return { ...prev, dailyDiaryRoles: on ? cur.filter(x => x !== r) : [...cur, r] }; })}
+                            style={{ padding: '5px 12px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize', border: `1px solid ${on ? '#ef4444' : '#e5e7eb'}`, background: on ? '#fef2f2' : '#fff', color: on ? '#b91c1c' : '#4b5563' }}>
+                            {on ? '✓ ' : ''}{r}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />

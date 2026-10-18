@@ -354,7 +354,7 @@ export default function Sidebar({ isDashboardPage = false }) {
     { id: 'inventory', name: t('nav.inventory'), icon: FaBoxes, href: '/inventory', color: '#059669', roles: ['owner', 'admin', 'manager'] },
     { id: 'customers', name: t('nav.customers'), icon: FaUsers, href: '/customers', color: '#8b5cf6', roles: ['owner', 'admin', 'manager'] },
     { id: 'calendar', name: t('nav.calendar'), icon: FaCalendarAlt, href: '/calendar', color: '#6366f1', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] },
-    ...(selectedRestaurant?.posSettings?.dailyDiary ? [{ id: 'diary', name: 'Daily Diary', icon: FaBook, href: '/diary', color: '#b45309', roles: ['owner', 'admin', 'manager'] }] : []),
+    ...(selectedRestaurant?.posSettings?.dailyDiary ? [{ id: 'diary', name: 'Daily Diary', icon: FaBook, href: '/diary', color: '#b45309', roles: ['owner', 'admin', 'manager', 'waiter', 'employee', 'cashier', 'sales'] }] : []),
     { id: 'attendance', name: t('nav.attendance'), icon: FaUserClock, href: '/attendance', color: '#ef4444', roles: ['owner', 'admin', 'manager'] },
     ...(selectedRestaurant?.posSettings?.enableShiftsCash ? [{ id: 'shifts-cash', name: 'Shifts & Cash', icon: FaCashRegister, href: '/shifts-cash', color: '#3b82f6', roles: ['owner', 'admin', 'manager', 'cashier'] }] : []),
     { id: 'billing', name: t('nav.billing'), icon: FaCreditCard, href: '/billing', color: '#06b6d4', roles: ['owner', 'admin'] },
@@ -394,6 +394,17 @@ export default function Sidebar({ isDashboardPage = false }) {
       if (calendarAccess === 'denied') return false;
       const key = NAV_ID_TO_ACCESS_KEY[item.id];
       return DEFAULT_ON_ACCESS_KEYS.has(key) ? defaultOnAccessAllowed(pageAccess, key) : true;
+    }
+
+    // Daily Diary (only listed when the restaurant turned it on): owner / admin / co-owner always, plus the
+    // roles the owner picked (posSettings.dailyDiaryRoles, default manager) or a person's own diary tick.
+    // The server applies the same rule.
+    if (item.id === 'diary') {
+      const r = String(user.role || '').toLowerCase();
+      if (['owner', 'admin', 'co-owner'].includes(r)) return true;
+      if (pageAccess && typeof pageAccess.diary === 'boolean') return pageAccess.diary;
+      const dr = selectedRestaurant?.posSettings?.dailyDiaryRoles;
+      return (Array.isArray(dr) ? dr : ['manager']).map(x => String(x).toLowerCase()).includes(r);
     }
 
     // Voice Ticket (only listed when the restaurant turned it on): owners/admins always; staff unless
