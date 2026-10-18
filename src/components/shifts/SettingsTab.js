@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaCog, FaClock, FaPlus, FaTrash, FaSave, FaSpinner, FaSun, FaMoon, FaBell, FaUsers, FaWhatsapp, FaMobileAlt } from 'react-icons/fa';
+import { FaCog, FaClock, FaPlus, FaTrash, FaSave, FaSpinner, FaSun, FaMoon, FaBell, FaUsers, FaWhatsapp, FaMobileAlt, FaStore } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import TimeSelect from './TimeSelect';
 import { DEFAULT_SHIFT_SETTINGS, DAYS_FULL, rotaRoles, titleCase } from './constants';
@@ -74,6 +74,16 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
     updated[i] = { ...st, requiredRoles: req };
     update('shiftTypes', updated);
   };
+
+  // Stations (team incentives): a part of the business whose sales the team working it shares.
+  const STATION_TYPES = [['dine-in', 'Dine-in'], ['takeaway', 'Takeaway / parcel'], ['delivery', 'Delivery'], ['qr', 'QR self-orders']];
+  const stations = settings.stations || [];
+  const setStation = (i, patch) => update('stations', stations.map((st, j) => (j === i ? { ...st, ...patch } : st)));
+  const addStation = () => update('stations', [...stations, {
+    name: stations.length ? 'New station' : 'Takeaway counter', orderTypes: stations.length ? [] : ['takeaway'], ratePct: 0,
+    duties: stations.length ? [{ name: 'Team member', share: 1 }] : [{ name: 'Main packer', share: 50 }, { name: 'Assistant', share: 30 }, { name: 'Helper', share: 20 }],
+  }]);
+  const setDuty = (i, k, patch) => setStation(i, { duties: (stations[i].duties || []).map((d, j) => (j === k ? { ...d, ...patch } : d)) });
 
   const handleSave = async () => {
     if (!restaurantId) return;
@@ -238,6 +248,68 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
           <button type="button" onClick={() => { const r = newRole.trim().toLowerCase(); if (r) { update('extraRoles', [...new Set([...(settings.extraRoles || []), r])]); setNewRole(''); } }}
             style={{ padding: '8px 14px', borderRadius: '10px', border: 'none', background: '#f3f4f6', color: '#374151', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}><FaPlus size={10} /> Add</button>
         </div>
+      </div>
+
+      {/* Stations & team incentives */}
+      <div style={sectionStyle}>
+        {sectionTitle(<FaStore size={16} color="white" />, 'Stations & team incentives', 'Set the station + duty on each shift. Staff Sales → Teams then shows each station’s daily sales and every team member’s share.')}
+        {stations.length === 0 && (
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px' }}>
+            Example: <b>Takeaway counter</b> — takeaway orders; Main packer, Assistant, Helper. Optional: pay the team a % of that station’s sales, split by duty.
+          </p>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {stations.map((st, i) => {
+            const shareTotal = (st.duties || []).reduce((a, d) => a + (Number(d.share) || 0), 0);
+            return (
+              <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px', background: '#fcfcfd' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                  <input value={st.name || ''} onChange={e => setStation(i, { name: e.target.value })} placeholder="Station name" style={{ ...inputStyle, flex: 1, fontWeight: 600 }} />
+                  <button type="button" onClick={() => update('stations', stations.filter((_, j) => j !== i))} title="Remove station"
+                    style={{ border: 'none', background: '#fef2f2', color: '#dc2626', borderRadius: '10px', padding: '10px 12px', cursor: 'pointer' }}><FaTrash size={12} /></button>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Its sales = these orders</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                  {STATION_TYPES.map(([k, label]) => {
+                    const on = (st.orderTypes || []).includes(k);
+                    return (
+                      <button key={k} type="button" onClick={() => setStation(i, { orderTypes: on ? st.orderTypes.filter(x => x !== k) : [...(st.orderTypes || []), k] })}
+                        style={{ padding: '6px 12px', borderRadius: '999px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? '#dc2626' : '#e5e7eb'}`, background: on ? '#fef2f2' : '#fff', color: on ? '#b91c1c' : '#4b5563' }}>
+                        {on ? '✓ ' : ''}{label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 160px', gap: '12px', alignItems: 'start' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Duties &amp; share of the incentive</div>
+                    {(st.duties || []).map((d, k) => (
+                      <div key={k} style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                        <input value={d.name || ''} onChange={e => setDuty(i, k, { name: e.target.value })} placeholder="Duty, e.g. Main packer" style={{ ...inputStyle, flex: 1, padding: '8px 10px' }} />
+                        <input type="number" min="0" value={d.share ?? ''} onChange={e => setDuty(i, k, { share: e.target.value })} style={{ ...inputStyle, width: '76px', padding: '8px 10px' }} />
+                        <span style={{ fontSize: '11px', color: '#9ca3af', width: '38px' }}>{shareTotal > 0 ? `${Math.round((Number(d.share) || 0) / shareTotal * 100)}%` : ''}</span>
+                        <button type="button" onClick={() => setStation(i, { duties: st.duties.filter((_, j) => j !== k) })}
+                          style={{ border: 'none', background: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>×</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setStation(i, { duties: [...(st.duties || []), { name: '', share: 1 }] })}
+                      style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#f3f4f6', color: '#374151', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}><FaPlus size={9} /> Duty</button>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Team incentive</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input type="number" min="0" max="100" step="0.1" value={st.ratePct || ''} placeholder="0" onChange={e => setStation(i, { ratePct: e.target.value })} style={{ ...inputStyle, width: '80px' }} />
+                      <span style={{ fontSize: '13px', color: '#374151' }}>% of sales</span>
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: '6px 0 0' }}>Blank = report sales &amp; team only. Same duty = split equally.</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button type="button" onClick={addStation}
+          style={{ marginTop: '12px', padding: '8px 14px', borderRadius: '10px', border: '1px dashed #d1d5db', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}><FaPlus size={10} /> Add station</button>
       </div>
 
       {/* Notifications */}

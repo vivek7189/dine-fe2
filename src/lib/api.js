@@ -1900,6 +1900,15 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}/staff-sales${qs ? '?' + qs : ''}`);
   }
 
+  // Team incentives by station (stations from the rota settings, team from shifts + attendance)
+  async getTeamSales(restaurantId, options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    const qs = params.toString();
+    return this.request(`/api/analytics/${restaurantId}/team-sales${qs ? '?' + qs : ''}`);
+  }
+
   async getPromotionReport(restaurantId, options = {}) {
     const params = new URLSearchParams();
     if (options.startDate) params.append('startDate', options.startDate);

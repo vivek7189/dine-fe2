@@ -15,12 +15,12 @@ const label = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13
 // Add / edit one shift. `prefill` (from a coverage gap) can set { shiftType, role, isOpen }.
 export default function ShiftFormModal({
   isOpen, onClose, onSave, shift, staff, date, staffId, isMobile,
-  shiftTypes = [], extraRoles = [], availability = {}, prefill = null, dayDates = {},
+  shiftTypes = [], extraRoles = [], availability = {}, prefill = null, dayDates = {}, stations = [],
 }) {
   const blank = {
     staffId: '', date: '', startTime: '09:00', endTime: '17:00', breakMinutes: 30,
     role: 'employee', notes: '', status: 'draft', isOpen: false, shiftName: '', color: '',
-    incentiveAmount: '', incentiveNote: '',
+    incentiveAmount: '', incentiveNote: '', station: '', duty: '',
   };
   const { getCurrencySymbol } = useCurrency();
   const currency = getCurrencySymbol() || '';
@@ -46,6 +46,8 @@ export default function ShiftFormModal({
         color: shift.color || '',
         incentiveAmount: shift.incentive?.amount ? String(shift.incentive.amount) : '',
         incentiveNote: shift.incentive?.note || '',
+        station: shift.station || '',
+        duty: shift.duty || '',
       });
     } else {
       const member = staff?.find(s => s.id === staffId);
@@ -231,6 +233,30 @@ export default function ShiftFormModal({
               </select>
             </div>
           </div>
+
+          {/* Team incentives: which station + duty this person works (rota settings → Stations) */}
+          {stations.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <div>
+                <label style={{ ...label, display: 'block' }}>Station</label>
+                <select value={form.station} onChange={e => { const st = stations.find(x => x.id === e.target.value); setForm(f => ({ ...f, station: e.target.value, duty: st && (st.duties || []).some(d => d.name === f.duty) ? f.duty : ((st && st.duties && st.duties[0] && st.duties[0].name) || '') })); }} style={field}>
+                  <option value="">— None —</option>
+                  {stations.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                  {form.station && !stations.some(st => st.id === form.station) && <option value={form.station}>{form.station}</option>}
+                </select>
+              </div>
+              {form.station && (
+                <div>
+                  <label style={{ ...label, display: 'block' }}>Duty</label>
+                  <select value={form.duty} onChange={e => setForm(f => ({ ...f, duty: e.target.value }))} style={field}>
+                    {((stations.find(st => st.id === form.station) || {}).duties || []).map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                    {form.duty && !((stations.find(st => st.id === form.station) || {}).duties || []).some(d => d.name === form.duty) && <option value={form.duty}>{form.duty}</option>}
+                    <option value="">— No duty —</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {form.isOpen && (
             <div style={{ marginBottom: '14px', padding: '12px', borderRadius: '12px', border: '1px solid #fde68a', background: '#fffbeb' }}>

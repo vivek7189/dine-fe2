@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { adaptStaffSales } from '../../../lib/reportAdapters';
+import TeamSalesView from './TeamSalesView';
 import { restaurantToday, ymd } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
@@ -49,6 +50,7 @@ export default function StaffSalesPage() {
   const [openStaff, setOpenStaff] = useState(null);   // row showing the items that person sold
   const [itemsMode, setItemsMode] = useState('served'); // expanded row: items they served | items they took
   const [showAllTop, setShowAllTop] = useState(false);
+  const [view, setView] = useState(() => (searchParams.get('view') === 'teams' ? 'teams' : 'people')); // by person | teams by station
 
   // Load restaurant info (same resolution as sales-summary page)
   useEffect(() => {
@@ -402,7 +404,15 @@ export default function StaffSalesPage() {
 
       {/* Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-6">
-        {loading ? (
+        <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 mb-5 shadow-sm">
+          {[['people', 'By person'], ['teams', 'Teams by station']].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setView(k)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${view === k ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>{l}</button>
+          ))}
+        </div>
+        {view === 'teams' ? (
+          <TeamSalesView restaurantId={restaurantId} startDate={getDateRange()?.startDate} endDate={getDateRange()?.endDate} formatCurrency={formatCurrency} />
+        ) : loading ? (
           <div className="flex justify-center items-center py-20">
             <FaSpinner className="animate-spin text-blue-500 text-3xl" />
           </div>

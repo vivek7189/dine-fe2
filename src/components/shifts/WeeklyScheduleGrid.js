@@ -180,6 +180,7 @@ export default function WeeklyScheduleGrid({
           role: s.role,
           notes: s.notes || '',
           shiftName: s.shiftName || null,
+          ...(s.station ? { station: s.station, duty: s.duty || null } : {}),
           color: s.color || null,
           status: 'draft',
         };
@@ -282,6 +283,7 @@ export default function WeeklyScheduleGrid({
         {(shift.shiftName || shift.isOpen) && (
           <div style={{ fontSize: '10px', color: rc.text, opacity: 0.85 }}>{shift.isOpen ? `Open · ${titleCase(shift.role)}` : shift.shiftName}</div>
         )}
+        {shift.station && (() => { const st = (shiftSettings?.stations || []).find(x => x.id === shift.station); return <div style={{ fontSize: '10px', color: rc.text, fontWeight: 700 }}>{(st && st.name) || shift.station}{shift.duty ? ` · ${shift.duty}` : ''}</div>; })()}
         {Number(shift.incentive?.amount) > 0 && (
           <div title={shift.incentive.note || 'Incentive for whoever takes this shift'} style={{ fontSize: '10px', fontWeight: 700, color: '#b45309' }}>
             +{currencySymbol}{shift.incentive.amount}{shift.incentive.note ? ` · ${shift.incentive.note}` : ''}
@@ -502,6 +504,7 @@ export default function WeeklyScheduleGrid({
           isMobile={isMobile}
           shiftTypes={shiftTypes}
           extraRoles={shiftSettings?.extraRoles || []}
+          stations={shiftSettings?.stations || []}
           availability={availability}
           prefill={prefill}
           dayDates={dayDates}
@@ -735,6 +738,7 @@ export default function WeeklyScheduleGrid({
         isMobile={isMobile}
         shiftTypes={shiftTypes}
         extraRoles={shiftSettings?.extraRoles || []}
+          stations={shiftSettings?.stations || []}
         availability={availability}
         prefill={prefill}
         dayDates={dayDates}

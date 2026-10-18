@@ -281,7 +281,7 @@ export default function MyShiftsPage() {
       <span className="mt-1.5 w-2 h-2 rounded-full shrink-0" style={{ background: s.color || '#ef4444' }} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-gray-900">{nice(s.date)} · {t12(s.startTime)}–{t12(s.endTime)}</div>
-        <div className={muted}>{[s.shiftName, cap(s.role), s.breakMinutes ? `${s.breakMinutes} min break` : null].filter(Boolean).join(' · ')}</div>
+        <div className={muted}>{[s.shiftName, cap(s.role), s.stationName ? `${s.stationName}${s.duty ? ` – ${s.duty}` : ''}` : null, s.breakMinutes ? `${s.breakMinutes} min break` : null].filter(Boolean).join(' · ')}</div>
         {Number(s.incentive?.amount) > 0 && (
           <div className="text-xs font-bold text-amber-700 mt-0.5">+{currency}{s.incentive.amount} extra{s.incentive.note ? ` · ${s.incentive.note}` : ''}</div>
         )}
@@ -327,7 +327,7 @@ export default function MyShiftsPage() {
           <div className="text-[11px] font-bold tracking-wide text-gray-500">NEXT SHIFT</div>
           {next ? (<>
             <div className="text-[22px] font-extrabold text-gray-900 mt-1">{nice(next.date)}</div>
-            <div className="text-[15px] text-gray-700">{t12(next.startTime)} – {t12(next.endTime)}{next.shiftName ? ` · ${next.shiftName}` : ''}</div>
+            <div className="text-[15px] text-gray-700">{t12(next.startTime)} – {t12(next.endTime)}{next.shiftName ? ` · ${next.shiftName}` : ''}{next.stationName ? ` · ${next.stationName}${next.duty ? ` – ${next.duty}` : ''}` : ''}</div>
           </>) : <p className={muted}>No shifts in the next 4 weeks yet.</p>}
         </div>
 
