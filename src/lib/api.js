@@ -1900,6 +1900,21 @@ class ApiClient {
     return this.request(`/api/analytics/${restaurantId}/staff-sales${qs ? '?' + qs : ''}`);
   }
 
+  // Daily Diary (manager's anticipation & assessment + incidents; posSettings.dailyDiary)
+  async getDiary(restaurantId, { from, to } = {}) {
+    const q = new URLSearchParams(); if (from) q.append('from', from); if (to) q.append('to', to);
+    return this.request(`/api/diary/${restaurantId}?${q.toString()}`);
+  }
+  async getDiaryDay(restaurantId, date) {
+    return this.request(`/api/diary/${restaurantId}/day/${date}`);
+  }
+  async saveDiaryDay(restaurantId, date, body) {
+    return this.request(`/api/diary/${restaurantId}/day/${date}`, { method: 'PUT', body });
+  }
+  async getDiaryIncidents(restaurantId, status = 'open') {
+    return this.request(`/api/diary/${restaurantId}/incidents?status=${encodeURIComponent(status)}`);
+  }
+
   // Team incentives by station (stations from the rota settings, team from shifts + attendance)
   async getTeamSales(restaurantId, options = {}) {
     const params = new URLSearchParams();

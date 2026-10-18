@@ -98,6 +98,22 @@ export default function CalendarPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Daily Diary overlay (only when the diary is on and this person may use it — else a 403, ignored):
+  // a 📓 on days with a diary page, a mark for incidents, follow-ups on their own date.
+  const [diary, setDiary] = useState(null);
+  useEffect(() => {
+    if (!restaurantId || !range) return undefined;
+    let alive = true;
+    apiClient.getDiary(restaurantId, range).then((r) => { if (alive) setDiary(r); }).catch(() => { if (alive) setDiary(null); });
+    return () => { alive = false; };
+  }, [restaurantId, range]);
+  const diaryByDay = useMemo(() => {
+    const m = {};
+    (diary?.days || []).forEach((d) => { m[d.date] = { ...(m[d.date] || {}), page: d }; });
+    (diary?.followUps || []).forEach((f) => { if (f.status !== 'resolved') { const x = m[f.date] || (m[f.date] = {}); (x.followUps || (x.followUps = [])).push(f); } });
+    return m;
+  }, [diary]);
+
   // Prefetch the neighbouring months so paging feels instant.
   useEffect(() => {
     if (!restaurantId || !cursor || view !== 'month' || !data) return;
@@ -289,8 +305,21 @@ export default function CalendarPage() {
                   onClick={() => setSelectedDay(isSel ? null : d)}
                   onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelectedDay(isSel ? null : d); } }}
                   className={`dcal-cell${inMonth ? '' : ' dcal-out'}${isSel ? ' dcal-sel' : ''}`}>
-                  <div className={`dcal-num${isToday ? ' dcal-today' : ''}`}>{dayMs(d) ? new Date(dayMs(d)).getUTCDate() : ''}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className={`dcal-num${isToday ? ' dcal-today' : ''}`}>{dayMs(d) ? new Date(dayMs(d)).getUTCDate() : ''}</div>
+                    {diaryByDay[d] && (
+                      <span title="Daily Diary" style={{ fontSize: 11, lineHeight: 1 }}>
+                        {diaryByDay[d].page ? '📓' : ''}
+                        {(diaryByDay[d].page?.incidents || []).some((i) => i.status !== 'resolved') || diaryByDay[d].followUps ? <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 4, background: '#dc2626', marginLeft: 2, verticalAlign: 'middle' }} /> : null}
+                      </span>
+                    )}
+                  </div>
                   <div className="dcal-chips">
+                    {(diaryByDay[d]?.followUps || []).slice(0, 1).map((f) => (
+                      <span key={f.id} className="dcal-chip" title={`Diary follow-up: ${f.title || f.type}`}
+                        onClick={(ev) => { ev.stopPropagation(); window.location.href = `/diary?date=${f.loggedOn}`; }}
+                        style={{ background: '#fef2f2', color: '#b91c1c', borderColor: '#fecaca' }}>⚠ {f.title || f.type}</span>
+                    ))}
                     {list.slice(0, max).map((e) => {
                       const st = categoryStyle(e);
                       return (
@@ -321,6 +350,18 @@ export default function CalendarPage() {
               <button onClick={() => setForm({ defaultDate: selectedDay })} className="dcal-linkbtn"><FaPlus size={10} /> {t('eventCalendar.addOnThisDay')}</button>
             )}
           </div>
+          {selectedDay && diary && (
+            <a href={`/diary?date=${selectedDay}`} style={{ display: 'block', margin: '0 0 10px', padding: '10px 12px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', textDecoration: 'none', color: '#78350f', fontSize: 13 }}>
+              <b>📓 Daily Diary</b>
+              {diaryByDay[selectedDay]?.page ? (
+                <span> · {diaryByDay[selectedDay].page.rating ? ['', '😣', '😕', '😐', '🙂', '🤩'][diaryByDay[selectedDay].page.rating] + ' ' : ''}
+                  {diaryByDay[selectedDay].page.focus || ''}
+                  {(diaryByDay[selectedDay].page.incidents || []).map((i) => ` · ${i.status === 'resolved' ? '✔' : '⚠'} ${i.title || i.type}`).join('')}
+                </span>
+              ) : <span style={{ color: '#a16207' }}> · nothing written — open</span>}
+              {(diaryByDay[selectedDay]?.followUps || []).map((f) => <div key={f.id} style={{ marginTop: 4, color: '#b91c1c' }}>Follow up: {f.title || f.type} (logged {f.loggedOn})</div>)}
+            </a>
+          )}
           {loading && !data ? <div className="dcal-skel" /> : panelEvents.length === 0 ? (
             <div style={{ padding: '18px 4px', fontSize: 13, color: '#94a3b8' }}>{selectedDay ? t('eventCalendar.noEventsDay') : t('eventCalendar.noEventsMonth')}</div>
           ) : (

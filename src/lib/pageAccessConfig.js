@@ -76,6 +76,7 @@ export const ROUTE_TO_ACCESS_KEY = {
   '/phone-agent': 'analytics',
   '/google-reviews': 'admin',
   '/calendar': 'calendar',
+  '/diary': 'admin',
 };
 
 // ─── Pages accessible without any permission check ───

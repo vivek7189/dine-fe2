@@ -13806,6 +13806,31 @@ const Admin = () => {
             {/* Divider */}
             <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
 
+            {/* Daily Diary — manager's anticipation & assessment + incidents (off by default) */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
+                Daily Diary (manager)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  aria-label="Turn the daily diary on or off"
+                  onClick={() => setPosSettings(prev => ({ ...prev, dailyDiary: !prev.dailyDiary }))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  {posSettings.dailyDiary
+                    ? <FaToggleOn size={28} color="#ef4444" />
+                    : <FaToggleOff size={28} color="#d1d5db" />}
+                </button>
+                <div>
+                  <span style={{ fontSize: '13px', color: '#374151' }}>Turn on the Daily Diary</span>
+                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>Each day the manager notes what they expect (target, focus, staffing) and how it went (rating, incidents like a quarrel, theft, great or low sales). Takes a few minutes; incidents and follow-ups show in the calendar. Owner and managers only.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid #f3e8f0', margin: '20px 0' }} />
+
             {/* Voice Ticket — speak an order, check it, print it in the kitchen (off by default) */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px', display: 'block' }}>
