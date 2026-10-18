@@ -570,6 +570,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           setRestaurant(response.restaurant);
           setQrMenuInfo(response.qrMenu || null);
           if (response.qrMenu?.orderType === 'takeaway') setOrderType('takeaway');
+          else if (response.qrMenu?.orderType === 'dine-in' && orderTypeProp !== 'takeaway') setOrderType('table');
           setMenu(response.menu);
           setCategories(['all', ...orderCategoryNames(response.categories, response.menu)]);
           setMenuCategoryObjs(Array.isArray(response.categories) ? response.categories : []);

@@ -24,6 +24,7 @@ function qrUrl(restaurant, m) {
 
 export default function QrMenusPanel({ restaurant }) {
   const [menus, setMenus] = useState(null);
+  const [saved, setSaved] = useState([]);   // last saved list — saving one menu never saves another's half-done edits
   const [cats, setCats] = useState([]);
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(null);   // index being edited
@@ -34,7 +35,7 @@ export default function QrMenusPanel({ restaurant }) {
 
   useEffect(() => {
     if (!restaurant?.id) return;
-    apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`).then((r) => setMenus(r?.qrMenus || [])).catch((e) => { setMenus([]); setMsg(e?.message || 'Could not load QR menus'); });
+    apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`).then((r) => { setMenus(r?.qrMenus || []); setSaved(r?.qrMenus || []); }).catch((e) => { setMenus([]); setMsg(e?.message || 'Could not load QR menus'); });
     apiClient.getPublicMenu(restaurant.id).then((r) => {
       setCats(Array.isArray(r?.categories) ? r.categories : []);
       setItems(Array.isArray(r?.menu) ? r.menu : []);
@@ -50,13 +51,29 @@ export default function QrMenusPanel({ restaurant }) {
     });
   }, [menus, restaurant]);
 
-  const countFor = (m) => items.filter((i) => (m.itemIds || []).includes(String(i.id)) || (m.categories || []).some((c) => String(c).toLowerCase() === String(i.category || '').toLowerCase())).length;
+  // same matching as the server: a category id ("main-course") or name ("Main Course")
+  const catId = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const countFor = (m) => items.filter((i) => (m.itemIds || []).includes(String(i.id)) || (m.categories || []).some((c) => catId(c) === catId(i.category))).length;
   const setM = (k, patch) => setMenus((list) => list.map((m, j) => (j === k ? { ...m, ...patch } : m)));
-  const save = async (list) => {
+  // Save ONE menu (k) or delete it: built from the last saved list, so other menus' unsaved edits stay unsaved
+  const save = async (k, remove = false) => {
+    const m = menus[k];
+    const isSaved = !!(m && m.id && saved.some((x) => x.id === m.id));
+    const list = remove
+      ? saved.filter((x) => !(m && m.id && x.id === m.id))
+      : (isSaved ? saved.map((x) => (x.id === m.id ? m : x)) : [...saved, m]);
     setSaving(true); setMsg('');
     try {
       const r = await apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`, { method: 'PUT', body: { qrMenus: list } });
-      setMenus(r?.qrMenus || []); setOpen(null); setMsg('Saved');
+      const next = r?.qrMenus || [];
+      setSaved(next);
+      // keep other menus' unsaved edits on screen; this one now shows what was saved
+      setMenus((cur) => {
+        const others = cur.filter((_, j) => j !== k).filter((x) => !x.id || next.some((n) => n.id === x.id) || !saved.some((sv) => sv.id === x.id));
+        const merged = next.map((n) => others.find((o) => o.id === n.id) || n);
+        return [...merged, ...others.filter((o) => !o.id)];
+      });
+      setOpen(null); setMsg('Saved');
       setTimeout(() => setMsg(''), 2000);
     } catch (e) { setMsg(e?.message || 'Could not save'); }
     setSaving(false);
@@ -145,8 +162,8 @@ export default function QrMenusPanel({ restaurant }) {
                   <input type="checkbox" checked={m.active !== false} onChange={(e) => setM(k, { active: e.target.checked })} /> On — when off, this QR shows the normal full menu
                 </label>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                  <button type="button" onClick={() => save(menus.filter((_, j) => j !== k))} disabled={saving} style={{ ...btn, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaTrash size={11} /> Delete</button>
-                  <button type="button" onClick={() => save(menus)} disabled={saving || !m.name.trim() || (!(m.categories || []).length && !(m.itemIds || []).length)}
+                  <button type="button" onClick={() => (m.id ? save(k, true) : (setMenus((cur) => cur.filter((_, j) => j !== k)), setOpen(null)))} disabled={saving} style={{ ...btn, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaTrash size={11} /> Delete</button>
+                  <button type="button" onClick={() => save(k)} disabled={saving || !m.name.trim() || (!(m.categories || []).length && !(m.itemIds || []).length)}
                     style={{ ...btn, background: '#7c3aed', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: (saving || !m.name.trim() || (!(m.categories || []).length && !(m.itemIds || []).length)) ? 0.5 : 1 }}>
                     {saving ? <FaSpinner className="animate-spin" size={11} /> : <FaCheck size={11} />} Save
                   </button>

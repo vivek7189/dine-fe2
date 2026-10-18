@@ -399,13 +399,18 @@ export default function VoiceTicketPage() {
     cancel: () => { ticketRef.current = null; setTicket(null); setSel(null); setConflict(null); setPhase('idle'); },
   };
 
+  // Which start is still wanted: End / leaving the page while it is connecting clears it, so a call
+  // that finishes connecting afterwards is hung up at once (it would otherwise listen — and send — unseen).
+  const liveWantRef = useRef(0);
   const startLive = async () => {
-    if (liveRef.current) return;
+    if (liveRef.current || liveWantRef.current) return;
+    const want = Date.now();
+    liveWantRef.current = want;
     setError(''); setYouText(''); setAiText(''); setMuted(false);
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') { setError('This device cannot do live voice here. Use Add item instead.'); return; }
     setLive(true); setAiState('connecting');
     try {
-      liveRef.current = await startLiveVoice({
+      const call = await startLiveVoice({
         restaurantId: rid,
         getDraft: () => ticketRef.current,
         onOps: (ops) => handlers.current.applyOps(ops),
@@ -416,18 +421,22 @@ export default function VoiceTicketPage() {
         onAi: (txt, fin) => { setAiText(txt); if (fin && txt) pushLog('say', txt); },
         onError: (m) => setError(m),
         onEnd: (why) => {
-          liveRef.current = null; setLive(false); setAiState('idle');
+          liveRef.current = null; if (liveWantRef.current === want) liveWantRef.current = 0; setLive(false); setAiState('idle');
           if (why === 'time') flash('Live voice ended (time limit) — tap to talk again');
           else if (why === 'dropped') flash('Connection dropped — tap to talk again');
         },
       });
+      if (liveWantRef.current !== want) { call.stop('user'); return; }
+      liveRef.current = call;
     } catch (e) {
+      if (liveWantRef.current !== want) return;
+      liveWantRef.current = 0;
       liveRef.current = null; setLive(false); setAiState('idle');
       setError(e?.name === 'NotAllowedError' ? 'Microphone is blocked — allow it in the browser / device settings' : (e?.message || 'Could not start the live voice'));
     }
   };
-  const stopLive = () => { const l = liveRef.current; liveRef.current = null; if (l) l.stop('user'); setLive(false); setAiState('idle'); };
-  useEffect(() => () => { if (liveRef.current) liveRef.current.stop('user'); }, []);
+  const stopLive = () => { const l = liveRef.current; liveRef.current = null; liveWantRef.current = 0; if (l) l.stop('user'); setLive(false); setAiState('idle'); };
+  useEffect(() => () => { liveWantRef.current = 0; if (liveRef.current) liveRef.current.stop('user'); }, []);
 
   // orb follows the voices (no re-render: CSS variables on the stage, every animation frame)
   useEffect(() => {
@@ -630,8 +639,7 @@ export default function VoiceTicketPage() {
       }
       // Table number the restaurant hasn't set up in DineOpen → offer to send with the number on the ticket
       if (dine && tk.tableNumber && !tableNotSetUp && /not found/i.test(msg)) {
-        // spoken order (live): send it with the number printed on the ticket; by tap: ask first
-        if (auto && live) { await send({ tableNotSetUp: true, auto: true }); return; }
+        // ask (a misheard number must never print) — live voice hears this and asks the staff
         setConflict({ missing: true, table: tk.tableNumber }); setPhase('check'); reportSend(`Table ${tk.tableNumber} is not set up — the staff must choose on screen.`); return;
       }
       setError(msg || 'Could not send — nothing was printed. Please try again.');

@@ -137,6 +137,8 @@ export default function WeeklyScheduleGrid({
       shiftName: formData.shiftName || null,
       color: formData.color || null,
       ...(formData.incentive !== undefined && { incentive: formData.incentive }),
+      // Team incentives: the station + duty picked on the shift ('' clears)
+      ...(formData.station !== undefined && { station: formData.station || null, duty: formData.station ? (formData.duty || null) : null }),
     });
     setPrefill(null);
     onReloadShifts();

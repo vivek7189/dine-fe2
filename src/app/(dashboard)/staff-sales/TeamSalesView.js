@@ -18,7 +18,7 @@ export default function TeamSalesView({ restaurantId, startDate, endDate, format
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!restaurantId || !startDate || !endDate) return undefined;
+    if (!restaurantId || !startDate || !endDate) { setLoading(false); setData(null); return undefined; }
     let alive = true;
     setLoading(true); setError('');
     apiClient.getTeamSales(restaurantId, { startDate, endDate })

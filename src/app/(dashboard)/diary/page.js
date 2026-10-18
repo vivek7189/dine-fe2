@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '../../../lib/api';
-import { restaurantToday } from '../../../lib/restaurantTime';
+import { restaurantToday, ymd } from '../../../lib/restaurantTime';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   FaBook, FaChevronLeft, FaChevronRight, FaSun, FaMoon, FaExclamationTriangle, FaPlus, FaTrash,
@@ -49,6 +49,7 @@ export default function DiaryPage() {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [dirty, setDirty] = useState(false);
+  const [changed, setChanged] = useState({}); // sections edited since load — only those are saved
   const [error, setError] = useState(null);
   const [history, setHistory] = useState(null);
   const [incidents, setIncidents] = useState(null);
@@ -57,7 +58,7 @@ export default function DiaryPage() {
   useEffect(() => {
     let r = null; try { r = localStorage.getItem('selectedRestaurantId'); } catch { /* none */ }
     setRid(r);
-    const t = restaurantToday();
+    const t = ymd(restaurantToday());
     setToday(t);
     const q = searchParams.get('date');
     setDate(/^\d{4}-\d{2}-\d{2}$/.test(q || '') ? q : t);
@@ -66,7 +67,7 @@ export default function DiaryPage() {
 
   const loadDay = useCallback(async () => {
     if (!rid || !date) return;
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setForm(null); setChanged({});
     try {
       const r = await apiClient.getDiaryDay(rid, date);
       setDay(r);
@@ -78,7 +79,7 @@ export default function DiaryPage() {
       });
       setDirty(false); setSavedAt(e.updatedAt ? { at: e.updatedAt, by: e.updatedBy?.name } : null);
     } catch (err) {
-      setError({ off: err?.data?.code === 'DIARY_OFF' || /switched off/i.test(err?.message || ''), message: err?.message || 'Could not load the diary' });
+      setError({ off: err?.code === 'DIARY_OFF' || err?.data?.code === 'DIARY_OFF', denied: err?.code === 'DIARY_NOT_ALLOWED' || err?.data?.code === 'DIARY_NOT_ALLOWED', message: err?.message || 'Could not load the diary' });
     } finally { setLoading(false); }
   }, [rid, date]);
   useEffect(() => { if (tab === 'day') loadDay(); }, [tab, loadDay]);
@@ -94,21 +95,27 @@ export default function DiaryPage() {
     if (tab === 'incidents') { setIncidents(null); apiClient.getDiaryIncidents(rid, 'all').then(setIncidents).catch((e) => setIncidents({ error: e?.message })); }
   }, [tab, rid, today, savedAt]);
 
-  const set = (section, patch) => { setForm((f) => ({ ...f, [section]: { ...f[section], ...patch } })); setDirty(true); };
-  const setInc = (k, patch) => { setForm((f) => ({ ...f, incidents: f.incidents.map((x, j) => (j === k ? { ...x, ...patch } : x)) })); setDirty(true); };
+  const set = (section, patch) => { setForm((f) => ({ ...f, [section]: { ...f[section], ...patch } })); setDirty(true); setChanged((c) => ({ ...c, [section]: true })); };
+  const setInc = (k, patch) => { setForm((f) => ({ ...f, incidents: f.incidents.map((x, j) => (j === k ? { ...x, ...patch } : x)) })); setDirty(true); setChanged((c) => ({ ...c, incidents: true })); };
+  const touchIncidents = () => { setDirty(true); setChanged((c) => ({ ...c, incidents: true })); };
 
   const save = async () => {
     setSaving(true);
     try {
-      const body = {
-        anticipation: { ...form.anticipation, target: form.anticipation.target === '' ? null : Number(form.anticipation.target) },
-        assessment: form.assessment,
-        incidents: form.incidents.map((i) => ({ ...i, amount: i.amount === '' ? null : Number(i.amount), followUp: i.followUp || null })),
-      };
+      // Only what was edited here — so a manager saving the night part never wipes the morning part
+      // someone else saved meanwhile.
+      const body = {};
+      if (changed.anticipation) body.anticipation = { ...form.anticipation, target: form.anticipation.target === '' ? null : Number(form.anticipation.target) };
+      if (changed.assessment) body.assessment = form.assessment;
+      if (changed.incidents) body.incidents = form.incidents.map((i) => ({ ...i, amount: i.amount === '' ? null : Number(i.amount), followUp: i.followUp || null }));
       const r = await apiClient.saveDiaryDay(rid, date, body);
       const e = r.entry || {};
-      setForm((f) => ({ ...f, incidents: (e.incidents || []).map((i) => ({ ...newIncident(), ...i, amount: i.amount ?? '', followUp: i.followUp || '' })) }));
-      setSavedAt({ at: e.updatedAt, by: e.updatedBy?.name }); setDirty(false);
+      setForm({
+        anticipation: { target: e.anticipation?.target ?? '', focus: e.anticipation?.focus || '', staffing: e.anticipation?.staffing || '', notes: e.anticipation?.notes || '' },
+        assessment: { rating: e.assessment?.rating || null, wentWell: e.assessment?.wentWell || '', wentWrong: e.assessment?.wentWrong || '', tomorrow: e.assessment?.tomorrow || '' },
+        incidents: (e.incidents || []).map((i) => ({ ...newIncident(), ...i, amount: i.amount ?? '', followUp: i.followUp || '' })),
+      });
+      setSavedAt({ at: e.updatedAt, by: e.updatedBy?.name }); setDirty(false); setChanged({});
     } catch (err) {
       setError({ message: err?.message || 'Could not save' });
     } finally { setSaving(false); }
@@ -165,7 +172,12 @@ export default function DiaryPage() {
               <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="ml-auto px-2 py-1.5 rounded-lg border border-gray-200 text-sm bg-white" />
             </div>
 
-            {loading || !form ? (
+            {!loading && !form && error ? (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 text-sm text-gray-700">
+                {error.denied ? 'Your role cannot use the diary — ask the owner to add it in Admin → POS settings → Daily Diary.' : error.message}
+                {!error.denied && <button onClick={loadDay} className="ml-3 text-amber-700 font-semibold">Try again</button>}
+              </div>
+            ) : loading || !form ? (
               <div className="flex justify-center py-20"><FaSpinner className="animate-spin text-amber-600 text-2xl" /></div>
             ) : (
               <div className="space-y-4 pb-24">
@@ -277,11 +289,11 @@ export default function DiaryPage() {
                           </button>
                           {x.status === 'resolved' && <input value={x.resolution} onChange={(e) => setInc(k, { resolution: e.target.value })} placeholder="How it was resolved" className="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg border border-gray-200 text-sm" />}
                           {x.by?.name && <span className="text-[11px] text-gray-400 ml-auto">by {x.by.name}</span>}
-                          <button onClick={() => { setForm((f) => ({ ...f, incidents: f.incidents.filter((_, j) => j !== k) })); setDirty(true); }} className="p-1.5 text-gray-400 hover:text-red-600" aria-label="Remove"><FaTrash size={12} /></button>
+                          <button onClick={() => { setForm((f) => ({ ...f, incidents: f.incidents.filter((_, j) => j !== k) })); touchIncidents(); }} className="p-1.5 text-gray-400 hover:text-red-600" aria-label="Remove"><FaTrash size={12} /></button>
                         </div>
                       </div>
                     ))}
-                    <button onClick={() => { setForm((f) => ({ ...f, incidents: [...f.incidents, newIncident()] })); setDirty(true); }}
+                    <button onClick={() => { setForm((f) => ({ ...f, incidents: [...f.incidents, newIncident()] })); touchIncidents(); }}
                       className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 text-sm font-semibold text-gray-700 hover:bg-white flex items-center justify-center gap-2"><FaPlus size={10} /> Add incident or event</button>
                   </div>
                 </Section>

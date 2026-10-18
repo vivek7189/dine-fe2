@@ -21,31 +21,53 @@ export async function startLiveVoice({
   onEnd,             // (reason) => void
 }) {
   onState && onState('connecting');
+  // Declared up front: stop() can run while setup is still going (a failure half-way) and must
+  // always release the mic / connection.
+  let cap = null;
+  let pc = null;
+  let mic = null;
+  let meters = null;
+  let dc = null;
+  let ended = false;
+  const started = Date.now();
+  const usage = { audioIn: 0, audioOut: 0, textIn: 0, cached: 0, textOut: 0 };
+  const audioEl = document.createElement('audio');
   const ses = await apiClient.request(`/api/voice-ticket/${restaurantId}/live-session`, { method: 'POST', body: { draft: getDraft && getDraft() } });
   if (!ses || !ses.success || !ses.key) throw new Error((ses && ses.error) || 'Could not start the live voice');
 
-  const pc = new RTCPeerConnection();
-  const audioEl = document.createElement('audio');
+  pc = new RTCPeerConnection();
   audioEl.autoplay = true;
   audioEl.setAttribute('playsinline', '');
   let remoteStream = null;
-  pc.ontrack = (e) => { remoteStream = e.streams[0]; audioEl.srcObject = remoteStream; meters.attachRemote(remoteStream); };
+  pc.ontrack = (e) => { remoteStream = e.streams[0]; audioEl.srcObject = remoteStream; if (meters) meters.attachRemote(remoteStream); };
 
-  const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  } catch (e) { stop('failed'); throw e; }
   mic.getTracks().forEach((t) => pc.addTrack(t, mic));
-  const meters = makeMeters(mic);
+  meters = makeMeters(mic);
 
-  const dc = pc.createDataChannel('oai-events');
-  const started = Date.now();
-  const usage = { audioIn: 0, audioOut: 0, textIn: 0, cached: 0, textOut: 0 };
-  let ended = false;
+  dc = pc.createDataChannel('oai-events');
   let you = '';
   let ai = '';
-  const sendEvt = (o) => { try { if (dc.readyState === 'open') dc.send(JSON.stringify(o)); } catch { /* closed */ } };
+  const sendEvt = (o) => { try { if (dc && dc.readyState === 'open') dc.send(JSON.stringify(o)); } catch { /* closed */ } };
 
+  // Tool calls run ONE AFTER ANOTHER in the order the model made them ("add a coke and send it" =
+  // update_order then send_order — the send must see the coke). Their outputs go back as they finish;
+  // ONE response.create follows once the model's turn is done and every tool has answered.
+  let toolChain = Promise.resolve();
+  let toolsPending = 0;
+  let needReply = false;
+  let turnDone = false;
+  const maybeReply = () => {
+    if (needReply && turnDone && toolsPending === 0) { needReply = false; sendEvt({ type: 'response.create' }); }
+  };
   const toolOutput = (callId, output) => {
     sendEvt({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: callId, output: String(output).slice(0, 4000) } });
-    sendEvt({ type: 'response.create' });
+  };
+  const queueTool = (name, callId, argsText) => {
+    toolsPending++; needReply = true;
+    toolChain = toolChain.then(() => runTool(name, callId, argsText)).catch(() => {}).then(() => { toolsPending--; maybeReply(); });
   };
 
   const runTool = async (name, callId, argsText) => {
@@ -74,13 +96,14 @@ export async function startLiveVoice({
       case 'input_audio_buffer.speech_stopped': onState && onState('thinking'); break;
       case 'conversation.item.input_audio_transcription.delta': you += ev.delta || ''; onYou && onYou(you, false); break;
       case 'conversation.item.input_audio_transcription.completed': you = String(ev.transcript || you).trim(); onYou && onYou(you, true); break;
-      case 'response.created': ai = ''; break;
+      case 'response.created': ai = ''; turnDone = false; break;
       case 'response.output_audio_transcript.delta': ai += ev.delta || ''; onAi && onAi(ai, false); break;
       case 'response.output_audio_transcript.done': ai = String(ev.transcript || ai).trim(); onAi && onAi(ai, true); break;
       case 'output_audio_buffer.started': onState && onState('speaking'); break;
       case 'output_audio_buffer.stopped': case 'output_audio_buffer.cleared': onState && onState('listening'); break;
-      case 'response.function_call_arguments.done': runTool(ev.name, ev.call_id, ev.arguments || '{}'); break;
+      case 'response.function_call_arguments.done': queueTool(ev.name, ev.call_id, ev.arguments || '{}'); break;
       case 'response.done': {
+        turnDone = true; maybeReply();
         const u = ev.response && ev.response.usage;
         if (u) {
           const ind = u.input_token_details || {}; const outd = u.output_token_details || {};
@@ -94,28 +117,38 @@ export async function startLiveVoice({
     }
   };
 
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  const sdpRes = await fetch(ses.callUrl || 'https://api.openai.com/v1/realtime/calls', {
-    method: 'POST', body: offer.sdp, headers: { Authorization: `Bearer ${ses.key}`, 'Content-Type': 'application/sdp' },
-  });
-  if (!sdpRes.ok) { stop('failed'); throw new Error('Could not connect the live voice'); }
-  await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() });
-  await new Promise((resolve) => { if (dc.readyState === 'open') resolve(); else dc.onopen = () => resolve(); setTimeout(resolve, 6000); });
+  try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const sdpRes = await fetch(ses.callUrl || 'https://api.openai.com/v1/realtime/calls', {
+      method: 'POST', body: offer.sdp, headers: { Authorization: `Bearer ${ses.key}`, 'Content-Type': 'application/sdp' },
+    });
+    if (!sdpRes.ok) throw new Error('Could not connect the live voice');
+    await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() });
+    await new Promise((resolve) => { if (dc.readyState === 'open') resolve(); else dc.onopen = () => resolve(); setTimeout(resolve, 6000); });
+  } catch (e) { stop('failed'); throw e; }
+  if (ended) throw new Error('Live voice stopped');
   onState && onState('listening');
 
-  const cap = setTimeout(() => stop('time'), Math.max(1, ses.maxMinutes || 6) * 60 * 1000);
-  pc.onconnectionstatechange = () => { if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) stop('dropped'); };
+  cap = setTimeout(() => stop('time'), Math.max(1, ses.maxMinutes || 6) * 60 * 1000);
+  // 'disconnected' usually recovers in a few seconds (Wi-Fi blip) — end only if it doesn't
+  let dropTimer = null;
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    if (st === 'failed' || st === 'closed') stop('dropped');
+    else if (st === 'disconnected') { clearTimeout(dropTimer); dropTimer = setTimeout(() => { if (pc.connectionState === 'disconnected') stop('dropped'); }, 8000); }
+    else if (st === 'connected') clearTimeout(dropTimer);
+  };
 
   function stop(reason = 'user') {
     if (ended) return;
     ended = true;
     clearTimeout(cap);
-    try { dc.close(); } catch { /* closed */ }
-    try { pc.getSenders().forEach((s) => s.track && s.track.stop()); pc.close(); } catch { /* closed */ }
-    try { mic.getTracks().forEach((t) => t.stop()); } catch { /* stopped */ }
+    try { if (dc) dc.close(); } catch { /* closed */ }
+    try { if (pc) { pc.getSenders().forEach((s) => s.track && s.track.stop()); pc.close(); } } catch { /* closed */ }
+    try { if (mic) mic.getTracks().forEach((t) => t.stop()); } catch { /* stopped */ }
     try { audioEl.srcObject = null; } catch { /* gone */ }
-    meters.stop();
+    if (meters) meters.stop();
     onState && onState('ended');
     const seconds = Math.round((Date.now() - started) / 1000);
     apiClient.request(`/api/voice-ticket/${restaurantId}/live-usage`, { method: 'POST', body: { seconds, usage } }).catch(() => {});
@@ -124,10 +157,10 @@ export async function startLiveVoice({
 
   return {
     stop,
-    mute(on) { mic.getAudioTracks().forEach((t) => { t.enabled = !on; }); },
+    mute(on) { if (mic) mic.getAudioTracks().forEach((t) => { t.enabled = !on; }); },
     // tell the model about a change made by tap (so its picture of the order stays right)
     note(text) { sendEvt({ type: 'conversation.item.create', item: { type: 'message', role: 'user', content: [{ type: 'input_text', text: `[POS note, do not reply] ${text}` }] } }); },
-    levels: () => meters.read(),
+    levels: () => (meters ? meters.read() : { you: 0, ai: 0 }),
   };
 }
 

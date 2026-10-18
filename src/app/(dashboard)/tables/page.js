@@ -295,7 +295,7 @@ const TableQRCodesModal = ({ isOpen, onClose, floors, restaurant, onTablesChange
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Table QR Codes</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {allTables.length > 0 && qrMode !== 'takeaway' && (
+            {allTables.length > 0 && qrMode !== 'takeaway' && qrMode !== 'menus' && (
               <button onClick={qrMode === 'seat' ? downloadAllSeats : downloadAll} style={{
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', border: 'none', color: 'white',

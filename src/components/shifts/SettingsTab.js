@@ -79,7 +79,11 @@ export default function SettingsTab({ restaurantId, shiftSettings, setShiftSetti
   const STATION_TYPES = [['dine-in', 'Dine-in'], ['takeaway', 'Takeaway / parcel'], ['delivery', 'Delivery'], ['qr', 'QR self-orders']];
   const stations = settings.stations || [];
   const setStation = (i, patch) => update('stations', stations.map((st, j) => (j === i ? { ...st, ...patch } : st)));
+  // id made here the same way the server does (from the name), so a shift can pick a station that
+  // was just added and not saved yet
+  const slug = (n) => String(n || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'station';
   const addStation = () => update('stations', [...stations, {
+    id: (() => { const base = slug(stations.length ? 'New station' : 'Takeaway counter'); let id = base; while (stations.some((x) => x.id === id)) id += '-2'; return id; })(),
     name: stations.length ? 'New station' : 'Takeaway counter', orderTypes: stations.length ? [] : ['takeaway'], ratePct: 0,
     duties: stations.length ? [{ name: 'Team member', share: 1 }] : [{ name: 'Main packer', share: 50 }, { name: 'Assistant', share: 30 }, { name: 'Helper', share: 20 }],
   }]);
