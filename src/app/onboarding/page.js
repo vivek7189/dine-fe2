@@ -5,7 +5,7 @@ import { getApiBase } from '@/lib/apiBase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaUtensils, FaCoffee, FaBeer, FaBreadSlice, FaIceCream, FaHamburger, FaHotel, FaFire, FaArrowRight, FaArrowLeft, FaCheck, FaWhatsapp, FaChair, FaBoxes, FaUsers, FaCalendarAlt, FaQrcode, FaFileInvoice, FaCashRegister, FaClipboardList, FaRocket, FaUpload, FaGift, FaPercent, FaCrown, FaSearch, FaChevronDown, FaTimes, FaDownload, FaLink, FaMagic, FaGlobe, FaMobileAlt, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaChevronRight, FaWifi, FaPrint, FaChartLine, FaBolt, FaStar, FaRobot, FaGoogle, FaApple, FaAndroid } from 'react-icons/fa';
 import QRCode from 'qrcode';
-import apiClient from '../../lib/api';
+import apiClient, { MENU_FILE_LIMIT } from '../../lib/api';
 import { track } from '../../lib/analytics';
 import { FIRST_SALE_FLAG } from '../../components/GetStartedCard';
 import { getDefaultMenu, getDefaultCategories } from '../../lib/defaultMenus';
@@ -619,6 +619,14 @@ function OnboardingContent() {
       return;
     }
 
+    // size first — nothing too big is sent (the most is 100 MB in total)
+    const totalBytes = files.reduce((n, f) => n + (f.size || 0), 0);
+    if (totalBytes > MENU_FILE_LIMIT) {
+      setUploadError(`${files.length > 1 ? 'These files are' : 'This file is'} ${Math.round(totalBytes / (1024 * 1024))} MB — the most is ${MENU_FILE_LIMIT / (1024 * 1024)} MB. Please use a smaller file.`);
+      if (e.target) e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     setUploadError('');
     setUploadProgress('Uploading menu images...');
@@ -662,7 +670,7 @@ function OnboardingContent() {
       }
     } catch (err) {
       console.error('Menu upload error:', err);
-      setUploadError('failed');
+      setUploadError(err?.code === 'FILE_TOO_LARGE' ? err.message : 'failed');
     } finally {
       setUploading(false);
       setUploadProgress('');
@@ -1770,7 +1778,7 @@ function OnboardingContent() {
                     </p>
                     <p style={{ fontSize: '12px', color: uploading ? '#d97706' : '#6b7280', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {uploading ? uploadProgress : (uploadedCount > 0 ? 'Upload another to add more' : <>
-                        <FaMagic size={10} /> {ob('photoOrPdf')}
+                        <FaMagic size={10} /> {ob('photoOrPdf')} · up to {MENU_FILE_LIMIT / (1024 * 1024)} MB
                       </>)}
                     </p>
                   </div>
@@ -1817,7 +1825,7 @@ function OnboardingContent() {
                     animation: 'fadeInUp 0.3s ease',
                   }}>
                     <p style={{ fontSize: '13px', fontWeight: '700', color: '#dc2626', margin: '0 0 6px' }}>
-                      {uploadError === 'no-items' ? 'Could not extract items from this image' : 'Upload failed — please try again'}
+                      {uploadError === 'no-items' ? 'Could not extract items from this image' : uploadError === 'failed' ? 'Upload failed — please try again' : uploadError}
                     </p>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px', lineHeight: 1.4 }}>
                       Don&apos;t worry! You can try again, or let us set it up for you:

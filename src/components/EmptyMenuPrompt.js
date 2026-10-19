@@ -117,7 +117,7 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
       console.log('🔍 Using restaurant ID for upload:', restaurantId);
       console.log('🔍 Current restaurant:', currentRestaurant);
       
-      // big files go straight to cloud storage (the normal upload stops at 25 MB per file)
+      // the size (up to 100 MB in total) is checked before anything is sent
       const response = await apiClient.uploadMenuFiles(restaurantId, files);
 
       if (response.success) {
@@ -542,7 +542,7 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
             Add Items Manually
           </button>
           <span style={{ fontSize: '14px', color: '#9ca3af' }}>
-            or upload images, PDFs, CSV
+            or upload images, PDFs, CSV · up to 100 MB
           </span>
         </div>
       </div>

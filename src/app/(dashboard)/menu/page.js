@@ -4563,7 +4563,7 @@ const MenuManagement = () => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-        const maxFileSize = 100 * 1024 * 1024; // files over 25 MB go straight to cloud storage (uploadMenuFiles)
+        const maxFileSize = 100 * 1024 * 1024; // up to 100 MB (the server's limit) — checked here so nothing too big is sent
         const supportedTypes = [
           'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff',
           'application/pdf',

@@ -90,6 +90,9 @@ async function getLearnedDirectBackend() {
   return null;
 }
 
+// Menu file uploads: the server's per-file limit (checked in the browser first)
+export const MENU_FILE_LIMIT = 100 * 1024 * 1024; // whole upload (all files together) — same as the server
+
 class ApiClient {
   constructor() {
     // Local-server (offline LAN) mode: when this terminal is pointed at the on-prem
@@ -1502,50 +1505,19 @@ class ApiClient {
   }
 
   // Bulk menu upload endpoints
-  // Menu files → AI extraction, the right way for each size: files up to 25 MB go in one normal
-  // upload (the server's per-file limit); bigger ones (up to 100 MB) go straight to cloud storage and
-  // are read there. Same result shape as bulkUploadMenu. (Onboarding / empty-menu screens sent big
-  // files the normal way → 2 minutes of uploading, then "File too large".)
-  async uploadMenuFiles(restaurantId, files, { onPhase } = {}) {
-    const LIMIT = 25 * 1024 * 1024;
-    const MAX = 100 * 1024 * 1024;
+  // Menu files → AI extraction. The size is checked HERE, before anything is sent (a too-big upload
+  // used to stream for minutes and then be refused): up to 100 MB for all the files together.
+  async uploadMenuFiles(restaurantId, files) {
     const list = Array.from(files || []);
-    const tooBig = list.find((f) => f.size > MAX);
-    if (tooBig) throw new Error(`${tooBig.name} is ${Math.round(tooBig.size / (1024 * 1024))} MB — the most is 100 MB. Try a smaller file or fewer pages.`);
-    const small = list.filter((f) => f.size <= LIMIT);
-    const big = list.filter((f) => f.size > LIMIT);
-    const data = []; const cats = []; const seen = new Set();
-    const addCats = (arr) => (arr || []).forEach((c) => { const k = String(c?.name || '').trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); cats.push(c); } });
-    if (small.length) {
-      const fd = new FormData();
-      small.forEach((f) => fd.append('menuFiles', f));
-      const r = await this.bulkUploadMenu(restaurantId, fd);
-      if (r && r.success === false) throw new Error(r.error || 'Upload failed');
-      (r?.data || []).forEach((m) => data.push(m));
-      addCats(r?.extractedCategories);
+    const total = list.reduce((n, f) => n + (f.size || 0), 0);
+    if (total > MENU_FILE_LIMIT) {
+      const e = new Error(`${list.length > 1 ? 'These files are' : `${list[0]?.name || 'This file'} is`} ${Math.round(total / (1024 * 1024))} MB — the most is ${MENU_FILE_LIMIT / (1024 * 1024)} MB. Please use a smaller file (e.g. fewer pages or a smaller photo).`);
+      e.code = 'FILE_TOO_LARGE';
+      throw e;
     }
-    for (const file of big) {
-      onPhase && onPhase('uploading', file);
-      const { jobId, uploadUrl, gcsPath, uploadHeaders } = await this.getMenuUploadUrl(restaurantId, { fileName: file.name, fileType: file.type || 'application/octet-stream', fileSize: file.size });
-      const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream', ...(uploadHeaders || {}) }, body: file });
-      if (!put.ok) throw new Error(`Upload failed (${put.status}) — please try again`);
-      onPhase && onPhase('extracting', file);
-      await this.processMenuUpload(restaurantId, { jobId, gcsPath, fileName: file.name, fileType: file.type || 'application/octet-stream' });
-      const started = Date.now();
-      let result = null;
-      while (Date.now() - started < 20 * 60 * 1000) {
-        await new Promise((r) => setTimeout(r, 4000));
-        let st = null;
-        try { st = await this.getMenuUploadStatus(restaurantId, jobId); } catch (e) { if (e?.status === 403 || e?.status === 404) throw e; continue; }
-        if (st?.status === 'complete') { result = await this.getMenuUploadResult(restaurantId, jobId); break; }
-        if (st?.status === 'failed') throw new Error(st.error || 'Reading the menu failed — please try again');
-      }
-      if (!result) throw new Error('Reading the menu is taking too long — please try again with fewer pages');
-      const items = result?.menuItems || [];
-      data.push({ file: file.name, menuItems: items, extractionStatus: items.length ? 'success' : 'no_menu_data' });
-      addCats(result?.extractedCategories || result?.categories);
-    }
-    return { success: true, data, extractedCategories: cats };
+    const fd = new FormData();
+    list.forEach((f) => fd.append('menuFiles', f));
+    return this.bulkUploadMenu(restaurantId, fd);
   }
 
   async bulkUploadMenu(restaurantId, formData) {
