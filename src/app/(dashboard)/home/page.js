@@ -113,6 +113,16 @@ function canSeeBusinessTotals(user, pageAccess) {
   return a === true || !!(a && typeof a === 'object' && Object.values(a).some(Boolean));
 }
 
+// Order History switched OFF for this person by the owner (every role starts with it on). Then the
+// "Your sales today" card (their orders + takings) is hidden too — it is a summary of their order
+// history. Missing / on / any part on → shown exactly as before.
+function orderHistoryOff(pageAccess) {
+  const v = pageAccess ? pageAccess.history : undefined;
+  if (v === undefined || v === null) return false;
+  if (typeof v === 'object') return !Object.values(v).some(Boolean);
+  return v === false;
+}
+
 // "Your sales today" — a staff member's OWN billed sales (the server checkout figures), shown to
 // staff who don't see the restaurant's totals. Server-side: only orders they took.
 function MySalesCard({ currencySymbol = '₹' }) {
@@ -512,7 +522,7 @@ export default function HomePage() {
 
       {/* Yesterday's-sales recap — retention reward when they come back */}
       {canSeeBusinessTotals(user, pageAccess) && <YesterdayRecap currencySymbol={currencySymbol} />}
-      {user && !canSeeBusinessTotals(user, pageAccess) && <MySalesCard currencySymbol={currencySymbol} />}
+      {user && !canSeeBusinessTotals(user, pageAccess) && !orderHistoryOff(pageAccess) && <MySalesCard currencySymbol={currencySymbol} />}
 
       {/* Open (unsettled) orders indicator — tap to resolve on the Open Orders page */}
       {openSummary && openSummary.count > 0 && canSeeBusinessTotals(user, pageAccess) && (
