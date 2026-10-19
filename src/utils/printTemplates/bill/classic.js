@@ -83,7 +83,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
     `<div class="divider">================================</div>` +
     buildFeedbackSection(printSettings) +
     buildOrderStatusSection(printSettings) +
-    `<div class="bill-footer">${buildCustomFooterHtml(bl)}${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
+    `<div class="bill-footer">${buildCustomFooterHtml(bl, invoice)}${bl.showFooter !== false ? `<p>${showAr ? dualLabel(L.footer, AR.footer, showAr) : L.footer}</p>` : ''}${bl.showPoweredBy !== false ? `<p style="font-size:10px;margin-top:4px;">${showAr ? dualLabel(L.poweredBy, AR.poweredBy, showAr) : L.poweredBy}</p>` : ''}</div>`;
 
   return wrapInDocument(`${L.billLabel} #${billNumberLabel(invoice)}`, css, bodyHtml);
 }

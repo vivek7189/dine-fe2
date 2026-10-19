@@ -45,11 +45,25 @@ export function buildBillIdentity(restaurant, printSettings) {
 // Edge cases: empty/whitespace → nothing; CRLF normalised; each line HTML-escaped; blank lines
 // kept as small spacers; hard caps (15 lines, 160 chars/line) so a runaway paste can't flood the
 // roll; alignment validated to left/center/right (default center). Text forced #000 (thermal 1-bit).
-export function buildCustomFooterHtml(billLayout) {
+// The footer line for THIS kind of bill (Admin → Print settings): pre-bill → billLayout.preBillFooterText
+// (e.g. "This is not the original receipt"), final bill → billLayout.finalBillFooterText (e.g. "FINAL BILL").
+// Empty = nothing (every restaurant's bills stay as they were). Printed bold, above the footer lines.
+// invoice.notFinal: printed while the order is still unpaid (e.g. from Order History) — gets the
+// pre-bill footer, never "FINAL BILL", without adding the PRE-BILL banner. Credit notes get neither.
+export function stageFooterText(billLayout, invoice) {
   const bl = billLayout || {};
+  if (invoice && invoice.isCreditNote) return [];
+  const raw = invoice && (invoice.isPreBill || invoice.notFinal) ? bl.preBillFooterText : bl.finalBillFooterText;
+  return typeof raw === 'string' ? raw.replace(/\r\n?/g, '\n').trim().split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 4).map((l) => l.slice(0, 120)) : [];
+}
+
+export function buildCustomFooterHtml(billLayout, invoice = null) {
+  const bl = billLayout || {};
+  const stage = stageFooterText(bl, invoice);
+  const stageHtml = stage.length ? `<div class="bill-stage-footer" style="text-align:center;font-weight:bold;font-size:1.1em;margin:0 0 6px;color:#000;">${stage.map((l) => `<div>${esc(l)}</div>`).join('')}</div>` : '';
   const raw = typeof bl.footerText === 'string' ? bl.footerText : '';
   const trimmed = raw.replace(/\r\n?/g, '\n').trim();
-  if (!trimmed) return '';
+  if (!trimmed) return stageHtml;
   const align = bl.footerAlign === 'left' ? 'left' : bl.footerAlign === 'right' ? 'right' : 'center';
   const rows = trimmed.split('\n').slice(0, 15).map((l) => {
     const line = l.trim();
@@ -60,7 +74,7 @@ export function buildCustomFooterHtml(billLayout) {
     const isNumberLine = /\d(?:[\d\s-]{4,})\d/.test(line);
     return `<div${isNumberLine ? ' style="font-weight:bold;"' : ''}>${esc(line.slice(0, 160))}</div>`;
   }).join('');
-  return `<div class="bill-custom-footer" style="text-align:${align};margin:0 0 5px;color:#000;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;">${rows}</div>`;
+  return `${stageHtml}<div class="bill-custom-footer" style="text-align:${align};margin:0 0 5px;color:#000;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;">${rows}</div>`;
 }
 
 // Build identity lines (GSTIN, FSSAI, VAT, address, phone) for bill header.

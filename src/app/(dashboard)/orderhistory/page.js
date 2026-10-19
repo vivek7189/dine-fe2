@@ -2086,6 +2086,8 @@ const OrderHistory = () => {
     const bLabels = billingLabels[btype] || billingLabels.restaurant;
 
     const invoiceData = buildInvoiceFromOrder(order);
+    // still unpaid → the restaurant's pre-bill footer (never "FINAL BILL"); no banner change
+    if (!['completed', 'paid', 'settled'].includes(String(order.status || '').toLowerCase()) && String(order.paymentStatus || '').toLowerCase() !== 'paid') invoiceData.notFinal = true;
     const billLabels = {
       billTitle: bLabels.billTitle, billLabel: bLabels.billLabel,
       itemCol: bLabels.itemCol, qtyCol: bLabels.qtyCol, amt: 'Amt',

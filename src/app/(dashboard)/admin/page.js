@@ -4770,6 +4770,31 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
                               </div>
                               <p style={{ fontSize: '10px', color: '#9ca3af', margin: '4px 0 0' }}>Prints on every bill, below the totals. Leave empty to show nothing.</p>
                             </div>
+                            {/* A line for the KIND of bill: pre-bill (not paid yet) vs final (paid). Bold, above the
+                                footer lines. Empty = nothing. */}
+                            {[
+                              ['preBillFooterText', 'Pre-bill footer', 'E.g. This is not the original receipt', 'Prints only on pre-bills (before payment).'],
+                              ['finalBillFooterText', 'Final bill footer', 'E.g. FINAL BILL', 'Prints only on the final bill (after payment), reprints included.'],
+                            ].map(([key, label, ph, hint]) => (
+                              <div key={key}>
+                                <label style={{ fontSize: '11px', color: '#374151', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{label}</label>
+                                <textarea
+                                  value={printSettings.billLayout?.[key] || ''}
+                                  onChange={(e) => setPrintSettings(prev => ({ ...prev, billLayout: { ...prev.billLayout, [key]: e.target.value } }))}
+                                  placeholder={ph}
+                                  rows={2}
+                                  maxLength={300}
+                                  style={{
+                                    width: '100%', padding: '6px 8px', fontSize: '12px', border: '1px solid #d1d5db',
+                                    borderRadius: '6px', resize: 'vertical', fontFamily: 'inherit', outline: 'none',
+                                    boxSizing: 'border-box', whiteSpace: 'pre-wrap',
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                                />
+                                <p style={{ fontSize: '10px', color: '#9ca3af', margin: '4px 0 0' }}>{hint} Bold, above the footer. Leave empty to show nothing.</p>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
