@@ -2882,6 +2882,10 @@ class ApiClient {
   openShift(restaurantId, data) { return this.request(`/api/shifts-cash/${restaurantId}/open`, { method: 'POST', body: data }); }
   getCurrentShift(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/current`); }
   closeShift(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/close`, { method: 'POST', body: data }); }
+  // Daily auto-close of open shifts at closing time + entering the cash count later
+  getShiftAutoClose(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/auto-close`); }
+  saveShiftAutoClose(restaurantId, data) { return this.request(`/api/shifts-cash/${restaurantId}/auto-close`, { method: 'PUT', body: data }); }
+  countShift(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/count`, { method: 'POST', body: data }); }
   shiftCashInOut(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/cash-in-out`, { method: 'POST', body: data }); }
   getAllActiveShifts(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/active-all`); }
   getShiftCashVariance(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/shifts-cash/${restaurantId}/cash-variance${qs}`); }

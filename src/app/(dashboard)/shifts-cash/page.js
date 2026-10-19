@@ -550,6 +550,7 @@ export default function ShiftsCashPage() {
           >
             <FaClockIcon /> Daily Schedule {emailPreferences.emailEnabled ? '(On)' : ''}
           </button>
+          <AutoCloseControl restaurantId={restaurantId} />
         </div>
       )}
 
@@ -700,6 +701,8 @@ export default function ShiftsCashPage() {
           <DownloadReportSection restaurantId={restaurantId} formatCurrency={formatCurrency} />
 
           <ShiftHistorySection
+            canCount={isOwnerAdmin || String(user.role || '').toLowerCase() === 'manager'}
+            onCounted={loadData}
             shiftHistory={shiftHistory}
             showHistory={showHistory}
             setShowHistory={setShowHistory}
@@ -971,6 +974,8 @@ export default function ShiftsCashPage() {
           <DownloadReportSection restaurantId={restaurantId} formatCurrency={formatCurrency} />
 
           <ShiftHistorySection
+            canCount={isOwnerAdmin || String(user.role || '').toLowerCase() === 'manager'}
+            onCounted={loadData}
             shiftHistory={shiftHistory}
             showHistory={showHistory}
             setShowHistory={setShowHistory}
@@ -1238,8 +1243,16 @@ function StatCard({ icon, label, value, color, bg }) {
 
 // ── Shift History ───────────────────────────────────────────────────────────
 
-function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, formatCurrency }) {
+function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, formatCurrency, canCount = false, onCounted }) {
+  const [countFor, setCountFor] = useState(null); // shift id whose cash is being entered
+  const [countVal, setCountVal] = useState('');
+  const [countErr, setCountErr] = useState('');
   if (!shiftHistory || shiftHistory.length === 0) return null;
+  const saveCount = async (s) => {
+    setCountErr('');
+    try { await apiClient.countShift(s.id, { closingCash: countVal }); setCountFor(null); setCountVal(''); onCounted && onCounted(); }
+    catch (e) { setCountErr(e?.message || 'Could not save'); }
+  };
 
   return (
     <div style={cardStyle}>
@@ -1294,6 +1307,7 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
                       {openedDay}
                       <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>
                         {formatTime(s.openedAt)} → {s.closedAt ? `${closedDay !== openedDay ? `${closedDay}, ` : ''}${formatTime(s.closedAt)}` : 'still open'}
+                        {s.autoClosed && <span style={{ marginLeft: '6px', padding: '1px 6px', borderRadius: '6px', background: '#eef2ff', color: '#4338ca', fontWeight: 700 }}>Auto-closed</span>}
                       </div>
                     </td>
                     <td style={{ padding: '10px 8px', color: '#475569' }}>
@@ -1312,7 +1326,22 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
                       {s.expectedCash != null ? formatCurrency(s.expectedCash) : '-'}
                     </td>
                     <td style={cell}>
-                      {!isClosed || s.closingCash == null ? '-' : notCounted ? <span style={{ color: '#b45309', fontFamily: 'inherit' }}>not counted</span> : formatCurrency(s.closingCash)}
+                      {!isClosed || s.closingCash == null ? '-' : notCounted ? (
+                        countFor === s.id ? (
+                          <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center', fontFamily: 'inherit' }}>
+                            <input autoFocus type="number" min="0" step="0.01" value={countVal} onChange={(e) => setCountVal(e.target.value)} placeholder="Counted"
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveCount(s); if (e.key === 'Escape') setCountFor(null); }}
+                              style={{ width: '90px', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px' }} />
+                            <button onClick={() => saveCount(s)} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: '#0f172a', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>Save</button>
+                            {countErr && <span style={{ color: '#dc2626', fontSize: '11px' }}>{countErr}</span>}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#b45309', fontFamily: 'inherit' }}>
+                            not counted
+                            {canCount && <button onClick={() => { setCountFor(s.id); setCountVal(''); setCountErr(''); }} style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '6px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#b45309', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>Enter count</button>}
+                          </span>
+                        )
+                      ) : formatCurrency(s.closingCash)}
                     </td>
                     <td style={{ ...cell, fontWeight: '600', color: notCounted || diff == null || exact ? '#94a3b8' : diff > 0 ? '#16a34a' : '#dc2626' }}>
                       {!isClosed || diff == null ? '-' : notCounted ? '—' : exact ? 'Exact' : `${diff > 0 ? '+' : '−'}${formatCurrency(Math.abs(diff))} ${diff > 0 ? 'extra' : 'short'}`}
@@ -1960,6 +1989,61 @@ function DifferenceDisplay({ difference, formatCurrency }) {
       }}>
         {isZero ? 'Exact match' : `${isPositive ? '+' : ''}${formatCurrency(difference)} ${isPositive ? 'over' : 'short'}`}
       </span>
+    </div>
+  );
+}
+
+// Daily auto-close: every open shift is closed at the restaurant's closing time (+ a few minutes for
+// the last bills), cash marked "not counted" (a manager can enter the count later). The closing time is
+// the staff rota's Operating Hours (Shift Scheduling → Settings); off unless switched on.
+function AutoCloseControl({ restaurantId }) {
+  const [open, setOpen] = useState(false);
+  const [cfg, setCfg] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    if (!restaurantId) return;
+    apiClient.getShiftAutoClose(restaurantId).then(setCfg).catch(() => setCfg(null));
+  }, [restaurantId]);
+  const save = async (patch) => {
+    setSaving(true); setErr('');
+    try { setCfg(await apiClient.saveShiftAutoClose(restaurantId, { enabled: cfg?.enabled === true, graceMinutes: cfg?.graceMinutes ?? 30, ...patch })); }
+    catch (e) { setErr(e?.message || 'Could not save'); }
+    setSaving(false);
+  };
+  const fmt12 = (hhmm) => { const [h, m] = String(hhmm || '00:00').split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ap}`; };
+  return (
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen((v) => !v)} style={{
+        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '10px',
+        border: `2px solid ${cfg?.enabled ? '#c7d2fe' : '#e5e7eb'}`, background: cfg?.enabled ? '#eef2ff' : 'white',
+        color: cfg?.enabled ? '#4338ca' : '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+      }}>
+        <LuLock size={15} /> Auto-close {cfg?.enabled ? `(${fmt12(cfg.closesAt)})` : '(Off)'}
+      </button>
+      {open && cfg && (
+        <div style={{ position: 'absolute', zIndex: 30, top: '48px', left: 0, width: 'min(340px, 90vw)', background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.12)', padding: '16px' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={cfg.enabled === true} disabled={saving} onChange={(e) => save({ enabled: e.target.checked })} style={{ marginTop: '3px' }} />
+            <span>
+              <span style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Close all shifts every day</span>
+              <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginTop: '2px' }}>A shift never runs across days. Cash is marked “not counted”; enter the count later in Shift history.</span>
+            </span>
+          </label>
+          <div style={{ marginTop: '12px', fontSize: '13px', color: '#334155' }}>
+            Closes at <b>{fmt12(cfg.closesAt)}</b> +
+            <select value={cfg.graceMinutes} disabled={saving} onChange={(e) => save({ graceMinutes: Number(e.target.value) })}
+              style={{ margin: '0 6px', padding: '3px 6px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+              {[0, 15, 30, 60, 90, 120].map((m) => <option key={m} value={m}>{m} min</option>)}
+            </select>
+            for the last bills
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#94a3b8' }}>
+            {cfg.source === 'rota' ? 'Closing time from Shift Scheduling → Settings → Operating Hours.' : 'No closing time set — using the end of the business day. Set it in Shift Scheduling → Settings → Operating Hours.'}
+          </div>
+          {err && <div style={{ marginTop: '8px', fontSize: '12px', color: '#dc2626' }}>{err}</div>}
+        </div>
+      )}
     </div>
   );
 }
