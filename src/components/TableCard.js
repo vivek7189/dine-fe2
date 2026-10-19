@@ -60,6 +60,8 @@ export default function TableCard({
   onUnmerge,
   onSplitTable,
   onOpenBilling,
+  // 'bill' (default — as before) | 'prebill' (staff who can't complete bills get a Pre-bill print) | 'hide'
+  billMode = 'bill',
   onMoveOrder,
   onBookTable,
   // Dynamic parties (Path A): sibling party tables of this base + handlers.
@@ -426,7 +428,19 @@ export default function TableCard({
                     <FaPlus size={isMobileEmbed ? 7 : 9} /> Chair
                   </button>
                 )}
-                {/* Complete Bill — primary action */}
+                {/* Complete Bill — primary action (Billing settings decide what staff without billing see) */}
+                {billMode === 'prebill' ? (
+                <button className="tbl-action" title="Print a pre-bill for the guest" onClick={(e) => {
+                  e.stopPropagation();
+                  onPrintPreBill && onPrintPreBill(table);
+                }} style={{
+                  flex: 1, padding: isMobileEmbed ? '4px 4px' : '7px 8px', background: '#fffbeb', border: '1px solid #fcd34d', color: '#b45309',
+                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
+                }}>
+                  <FaReceipt size={isMobileEmbed ? 7 : 9} /> Pre-bill
+                </button>
+                ) : billMode !== 'hide' && (
                 <button className="tbl-action" onClick={(e) => {
                   e.stopPropagation();
                   onOpenBilling(table);
@@ -437,6 +451,7 @@ export default function TableCard({
                 }}>
                   <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
                 </button>
+                )}
                 {/* Print + Move — combined in one icon menu */}
                 <div style={{ position: 'relative' }}>
                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{

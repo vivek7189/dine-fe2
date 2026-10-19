@@ -15051,6 +15051,24 @@ const Admin = () => {
                           Restrict which roles can use the Complete Billing button on the POS dashboard.
                         </p>
                         {renderRoleChips('completeBillingRoles')}
+                        {/* Table cards for staff who can't complete bills (no Complete Bill access, or a role not
+                            ticked above): keep the Bill button (default, as before), show Pre-bill, or hide it. */}
+                        <div style={{ marginTop: '10px' }}>
+                          <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                            On the Tables screen, staff who can&apos;t complete bills see:
+                          </p>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {[['bill', 'Bill button (as now)'], ['prebill', 'Print pre-bill instead'], ['hide', 'Nothing (hidden)']].map(([v, l]) => {
+                              const on = (billingSettings.tableBillButtonNoAccess || 'bill') === v;
+                              return (
+                                <button key={v} type="button" onClick={() => updateBillingSetting('tableBillButtonNoAccess', v)}
+                                  style={{ padding: '5px 10px', borderRadius: '999px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? '#6366f1' : '#e2e8f0'}`, background: on ? '#eef2ff' : '#fff', color: on ? '#4338ca' : '#475569' }}>
+                                  {on ? '✓ ' : ''}{l}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     )
                   },

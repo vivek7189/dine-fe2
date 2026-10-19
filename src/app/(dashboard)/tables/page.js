@@ -830,6 +830,20 @@ const TableManagement = () => {
   const canEditTable = canPerform(userData, userPageAccess, 'tables', 'update');
   const canDeleteTable = canPerform(userData, userPageAccess, 'tables', 'delete');
   const canResetTables = canPerform(userData, userPageAccess, 'tables', 'reset');
+  // Can this person complete bills? Same two checks as the POS Complete Billing button: their own
+  // Complete Bill permission + the "Complete Billing" roles (owner / admin always). If not, the
+  // owner's Billing setting decides what the table card shows instead of Bill (default: Bill, as before).
+  const tableBillMode = (() => {
+    const role = String(userData?.role || '').toLowerCase();
+    if (role === 'owner' || role === 'admin') return 'bill';
+    const bs = selectedRestaurant?.billingSettings || {};
+    const roles = Array.isArray(bs.completeBillingRoles) ? bs.completeBillingRoles : [];
+    const key = (r) => String(r || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const roleOk = !roles.length || roles.some((r) => key(r) === key(role));
+    const canBill = canPerform(userData, userPageAccess, 'orders', 'completeBill') && roleOk;
+    if (canBill) return 'bill';
+    return ['prebill', 'hide'].includes(bs.tableBillButtonNoAccess) ? bs.tableBillButtonNoAccess : 'bill';
+  })();
   const canManageTables = canAddTable || canEditTable || canDeleteTable;
   // Editing a table's name/config and deleting a table require the "manage"
   // capability. Owner/admin have it by default (canPerform returns true for
@@ -2889,6 +2903,7 @@ const TableManagement = () => {
                           onQuickView={handleQuickView}
                           onPrintBill={handlePrintBill}
                           onPrintPreBill={handlePrintPreBill}
+                          billMode={tableBillMode}
                           onPrintKOT={handlePrintKOT}
                           onEditTable={openEditTable}
                           onDeleteTable={(tbl) => deleteTable(tbl.id)}
@@ -3016,6 +3031,7 @@ const TableManagement = () => {
                               onBill={(synth) => { if (synth.currentOrderId) { setBillingModalTable(synth); setBillingModalOpen(true); } }}
                               onPrintBill={(synth) => handlePrintBill(synth)}
                               onPrintPreBill={(synth) => handlePrintPreBill(synth)}
+                              billMode={tableBillMode}
                               onPrintKOT={(synth) => handlePrintKOT(synth)}
                               onQuickView={(e, synth) => handleQuickView(e, synth)}
                               onNewChair={(tbl) => handleTableAction('take-order', tbl)}

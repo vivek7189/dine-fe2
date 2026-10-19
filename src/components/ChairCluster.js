@@ -26,6 +26,7 @@ export default function ChairCluster({
   onPrintKOT,               // (synthTable)
   onQuickView,              // (e, synthTable)
   onNewChair,               // (table) => start a fresh order for another chair
+  billMode = 'bill',        // 'bill' (as before) | 'prebill' | 'hide' — staff who can't complete bills
 }) {
   // Sort by chair label so seats read A, B, C… (a whole-table order, if any, last).
   const sorted = [...orders].sort((a, b) => {
@@ -123,6 +124,7 @@ export default function ChairCluster({
               amount={formatCurrency ? formatCurrency(amountOf(o)) : `₹${amountOf(o)}`}
               onOpen={() => onOpenOrder && onOpenOrder(synth(o))}
               onBill={() => onBill && onBill(synth(o))}
+              billMode={billMode}
               onPrintBill={() => onPrintBill && onPrintBill(synth(o))}
               onPrintPreBill={() => onPrintPreBill && onPrintPreBill(synth(o))}
               onPrintKOT={() => onPrintKOT && onPrintKOT(synth(o))}
@@ -135,7 +137,7 @@ export default function ChairCluster({
   );
 }
 
-function ChairMiniCard({ titleLeft, elapsed, amount, onOpen, onBill, onPrintBill, onPrintPreBill, onPrintKOT, onQuickView }) {
+function ChairMiniCard({ titleLeft, elapsed, amount, onOpen, onBill, onPrintBill, onPrintPreBill, onPrintKOT, onQuickView, billMode = 'bill' }) {
   const [showPrint, setShowPrint] = useState(false);
   const iconBtn = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -164,12 +166,21 @@ function ChairMiniCard({ titleLeft, elapsed, amount, onOpen, onBill, onPrintBill
         >
           <FaPlus size={9} /> Add
         </button>
-        <button
-          onClick={onBill}
-          style={{ flex: 1, padding: '6px', borderRadius: 7, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: '11px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
-        >
-          <FaReceipt size={9} /> Bill
-        </button>
+        {billMode === 'prebill' ? (
+          <button
+            onClick={onPrintPreBill}
+            style={{ flex: 1, padding: '6px', borderRadius: 7, border: '1px solid #fcd34d', background: '#fffbeb', color: '#b45309', fontWeight: 800, fontSize: '11px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+          >
+            <FaReceipt size={9} /> Pre-bill
+          </button>
+        ) : billMode !== 'hide' && (
+          <button
+            onClick={onBill}
+            style={{ flex: 1, padding: '6px', borderRadius: 7, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: '11px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+          >
+            <FaReceipt size={9} /> Bill
+          </button>
+        )}
       </div>
 
       {showPrint && (
