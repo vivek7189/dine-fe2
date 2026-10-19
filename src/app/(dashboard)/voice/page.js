@@ -513,6 +513,20 @@ export default function VoiceTicketPage() {
     return 'printer';
   }, [printSettings, restaurant, rid]);
 
+  // Tap a table on the strip: the ticket is for that table (tap it again to clear — then the order
+  // goes without a table). Saying "table 4" does the same. A busy table shows what is already on it
+  // and Send adds to that order, exactly like the POS.
+  const pickTable = (n) => {
+    const cur = ticketRef.current;
+    const dineType = orderTypes.find((o) => isDineIn(o)) || 'dine-in';
+    const clear = !!cur && isDineIn(cur.orderType) && String(cur.tableNumber || '') === String(n);
+    const base = cur || { orderType: dineType, tableNumber: null, customerName: null, orderNotes: null, lines: [], unclear: [] };
+    const next = { ...base, orderType: clear ? base.orderType : dineType, tableNumber: clear ? null : String(n) };
+    ticketRef.current = next;
+    setTicket(next);
+    setConflict(null);
+    if (liveRef.current && liveRef.current.note) liveRef.current.note(clear ? 'Table cleared by tap — no table on this order' : `Table set to ${n} by tap`);
+  };
   const canSend = ticket && ticket.lines.length > 0 && ticket.unclear.length === 0 && !ticket.lines.some((l) => l.needsVariant) && (phase === 'check' || (convo && phase === 'listening'))
     && (!isDineIn(ticket.orderType) || !!String(ticket.tableNumber || '').trim() || true);
 
@@ -757,7 +771,10 @@ export default function VoiceTicketPage() {
             <span className="vt-floor-l">Tables</span>
             {floor.map((t) => {
               const mine = ticket && isDineIn(ticket.orderType) && String(ticket.tableNumber || '') === t.n;
-              return <span key={t.n} className={'vt-tb' + (mine ? ' mine' : t.busy ? ' busy' : '')} title={mine ? 'This ticket' : t.busy ? 'Has an order' : 'Free'}>{t.n}</span>;
+              return (
+                <button type="button" key={t.n} onClick={() => pickTable(t.n)} className={'vt-tb' + (mine ? ' mine' : t.busy ? ' busy' : '')}
+                  title={mine ? 'This ticket — tap to clear' : t.busy ? 'Has an order — tap to add to it' : 'Free — tap to use'} aria-pressed={!!mine}>{t.n}</button>
+              );
             })}
             <span className="vt-floor-key"><i className="free" />free <i className="busy" />has an order</span>
           </div>
@@ -1113,6 +1130,8 @@ const CSS = `
 .vt-already-l{display:flex;gap:10px;font-size:14px;color:var(--vt-muted,#8a7f78);padding:2px 0}
 .vt-already-l span{min-width:18px;font-weight:700}
 .vt-already-new{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--vt-red);font-weight:800;margin-top:8px}
+.vt-tb{cursor:pointer;appearance:none}
+.vt-tb:hover{filter:brightness(.96)}
 .vt-tb.busy{background:var(--vt-soft);color:var(--vt-deep);border-color:var(--vt-red)}
 .vt-tb.mine{background:var(--vt-red);color:#fff;border-color:var(--vt-red)}
 .vt-floor-key{display:flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--vt-muted)}
