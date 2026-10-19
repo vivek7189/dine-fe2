@@ -4563,7 +4563,7 @@ const MenuManagement = () => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-        const maxFileSize = 25 * 1024 * 1024; // direct (multipart) upload limit on the server — bigger files go through AI Menu Upload
+        const maxFileSize = 100 * 1024 * 1024; // files over 25 MB go straight to cloud storage (uploadMenuFiles)
         const supportedTypes = [
           'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff',
           'application/pdf',
@@ -4620,12 +4620,7 @@ const MenuManagement = () => {
 
       console.log('📸 Uploading photo files:', validFiles.length);
 
-      const formData = new FormData();
-      validFiles.forEach((file, index) => {
-        formData.append('menuFiles', file);
-      });
-
-      const response = await apiClient.bulkUploadMenu(currentRestaurant.id, formData);
+      const response = await apiClient.uploadMenuFiles(currentRestaurant.id, validFiles);
       
       if (response.success) {
         console.log('✅ Photo upload successful:', response);

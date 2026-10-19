@@ -633,9 +633,6 @@ function OnboardingContent() {
     }
 
     try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('menuFiles', file));
-
       setUploadProgress('AI is reading your menu...');
       setUploadProgressPct(25);
 
@@ -644,7 +641,7 @@ function OnboardingContent() {
         setUploadProgressPct(prev => Math.min(prev + 3, 75));
       }, 800);
 
-      const response = await apiClient.bulkUploadMenu(rid, formData);
+      const response = await apiClient.uploadMenuFiles(rid, files); // big files go straight to cloud storage
       clearInterval(progressTimer);
 
       if (response.success && response.data?.length > 0) {

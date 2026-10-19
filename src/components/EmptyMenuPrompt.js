@@ -117,13 +117,8 @@ const EmptyMenuPrompt = ({ restaurantName, selectedRestaurant, onAddMenu, onMenu
       console.log('🔍 Using restaurant ID for upload:', restaurantId);
       console.log('🔍 Current restaurant:', currentRestaurant);
       
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('menuFiles', file); // Backend expects 'menuFiles' field name
-      });
-
-      // Call the bulk upload API using the correct method
-      const response = await apiClient.bulkUploadMenu(restaurantId, formData);
+      // big files go straight to cloud storage (the normal upload stops at 25 MB per file)
+      const response = await apiClient.uploadMenuFiles(restaurantId, files);
 
       if (response.success) {
         // Step 2: AI Processing
