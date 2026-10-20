@@ -91,14 +91,17 @@ export async function generateMetadata({ params }) {
   }
 
   const hindiSlug = englishToHindiMap[slug];
+  // Optional short search title/description (Google cuts titles at ~60 chars); the H1 keeps post.title.
+  const seoTitle = post.seoTitle || `${post.title} | DineOpen Blog`;
+  const seoDescription = post.seoDescription || post.excerpt;
 
   return {
-    title: `${post.title} | DineOpen Blog`,
-    description: post.excerpt,
+    title: seoTitle,
+    description: seoDescription,
     keywords: post.tags?.join(', ') || '',
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
+      title: post.seoTitle || post.title,
+      description: seoDescription,
       type: 'article',
       publishedTime: post.publishDate,
       authors: [post.author],
@@ -114,8 +117,8 @@ export async function generateMetadata({ params }) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.title,
-      description: post.excerpt,
+      title: post.seoTitle || post.title,
+      description: seoDescription,
     },
     alternates: {
       canonical: `https://www.dineopen.com/blog/${slug}`,

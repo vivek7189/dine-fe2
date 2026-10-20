@@ -8982,8 +8982,13 @@ export const blogPostContent = {
   'cloud-kitchen-guide-2026': {
     id: 'cloud-kitchen-guide-2026',
     title: 'How to Start a Cloud Kitchen in India 2026: Costs, Licenses & Profit Margins',
+    seoTitle: 'Cloud Kitchen Cost in India 2026: Rs 5-15 Lakh Setup Guide',
+    seoDescription: 'How to start a cloud kitchen in India: setup cost Rs 5-15 lakh, equipment Rs 3-8 lakh, FSSAI licence, Swiggy/Zomato commissions and profit margins, step by step.',
     excerpt: 'Step-by-step cloud kitchen startup guide with real costs (₹3-15 lakh), FSSAI licensing, Swiggy/Zomato integration, multi-brand strategies, and profit margin benchmarks.',
     content: `
+        <!-- quick-answer -->
+        <div class="quick-answer" style="background:#fff7ed;border:1px solid #fed7aa;border-left:5px solid #ef4444;border-radius:12px;padding:18px 22px;margin:0 0 28px;"><p style="margin:0 0 8px;font-weight:800;font-size:18px;color:#111827;">Quick answer: how much does it cost to start a cloud kitchen in India?</p><ul style="margin:0;padding-left:20px;font-size:16px;line-height:1.6;color:#1f2937;"><li style="margin:6px 0;"><strong>Total setup:</strong> about <strong>Rs 5-15 lakh</strong>, versus Rs 30-50 lakh for a dine-in restaurant</li><li style="margin:6px 0;"><strong>Kitchen equipment:</strong> <strong>Rs 3-8 lakh</strong> (stove, exhaust, refrigeration, prep tables, packaging); buy second-hand where possible</li><li style="margin:6px 0;"><strong>Licences:</strong> FSSAI (Basic Rs 100/year below Rs 12 lakh turnover), trade licence, GST</li><li style="margin:6px 0;"><strong>Watch:</strong> delivery-app commissions; the full cost and margin breakdown is below</li></ul></div>
+
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Commercial cloud kitchen setup" style="width: 100%; max-width: 700px; height: 350px; object-fit: cover; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" onerror="this.onerror=null; this.style.display='none';" />
           <p style="font-size: 14px; color: #6b7280; margin-top: 10px; font-style: italic;">Cloud kitchens are the fastest-growing segment in the food industry — here is everything you need to know</p>
