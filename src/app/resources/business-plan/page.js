@@ -1,18 +1,18 @@
 import BusinessPlanClient from './BusinessPlanClient';
+import { FAQS } from './planContent';
 
 export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Free Restaurant Business Plan Template 2024 | Download PDF | DineOpen',
-  description: 'Download free restaurant business plan template with financial projections, market analysis, menu planning, and operational strategy. Perfect for bank loans, investors, and FSSAI license.',
-  keywords: 'restaurant business plan template, restaurant business plan PDF, restaurant financial projections, how to write restaurant business plan, restaurant business plan India, cafe business plan template, restaurant investor pitch',
+  title: 'Restaurant Business Plan Template (Free) – India 2026',
+  description: 'Free restaurant business plan template for India: 7 sections to fill in, startup cost by format (cloud kitchen ₹5-15 lakh, café ₹5-12 lakh), a sample P&L and a free generator. No sign-up.',
+  keywords: 'restaurant business plan template, restaurant business plan India, cafe business plan, cloud kitchen business plan, restaurant project report, restaurant business plan PDF',
   openGraph: {
-    title: 'Free Restaurant Business Plan Template | DineOpen',
-    description: 'Complete restaurant business plan template with financial projections and market analysis. Free download.',
+    title: 'Restaurant Business Plan Template (Free) – India 2026',
+    description: 'Fill-in template, startup costs by format, a sample P&L and a free generator. No sign-up.',
     url: 'https://www.dineopen.com/resources/business-plan',
     siteName: 'DineOpen',
-    images: [{ url: 'https://www.dineopen.com/og-business-plan.jpg', width: 1200, height: 630, alt: 'Restaurant Business Plan Template' }],
     type: 'website',
   },
   alternates: {
@@ -21,38 +21,19 @@ export const metadata = {
 };
 
 export default function BusinessPlanPage() {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    "name": "How to Write a Restaurant Business Plan",
-    "description": "Step-by-step guide to creating a comprehensive restaurant business plan with financial projections and market analysis.",
-    "step": [
-      {
-        "@type": "HowToStep",
-        "name": "Executive Summary",
-        "text": "Write a compelling overview of your restaurant concept, mission, and financial highlights."
-      },
-      {
-        "@type": "HowToStep",
-        "name": "Market Analysis",
-        "text": "Research your target market, competition, and location demographics."
-      },
-      {
-        "@type": "HowToStep",
-        "name": "Menu & Operations",
-        "text": "Detail your menu concept, pricing strategy, and operational workflow."
-      },
-      {
-        "@type": "HowToStep",
-        "name": "Financial Projections",
-        "text": "Create 3-year revenue forecasts, break-even analysis, and funding requirements."
-      }
-    ]
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQS.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <BusinessPlanClient />
     </>
   );

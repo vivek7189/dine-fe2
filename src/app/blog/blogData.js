@@ -9170,7 +9170,7 @@ export const blogPostContent = {
             </tr>
             <tr>
               <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Technology (POS, etc.)</td>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹300</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹899</td>
               <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">DineOpen plan</td>
             </tr>
             <tr style="background: #f9fafb;">
@@ -9202,6 +9202,64 @@ export const blogPostContent = {
         </div>
 
         <p style="font-size: 17px; line-height: 1.8; color: #374151;">Use our <a href="/tools/break-even-calculator" style="color: #ef4444; font-weight: 600;">break-even calculator</a> to plug in your specific numbers and see when your cloud kitchen becomes profitable.</p>
+
+        <h2 style="font-size: 28px; font-weight: 800; color: #111827; margin-top: 50px; margin-bottom: 20px;">Cloud Kitchen Setup Cost: One-Time Breakdown</h2>
+
+        <p style="font-size: 18px; line-height: 1.8; color: #374151;">The ₹5-15 lakh startup figure above splits roughly like this for a 200-500 sq ft kitchen in an Indian metro. These are typical estimates; get local quotes before you commit.</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 15px;">
+          <thead>
+            <tr style="background: #111827; color: white;">
+              <th style="padding: 12px 16px; text-align: left;">Item</th>
+              <th style="padding: 12px 16px; text-align: right;">Typical cost</th>
+              <th style="padding: 12px 16px; text-align: left;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Security deposit + rent advance</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹75,000 - 2,00,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Usually 2-6 months of rent, varies by city</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Kitchen equipment</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹3,00,000 - 8,00,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Stove, exhaust, refrigeration, prep tables, packaging station</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Civil work, gas line, fire safety</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹50,000 - 1,50,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Exhaust ducting, fire extinguishers, plumbing</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Licences and registrations</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹10,000 - 40,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">FSSAI, trade licence, fire NOC, GST</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Branding, photos, first packaging stock</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹30,000 - 1,00,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Logo, menu photos for apps, branded boxes</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Opening raw material</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹30,000 - 75,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">First 2-3 weeks of ingredients</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Working capital</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹50,000 - 1,50,000</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Covers 2-3 months while orders build up</td>
+            </tr>
+            <tr style="background: #fff7ed; font-weight: 700;">
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Total</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹5.5 - 15 lakh</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Smaller and second-hand set-ups land at the low end</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style="font-size: 17px; line-height: 1.8; color: #374151;">Need a plan for a bank loan or a partner? Use our free <a href="/resources/business-plan" style="color: #ef4444; font-weight: 600;">restaurant business plan template</a>; it has a cloud kitchen example you can adapt.</p>
 
         <h2 style="font-size: 28px; font-weight: 800; color: #111827; margin-top: 50px; margin-bottom: 20px;">Cloud Kitchen vs Dine-In vs Hybrid</h2>
 
@@ -9322,6 +9380,30 @@ export const blogPostContent = {
           </div>
         </div>
 
+        <h2 style="font-size: 28px; font-weight: 800; color: #111827; margin-top: 50px; margin-bottom: 20px;">Cloud Kitchen FAQs</h2>
+        <div>
+          <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">How much does it cost to start a cloud kitchen in India?</h3>
+            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">Most cloud kitchens in Indian metros start with ₹5-15 lakh. Kitchen equipment is the biggest item at ₹3-8 lakh; deposit, fit-out, licences, branding and 2-3 months of working capital make up the rest.</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">Which licences does a cloud kitchen need?</h3>
+            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">FSSAI registration or licence (Basic Registration is ₹100/year below ₹12 lakh turnover), a trade or health licence from the local municipal body, fire NOC where required, and GST registration. Swiggy and Zomato ask for FSSAI before listing.</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">How long does a cloud kitchen take to break even?</h3>
+            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">Usually 6-12 months, depending on order volume, average order value and how much of your sales come through commission-charging delivery apps.</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">How much profit does a cloud kitchen make?</h3>
+            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">Well-run cloud kitchens target a 15-25% net margin. On ₹5 lakh monthly revenue that is roughly ₹75,000-1,25,000 a month. Platform commissions of 25-35% are the main reason many earn less.</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">How can I reduce Swiggy and Zomato commission costs?</h3>
+            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">Keep the apps for discovery, but move repeat customers to direct ordering through your own website link or WhatsApp, where you pay no commission.</p>
+          </div>
+        </div>
+
         <div style="background: linear-gradient(135deg, #111827, #374151); border-radius: 20px; padding: 48px 32px; text-align: center; margin: 50px 0; color: white;">
           <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Launch Your Cloud Kitchen with DineOpen</h2>
           <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">Get POS, KDS, delivery integration, inventory, and multi-brand management — all in one platform at ₹899/month. Free 7-day trial.</p>
@@ -9331,7 +9413,7 @@ export const blogPostContent = {
           </div>
         </div>
 
-        <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: February 28, 2026</em></p>
+        <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: October 20, 2026</em></p>
       `,
     author: 'DineOpen Team',
     authorRole: 'Restaurant Industry Expert',
