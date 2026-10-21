@@ -57,6 +57,13 @@ export function stageFooterText(billLayout, invoice) {
   return typeof raw === 'string' ? raw.replace(/\r\n?/g, '\n').trim().split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 4).map((l) => l.slice(0, 120)) : [];
 }
 
+// "Payment: CASH" on the bill header. Not on a pre-bill / a bill printed before it's paid: no payment
+// has been taken yet, so the till's default method would be wrong (Desi Tandoor).
+export function showPaymentRow(billLayout, invoice) {
+  if ((billLayout || {}).showPayment === false) return false;
+  return !(invoice && (invoice.isPreBill || invoice.notFinal));
+}
+
 export function buildCustomFooterHtml(billLayout, invoice = null) {
   const bl = billLayout || {};
   const stage = stageFooterText(bl, invoice);

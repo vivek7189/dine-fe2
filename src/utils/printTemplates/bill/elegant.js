@@ -9,6 +9,7 @@ import {
   buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle,
   buildCashbackHtml, buildCustomFooterHtml,
+  showPaymentRow,
 } from '../helpers';
 import { billNumberLabel } from '../../orderNumber';
 
@@ -78,7 +79,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       '' +
       (bl.showCustomerPhone && invoice.customerPhone ? `<div><span>${dualLabel('Phone', 'هاتف', showAr)}:</span><span>${esc(invoice.customerPhone)}</span></div>` : '') +
       (bl.showOrderType !== false && invoice.orderType ? `<div><span>Type:</span><span>${invoice.orderType}</span></div>` : '') +
-      (bl.showPayment !== false ? `<div><span>${dualLabel(L.payment, AR.payment, showAr)}:</span><span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '') +
+      (showPaymentRow(bl, invoice) ? `<div><span>${dualLabel(L.payment, AR.payment, showAr)}:</span><span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span></div>` : '') +
     `</div>` +
     deliveryHtml +
     `<div class="divider">════════════════════════════</div>` +

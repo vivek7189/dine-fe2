@@ -9,6 +9,7 @@ import {
   buildFeedbackSection, buildOrderStatusSection, buildSplitBillHtml,
   BILL_LABELS_AR, getBillDualCSS, dualLabel, dualTitle, dualItemName,
   buildCashbackHtml, buildCustomFooterHtml,
+  showPaymentRow,
 } from '../helpers';
 import { billNumberLabel } from '../../orderNumber';
 
@@ -130,7 +131,7 @@ export function render(invoice, printSettings = {}, labels = {}) {
       (bl.showWaiter !== false && waiterInfo ? `<span>${esc(waiterInfo)}</span>` : `<span>#${billNumberLabel(invoice)}</span>`) +
       `<span>${justDate} - ${timeStr}</span>` +
     `</div>` +
-    (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${dualLabel(L.table, AR.table, showAr)}: ${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span>${bl.showPayment !== false ? `<span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
+    (bl.showTable !== false && invoice.tableNumber ? `<div class="info-line"><span>${dualLabel(L.table, AR.table, showAr)}: ${invoice.tableNumber}${invoice.floorName ? ` - ${invoice.floorName}` : ''}</span>${showPaymentRow(bl, invoice) ? `<span>${(invoice.paymentMethodLabel || invoice.paymentMethod || 'CASH').toUpperCase()}</span>` : ''}</div>` : '') +
     (bl.showCovers !== false && invoice.covers && invoice.covers > 1 ? `<div class="info-line"><span>${showAr ? dualLabel('Covers', 'أغطية', showAr) : 'Covers'}: ${invoice.covers}</span></div>` : '') +
     (bl.showCustomer !== false && invoice.customerName ? `<div class="info-line"><span>${dualLabel(L.customer, AR.customer, showAr)}: ${esc(invoice.customerName)}</span></div>` : '') +
     '' +
