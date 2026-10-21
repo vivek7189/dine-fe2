@@ -71,14 +71,19 @@ const DiscountApprovalModal = dynamic(() => import('./DiscountApprovalModal'), {
 // settlement methods (billingSettings.settlementMethods); if none are set, mirror the POS
 // payment methods so a store's real methods (e.g. M-Pesa for Kenya) appear here instead of
 // a hardcoded India default (UPI). Only when neither is configured fall back to cash/card/UPI.
-// Configured settlement methods keep their order and on/off state; POS methods are only added.
+// Configured settlement methods keep their order and on/off state; POS methods are only added to the default list.
 function settlementMethodOptions(billingSettings, posSettings) {
   const pos = Array.isArray(posSettings?.paymentMethods) ? posSettings.paymentMethods : [];
   if (Array.isArray(billingSettings?.settlementMethods)) {
     // Admin saves Cash/Card/UPI here by default, which hid the store's own POS methods (M-Pesa…)
-    // from Split Bill. Add any POS method missing from the list; never re-add one listed here.
-    const have = new Set(billingSettings.settlementMethods.map(m => m?.id));
-    return [...billingSettings.settlementMethods, ...pos.filter(m => m?.id && m.enabled && !have.has(m.id))];
+    // from Split Bill. Only while the list is still that untouched default (or empty), add the POS
+    // methods missing from it. A list the owner edited is used exactly as saved.
+    const sm = billingSettings.settlementMethods;
+    const ids = sm.map(m => String(m?.id || '').toLowerCase());
+    const untouched = sm.length === 0 || (ids.length === 3 && ['cash', 'card', 'upi'].every(id => ids.includes(id)));
+    if (!untouched) return sm;
+    const have = new Set(ids);
+    return [...sm, ...pos.filter(m => m?.id && m.enabled && !have.has(String(m.id).toLowerCase()))];
   }
   if (pos.length) return pos;
   return [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }];
