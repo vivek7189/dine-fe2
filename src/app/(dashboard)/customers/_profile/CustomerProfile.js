@@ -270,6 +270,15 @@ var CustomerDetail = function() {
     if (settlingCredit) return;
     var settleAmount = entry.outstandingAmount;
     if (!settleAmount || settleAmount <= 0) return;
+    // Open Receive Payment with this bill ticked, so staff choose how it was paid (Cash / M-Pesa…) —
+    // this button always recorded "cash", which now also goes into the shift drawer.
+    if (entry.orderId) {
+      setBulkPaymentAmount(String(Math.round(settleAmount * 100) / 100));
+      setSelectedSettleOrders([entry.orderId]);
+      setBulkExtraAs('change');
+      setShowBulkSettle(true);
+      return;
+    }
     try {
       setSettlingCredit(entry.orderId);
       await apiClient.settleCustomerCredit(customerId, {

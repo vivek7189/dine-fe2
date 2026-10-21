@@ -3708,6 +3708,7 @@ const OrderHistory = () => {
                         ['Items sold', itemsSold],
                         ['Customers', sd.uniqueCustomers || 0],
                         ...(sd.openOrders && sd.openOrders.count ? [['Open (unbilled) orders', sd.openOrders.count], ['Open orders amount', r2(sd.openOrders.amount)]] : []),
+                        ...(sd.duesCollected && sd.duesCollected.total > 0 ? [['Dues collected (old udhaar bills)', r2(sd.duesCollected.total)], ...(sd.duesCollected.byMethod || []).map(m => ['  ' + m.method, r2(m.amount)])] : []),
                       ]), 'Summary');
                       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Category-wise Sales');
                       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
@@ -6616,6 +6617,20 @@ const OrderHistory = () => {
             </div>
           ) : summaryData ? (
             <div className="max-w-7xl mx-auto">
+              {/* Money collected on these days for older udhaar bills — not sales of these days (those stay on
+                the bill's date); shown so the report matches the cash drawer. */}
+            {summaryData.duesCollected && summaryData.duesCollected.total > 0 && (
+              <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-emerald-900">Dues collected (old udhaar bills)</div>
+                  <div className="text-[11.5px] text-emerald-700 leading-snug">
+                    Money received on these days for earlier credit bills — not part of the sales above.
+                    {(summaryData.duesCollected.byMethod || []).length > 0 && ' ' + summaryData.duesCollected.byMethod.map(m => m.method.toUpperCase() + ' ' + formatCurrency(m.amount)).join(' · ')}
+                  </div>
+                </div>
+                <div className="text-lg font-extrabold text-emerald-900 flex-shrink-0">{formatCurrency(summaryData.duesCollected.total)}</div>
+              </div>
+            )}
               {/* KPI Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">

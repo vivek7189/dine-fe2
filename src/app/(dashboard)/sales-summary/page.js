@@ -427,6 +427,21 @@ export default function SalesSummaryPage() {
               </div>
             )}
 
+{/* Money collected on these days for older udhaar bills — not sales of these days (those stay on
+                the bill's date); shown so the report matches the cash drawer. */}
+            {summary.duesCollected && summary.duesCollected.total > 0 && (
+              <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-emerald-900">Dues collected (old udhaar bills)</div>
+                  <div className="text-[11.5px] text-emerald-700 leading-snug">
+                    Money received on these days for earlier credit bills — not part of the sales above.
+                    {(summary.duesCollected.byMethod || []).length > 0 && ' ' + summary.duesCollected.byMethod.map(m => m.method.toUpperCase() + ' ' + formatCurrency(m.amount)).join(' · ')}
+                  </div>
+                </div>
+                <div className="text-lg font-extrabold text-emerald-900 flex-shrink-0">{formatCurrency(summary.duesCollected.total)}</div>
+              </div>
+            )}
+
             {/* Sub-restaurant Breakdown (only when viewing all sections) */}
             {!selectedSubRestaurant && summary.subRestaurantBreakdown && summary.subRestaurantBreakdown.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
