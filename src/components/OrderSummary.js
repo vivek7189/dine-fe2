@@ -2489,8 +2489,11 @@ const OrderSummary = ({
     if (localTaxData.cashReceived != null) invoiceData.cashReceived = localTaxData.cashReceived;
     if (localTaxData.changeReturned != null) invoiceData.changeReturned = localTaxData.changeReturned;
     if (localTaxData.partialPayAmount != null) {
-      invoiceData.paidAmount = localTaxData.partialPayAmount;
-      invoiceData.outstandingAmount = Math.round((((keepServerMoney ? Number(invoiceData.grandTotal) : localTaxData.finalAmount) || 0) - localTaxData.partialPayAmount) * 100) / 100;
+      // The advance used on this bill counts as paid (same as the server): due = bill − advance − paid now.
+      const _adv = useWallet && parseFloat(walletRedeemAmount) > 0 ? parseFloat(walletRedeemAmount) : 0;
+      const _bill = (keepServerMoney ? Number(invoiceData.grandTotal) : localTaxData.finalAmount) || 0;
+      invoiceData.paidAmount = Math.min(_bill, Math.round((Number(localTaxData.partialPayAmount) + _adv) * 100) / 100);
+      invoiceData.outstandingAmount = Math.max(0, Math.round((_bill - invoiceData.paidAmount) * 100) / 100);
     }
     if (useWallet && parseFloat(walletRedeemAmount) > 0) {
       invoiceData.walletRedeemAmount = parseFloat(walletRedeemAmount);
@@ -7520,7 +7523,7 @@ const OrderSummary = ({
                           }}>
                             <span style={{ fontSize: '12px', color: dm ? dm.text : '#374151' }}>Outstanding (Khata)</span>
                             <span style={{ fontSize: '16px', color: '#7c3aed' }}>
-                              {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount)))}
+                              {formatCurrency(Math.max(0, grandTotal - parseFloat(partialPayAmount) - (useWallet ? (parseFloat(walletRedeemAmount) || 0) : 0)))}
                             </span>
                           </div>
                         )}
@@ -7534,7 +7537,8 @@ const OrderSummary = ({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700 }}>
                           <span style={{ fontSize: '12px', color: dm ? dm.text : '#374151' }}>Outstanding (Udhar)</span>
                           <span style={{ fontSize: '18px', color: '#dc2626' }}>
-                            {formatCurrency(grandTotal)}
+                            {/* advance used on this bill is paid — only the rest goes on udhaar */}
+                            {formatCurrency(Math.max(0, grandTotal - (useWallet ? (parseFloat(walletRedeemAmount) || 0) : 0)))}
                           </span>
                         </div>
                         {!dueCustomerReady && (
