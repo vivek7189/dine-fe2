@@ -1715,6 +1715,7 @@ const OrderHistory = () => {
   // by default; less leaves the rest due on the bill and the customer's khata.
   const [markPaidMethod, setMarkPaidMethod] = useState('cash');
   const [markPaidAmount, setMarkPaidAmount] = useState('');
+  const [markPaidKey, setMarkPaidKey] = useState(null); // one request id per Mark Paid — a retry can't pay twice
   const [markPaidMethods, setMarkPaidMethods] = useState([{ id: 'cash', label: 'Cash' }, { id: 'card', label: 'Card' }, { id: 'upi', label: 'UPI' }]);
   const handleMarkPaid = (orderId) => {
     const o = orders.find(x => x.id === orderId);
@@ -1727,6 +1728,7 @@ const OrderHistory = () => {
     const opts = list.length ? list : markPaidMethods;
     setMarkPaidMethod(opts.some(m => m.id === 'cash') ? 'cash' : (opts[0]?.id || 'cash'));
     setMarkPaidAmount(o && o.outstandingAmount > 0 ? String(Math.round(o.outstandingAmount * 100) / 100) : '');
+    setMarkPaidKey('markpaid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
     setMarkPaidOrderId(orderId);
   };
 
@@ -1749,7 +1751,8 @@ const OrderHistory = () => {
         await apiClient.settleCustomerCredit(order.customerId, {
           amount: paidNow,
           paymentMethod: markPaidMethod || order.paymentMethod || 'cash',
-          orderId: order.id
+          orderId: order.id,
+          idempotencyKey: markPaidKey || undefined
         });
       } else {
         // No customer linked — just update order directly
