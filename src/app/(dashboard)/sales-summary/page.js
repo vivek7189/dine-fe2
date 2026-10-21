@@ -432,9 +432,9 @@ export default function SalesSummaryPage() {
             {summary.duesCollected && summary.duesCollected.total > 0 && (
               <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
-                  <div className="text-sm font-bold text-emerald-900">Dues collected (old udhaar bills)</div>
+                  <div className="text-sm font-bold text-emerald-900">Dues collected (udhaar bills of earlier days)</div>
                   <div className="text-[11.5px] text-emerald-700 leading-snug">
-                    Money received on these days for earlier credit bills — not part of the sales above.
+                    Money received on these days for udhaar bills of earlier days — their sales count on the day each bill was made.
                     {(summary.duesCollected.byMethod || []).length > 0 && ' ' + summary.duesCollected.byMethod.map(m => m.method.toUpperCase() + ' ' + formatCurrency(m.amount)).join(' · ')}
                   </div>
                 </div>

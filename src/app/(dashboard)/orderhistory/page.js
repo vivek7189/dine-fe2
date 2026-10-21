@@ -3708,7 +3708,7 @@ const OrderHistory = () => {
                         ['Items sold', itemsSold],
                         ['Customers', sd.uniqueCustomers || 0],
                         ...(sd.openOrders && sd.openOrders.count ? [['Open (unbilled) orders', sd.openOrders.count], ['Open orders amount', r2(sd.openOrders.amount)]] : []),
-                        ...(sd.duesCollected && sd.duesCollected.total > 0 ? [['Dues collected (old udhaar bills)', r2(sd.duesCollected.total)], ...(sd.duesCollected.byMethod || []).map(m => ['  ' + m.method, r2(m.amount)])] : []),
+                        ...(sd.duesCollected && sd.duesCollected.total > 0 ? [['Dues collected (udhaar bills of earlier days)', r2(sd.duesCollected.total)], ...(sd.duesCollected.byMethod || []).map(m => ['  ' + m.method, r2(m.amount)])] : []),
                       ]), 'Summary');
                       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Category-wise Sales');
                       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
@@ -6622,9 +6622,9 @@ const OrderHistory = () => {
             {summaryData.duesCollected && summaryData.duesCollected.total > 0 && (
               <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
-                  <div className="text-sm font-bold text-emerald-900">Dues collected (old udhaar bills)</div>
+                  <div className="text-sm font-bold text-emerald-900">Dues collected (udhaar bills of earlier days)</div>
                   <div className="text-[11.5px] text-emerald-700 leading-snug">
-                    Money received on these days for earlier credit bills — not part of the sales above.
+                    Money received on these days for udhaar bills of earlier days — their sales count on the day each bill was made.
                     {(summaryData.duesCollected.byMethod || []).length > 0 && ' ' + summaryData.duesCollected.byMethod.map(m => m.method.toUpperCase() + ' ' + formatCurrency(m.amount)).join(' · ')}
                   </div>
                 </div>
