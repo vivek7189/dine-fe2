@@ -124,6 +124,31 @@ var CustomerDetail = function() {
   var [selectedSettleOrders, setSelectedSettleOrders] = useState([]);
   var [bulkUpdateOrderStatus, setBulkUpdateOrderStatus] = useState(false);
   var [bulkSettling, setBulkSettling] = useState(false);
+  // Receive Payment: how the money came in (the store's own methods, e.g. M-Pesa) and what to do with
+  // money beyond the ticked bills — give it back as change (default) or keep it as the customer's advance.
+  var [bulkMethod, setBulkMethod] = useState('cash');
+  var [bulkExtraAs, setBulkExtraAs] = useState('change');
+  // Bills still owed, one row per bill: the khata may hold a bill twice (old double-post bug) or an
+  // old settled entry next to a new one — never count those, or the box asks for double.
+  var openCreditEntries = (function() {
+    var seen = {};
+    return (creditData.creditHistory || []).filter(function(e) {
+      if (!e || e.settledAt || !(e.outstandingAmount > 0) || !e.orderId || seen[e.orderId]) return false;
+      seen[e.orderId] = true;
+      return true;
+    });
+  })();
+  var [bulkMethodOptions, setBulkMethodOptions] = useState([{ id: 'cash', label: 'Cash' }, { id: 'card', label: 'Card' }, { id: 'upi', label: 'UPI' }]);
+  useEffect(function() {
+    try {
+      var ps = (JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') || {}).posSettings || {};
+      var list = Array.isArray(ps.paymentMethods) ? ps.paymentMethods.filter(function(m) { return m && m.id && m.enabled; }) : [];
+      if (list.length) {
+        setBulkMethodOptions(list.map(function(m) { return { id: m.id, label: m.label || m.id }; }));
+        if (!list.some(function(m) { return m.id === 'cash'; })) setBulkMethod(list[0].id); // Cash switched off → first method
+      }
+    } catch (e) {}
+  }, []);
   var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
   useEffect(function() {
@@ -324,16 +349,24 @@ var CustomerDetail = function() {
       await apiClient.bulkSettleCredit(customerId, {
         orderIds: selectedSettleOrders,
         totalAmount: parseFloat(bulkPaymentAmount),
-        paymentMethod: 'cash',
+        paymentMethod: bulkMethod || 'cash',
+        extraAs: bulkExtraAs,
+        // what the box showed as extra — the server never keeps more than this as advance
+        extraShown: Math.max(0, Math.round(((parseFloat(bulkPaymentAmount) || 0) - openCreditEntries
+          .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
+          .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)) * 100) / 100),
         updateOrderStatus: bulkUpdateOrderStatus
       });
       var data = await apiClient.getCustomerCreditHistory(customerId);
       setCreditData(data);
+      // Extra kept as advance lands in the wallet — refresh the wallet card too.
+      try { setWalletData(await apiClient.getCustomerWallet(customerId)); } catch (e) {}
       await loadCustomer();
       setShowBulkSettle(false);
       setBulkPaymentAmount('');
       setSelectedSettleOrders([]);
       setBulkUpdateOrderStatus(false);
+      setBulkExtraAs('change');
     } catch (err) {
       console.error('Error bulk settling credit:', err);
       alert(err.message || 'Failed to settle credit');
@@ -1669,7 +1702,7 @@ var CustomerDetail = function() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>Receive Payment</h3>
-              <button onClick={function() { setShowBulkSettle(false); setBulkPaymentAmount(''); setSelectedSettleOrders([]); setBulkUpdateOrderStatus(false); }} style={{
+              <button onClick={function() { setShowBulkSettle(false); setBulkPaymentAmount(''); setSelectedSettleOrders([]); setBulkUpdateOrderStatus(false); setBulkExtraAs('change'); }} style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280'
               }}>
                 <FaTimes size={16} />
@@ -1707,7 +1740,7 @@ var CustomerDetail = function() {
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
                     {(function() {
-                      var unsettled = creditData.creditHistory.filter(function(e) { return !e.settledAt && e.outstandingAmount > 0; });
+                      var unsettled = openCreditEntries;
                       var payAmount = parseFloat(bulkPaymentAmount) || 0;
                       var selectedTotal = unsettled.filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
                         .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0);
@@ -1772,7 +1805,7 @@ var CustomerDetail = function() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
                         <span style={{ color: '#475569' }}>Selected ({selectedSettleOrders.length} orders)</span>
                         <span style={{ fontWeight: '700', color: '#166534' }}>
-                          {formatCurrency(creditData.creditHistory
+                          {formatCurrency(openCreditEntries
                             .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
                             .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
                           )}
@@ -1781,7 +1814,7 @@ var CustomerDetail = function() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                         <span style={{ color: '#6b7280' }}>Remaining from {formatCurrency(parseFloat(bulkPaymentAmount))}</span>
                         <span style={{ color: '#6b7280' }}>
-                          {formatCurrency(Math.max(0, parseFloat(bulkPaymentAmount) - creditData.creditHistory
+                          {formatCurrency(Math.max(0, parseFloat(bulkPaymentAmount) - openCreditEntries
                             .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
                             .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
                           ))}
@@ -1789,6 +1822,46 @@ var CustomerDetail = function() {
                       </div>
                     </div>
                   )}
+
+                  {/* Paid by */}
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Paid by</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {bulkMethodOptions.map(function(m) {
+                        var active = bulkMethod === m.id;
+                        return (
+                          <button key={m.id} type="button" onClick={function() { setBulkMethod(m.id); }}
+                            style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid ' + (active ? '#16a34a' : '#e5e7eb'), background: active ? '#f0fdf4' : 'white', color: active ? '#166534' : '#374151', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Money beyond the ticked bills */}
+                  {(function() {
+                    var sel = openCreditEntries
+                      .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
+                      .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0);
+                    var extra = Math.round(((parseFloat(bulkPaymentAmount) || 0) - sel) * 100) / 100;
+                    if (selectedSettleOrders.length === 0 || !(extra > 0.009)) return null;
+                    return (
+                      <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fde68a' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '6px' }}>
+                          Extra {formatCurrency(extra)} received
+                        </div>
+                        {[['change', 'Give back as change'], ['advance', 'Keep as advance (customer wallet)']].map(function(o) {
+                          return (
+                            <label key={o[0]} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', cursor: 'pointer', marginTop: '4px' }}>
+                              <input type="radio" name="bulkExtraAs" checked={bulkExtraAs === o[0]} onChange={function() { setBulkExtraAs(o[0]); }} />
+                              {o[1]}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   {/* Update order status checkbox */}
                   <label style={{
@@ -1812,7 +1885,7 @@ var CustomerDetail = function() {
               padding: '12px 20px', borderTop: '1px solid #e5e7eb',
               display: 'flex', gap: '10px', justifyContent: 'flex-end'
             }}>
-              <button onClick={function() { setShowBulkSettle(false); setBulkPaymentAmount(''); setSelectedSettleOrders([]); setBulkUpdateOrderStatus(false); }} style={{
+              <button onClick={function() { setShowBulkSettle(false); setBulkPaymentAmount(''); setSelectedSettleOrders([]); setBulkUpdateOrderStatus(false); setBulkExtraAs('change'); }} style={{
                 padding: '8px 18px', borderRadius: '8px', border: '1px solid #d1d5db',
                 background: 'white', fontSize: '13px', fontWeight: '600', color: '#374151', cursor: 'pointer'
               }}>
@@ -1831,7 +1904,7 @@ var CustomerDetail = function() {
               >
                 {bulkSettling && <FaSpinner className="animate-spin" size={12} />}
                 {bulkSettling ? 'Settling...' : 'Settle ' + formatCurrency(
-                  creditData.creditHistory
+                  openCreditEntries
                     .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
                     .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
                 )}
