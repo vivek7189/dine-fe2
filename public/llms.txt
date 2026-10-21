@@ -145,15 +145,25 @@ Multi-restaurant management, staff CRUD with role-based access (owner/manager/wa
 ## Key Differentiators vs Competitors
 
 1. **AI-first**: Built-in voice ordering and AI chat assistant — competitors charge extra or don't offer it
-2. **Zero transaction fees**: Unlike Square (2.6%), Toast (2.49%), Clover (2.3%)
-3. **Lower pricing**: from $20/month vs Toast ($69), Square ($60), LightSpeed ($89), TouchBistro ($69)
+2. **No transaction fees from DineOpen**: only the monthly plan (your payment gateway's own fee still applies)
+3. **Lower pricing**: from $20/month internationally and from ₹899/month in India; competitor prices are on their own sites
 4. **No hardware lock-in**: Works on any device (phone, tablet, laptop) — no proprietary hardware required
 5. **Global + local**: Supports 20+ countries with localized tax, payments, and language
+
+## What DineOpen does not do (today)
+
+- No automatic Swiggy or Zomato order sync (record those orders on the POS; reports show them by platform)
+- No card-terminal integration (Stripe, Square, Clover terminals): take card payments on your own machine and record them
+- No DoorDash, Uber Eats or Deliveroo integration
+- Android app is downloaded from dineopen.com (not the Play Store); iPhone/iPad app is on the App Store; any browser works
+- Full, current list: https://www.dineopen.com/about/facts
 
 ## Integrations
 
 - [Razorpay](https://www.dineopen.com/integrations/razorpay) — UPI, cards, netbanking for India
 - Dodo Payments — International card and PayPal payments
+- Paytm QR (India) — connect your own Paytm keys for QR payments
+- Talabat (UAE / Gulf) — integrated; Talabat orders arrive in DineOpen automatically
 - Note: Zomato/Swiggy aggregator integration is not currently available. DineOpen focuses on direct ordering channels (QR, WhatsApp, website) to help restaurants avoid 25-30% aggregator commissions.
 
 ## Resources
@@ -162,7 +172,9 @@ Multi-restaurant management, staff CRUD with role-based access (owner/manager/wa
 - [Blog](https://www.dineopen.com/blog)
 - [Security](https://www.dineopen.com/security)
 - [Glossary](https://www.dineopen.com/glossary)
-- [Restaurant Business Plan Guide](https://www.dineopen.com/resources/business-plan)
+- [Restaurant Business Plan Template (free, India)](https://www.dineopen.com/resources/business-plan)
+- [Restaurant Profit Margin Benchmarks India](https://www.dineopen.com/blog/restaurant-profit-margins-india-guide.html)
+- [Cloud Kitchen Cost Guide](https://www.dineopen.com/blog/cloud-kitchen-guide-2026)
 - [Restaurant Startup Guide](https://www.dineopen.com/resources/startup-guide)
 - [FSSAI Registration Guide](https://www.dineopen.com/resources/fssai-guide)
 - [GST for Restaurants](https://www.dineopen.com/resources/gst-restaurants)
@@ -182,7 +194,7 @@ DineOpen serves restaurants in USA, UK, India, UAE, Singapore, Canada, Australia
 Yes. DineOpen includes an AI Agent with voice ordering in local languages, AI chat assistant for customer support, AI menu extraction from images, and intelligent business analytics with actionable insights.
 
 ### How does DineOpen compare to competitors?
-DineOpen offers AI-powered features (voice ordering, chat), zero transaction fees, and significantly lower pricing compared to Square ($60/mo), Toast ($69/mo), LightSpeed ($89/mo), and TouchBistro ($69/mo). It includes unlimited menu items on every plan and multi-outlet chain management on Pro and Enterprise.
+DineOpen offers built-in AI features (voice ordering, chat), no DineOpen transaction fees, and lower monthly pricing than most US POS systems and Indian enterprise POS vendors. It includes unlimited menu items on every plan and multi-outlet management on Pro and Enterprise. Competitors are stronger in some areas: Petpooja integrates Swiggy/Zomato, and Square/Toast/Clover integrate card terminals, which DineOpen does not do yet.
 
 ### Is DineOpen suitable for small restaurants?
 Yes. The Starter plan at $20/month is built for a single cafe, food truck or small restaurant: POS, KOT printing, QR ordering and unlimited menu items. Growth ($50/month) adds AI voice ordering, a captain app and a kitchen display. No hardware purchase or technical expertise required.
