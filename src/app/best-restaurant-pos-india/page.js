@@ -40,7 +40,7 @@ export default function BestPOSIndiaPage() {
         "name": "How much does restaurant POS software cost in India?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Restaurant POS pricing in India ranges widely: DineOpen starts at ₹899/month with all features included, Petpooja starts at ₹1,000+/month with additional costs for add-ons, POSist (Restroworks) ranges from ₹2,000-5,000+/month for enterprise features, Gofrugal charges a one-time license fee of ₹15,000-30,000 for desktop software, and Marg ERP costs approximately ₹4,500/year. Most vendors also charge for hardware, installation, and premium support separately."
+          "text": "Restaurant POS pricing in India ranges widely: DineOpen starts at ₹899/month with all features included, Petpooja lists its Base plan at ₹12,000 + taxes (billing period not stated) with higher plans from ₹20,000 that include Base, POSist (Restroworks) shares pricing on request, Gofrugal charges a one-time license fee of ₹15,000-30,000 for desktop software, and Marg ERP costs approximately ₹4,500/year. Most vendors also charge for hardware, installation, and premium support separately."
         }
       },
       {

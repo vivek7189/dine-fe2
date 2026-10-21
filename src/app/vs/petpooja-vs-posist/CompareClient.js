@@ -8,22 +8,21 @@ import InternalLinks from '../../../components/InternalLinks';
 const comparisonData = [
   { feature: 'Founded', petpooja: '2011, Ahmedabad', posist: '2012, New Delhi', winner: 'tie' },
   { feature: 'Current Brand Name', petpooja: 'Petpooja', posist: 'Restroworks (formerly POSist)', winner: 'tie' },
-  { feature: 'Starting Price', petpooja: '₹1,000+/month', posist: '₹2,000-5,000+/month', winner: 'petpooja' },
-  { feature: 'Transaction Fees', petpooja: '1.5-2%', posist: 'Custom/Negotiable', winner: 'tie' },
+  { feature: 'Starting Price', petpooja: '₹12,000 + taxes, Base plan (billing period not stated)', posist: 'Pricing on request', winner: 'petpooja' },
+  { feature: 'Higher Plans', petpooja: 'Operations Manager ₹20,000 / ₹30,000; Marketing Manager ₹20,000 to ₹40,000 (Base included)', posist: 'Pricing on request', winner: 'tie' },
+  { feature: 'Per-order Fee', petpooja: 'None listed on pricing page', posist: 'Ask for a quote', winner: 'tie' },
   { feature: 'Best For', petpooja: 'Small-Medium Restaurants', posist: 'Enterprise Chains (10+ outlets)', winner: 'tie' },
   { feature: 'Zomato Integration', petpooja: 'Direct API, Auto-accept', posist: 'Available', winner: 'petpooja' },
   { feature: 'Swiggy Integration', petpooja: 'Direct API, Auto-accept', posist: 'Available', winner: 'petpooja' },
-  { feature: 'Multi-Location Analytics', petpooja: 'Basic', posist: 'Advanced, Centralized', winner: 'posist' },
+  { feature: 'Multi-Location Analytics', petpooja: 'Ask Petpooja', posist: 'Advanced, Centralized', winner: 'posist' },
   { feature: 'Cloud POS', petpooja: '✓', posist: '✓', winner: 'tie' },
   { feature: 'GST Billing', petpooja: '✓', posist: '✓', winner: 'tie' },
   { feature: 'Kitchen Display System', petpooja: '✓', posist: '✓', winner: 'tie' },
   { feature: 'Inventory Management', petpooja: '✓', posist: '✓ Advanced', winner: 'posist' },
-  { feature: 'CRM / Loyalty', petpooja: 'Basic (Add-on)', posist: 'Advanced (Built-in)', winner: 'posist' },
-  { feature: 'UI / Ease of Use', petpooja: 'Simple, Intuitive', posist: 'Feature-rich, Steeper Learning Curve', winner: 'petpooja' },
-  { feature: 'Customer Support', petpooja: 'Phone, Chat, 150+ Cities', posist: 'Dedicated Account Manager', winner: 'tie' },
-  { feature: 'International Presence', petpooja: 'Primarily India', posist: '40+ Countries', winner: 'posist' },
-  { feature: 'Free Trial', petpooja: '14 days', posist: 'Demo only', winner: 'petpooja' },
-  { feature: 'Hardware Requirement', petpooja: 'Android tablets, optional proprietary', posist: 'Works on most devices', winner: 'tie' },
+  { feature: 'CRM / Loyalty', petpooja: 'Marketing Manager plan', posist: 'Ask for a quote', winner: 'tie' },
+  { feature: 'Customer Support', petpooja: 'Phone, chat, partner network', posist: 'Dedicated Account Manager', winner: 'tie' },
+  { feature: 'International Presence', petpooja: 'Ask Petpooja', posist: '40+ Countries', winner: 'posist' },
+  { feature: 'Free Trial', petpooja: 'Free demo (no trial listed)', posist: 'Demo on request', winner: 'tie' },
 ];
 
 const breadcrumbItems = [
@@ -84,7 +83,7 @@ export default function CompareClient() {
             color: '#6b7280',
             fontStyle: 'italic',
           }}>
-            Last updated: March 2026. We are not affiliated with either Petpooja or POSist.
+            Last updated: 21 October 2026. Petpooja prices from petpooja.com/pricing. We are not affiliated with either Petpooja or POSist.
           </p>
         </div>
       </section>
@@ -107,12 +106,11 @@ export default function CompareClient() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
                   'Founded 2011 in Ahmedabad, Gujarat',
-                  '₹1,000+/month starting price',
-                  '1.5-2% transaction fees',
+                  'Base plan listed at ₹12,000 + taxes',
+                  'No per-order fee listed on its pricing page',
                   'Best for: Small-medium restaurants',
                   'Strong Zomato/Swiggy direct integration',
-                  'Support in 150+ Indian cities',
-                  '7-day free trial available',
+                  'Large partner network for setup and support',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: '#f59e0b', fontWeight: '700', flexShrink: 0 }}>&#9679;</span>
@@ -132,8 +130,8 @@ export default function CompareClient() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
                   'Founded 2012 in New Delhi, rebranded to Restroworks',
-                  '₹2,000-5,000+/month (custom pricing)',
-                  'Enterprise-focused, negotiable fees',
+                  'Pricing on request',
+                  'Enterprise-focused, quote-based',
                   'Best for: Chains with 10+ outlets',
                   'Advanced multi-location analytics',
                   'Presence in 40+ countries',
@@ -220,19 +218,19 @@ export default function CompareClient() {
             {[
               {
                 title: 'Better for Small-Medium Restaurants',
-                desc: 'Petpooja&apos;s pricing and feature set are designed for single-outlet and small chain restaurants. You don&apos;t need to negotiate enterprise contracts or go through lengthy sales cycles.',
+                desc: 'Petpooja publishes its plan prices, so a single outlet or small chain can see the cost before talking to sales.',
               },
               {
                 title: 'Superior Zomato/Swiggy Integration',
                 desc: 'Direct API integration with auto-accept, real-time menu sync, and order management for Zomato and Swiggy. This is Petpooja&apos;s standout feature for delivery-heavy restaurants.',
               },
               {
-                title: 'Lower Starting Price',
-                desc: 'At ₹1,000+/month, Petpooja is significantly more affordable than POSist&apos;s custom enterprise pricing which typically starts at ₹2,000-5,000+/month.',
+                title: 'Published Pricing',
+                desc: 'Petpooja lists its Base plan at ₹12,000 + taxes and its higher plans on its pricing page. POSist (Restroworks) shares pricing on request.',
               },
               {
-                title: 'Wider City Coverage for Support',
-                desc: 'Petpooja has on-ground support teams in 150+ Indian cities. POSist focuses more on dedicated account managers for enterprise clients, which can leave smaller restaurants underserved.',
+                title: 'Partner Network for Support',
+                desc: 'Petpooja works through a wide partner network for setup and support. POSist focuses more on dedicated account managers for enterprise clients.',
               },
             ].map((card, i) => (
               <div key={i} style={{
@@ -274,7 +272,7 @@ export default function CompareClient() {
               },
               {
                 title: 'International Presence',
-                desc: 'POSist operates in 40+ countries across the Middle East, Southeast Asia, and beyond. Petpooja is primarily focused on the Indian market.',
+                desc: 'POSist operates in 40+ countries across the Middle East, Southeast Asia, and beyond.',
               },
             ].map((card, i) => (
               <div key={i} style={{
@@ -310,14 +308,12 @@ export default function CompareClient() {
                 {[
                   'You run 1-5 restaurant outlets in India',
                   'Zomato and Swiggy delivery is a major revenue channel',
-                  'You want an affordable POS without enterprise sales negotiations',
-                  'You need on-ground support in your city',
-                  'You prefer a simpler interface with a shorter learning curve',
-                  'You want a free trial to test before committing',
+                  'You want to see published prices before talking to sales',
+                  'You want a partner nearby for setup and support',
                 ].map((item, i) => (
                   <li key={i} style={{
                     padding: '10px 0',
-                    borderBottom: i < 5 ? '1px solid #fef3c7' : 'none',
+                    borderBottom: i < 3 ? '1px solid #fef3c7' : 'none',
                     fontSize: '15px',
                     color: '#374151',
                     display: 'flex',
@@ -383,10 +379,10 @@ export default function CompareClient() {
               There&apos;s no single &quot;better&quot; option here — it genuinely depends on your restaurant&apos;s size, needs, and growth stage.
             </p>
             <p style={{ fontSize: '17px', color: '#374151', lineHeight: '1.8', margin: '0 0 16px 0' }}>
-              <strong>Petpooja</strong> is the smarter choice for most small-to-medium Indian restaurants. It&apos;s more affordable, easier to set up, and has the best delivery aggregator integration in the market. If Zomato and Swiggy orders are a big part of your business, Petpooja handles that workflow exceptionally well.
+              <strong>Petpooja</strong> suits many small-to-medium Indian restaurants. Its prices are published, and it connects directly to Swiggy and Zomato. If Zomato and Swiggy orders are a big part of your business, Petpooja handles that workflow exceptionally well.
             </p>
             <p style={{ fontSize: '17px', color: '#374151', lineHeight: '1.8', margin: '0 0 16px 0' }}>
-              <strong>POSist (Restroworks)</strong> is the better choice for enterprise chains and multi-location businesses. If you&apos;re managing 10+ outlets and need centralized analytics, franchise management, and international support, POSist&apos;s enterprise features justify the higher price.
+              <strong>POSist (Restroworks)</strong> is the better choice for enterprise chains and multi-location businesses. If you&apos;re managing 10+ outlets and need centralized analytics, franchise management, and international support, POSist&apos;s enterprise features are worth getting a quote for.
             </p>
             <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', margin: 0, fontStyle: 'italic' }}>
               Both are established, reputable platforms. Your decision should come down to your specific restaurant size and operational needs.
@@ -411,12 +407,12 @@ export default function CompareClient() {
             border: '1px solid #bbf7d0',
           }}>
             <p style={{ fontSize: '16px', color: '#374151', lineHeight: '1.8', margin: '0 0 20px 0' }}>
-              If you&apos;re looking for something different from both Petpooja and POSist, <strong>DineOpen</strong> offers a modern alternative with AI-powered features at a significantly lower price point.
+              If you&apos;re looking for something different from both Petpooja and POSist, <strong>DineOpen</strong> offers a modern alternative with AI-powered features and a published monthly price.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
               {[
-                { label: 'Monthly Price', value: '₹899/month' },
-                { label: 'Transaction Fees', value: '0% (Zero)' },
+                { label: 'Monthly Price', value: 'From ₹899/month' },
+                { label: 'Swiggy/Zomato Sync', value: 'Not yet' },
                 { label: 'AI Features', value: 'Voice ordering, Chat assistant, Menu extraction' },
                 { label: 'Free Trial', value: '7 days, full access' },
               ].map((item, i) => (
@@ -427,7 +423,7 @@ export default function CompareClient() {
               ))}
             </div>
             <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.7', margin: '0 0 20px 0' }}>
-              DineOpen is especially worth considering if you want cutting-edge AI automation (voice ordering, WhatsApp ordering) without the high costs of traditional POS platforms. At ₹899/month with zero transaction fees, it&apos;s a fraction of the cost of either Petpooja or POSist.
+              DineOpen is especially worth considering if you want cutting-edge AI automation (voice ordering, WhatsApp ordering) and one plan with everything included. It starts at ₹899/month in India, with no per-transaction fee from DineOpen. If Swiggy and Zomato orders are a big part of your sales, note that DineOpen does not sync them automatically yet.
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Link href="/alternatives/petpooja" style={{
@@ -487,7 +483,7 @@ export default function CompareClient() {
               },
               {
                 q: 'Which is cheaper — Petpooja or POSist?',
-                a: 'Petpooja is cheaper: it publishes a ₹12,000 + GST Base plan with paid add-ons. POSist uses custom enterprise pricing typically ranging from ₹2,000-5,000+/month depending on outlets and features needed.',
+                a: 'Petpooja publishes its prices: the Base plan is listed at ₹12,000 + taxes (billing period not stated), with higher plans from ₹20,000 that include Base. POSist (Restroworks) shares pricing on request. Get a written quote from both to compare.',
               },
               {
                 q: 'Is Petpooja or POSist better for Zomato and Swiggy integration?',
@@ -499,7 +495,7 @@ export default function CompareClient() {
               },
               {
                 q: 'Are there alternatives to both Petpooja and POSist?',
-                a: 'Yes. DineOpen offers AI-powered features at ₹899/month with zero transaction fees. It is a modern alternative for restaurants wanting automation at a lower price point.',
+                a: 'Yes. DineOpen offers AI-powered features from ₹899/month in India, with no per-transaction fee from DineOpen and a 7-day free trial. It is a modern alternative for restaurants wanting automation at a lower price point.',
               },
             ].map((faq, i) => (
               <div key={i} style={{

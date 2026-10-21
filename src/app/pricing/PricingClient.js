@@ -331,7 +331,7 @@ export default function PricingClient() {
   // Competitor comparison row (India)
   const compare = [
     { name: 'DineOpen Growth',     price: `${currentPrice.symbol}${fmt(currentPrice.growth.monthly)}/mo`, ai: true,  txn: '0%',     setup: 'Free',    kds: true,  captainApp: true },
-    { name: 'Petpooja',             price: '₹12,000 + add-ons', ai: false, txn: '0%',   setup: 'Included', kds: 'Add-on', captainApp: 'Add-on' },
+    { name: 'Petpooja',             price: '₹12,000 + taxes (Base)', ai: 'AI agent', txn: '0%',   setup: 'Online, included', kds: 'Higher plan', captainApp: 'Higher plan' },
     { name: 'Restroworks (POSist)', price: 'On request',      ai: false, txn: '0%',     setup: 'On request', kds: 'Paid', captainApp: 'Paid' },
     { name: 'PosBytz',              price: 'On request',      ai: false, txn: '0%',     setup: 'On request', kds: 'Paid', captainApp: true },
     { name: 'Limetray',             price: 'On request',      ai: false, txn: '0%',     setup: 'On request', kds: false,  captainApp: false },
@@ -672,7 +672,7 @@ export default function PricingClient() {
                         </td>
                         <td style={{ padding: '16px', fontSize: '14px', fontWeight: '700', color: isUs ? '#991b1b' : '#374151', whiteSpace: 'nowrap' }}>{row.price}</td>
                         <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px' }}>
-                          {row.ai ? <FaCheck style={{ color: '#10b981' }} /> : <FaTimes style={{ color: '#d1d5db' }} />}
+                          {typeof row.ai === 'string' ? <span style={{ fontSize: '12px', color: '#6b7280' }}>{row.ai}</span> : row.ai ? <FaCheck style={{ color: '#10b981' }} /> : <FaTimes style={{ color: '#d1d5db' }} />}
                         </td>
                         <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px' }}>{renderCell(row.kds)}</td>
                         <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px' }}>{renderCell(row.captainApp)}</td>
@@ -685,7 +685,7 @@ export default function PricingClient() {
               </table>
             </div>
             <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '16px', fontStyle: 'italic' }}>
-              Pricing data based on publicly available information as of 2026. Petpooja: Base plan ₹12,000; captain app, KDS and QR ordering in the Operations add-on (₹20,000–30,000), ex-GST, per petpooja.com/pricing (Oct 2026).
+              Pricing data based on publicly available information as of 2026. Petpooja: Base plan ₹12,000; captain app, KDS and QR ordering in the Operations Manager plan (₹20,000–30,000, Base included), exclusive of taxes, per petpooja.com/pricing (checked 21 Oct 2026). The page does not state the billing period and lists no per-order fee. Online payments carry your payment gateway&apos;s own charges with any POS.
             </p>
           </div>
         </div>

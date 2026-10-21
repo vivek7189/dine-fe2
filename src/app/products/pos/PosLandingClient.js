@@ -43,7 +43,7 @@ export default function PosLandingClient() {
 
   const comparisons = [
     { name: 'DineOpen POS', price: 'From $20/mo', txFee: '0%', cloud: 'Yes', multiLoc: 'Yes', hardware: 'None required', highlight: true },
-    { name: 'Petpooja', price: 'Custom quote', txFee: 'Varies', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Proprietary' },
+    { name: 'Petpooja', price: '₹12,000 + taxes (Base plan)', txFee: 'None listed', cloud: 'Yes', multiLoc: 'Ask Petpooja', hardware: 'iOS, Windows, Android' },
     { name: 'Square POS', price: 'Free + fees', txFee: '2.6% + 10c', cloud: 'Yes', multiLoc: 'Yes', hardware: 'Square terminal' },
     { name: 'Toast POS', price: 'From $69/mo', txFee: '2.49% + 15c', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Toast terminal' },
     { name: 'POSist', price: 'Custom quote', txFee: 'Varies', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Optional' },

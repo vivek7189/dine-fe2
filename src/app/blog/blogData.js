@@ -732,7 +732,7 @@ export const blogPosts = [
   {
     slug: 'zero-transaction-fees-restaurant-pos',
     title: 'Zero Transaction Fees: How Restaurants Save ₹50,000+ Per Year',
-    excerpt: 'Transaction fees silently drain restaurant profits. Learn how much Square, Toast, and Petpooja charge per transaction, and how switching to zero-fee POS saves lakhs annually.',
+    excerpt: 'Transaction fees silently drain restaurant profits. Learn how much Square, Toast and Clover charge per transaction, what payment gateways charge in India, and where the real savings are.',
     date: '2026-02-28',
     category: 'Revenue',
     categoryColor: '#f59e0b',
@@ -779,8 +779,8 @@ export const blogPosts = [
   },
   {
     slug: 'petpooja-review-2026',
-    title: 'Petpooja Review 2026: Real Pricing, Hidden Fees & Better Alternatives',
-    excerpt: 'Honest Petpooja review after testing all plans. Real pricing (₹1,500-5,000/month), hidden fees, feature gaps, and 3 better alternatives including a free option. Updated April 2026.',
+    title: 'Petpooja Review 2026: Published Pricing, Strengths & Alternatives',
+    excerpt: 'A fair Petpooja review: prices from its own pricing page (Base plan ₹12,000 + taxes), where it is strong, what to check before signing, and alternatives. Updated October 2026.',
     date: '2026-03-06',
     category: 'Review',
     categoryColor: '#ef4444',
@@ -935,8 +935,8 @@ export const blogPosts = [
   },
   {
     slug: 'petpooja-alternative-2026',
-    title: 'Best Petpooja Alternatives in 2026: Save ₹58,000+/Year',
-    excerpt: 'Detailed comparison of Petpooja alternatives — pricing, transaction fees, AI features, and migration guide. Find affordable POS software for your restaurant.',
+    title: 'Best Petpooja Alternatives in 2026: Honest Comparison',
+    excerpt: 'Detailed comparison of Petpooja alternatives — published prices, Swiggy/Zomato integration, AI features, and migration guide. Find affordable POS software for your restaurant.',
     date: '2026-03-11',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -1239,7 +1239,7 @@ export const blogPosts = [
   {
     slug: 'petpooja-pricing-plans-2026',
     title: 'Petpooja Pricing 2026: Plans, Hidden Costs & Is It Worth It?',
-    excerpt: 'Complete Petpooja pricing breakdown — base plans (₹3K-12K/month), hidden costs (add-ons, hardware, GST), total cost of ownership, and cheaper alternatives.',
+    excerpt: 'Petpooja pricing from its own website — Base plan ₹12,000 + taxes, Operations and Marketing plans from ₹20,000, what to ask before signing, and alternatives.',
     date: '2026-03-12',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -5215,27 +5215,27 @@ export const blogPostContent = {
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">AI Voice Ordering</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Unique</td>
-                  <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Not Available</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">AI agent (Base plan)</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Transaction Fees</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Zero Fees</td>
-                  <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Charges Apply</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">None listed on pricing page</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Pricing Transparency</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ ₹899/month</td>
-                  <td style="padding: 12px; text-align: center; color: #f59e0b;">⚠️ Contact Sales</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">₹12,000 + taxes (Base plan)</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Free Trial</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ 1 Month</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ Demo Available</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ 7 Days</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">Free demo</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px; font-weight: 600;">Modern Interface</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ 2026 Design</td>
-                  <td style="padding: 12px; text-align: center; color: #f59e0b;">⚠️ Traditional</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">Ask for a demo</td>
                 </tr>
               </tbody>
             </table>
@@ -5245,7 +5245,7 @@ export const blogPostContent = {
         <h2>🎯 Key Features for Ice Cream & Dessert Shops</h2>
 
         <h3>1. Variations and Add-Ons Management</h3>
-        <p>Ice cream shops need to handle complex order customizations without slowing down service. Both DineOpen and PetPooja support variations and add-ons, but DineOpen offers a more intuitive interface.</p>
+        <p>Ice cream shops need to handle complex order customizations without slowing down service. Both DineOpen and PetPooja support variations and add-ons. Try both with your own menu to see which your staff find quicker.</p>
 
         <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 8px;">
           <h4 style="color: #1f2937; margin-bottom: 12px;">DineOpen's Advanced Variations System:</h4>
@@ -5381,7 +5381,7 @@ export const blogPostContent = {
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #3b82f6;">
               <strong style="color: #1f2937;">💰 Zero Transaction Fees</strong>
-              <p style="margin: 8px 0 0 0; color: #6b7280;">Save ₹5-6 lakhs annually compared to systems with transaction fees</p>
+              <p style="margin: 8px 0 0 0; color: #6b7280;">DineOpen takes no cut of your sales. Payment gateway charges still apply</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #f59e0b;">
               <strong style="color: #1f2937;">📱 Modern 2026 Interface</strong>
@@ -5426,7 +5426,7 @@ export const blogPostContent = {
         </div>
 
         <h2>💡 Conclusion</h2>
-        <p>Choosing the right POS system for your ice cream and dessert shop is crucial for success. While PetPooja offers traditional solutions, DineOpen combines modern AI technology, zero transaction fees, and specialized features designed for dessert shops.</p>
+        <p>Choosing the right POS system for your ice cream and dessert shop is crucial for success. PetPooja is an established choice with direct Swiggy and Zomato integration. DineOpen adds AI tools, everything in one monthly plan and specialized features for dessert shops.</p>
 
         <p>For ice cream shop owners looking to stay ahead in 2026, DineOpen offers:</p>
         <ul>
@@ -5676,7 +5676,7 @@ export const blogPostContent = {
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">AI Voice Ordering</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Unique</td>
-                  <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Not Available</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">AI agent (Base plan)</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Not Available</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Not Available</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Not Available</td>
@@ -5684,7 +5684,7 @@ export const blogPostContent = {
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Transaction Fees</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Zero Fees</td>
-                  <td style="padding: 12px; text-align: center; color: #ef4444;">❌ Charges Apply</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">None listed on pricing page</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.6% + $0.10</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.99% + $0.15</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.3% + $0.10</td>
@@ -5692,15 +5692,15 @@ export const blogPostContent = {
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Monthly Pricing</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">₹899/month</td>
-                  <td style="padding: 12px; text-align: center; color: #f59e0b;">⚠️ Contact Sales</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">₹12,000 + taxes (Base plan)</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">$60-120/month</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">$165-300/month</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">$95-200/month</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Free Trial</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ 1 Month</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ Demo Available</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ 7 Days</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">Free demo</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ 30 Days</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ No Trial</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ 14 Days</td>
@@ -5708,7 +5708,7 @@ export const blogPostContent = {
                 <tr>
                   <td style="padding: 12px; font-weight: 600;">Modern Interface</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ 2026 Design</td>
-                  <td style="padding: 12px; text-align: center; color: #f59e0b;">⚠️ Traditional</td>
+                  <td style="padding: 12px; text-align: center; color: #6b7280;">Ask for a demo</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Modern</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Modern</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Modern</td>
@@ -5842,7 +5842,7 @@ export const blogPostContent = {
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #ef4444;">
               <strong style="color: #1f2937;">💵 Transparent Pricing</strong>
-              <p style="margin: 8px 0 0 0; color: #6b7280;">₹899/month starting price—no hidden costs, no sales calls needed. PetPooja requires contacting sales.</p>
+              <p style="margin: 8px 0 0 0; color: #6b7280;">₹899/month starting price—no hidden costs, no sales calls needed.</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #8b5cf6;">
               <strong style="color: #1f2937;">🎁 7-Day Free Trial</strong>
@@ -5914,7 +5914,7 @@ export const blogPostContent = {
         </div>
 
         <h2>💡 Conclusion</h2>
-        <p>Choosing the right POS system for your bar or brewery is crucial for profitability. While PetPooja offers traditional solutions and Square/Toast/Clover provide modern interfaces, DineOpen combines the best of both worlds with AI technology, zero transaction fees, and specialized bar features.</p>
+        <p>Choosing the right POS system for your bar or brewery is crucial for profitability. PetPooja is strong on Swiggy and Zomato integration, and Square/Toast/Clover are popular abroad. DineOpen adds AI tools, no per-transaction fee of its own and specialized bar features.</p>
 
         <p>For bar owners looking to maximize profits in 2026, DineOpen offers:</p>
         <ul>
@@ -8480,55 +8480,55 @@ export const blogPostContent = {
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">Built-in</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Ask Petpooja</td>
               </tr>
               <tr>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Multilingual Support</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">10+ Languages</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">English Only</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">English Only</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">English/Hindi</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Ask Petpooja</td>
               </tr>
               <tr style="background: #f8fafc;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Phone Order AI</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">Auto-Answer + Order</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Ask Petpooja</td>
               </tr>
               <tr>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #374151;">WhatsApp Voice Orders</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">Supported</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">Not Available</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Ask Petpooja</td>
               </tr>
               <tr style="background: #f8fafc;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #374151;">AI Upselling</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">Contextual AI</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Manual Setup</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Basic</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Not Available</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Ask Petpooja</td>
               </tr>
               <tr>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Transaction Fees</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #16a34a; font-weight: 700;">0%</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">2.49-3.69%</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #dc2626;">2.6-3.5%</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">Varies</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #6b7280;">None listed on pricing page</td>
               </tr>
               <tr style="background: #f8fafc;">
                 <td style="padding: 14px 20px; font-weight: 600; color: #374151;">Kitchen Display System</td>
                 <td style="padding: 14px 20px; text-align: center; color: #16a34a; font-weight: 700;">Included</td>
                 <td style="padding: 14px 20px; text-align: center; color: #6b7280;">Add-on ($</td>
                 <td style="padding: 14px 20px; text-align: center; color: #dc2626;">Not Available</td>
-                <td style="padding: 14px 20px; text-align: center; color: #16a34a;">Included</td>
+                <td style="padding: 14px 20px; text-align: center; color: #6b7280;">Operations Manager plan</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p style="font-size: 18px; line-height: 1.8; color: #374151;">As the table shows, DineOpen is the only POS system that offers built-in AI voice ordering. Competitors like <a href="/alternatives/toast" style="color: #3b82f6; text-decoration: underline;">Toast</a>, <a href="/alternatives/square" style="color: #3b82f6; text-decoration: underline;">Square</a>, and <a href="/alternatives/petpooja" style="color: #3b82f6; text-decoration: underline;">Petpooja</a> still rely entirely on manual order entry. While some may add basic voice features in the future, DineOpen's purpose-built AI Agent — trained specifically on restaurant menus and Indian language patterns — is years ahead.</p>
+        <p style="font-size: 18px; line-height: 1.8; color: #374151;">As the table shows, DineOpen is the only POS system that offers built-in AI voice ordering. Competitors like <a href="/alternatives/toast" style="color: #3b82f6; text-decoration: underline;">Toast</a>, <a href="/alternatives/square" style="color: #3b82f6; text-decoration: underline;">Square</a>, and <a href="/alternatives/petpooja" style="color: #3b82f6; text-decoration: underline;">Petpooja</a> do not list built-in AI voice ordering on their pricing pages. DineOpen's purpose-built AI Agent — trained specifically on restaurant menus and Indian language patterns — is years ahead.</p>
 
         <h2 style="font-size: 28px; color: #1f2937; margin-top: 48px; margin-bottom: 20px; border-left: 4px solid #3b82f6; padding-left: 16px;">Which Restaurants Benefit Most from AI Voice Ordering?</h2>
 
@@ -8608,7 +8608,7 @@ export const blogPostContent = {
   'zero-transaction-fees-restaurant-pos': {
     id: 'zero-transaction-fees-restaurant-pos',
     title: 'Zero Transaction Fees: How Restaurants Save ₹50,000+ Per Year',
-    excerpt: 'Transaction fees silently drain restaurant profits. Learn how much Square, Toast, and Petpooja charge per transaction, and how switching to zero-fee POS saves lakhs annually.',
+    excerpt: 'Transaction fees silently drain restaurant profits. Learn how much Square, Toast and Clover charge per transaction, what payment gateways charge in India, and where the real savings are.',
     content: `
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Restaurant finances and transaction fee savings" style="width: 100%; max-width: 700px; height: 350px; object-fit: cover; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" onerror="this.onerror=null; this.style.display='none';" />
@@ -8680,10 +8680,10 @@ export const blogPostContent = {
               </tr>
               <tr style="background: #fef2f2;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #991b1b;">Petpooja</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b;">1.5–2%</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb;">₹1,000–₹2,500/mo</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b; font-weight: 700;">₹45,000–₹60,000</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b;">N/A (India-only)</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb;">None listed on pricing page</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes, Base plan (period not stated)</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb;">No POS fee listed; gateway charges apply</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb;">—</td>
               </tr>
               <tr style="background: #f0fdf4;">
                 <td style="padding: 14px 20px; font-weight: 700; color: #166534; font-size: 16px;">DineOpen</td>
@@ -8698,7 +8698,7 @@ export const blogPostContent = {
 
         <p style="font-size: 16px; color: #6b7280; font-style: italic; text-align: center;">Note: Standard payment gateway fees (Razorpay, Stripe, Dodo) still apply — these are charged by the gateway, not by DineOpen. DineOpen adds zero markup on top of gateway fees.</p>
 
-        <p style="font-size: 18px; line-height: 1.8; color: #374151;">The difference is staggering. On ₹30 lakhs annual digital revenue, the gap between Petpooja and DineOpen is <strong>₹45,000–₹60,000 per year</strong>. Compared to <a href="/alternatives/square" style="color: #ef4444; font-weight: 600; text-decoration: underline;">Square</a>, you save over <strong>$13,000 annually</strong> on a $500K revenue base. Compared to <a href="/alternatives/toast" style="color: #ef4444; font-weight: 600; text-decoration: underline;">Toast</a>, you save over <strong>$12,000</strong>.</p>
+        <p style="font-size: 18px; line-height: 1.8; color: #374151;">Petpooja's pricing page (checked 21 October 2026) lists no per-order fee, so in India the fee you pay on digital payments is mostly your payment gateway's charge, whichever POS you use. Compared to <a href="/alternatives/square" style="color: #ef4444; font-weight: 600; text-decoration: underline;">Square</a>, you save over <strong>$13,000 annually</strong> on a $500K revenue base. Compared to <a href="/alternatives/toast" style="color: #ef4444; font-weight: 600; text-decoration: underline;">Toast</a>, you save over <strong>$12,000</strong>.</p>
 
         <h2 style="font-size: 28px; font-weight: 800; color: #1f2937; margin-top: 50px; margin-bottom: 20px;">Real Math — How Much You Are Actually Losing</h2>
 
@@ -8858,7 +8858,7 @@ export const blogPostContent = {
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">DineOpen<br/><span style="font-weight: 400; font-size: 12px;">₹899/mo + 0% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Toast<br/><span style="font-weight: 400; font-size: 12px;">$69/mo + 2.49% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Square<br/><span style="font-weight: 400; font-size: 12px;">$60/mo + 2.6% fees</span></th>
-                <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Petpooja<br/><span style="font-weight: 400; font-size: 12px;">₹1.5K/mo + 1.5-2% fees</span></th>
+                <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Petpooja<br/><span style="font-weight: 400; font-size: 12px;">₹12,000 + taxes (Base), no per-order fee listed</span></th>
               </tr>
             </thead>
             <tbody>
@@ -8867,7 +8867,7 @@ export const blogPostContent = {
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #16a34a; font-size: 18px;">Yes</td>
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #dc2626;">No</td>
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #dc2626;">No</td>
-                <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #dc2626;">No</td>
+                <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #6b7280;">AI agent (Base plan)</td>
               </tr>
               <tr>
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Inventory Management</td>
@@ -8916,14 +8916,14 @@ export const blogPostContent = {
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #16a34a; font-size: 18px;">Yes</td>
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #dc2626;">English only</td>
                 <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #dc2626;">English only</td>
-                <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #16a34a;">Limited</td>
+                <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #6b7280;">Ask Petpooja</td>
               </tr>
               <tr style="background: #fef2f2;">
                 <td style="padding: 14px 18px; font-weight: 700; font-size: 16px; color: #1f2937;">Annual Cost (on ₹30L revenue)</td>
                 <td style="padding: 14px 18px; text-align: center; color: #16a34a; font-weight: 800; font-size: 17px;">₹10,788</td>
                 <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 17px;">₹1.4L+</td>
                 <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 17px;">₹1.3L+</td>
-                <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 17px;">₹63K–₹90K</td>
+                <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 14px; color: #374151;">₹12,000 + taxes (Base plan, period not stated)</td>
               </tr>
             </tbody>
           </table>
@@ -10157,13 +10157,13 @@ export const blogPostContent = {
             </thead>
             <tbody>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Scoop-based billing</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Built-in</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Via modifiers</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Via modifiers</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Manual</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Visual flavor menu</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Text-based</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Combo auto-pricing</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Limited</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Expiry tracking</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">AI alerts</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Basic</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Visual flavor menu</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Ask Petpooja</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Combo auto-pricing</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Ask Petpooja</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Expiry tracking</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">AI alerts</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Ask Petpooja</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">QR ordering for queues</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Loyalty / birthday club</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Built-in</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Add-on</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Square Loyalty</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Transaction fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; color: #10b981; font-weight: 600;">0%</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">0%</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">2.6% + 10c</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Starting price</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600;">$9.99/mo</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Custom quote</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">$0 + fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Loyalty / birthday club</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Built-in</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Marketing Manager plan</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Square Loyalty</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Transaction fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; color: #10b981; font-weight: 600;">0%</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">None listed</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">2.6% + 10c</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Starting price</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600;">$9.99/mo</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes (Base plan)</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">$0 + fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
             </tbody>
           </table>
         </div>
@@ -10238,8 +10238,8 @@ export const blogPostContent = {
   },
   'petpooja-review-2026': {
     id: 'petpooja-review-2026',
-    title: 'Petpooja Review 2026: Real Pricing, Hidden Fees & Better Alternatives',
-    excerpt: 'Honest Petpooja review after testing all plans. Real pricing (₹1,500-5,000/month), hidden fees, feature gaps, and 3 better alternatives including a free option. Updated April 2026.',
+    title: 'Petpooja Review 2026: Published Pricing, Strengths & Alternatives',
+    excerpt: 'A fair Petpooja review: prices from its own pricing page (Base plan ₹12,000 + taxes), where it is strong, what to check before signing, and alternatives. Updated October 2026.',
     content: `
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Restaurant POS system in use" style="width: 100%; max-width: 800px; height: 400px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
@@ -10266,7 +10266,7 @@ export const blogPostContent = {
           </div>
           <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; border: 1px solid #bbf7d0;">
             <h3 style="color: #166534; margin-bottom: 12px; font-size: 18px;">Widespread Market Presence</h3>
-            <p style="color: #374151; margin: 0; line-height: 1.7;">Being in the market since 2011 means Petpooja has a large support network, trained technicians in most Indian cities, and established relationships with hardware vendors.</p>
+            <p style="color: #374151; margin: 0; line-height: 1.7;">Being in the market since 2011 means Petpooja is a large company with a wide partner network for setup and support.</p>
           </div>
           <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; border: 1px solid #bbf7d0;">
             <h3 style="color: #166534; margin-bottom: 12px; font-size: 18px;">Menu Management</h3>
@@ -10274,55 +10274,46 @@ export const blogPostContent = {
           </div>
         </div>
 
-        <h2>Where Petpooja Falls Short (Honest Assessment)</h2>
+        <h2>What to Check Before You Sign</h2>
 
-        <p>No software is perfect. Here are the common complaints we hear from restaurant owners who've used Petpooja:</p>
+        <p>No POS suits every restaurant. These are the questions worth asking Petpooja, or any vendor, before you commit:</p>
 
-        <h3>1. Pricing Transparency</h3>
-        <p>Petpooja doesn't publicly list its pricing. You have to contact their sales team for a quote, which often comes with annual contracts and hardware bundling. Restaurant owners tell us the total cost often ends up between ₹15,000-₹30,000 per year for a single outlet — sometimes more when you add modules for inventory, CRM, or online ordering.</p>
-        <p>This makes it difficult to compare costs upfront. Many small restaurant owners feel locked into packages they didn't fully understand at signing.</p>
+        <h3>1. What period does the price cover?</h3>
+        <p>Petpooja's pricing page lists the Base plan at ₹12,000 + taxes but does not say whether that is per year or another period. Ask, and get it in writing.</p>
 
-        <h3>2. Customer Support Response Time</h3>
-        <p>Multiple reviews on Google and G2 mention slow customer support, especially outside business hours. For restaurants that operate late nights (bars, cloud kitchens), getting help at 11 PM on a Saturday — when something breaks during peak service — can be frustrating.</p>
+        <h3>2. Which plan will you actually need?</h3>
+        <p>The Base plan covers billing, inventory, reports, food aggregator integrations, unlimited users and terminals, and online installation and training. Captain app, KDS and similar tools come in the Operations Manager plan (Growth ₹20,000 / Scale ₹30,000 + taxes), and CRM and marketing tools in the Marketing Manager plan (₹20,000 to ₹40,000 + taxes). Both include Base. Pick the plan that covers what you need.</p>
 
-        <h3>3. UI Feels Dated</h3>
-        <p>Compared to newer POS systems, Petpooja's interface can feel cluttered and less intuitive. Staff training takes longer because the navigation isn't always obvious. Newer systems with cleaner, visual interfaces reduce training time significantly.</p>
+        <h3>3. How much of your business comes through Swiggy and Zomato?</h3>
+        <p>This is where Petpooja is strongest. If delivery apps bring in a large share of your orders, its direct integration saves real time at the counter.</p>
 
-        <h3>4. Limited AI Features</h3>
-        <p>In 2026, AI-powered features like voice ordering, auto-menu suggestions, and predictive inventory are becoming standard. Petpooja has been slower to adopt these compared to newer platforms. If you're looking for cutting-edge technology, this is a gap.</p>
+        <h3>4. Do you want AI tools?</h3>
+        <p>Petpooja's Base plan lists an AI agent. The page does not say whether that covers voice ordering or photo-to-menu extraction, so ask Petpooja directly if those matter to you.</p>
 
-        <h3>5. Add-On Cost Structure</h3>
-        <p>Many features that come standard in other POS systems — like loyalty programs, advanced analytics, and WhatsApp ordering — require separate paid add-ons with Petpooja. This modular pricing means your actual cost can be significantly higher than the base quote.</p>
+        <h2>Petpooja Pricing (From Its Own Website)</h2>
 
-        <div style="text-align: center; margin: 40px 0;">
-          <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Restaurant dining area" style="width: 100%; max-width: 800px; height: 400px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.style.display='none';" />
-          <p style="font-size: 14px; color: #6b7280; margin-top: 8px; font-style: italic;">The right POS should grow with your restaurant, not hold it back</p>
-        </div>
-
-        <h2>Petpooja Pricing (What We Know in 2026)</h2>
-
-        <p>Since Petpooja doesn't publish pricing, here's what restaurant owners have shared with us:</p>
+        <p>These are the prices on petpooja.com/pricing, checked 21 October 2026. All are listed as exclusive of applicable taxes, and the Operations and Marketing plans include Base. The page does not state the billing period and does not mention any per-order or per-transaction fee.</p>
 
         <div style="overflow-x: auto; margin: 30px 0;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
               <tr style="background: #f3f4f6;">
-                <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #e5e7eb;">Component</th>
-                <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #e5e7eb;">Estimated Cost</th>
+                <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #e5e7eb;">Plan</th>
+                <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #e5e7eb;">Listed price (+ taxes)</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Base POS software</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹12,000-₹18,000/year</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Inventory module</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹3,000-₹6,000/year (add-on)</td></tr>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">CRM / Loyalty</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹2,000-₹5,000/year (add-on)</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Online ordering</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹3,000-₹5,000/year (add-on)</td></tr>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Hardware (if bundled)</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹15,000-₹40,000 one-time</td></tr>
-              <tr style="background: #fef3c7;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Typical total (Year 1)</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">₹35,000-₹70,000+</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Base Plan (POS)</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹12,000</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Operations Manager: Growth</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹20,000</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Operations Manager: Scale</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹30,000</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Marketing Manager: Core</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹20,000</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Marketing Manager: Growth</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹30,000</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Marketing Manager: Scale</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹40,000</td></tr>
             </tbody>
           </table>
         </div>
 
-        <p style="font-size: 14px; color: #6b7280;"><em>Note: These are estimates based on user reports. Actual pricing varies by location, negotiation, and features selected. Contact Petpooja directly for current quotes.</em></p>
+        <p style="font-size: 14px; color: #6b7280;"><em>Prices change. Confirm with Petpooja before you decide. Card and UPI payments carry your payment gateway's own charges (often around 2%) whichever POS you use; that is not a Petpooja fee.</em></p>
 
         <h2>Petpooja Alternatives Worth Considering</h2>
 
@@ -10334,7 +10325,7 @@ export const blogPostContent = {
               <h4 style="color: #1f2937; margin: 0;">DineOpen</h4>
               <span style="background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">From ₹899/month</span>
             </div>
-            <p style="color: #6b7280; margin: 12px 0 0 0; line-height: 1.7;">Cloud-based, AI-powered POS with all features included (no add-on fees). Zero transaction fees. Voice ordering in Hindi, Tamil, Marathi. Best for single outlets and small chains looking for modern technology at affordable pricing.</p>
+            <p style="color: #6b7280; margin: 12px 0 0 0; line-height: 1.7;">Cloud-based, AI-powered POS with all features in one plan, a 7-day free trial and no per-transaction fee from DineOpen. Voice ordering in Hindi, Tamil, Marathi. Runs on Android, iPhone/iPad, Windows and the browser. No automatic Swiggy/Zomato sync yet. Best for single outlets and small chains.</p>
             <p style="margin: 8px 0 0 0;"><a href="/alternatives/petpooja" style="color: #ef4444; font-weight: 600; text-decoration: none;">See DineOpen vs Petpooja comparison →</a></p>
           </div>
           <div style="background: white; padding: 24px; border-radius: 12px; border: 2px solid #e5e7eb;">
@@ -10342,7 +10333,7 @@ export const blogPostContent = {
               <h4 style="color: #1f2937; margin: 0;">POSist (Restroworks)</h4>
               <span style="background: #f3f4f6; color: #6b7280; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">Custom pricing</span>
             </div>
-            <p style="color: #6b7280; margin: 12px 0 0 0; line-height: 1.7;">Enterprise-focused POS for restaurant chains and large operations. Strong in multi-location management and enterprise reporting. Higher price point, better suited for 10+ outlet chains.</p>
+            <p style="color: #6b7280; margin: 12px 0 0 0; line-height: 1.7;">Enterprise-focused POS for restaurant chains and large operations. Strong in multi-location management and enterprise reporting. Pricing on request; better suited for 10+ outlet chains.</p>
           </div>
           <div style="background: white; padding: 24px; border-radius: 12px; border: 2px solid #e5e7eb;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -10361,17 +10352,16 @@ export const blogPostContent = {
             <ul style="margin: 0; padding-left: 20px; color: #374151; line-height: 1.8;">
               <li>Do heavy Zomato/Swiggy delivery and need proven integration</li>
               <li>Want a POS brand that your accountant/CA already knows</li>
-              <li>Have a mid-to-large restaurant with budget for add-ons</li>
-              <li>Prefer on-premise support with local technicians</li>
+              <li>Want a large, established company behind your POS</li>
+              <li>Prefer on-site setup through a local partner</li>
             </ul>
           </div>
           <div style="background: #fef2f2; padding: 24px; border-radius: 12px;">
             <h4 style="color: #991b1b; margin-bottom: 12px;">Consider alternatives if you...</h4>
             <ul style="margin: 0; padding-left: 20px; color: #374151; line-height: 1.8;">
-              <li>Want transparent pricing with no hidden add-on costs</li>
-              <li>Need AI features like voice ordering or predictive inventory</li>
-              <li>Run a small/medium restaurant with a tight budget</li>
-              <li>Want modern UI that staff can learn in 15 minutes</li>
+              <li>Want captain app, KDS and loyalty in one low monthly plan</li>
+              <li>Need AI features like voice ordering or menu extraction</li>
+              <li>Want to try the full product free for a week before paying</li>
               <li>Need a POS for a niche vertical (ice cream, bakery, bar)</li>
             </ul>
           </div>
@@ -10381,7 +10371,7 @@ export const blogPostContent = {
 
         <p>Petpooja is a <strong>solid, established POS</strong> that works well for medium-to-large Indian restaurants, especially those with heavy delivery operations. Its delivery aggregator integration is among the best in India.</p>
 
-        <p>However, it's not the best choice for everyone. Small restaurants and single-outlet owners often find the pricing steep when add-ons are included. The UI feels dated compared to newer options, and the lack of AI features puts it behind in terms of technology.</p>
+        <p>It is not the best fit for everyone. If you need captain app, KDS or marketing tools, you will need one of the higher plans, so ask what period the listed price covers. If you want AI tools or everything in one monthly plan, compare alternatives.</p>
 
         <p>If you're a small restaurant owner in India looking for an affordable, modern POS with all features included, <a href="/alternatives/petpooja" style="color: #ef4444; font-weight: 600;">check how DineOpen compares</a>. If you're a large chain with complex delivery needs, Petpooja remains a strong contender.</p>
 
@@ -10395,7 +10385,7 @@ export const blogPostContent = {
           </ul>
         </div>
 
-        <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: March 6, 2026</em></p>
+        <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: October 21, 2026</em></p>
       `,
     author: 'DineOpen Team',
     authorRole: 'Market Research',
@@ -10495,7 +10485,7 @@ export const blogPostContent = {
             </thead>
             <tbody>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">DineOpen</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">All restaurant types</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹899/month</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">AI-powered, all features included, zero transaction fees</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Petpooja</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Delivery-heavy restaurants</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Custom quote</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Strong delivery aggregator integration</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Petpooja</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Delivery-heavy restaurants</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes (Base plan)</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Strong delivery aggregator integration</td></tr>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">POSist</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Large chains</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Custom quote</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Enterprise features, multi-location</td></tr>
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Marg ERP</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">GST-focused billing</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹4,500/year</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Strong accounting and GST compliance</td></tr>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Zoho Invoice</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Basic billing</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Free plan available</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Integration with Zoho ecosystem</td></tr>
@@ -11221,7 +11211,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How is DineOpen different from Petpooja or POSist inventory?</h4>
-            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen includes AI-powered reorder suggestions, invoice OCR, voice-based stock entry, and three-way matching (PO vs GRN vs Invoice) — features not available in Petpooja or POSist at comparable price points. DineOpen also charges zero transaction fees and includes all integrations free. Compare: <a href="/vs/dineopen-vs-petpooja" style="color: #ef4444;">DineOpen vs Petpooja</a> | <a href="/vs/dineopen-vs-posist" style="color: #ef4444;">DineOpen vs POSist</a></p>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen includes AI-powered reorder suggestions, invoice OCR, voice-based stock entry, and three-way matching (PO vs GRN vs Invoice) — all in the same monthly plan. DineOpen charges no per-transaction fee of its own. Petpooja, by contrast, offers direct Swiggy/Zomato integration, which DineOpen does not. Compare: <a href="/vs/dineopen-vs-petpooja" style="color: #ef4444;">DineOpen vs Petpooja</a> | <a href="/vs/dineopen-vs-posist" style="color: #ef4444;">DineOpen vs POSist</a></p>
           </div>
         </div>
 

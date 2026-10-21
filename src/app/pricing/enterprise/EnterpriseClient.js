@@ -109,30 +109,23 @@ const plans = [
   },
 ];
 
+// Petpooja: petpooja.com/pricing, checked 21 Oct 2026. 'ask' = not stated on the vendor's pricing page.
 const competitorComparison = [
   { feature: 'Base POS & Billing', dineopen: 'included', petpooja: 'included', posist: 'included' },
-  { feature: 'Online Ordering Website', dineopen: 'included', petpooja: 'paid', posist: 'paid' },
-  { feature: 'WhatsApp Ordering Bot', dineopen: 'included', petpooja: 'paid', posist: 'no' },
-  { feature: 'Customer Loyalty Program', dineopen: 'included', petpooja: 'paid', posist: 'paid' },
+  { feature: 'Online Ordering Website', dineopen: 'included', petpooja: 'ask', posist: 'ask' },
+  { feature: 'WhatsApp Ordering Bot', dineopen: 'included', petpooja: 'ask', posist: 'ask' },
+  { feature: 'Customer Loyalty / CRM', dineopen: 'included', petpooja: 'paid', posist: 'ask' },
   { feature: 'Kitchen Display System', dineopen: 'included', petpooja: 'paid', posist: 'included' },
-  { feature: 'AI Voice Ordering', dineopen: 'included', petpooja: 'no', posist: 'no' },
-  { feature: 'AI Menu Generation', dineopen: 'included', petpooja: 'no', posist: 'no' },
-  { feature: 'Advanced Analytics', dineopen: 'included', petpooja: 'paid', posist: 'included' },
-  { feature: 'Captain/Waiter App', dineopen: 'included', petpooja: 'included', posist: 'included' },
-  { feature: 'QR Menu & Ordering', dineopen: 'included', petpooja: 'included', posist: 'paid' },
+  { feature: 'AI Voice Ordering', dineopen: 'included', petpooja: 'ask', posist: 'ask' }, // Petpooja Base lists an 'AI agent'; details not stated
+  { feature: 'AI Menu Generation', dineopen: 'included', petpooja: 'ask', posist: 'ask' },
+  { feature: 'Advanced Analytics', dineopen: 'included', petpooja: 'ask', posist: 'included' },
+  { feature: 'Captain/Waiter App', dineopen: 'included', petpooja: 'paid', posist: 'included' },
   { feature: 'Inventory Management', dineopen: 'included', petpooja: 'included', posist: 'included' },
-  { feature: 'Central Kitchen', dineopen: 'included', petpooja: 'paid', posist: 'included' },
-  { feature: 'Transaction Fees', dineopen: '0%', petpooja: '1.5-2%', posist: '1-2%' },
-  { feature: 'Annual Lock-in Contract', dineopen: 'no', petpooja: 'yes', posist: 'yes' },
+  { feature: 'Central Kitchen', dineopen: 'included', petpooja: 'ask', posist: 'included' },
+  { feature: 'Swiggy/Zomato Integration', dineopen: 'ask', petpooja: 'included', posist: 'included' },
+  { feature: 'Per-transaction Fee from the POS', dineopen: '0%', petpooja: 'None listed', posist: 'ask' },
+  { feature: 'Annual Lock-in Contract', dineopen: 'no', petpooja: 'ask', posist: 'ask' },
 ];
-
-const savingsExample = {
-  monthlyOnlineOrders: 500000,
-  petpoojaTransactionFee: 0.015,
-  petpoojaBase: 2500,
-  petpoojaAddons: 3500,
-  dineopen: 4999,
-};
 
 export default function EnterpriseClient() {
   const [billingCycle, setBillingCycle] = useState('annual');
@@ -140,8 +133,6 @@ export default function EnterpriseClient() {
 
   const formatINR = (n) => '₹' + n.toLocaleString('en-IN');
 
-  const petpoojaTotal = savingsExample.petpoojaBase + savingsExample.petpoojaAddons + (savingsExample.monthlyOnlineOrders * savingsExample.petpoojaTransactionFee);
-  const annualSavings = (petpoojaTotal - savingsExample.dineopen) * 12;
 
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
@@ -376,7 +367,7 @@ export default function EnterpriseClient() {
           Why Chains Switch to DineOpen
         </h2>
         <p style={{ fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 32 }}>
-          Everything included vs paid add-ons. See the real difference.
+          Everything in one plan vs tiered plans. Petpooja details are from petpooja.com/pricing, checked 21 October 2026; its Operations and Marketing plans (from ₹20,000 + taxes) include Base.
         </p>
 
         <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
@@ -403,7 +394,9 @@ export default function EnterpriseClient() {
                       const val = row[col];
                       return (
                         <td key={col} style={{ padding: '12px 20px', textAlign: 'center' }}>
-                          {val === 'included' || val === '0%' || val === 'no' && col === 'dineopen' ? (
+                          {val === 'ask' ? (
+                            <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>{col === 'dineopen' ? 'Not yet' : 'Ask vendor'}</span>
+                          ) : val === 'included' || val === '0%' || val === 'no' && col === 'dineopen' ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                               {val === 'no' ? (
                                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>No lock-in</span>
@@ -417,7 +410,7 @@ export default function EnterpriseClient() {
                           ) : val === 'paid' ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                               {PAID}
-                              <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>Paid Add-on</span>
+                              <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>Higher plan</span>
                             </div>
                           ) : val === 'no' ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

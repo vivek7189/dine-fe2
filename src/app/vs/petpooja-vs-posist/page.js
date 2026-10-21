@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "What is the main difference between Petpooja and POSist (Restroworks)?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Petpooja is best suited for small-to-medium restaurants with strong delivery aggregator integration and a lower starting price (₹1,000+/month). POSist (now Restroworks) targets enterprise chains and multi-location businesses with advanced analytics, custom pricing starting at ₹2,000-5,000+/month, and international presence."
+        "text": "Petpooja is best suited for small-to-medium restaurants with strong delivery aggregator integration and published prices (Base plan listed at ₹12,000 + taxes on petpooja.com/pricing). POSist (now Restroworks) targets enterprise chains and multi-location businesses with advanced analytics and international presence; its pricing is on request."
       }
     },
     {
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Which is cheaper — Petpooja or POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Petpooja is generally cheaper: it publishes a ₹12,000 + GST Base plan with paid add-ons. POSist (Restroworks) uses custom enterprise pricing typically ranging from ₹2,000-5,000+/month depending on the number of outlets and features required. For single-outlet restaurants, Petpooja is the more affordable option."
+        "text": "Petpooja publishes its prices: the Base plan is listed at ₹12,000 + taxes (the page does not state the billing period), with Operations Manager (₹20,000 / ₹30,000) and Marketing Manager (₹20,000 to ₹40,000) plans that include Base. POSist (Restroworks) shares pricing on request, based on outlets and modules. Get a written quote from both before comparing."
       }
     },
     {
@@ -74,7 +74,7 @@ const faqSchema = {
       "name": "Are there better alternatives to both Petpooja and POSist for restaurants in India?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen is a modern alternative offering AI-powered features (voice ordering, chat assistant, menu extraction) at ₹899/month with zero transaction fees. It is ideal for restaurants that want cutting-edge technology at a fraction of the cost. Other alternatives include Square (better for international businesses) and Toast (popular in the US market)."
+        "text": "Yes. DineOpen is a modern alternative offering AI-powered features (voice ordering, chat assistant, menu extraction) from ₹899/month in India, with no per-transaction fee from DineOpen and a 7-day free trial. It does not sync Swiggy/Zomato orders automatically, which both Petpooja and POSist do. Other alternatives include Square (better for international businesses) and Toast (popular in the US market)."
       }
     }
   ]
@@ -95,10 +95,10 @@ const comparisonSchema = {
         "name": "Petpooja",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web, Android, iOS",
-        "description": "India-focused restaurant POS founded in 2011 in Ahmedabad. Strong Zomato/Swiggy integration, affordable for small-medium restaurants, starting at ₹1,000+/month.",
+        "description": "Restaurant POS founded in 2011 in Ahmedabad. Direct Zomato/Swiggy integration. Base plan listed at ₹12,000 + taxes on petpooja.com/pricing (billing period not stated).",
         "offers": {
           "@type": "Offer",
-          "price": "1000",
+          "price": "12000",
           "priceCurrency": "INR",
           "priceValidUntil": "2026-12-31"
         }
@@ -112,13 +112,7 @@ const comparisonSchema = {
         "name": "POSist (Restroworks)",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web, Android, iOS",
-        "description": "Enterprise-focused restaurant technology platform founded in 2012, rebranded to Restroworks. Multi-location analytics, international presence, custom pricing from ₹2,000-5,000+/month.",
-        "offers": {
-          "@type": "Offer",
-          "price": "2000",
-          "priceCurrency": "INR",
-          "priceValidUntil": "2026-12-31"
-        }
+        "description": "Enterprise-focused restaurant technology platform founded in 2012, rebranded to Restroworks. Multi-location analytics, international presence. Pricing on request."
       }
     }
   ]

@@ -131,7 +131,7 @@ export default function PosPage() {
         "name": "How does DineOpen POS compare to Petpooja or Square?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen offers zero transaction fees (Square charges 2.6%+10c per transaction), no hardware lock-in (unlike Petpooja), and affordable plans starting at $20/mo. DineOpen also includes multi-location support and real-time updates on all plans."
+          "text": "DineOpen offers zero transaction fees (Square charges 2.6%+10c per transaction), runs on Android, iPhone/iPad, Windows and the browser, and has affordable plans starting at $20/mo. DineOpen also includes multi-location support and real-time updates on all plans."
         }
       }
     ]

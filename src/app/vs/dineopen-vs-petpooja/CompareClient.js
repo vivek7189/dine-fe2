@@ -6,52 +6,28 @@ import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '₹899/month', petpooja: '₹1,000+/month', winner: 'dineopen' },
-  { feature: 'Transaction Fees', dineopen: '0%', petpooja: '1.5-2%', winner: 'dineopen' },
-  { feature: 'AI Voice Ordering', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
-  { feature: 'AI Chat Assistant', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
-  { feature: 'AI Menu Extraction', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
-  { feature: 'Cloud POS', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'GST Billing', dineopen: '✓', petpooja: '✓', winner: 'tie' },
+  { feature: 'Published starting price', dineopen: '₹899/month (India)', petpooja: '₹12,000 + taxes, Base plan (billing period not stated)', winner: 'tie' },
+  { feature: 'Per-transaction fee charged by the POS', dineopen: 'None', petpooja: 'None listed on pricing page', winner: 'tie' },
+  { feature: 'Online payment charges', dineopen: 'Payment gateway\'s own fee', petpooja: 'Payment gateway\'s own fee', winner: 'tie' },
   { feature: 'Zomato/Swiggy Integration', dineopen: '✗ (Not yet)', petpooja: '✓ Direct', winner: 'petpooja' },
-  { feature: 'Kitchen Display System', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Waiter App', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Inventory Management', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Loyalty Program', dineopen: '✓ Advanced', petpooja: 'Basic', winner: 'dineopen' },
-  { feature: 'Multi-Location', dineopen: 'Unlimited (multi-outlet)', petpooja: 'Extra cost', winner: 'dineopen' },
-  { feature: 'Offline Mode', dineopen: '✓', petpooja: '✓', winner: 'tie' },
-  { feature: 'Free Trial', dineopen: '7 days', petpooja: '14 days', winner: 'dineopen' },
-  { feature: 'Countries Supported', dineopen: '20+', petpooja: 'India only', winner: 'dineopen' },
-  { feature: 'WhatsApp Ordering', dineopen: '✓', petpooja: '✗', winner: 'dineopen' },
+  { feature: 'AI Voice Ordering', dineopen: '✓ Included', petpooja: 'AI agent listed in Base plan; ask what it covers', winner: 'tie' },
+  { feature: 'AI Menu Extraction', dineopen: '✓ Included', petpooja: 'Ask Petpooja', winner: 'tie' },
+  { feature: 'GST Billing', dineopen: '✓', petpooja: '✓', winner: 'tie' },
+  { feature: 'Inventory Management', dineopen: '✓ Included', petpooja: '✓ Base plan', winner: 'tie' },
+  { feature: 'Captain app / KDS', dineopen: '✓ Included', petpooja: 'Operations Manager plan (from ₹20,000 + taxes, Base included)', winner: 'dineopen' },
+  { feature: 'CRM / Loyalty', dineopen: '✓ Included', petpooja: 'Marketing Manager plan (from ₹20,000 + taxes, Base included)', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days, no card', petpooja: 'Free demo (no trial listed)', winner: 'dineopen' },
+  { feature: 'Devices', dineopen: 'Android, iPhone/iPad, Windows, browser', petpooja: 'iOS, Windows, Android', winner: 'tie' },
 ];
 
-const pricingScenarios = [
-  {
-    label: 'Small Restaurant',
-    monthlyTxn: 300000,
-    dineopen: { subscription: 300, feePercent: 0 },
-    petpooja: { subscription: 1000, feePercent: 1.5 },
-    outlets: 1,
-  },
-  {
-    label: 'Mid-Size Restaurant',
-    monthlyTxn: 800000,
-    dineopen: { subscription: 300, feePercent: 0 },
-    petpooja: { subscription: 1000, feePercent: 1.5 },
-    outlets: 1,
-  },
-  {
-    label: 'Chain (3 Outlets)',
-    monthlyTxn: 2000000,
-    dineopen: { subscription: 300, feePercent: 0 },
-    petpooja: { subscription: 1000, feePercent: 1.5 },
-    outlets: 3,
-  },
+const publishedPrices = [
+  { plan: 'Base Plan (POS)', price: '₹12,000' },
+  { plan: 'Operations Manager: Growth', price: '₹20,000' },
+  { plan: 'Operations Manager: Scale', price: '₹30,000' },
+  { plan: 'Marketing Manager: Core', price: '₹20,000' },
+  { plan: 'Marketing Manager: Growth', price: '₹30,000' },
+  { plan: 'Marketing Manager: Scale', price: '₹40,000' },
 ];
-
-function formatINR(num) {
-  return '₹' + num.toLocaleString('en-IN');
-}
 
 export default function CompareClient() {
   return (
@@ -122,11 +98,11 @@ export default function CompareClient() {
               <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb', marginBottom: '16px' }}>DineOpen</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '₹899/month starting price',
+                  'From ₹899/month in India',
                   'AI-powered (voice ordering, chat, menu extraction)',
-                  'Zero transaction fees',
+                  'No per-transaction fee from DineOpen',
                   'Available in 20+ countries',
-                  '7-day free trial',
+                  '7-day free trial, no card',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: '#16a34a', fontWeight: '700', flexShrink: 0 }}>&#10003;</span>
@@ -145,11 +121,11 @@ export default function CompareClient() {
               <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#7c3aed', marginBottom: '16px' }}>Petpooja</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '₹1,000+/month starting price',
-                  'Established brand with large support team',
-                  '1.5-2% transaction fees',
-                  'India-focused platform',
-                  '7-day free trial',
+                  'Base plan listed at ₹12,000 + taxes',
+                  'Large, established company with a partner network',
+                  'Direct Swiggy and Zomato integration',
+                  'Higher Operations and Marketing plans from ₹20,000',
+                  'No per-order fee listed on its pricing page',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: '#7c3aed', fontWeight: '700', flexShrink: 0 }}>&#10003;</span>
@@ -214,7 +190,7 @@ export default function CompareClient() {
             </table>
           </div>
           <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#9ca3af' }}>
-            &#10003; Green checkmark indicates the winner in each category
+            Petpooja details from petpooja.com/pricing, checked 21 October 2026. &#10003; marks a clear difference.
           </p>
         </div>
       </section>
@@ -231,9 +207,9 @@ export default function CompareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
             {[
               { title: 'AI Features', desc: 'Voice ordering, chat assistant, and menu extraction that automate operations and reduce staff workload.' },
-              { title: 'Zero Transaction Fees', desc: 'Keep 100% of your revenue. No hidden per-transaction charges eating into your margins.' },
-              { title: 'Lower Price', desc: 'Starting at ₹899/month — less than a third of Petpooja, with more features included.' },
-              { title: 'Global Availability', desc: 'Available in 20+ countries with multi-currency support. Not limited to India.' },
+              { title: 'Price You Can See', desc: 'From ₹899/month in India with captain app, KDS, inventory and loyalty included. No add-ons to price out.' },
+              { title: 'Try It First', desc: '7-day free trial with no card. Set it up yourself on the phone, tablet or laptop you already have.' },
+              { title: 'Works Abroad Too', desc: 'Runs in 20+ countries with local currency and tax settings, if you plan to open outside India.' },
             ].map((card, i) => (
               <div key={i} style={{
                 backgroundColor: '#ffffff',
@@ -260,6 +236,7 @@ export default function CompareClient() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
             {[
+              { title: 'Swiggy and Zomato Integration', desc: 'Petpooja connects directly to Swiggy and Zomato, so delivery orders land in the POS. DineOpen does not do this yet.' },
               { title: 'Longer Track Record', desc: 'Petpooja has been in the market longer and has a proven track record with thousands of Indian restaurants.' },
               { title: 'Larger India Support Team', desc: 'A bigger on-ground support team across Indian cities for in-person setup and troubleshooting.' },
               { title: 'More Third-Party Integrations', desc: 'A wider ecosystem of third-party integrations built over years, including accounting and ERP tools.' },
@@ -279,74 +256,39 @@ export default function CompareClient() {
         </div>
       </section>
 
-      {/* Pricing Breakdown */}
+      {/* Published Prices */}
       <section style={{ padding: '60px 20px', backgroundColor: '#ffffff' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '30px', fontWeight: '800', textAlign: 'center', color: '#111827', marginBottom: '12px' }}>
-            Pricing Breakdown (1-Year Cost)
+            Published Prices, Side by Side
           </h2>
           <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '40px', fontSize: '16px' }}>
-            Real cost including subscription and transaction fees over 12 months
+            Only what each company shows on its own pricing page. No guesses.
           </p>
-          <div style={{ display: 'grid', gap: '24px' }}>
-            {pricingScenarios.map((s, i) => {
-              const dineSub = s.dineopen.subscription * 12 * s.outlets;
-              const dineFees = s.monthlyTxn * (s.dineopen.feePercent / 100) * 12;
-              const dineTotal = dineSub + dineFees;
-              const ppSub = s.petpooja.subscription * 12 * s.outlets;
-              const ppFees = s.monthlyTxn * (s.petpooja.feePercent / 100) * 12;
-              const ppTotal = ppSub + ppFees;
-              const savings = ppTotal - dineTotal;
-
-              return (
-                <div key={i} style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  padding: '28px',
-                  backgroundColor: '#f9fafb',
-                }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '20px' }}>
-                    {s.label} <span style={{ fontWeight: '400', color: '#6b7280', fontSize: '15px' }}>({formatINR(s.monthlyTxn)}/month transactions{s.outlets > 1 ? `, ${s.outlets} outlets` : ''})</span>
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div style={{
-                      backgroundColor: '#eff6ff',
-                      borderRadius: '10px',
-                      padding: '20px',
-                      border: '1px solid #bfdbfe',
-                    }}>
-                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>DineOpen</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>Subscription: {formatINR(dineSub)}/year</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>Transaction fees: {formatINR(dineFees)}/year</p>
-                      <p style={{ fontSize: '24px', fontWeight: '800', color: '#16a34a', marginTop: '12px', marginBottom: 0 }}>{formatINR(dineTotal)}<span style={{ fontSize: '14px', fontWeight: '400' }}>/year</span></p>
-                    </div>
-                    <div style={{
-                      backgroundColor: '#f5f3ff',
-                      borderRadius: '10px',
-                      padding: '20px',
-                      border: '1px solid #ddd6fe',
-                    }}>
-                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Petpooja</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>Subscription: {formatINR(ppSub)}/year</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>Transaction fees: {formatINR(ppFees)}/year</p>
-                      <p style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626', marginTop: '12px', marginBottom: 0 }}>{formatINR(ppTotal)}<span style={{ fontSize: '14px', fontWeight: '400' }}>/year</span></p>
-                    </div>
-                  </div>
-                  <div style={{
-                    marginTop: '16px',
-                    backgroundColor: '#dcfce7',
-                    borderRadius: '8px',
-                    padding: '12px 20px',
-                    textAlign: 'center',
-                  }}>
-                    <p style={{ fontSize: '16px', fontWeight: '700', color: '#15803d', margin: 0 }}>
-                      Save {formatINR(savings)}/year with DineOpen
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div style={{ backgroundColor: '#eff6ff', borderRadius: '12px', padding: '24px', border: '1px solid #bfdbfe' }}>
+              <p style={{ fontSize: '16px', color: '#1d4ed8', marginBottom: '12px', fontWeight: '700' }}>DineOpen (dineopen.com/pricing)</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>From ₹899/month in India</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>Billing, KOT, inventory, captain app, KDS, QR ordering and loyalty included</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>7-day free trial, no card needed</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>No per-transaction fee from DineOpen</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>No automatic Swiggy/Zomato sync</p>
+            </div>
+            <div style={{ backgroundColor: '#f5f3ff', borderRadius: '12px', padding: '24px', border: '1px solid #ddd6fe' }}>
+              <p style={{ fontSize: '16px', color: '#6d28d9', marginBottom: '12px', fontWeight: '700' }}>Petpooja (petpooja.com/pricing)</p>
+              {publishedPrices.map((row, i) => (
+                <p key={i} style={{ fontSize: '14px', color: '#374151', margin: '6px 0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                  <span>{row.plan}</span><strong>{row.price}</strong>
+                </p>
+              ))}
+              <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '12px', marginBottom: 0 }}>
+                All listed as exclusive of applicable taxes. The Operations and Marketing plans include Base. The page does not state the billing period and lists no per-order fee. Food aggregator integrations are in Base.
+              </p>
+            </div>
           </div>
+          <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#6b7280', lineHeight: '1.7' }}>
+            Petpooja prices checked on petpooja.com/pricing on 21 October 2026. Prices change, so confirm with Petpooja before you decide. Online card and UPI payments carry your payment gateway&apos;s own charges (often around 2%) whichever POS you use.
+          </p>
         </div>
       </section>
 
@@ -366,8 +308,8 @@ export default function CompareClient() {
               {[
                 'New restaurants looking for a modern, affordable POS from day one',
                 'Tech-savvy owners who want AI-powered automation (voice ordering, chat assistant)',
-                'Restaurant chains that need unlimited multi-location support without extra fees',
-                'Budget-conscious operators who want to eliminate transaction fees entirely',
+                'Owners with several outlets who want them on one account',
+                'Owners who want to see the full price before talking to sales',
                 'Businesses expanding internationally — DineOpen works in 20+ countries',
                 'Owners who want WhatsApp ordering to reach more customers',
               ].map((item, i) => (
@@ -403,6 +345,7 @@ export default function CompareClient() {
           }}>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {[
+                'Restaurants that get a lot of Swiggy and Zomato orders and want them synced into the POS',
                 'Restaurants already on Petpooja with deep integrations they don\'t want to rebuild',
                 'Businesses that need a large local on-ground support team across Indian cities',
                 'Enterprises with custom needs requiring dedicated account management',
@@ -410,7 +353,7 @@ export default function CompareClient() {
               ].map((item, i) => (
                 <li key={i} style={{
                   padding: '12px 0',
-                  borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none',
+                  borderBottom: i < 4 ? '1px solid #f3f4f6' : 'none',
                   fontSize: '15px',
                   color: '#374151',
                   display: 'flex',
@@ -439,10 +382,10 @@ export default function CompareClient() {
             border: '1px solid #e5e7eb',
           }}>
             <p style={{ fontSize: '17px', color: '#374151', lineHeight: '1.8', margin: '0 0 16px 0' }}>
-              If you want <strong>AI features, zero transaction fees, and modern tech at a lower price</strong>, DineOpen is the clear winner. It is built for the future of restaurant management with automation at its core.
+              If you want <strong>AI features, a low published price and everything in one plan</strong>, DineOpen is a strong fit. You can try it for 7 days before paying.
             </p>
             <p style={{ fontSize: '17px', color: '#374151', lineHeight: '1.8', margin: '0 0 16px 0' }}>
-              If you need an <strong>established India-focused brand with a large local support team</strong> and you are already deeply integrated into Petpooja&apos;s ecosystem, Petpooja remains a solid choice.
+              If <strong>Swiggy and Zomato orders are a big part of your sales</strong>, or you want a large, established company with a partner network, Petpooja remains a solid choice.
             </p>
             <p style={{ fontSize: '15px', color: '#6b7280', lineHeight: '1.7', margin: 0, fontStyle: 'italic' }}>
               Either way, we recommend trying DineOpen&apos;s free 7-day trial. You can test everything risk-free and decide based on your own experience.
@@ -466,10 +409,10 @@ export default function CompareClient() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
               {[
-                { label: 'Total cost (1 year)', dineopen: '₹10,788', petpooja: '₹20,000+' },
-                { label: 'Features included', dineopen: 'All features', petpooja: 'Base only' },
-                { label: 'Setup time', dineopen: '15 minutes', petpooja: '1-3 days' },
-                { label: 'Hardware needed', dineopen: 'Any phone/tablet', petpooja: 'Often proprietary' },
+                { label: 'Published price', dineopen: '₹899/month', petpooja: '₹12,000 + taxes (Base)' },
+                { label: 'Captain app / KDS', dineopen: 'Included', petpooja: 'Operations Manager plan' },
+                { label: 'Swiggy/Zomato sync', dineopen: 'No', petpooja: 'Yes, direct' },
+                { label: 'Free trial', dineopen: '7 days, no card', petpooja: 'Free demo' },
               ].map((row, i) => (
                 <div key={i} style={{ backgroundColor: '#fafafa', padding: '16px', borderRadius: '10px', textAlign: 'center' }}>
                   <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>{row.label}</div>
@@ -479,7 +422,7 @@ export default function CompareClient() {
               ))}
             </div>
             <p style={{ fontSize: '15px', color: '#6b7280', margin: 0, lineHeight: '1.7' }}>
-              For a single-outlet restaurant, DineOpen saves you ₹16,000+ in the first year alone — and you get AI features, loyalty programs, and inventory tracking that Petpooja charges extra for.
+              Ask Petpooja what billing period the ₹12,000 covers and which plan you would need, then compare that with DineOpen&apos;s monthly price. If delivery apps drive most of your orders, weigh Petpooja&apos;s Swiggy/Zomato sync heavily.
             </p>
           </div>
         </div>
@@ -493,7 +436,7 @@ export default function CompareClient() {
           </h2>
           <div style={{ display: 'grid', gap: '16px' }}>
             {[
-              { step: '1', title: 'Start a free trial (2 minutes)', desc: 'Sign up at dineopen.com. No credit card, no contracts. You get full access to all features for 30 days.' },
+              { step: '1', title: 'Start a free trial (2 minutes)', desc: 'Sign up at dineopen.com. No credit card, no contracts. You get full access to all features for 7 days.' },
               { step: '2', title: 'Import your menu with AI (2 minutes)', desc: 'Take a photo of your physical menu or screenshot your Petpooja menu. DineOpen AI extracts all items, prices, and categories automatically.' },
               { step: '3', title: 'Run both systems in parallel (3-5 days)', desc: 'Keep Petpooja running while you test DineOpen alongside it. Train staff on the new system — takes about 15 minutes per person.' },
               { step: '4', title: 'Switch over fully', desc: 'Once your team is comfortable, make DineOpen your primary POS. Export your Petpooja data for records. Cancel your Petpooja subscription.' },

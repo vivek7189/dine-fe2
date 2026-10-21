@@ -47,13 +47,14 @@ const competitors = [
     name: 'Petpooja',
     logo: '/competitors/petpooja.svg',
     price: 'N/A',
-    priceINR: '₹1,999/mo',
-    transactionFee: '1.5-2%',
-    aiFeatures: false,
-    voiceOrdering: false,
+    // Source: petpooja.com/pricing, checked 21 Oct 2026. Billing period not stated there.
+    priceINR: '₹12,000 + taxes (Base plan)',
+    transactionFee: 'None listed',
+    aiFeatures: 'AI agent (Base plan)',
+    voiceOrdering: 'Ask Petpooja',
     qrOrdering: true,
-    multiLocation: 'Extra cost',
-    freeTrial: '14 days',
+    multiLocation: 'Ask Petpooja',
+    freeTrial: 'Free demo',
     gstBilling: true,
   },
 ];
@@ -127,7 +128,7 @@ export default function CompareClient() {
                       key={comp.name}
                       className={`p-4 text-center ${comp.highlight ? 'bg-green-50' : ''}`}
                     >
-                      {feature.boolean ? (
+                      {feature.boolean && typeof comp[feature.key] !== 'string' ? (
                         comp[feature.key] ? (
                           <span className="text-green-600 text-xl">✓</span>
                         ) : (
@@ -190,7 +191,7 @@ export default function CompareClient() {
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Which POS system has the lowest fees?</h3>
-              <p className="text-gray-600">DineOpen has 0% transaction fees. Square charges 2.6% + 10¢, Toast charges 2.49% + 15¢, and Petpooja charges 1.5-2%.</p>
+              <p className="text-gray-600">DineOpen has 0% transaction fees. Square charges 2.6% + 10¢, Toast charges 2.49% + 15¢ (their card processing rates). Petpooja&apos;s pricing page lists no per-order fee. With any POS, online payments carry your payment gateway&apos;s own charges.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Is there a free restaurant POS system?</h3>

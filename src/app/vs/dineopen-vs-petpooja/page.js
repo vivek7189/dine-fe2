@@ -5,11 +5,11 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'DineOpen vs Petpooja 2026: Honest Comparison | Features, Pricing, Reviews',
-  description: 'DineOpen vs Petpooja honest comparison 2026. Compare features, pricing, transaction fees, AI capabilities side by side. See which restaurant POS is right for you.',
+  description: 'DineOpen vs Petpooja honest comparison 2026. Compare published prices, features, Swiggy/Zomato integration and AI tools side by side. See which restaurant POS is right for you.',
   keywords: 'dineopen vs petpooja, petpooja vs dineopen, restaurant POS comparison India, best restaurant POS India 2026',
   openGraph: {
     title: 'DineOpen vs Petpooja 2026: Honest Feature & Pricing Comparison',
-    description: 'Side-by-side comparison of DineOpen and Petpooja. Features, pricing, transaction fees, AI capabilities — all the facts you need.',
+    description: 'Side-by-side comparison of DineOpen and Petpooja. Published prices, features, delivery integrations and AI tools, with sources.',
     url: 'https://www.dineopen.com/vs/dineopen-vs-petpooja',
     siteName: 'DineOpen',
     images: [
@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "What is the main difference between DineOpen and Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen focuses on AI-powered features (voice ordering, chat assistant, menu extraction) at a lower price point (₹899/month with zero transaction fees). Petpooja is an established India-focused POS brand with a ₹12,000 + GST Base plan plus paid add-ons and a larger local support team."
+        "text": "DineOpen focuses on AI-powered features (voice ordering, chat assistant, menu extraction) from ₹899/month in India, with no per-transaction fee from DineOpen. Petpooja is a large, established Indian POS company. Its pricing page lists the Base plan at ₹12,000 + taxes, with higher Operations Manager and Marketing Manager plans that include Base, and it connects directly to Swiggy and Zomato, which DineOpen does not."
       }
     },
     {
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Which is cheaper — DineOpen or Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is significantly cheaper. At ₹899/month with zero transaction fees, a restaurant processing ₹3,00,000/month saves over ₹74,000 per year compared to Petpooja's ₹1,000+/month subscription plus 1.5-2% transaction fees."
+        "text": "Compare the published prices. DineOpen starts at ₹899/month in India with a 7-day free trial and no card. Petpooja's pricing page (checked 21 October 2026) lists the Base plan at ₹12,000 + taxes and does not state the billing period, so ask their sales team what period that covers. Its Operations Manager and Marketing Manager plans are listed at ₹20,000 to ₹40,000 + taxes, each with Base included. Neither page lists a per-order fee. Online payments carry your payment gateway's own charges whichever POS you use."
       }
     },
     {
@@ -58,7 +58,7 @@ const faqSchema = {
       "name": "Does DineOpen have AI features that Petpooja doesn't?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen offers AI voice ordering, AI chat assistant, AI menu extraction, and WhatsApp ordering — none of which are available in Petpooja. These AI features help restaurants automate order-taking and reduce staff workload."
+        "text": "Yes. DineOpen offers AI voice ordering, AI chat assistant, AI menu extraction, and WhatsApp ordering in every plan. Petpooja's Base plan lists an AI agent, so ask Petpooja what it covers. These AI features help restaurants automate order-taking and reduce staff workload."
       }
     },
     {
@@ -82,7 +82,7 @@ const faqSchema = {
       "name": "Is Petpooja good for small restaurants with a single outlet?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Petpooja works for small restaurants but can be expensive. With a base subscription of ₹1,000+/month plus paid add-ons for inventory, CRM, and online ordering, the total cost adds up quickly. For single-outlet small restaurants, DineOpen at ₹899/month with all features included is significantly more affordable. DineOpen also requires no hardware purchase and can be set up in 15 minutes on any existing phone or tablet."
+        "text": "Yes, many single outlets use Petpooja, especially ones that rely on Swiggy and Zomato. Its pricing page lists the Base plan at ₹12,000 + taxes, with captain app and KDS in its Operations Manager plan (from ₹20,000 + taxes) and CRM in its Marketing Manager plan (from ₹20,000 + taxes), both including Base. DineOpen starts at ₹899/month with these features included, but has no automatic Swiggy/Zomato sync. DineOpen also needs no special hardware and can be set up in 15 minutes on any existing phone or tablet."
       }
     },
     {
@@ -90,7 +90,7 @@ const faqSchema = {
       "name": "Which restaurant POS has the most features for a single outlet in India?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "For a single outlet, DineOpen includes the most features at the lowest price: AI voice ordering, cloud POS, inventory management, loyalty programs, QR ordering, WhatsApp ordering, kitchen display system, and analytics — all for ₹899/month with zero transaction fees. Petpooja lists ₹12,000 + GST for its Base plan (which includes inventory) and sells captain app, KDS and QR ordering in paid add-ons (CRM and loyalty are in a separate Marketing add-on). POSist targets enterprise chains and is even more expensive."
+        "text": "For a single outlet, DineOpen includes the most features at the lowest price: AI voice ordering, cloud POS, inventory management, loyalty programs, QR ordering, WhatsApp ordering, kitchen display system, and analytics — all from ₹899/month, with no per-transaction fee from DineOpen. Petpooja lists its Base plan (which includes inventory and food aggregator integrations) at ₹12,000 + taxes; captain app, KDS and QR ordering come in the Operations Manager plan (Growth ₹20,000 / Scale ₹30,000 + taxes, Base included), and CRM and loyalty in the Marketing Manager plan (₹20,000 to ₹40,000 + taxes, Base included). POSist (Restroworks) targets larger chains and shares pricing on request."
       }
     },
     {
@@ -106,7 +106,7 @@ const faqSchema = {
       "name": "What is the best Petpooja alternative for restaurants in India in 2026?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is the best Petpooja alternative for small-to-medium restaurants in India in 2026. It offers AI-powered features (voice ordering, menu extraction), zero transaction fees, all features included at ₹899/month, and works on any device. For large enterprise chains needing on-ground support, POSist (Restroworks) is another alternative. For restaurants outside India, Square and Toast are popular options."
+        "text": "DineOpen is the best Petpooja alternative for small-to-medium restaurants in India in 2026. It offers AI-powered features (voice ordering, menu extraction), no per-transaction fee from DineOpen, all features from ₹899/month, and it runs on Android, iPhone/iPad, Windows and the browser. If Swiggy/Zomato sync matters most to you, Petpooja is the stronger fit there. For large enterprise chains needing on-ground support, POSist (Restroworks) is another alternative. For restaurants outside India, Square and Toast are popular options."
       }
     }
   ]
@@ -135,11 +135,11 @@ const softwareSchemas = [
     "operatingSystem": "Web, Android, iOS",
     "offers": {
       "@type": "Offer",
-      "price": "1000",
+      "price": "12000",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },
-    "description": "Established India-focused restaurant POS with billing, inventory management, and aggregator integrations."
+    "description": "Established Indian restaurant POS with billing, inventory and direct Swiggy/Zomato integration. Base plan listed at ₹12,000 + taxes on petpooja.com/pricing (billing period not stated)."
   }
 ];
 

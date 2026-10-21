@@ -31,29 +31,25 @@ const posData = [
   },
   {
     name: 'Petpooja',
-    price: '₹1,000+/month',
-    trial: '7-day trial',
+    price: '₹12,000 + taxes (Base plan)',
+    trial: 'Free demo',
     bestFor: 'Restaurants heavily dependent on Zomato/Swiggy orders',
     pros: [
       'Strongest Zomato/Swiggy/aggregator integration in the market',
       '15+ years in the Indian market — large dealer and support network',
-      'Wide range of hardware options and integrations',
-      'Good for multi-outlet management',
-      'Strong payment gateway partnerships',
+      'Prices published on its website',
+      'Inventory included in the Base plan',
     ],
     cons: [
-      'Add-on pricing model — inventory, CRM, online ordering cost extra',
-      'Total cost often reaches ₹2,000-3,000/month with needed add-ons',
-      'UI feels dated compared to newer competitors',
-      'Setup typically requires a technician visit (1-3 days)',
-      'Per-transaction fees on some integrations',
+      'Captain app, KDS and CRM come in higher plans (₹20,000 to ₹40,000 + taxes, Base included)',
+      'Pricing page does not state the billing period, so ask before comparing',
     ],
-    verdict: 'The safe, established choice. If you get a lot of Zomato and Swiggy orders, Petpooja&apos;s integration alone can justify the higher price. But be aware of the add-on pricing — the ₹1,000 base price rarely tells the full story.',
+    verdict: 'The safe, established choice. If you get a lot of Zomato and Swiggy orders, Petpooja&apos;s integration alone can justify the cost. Check which plan you need, since captain app and KDS come in the Operations Manager plan.',
     highlight: false,
   },
   {
     name: 'POSist (Restroworks)',
-    price: '₹2,000-5,000+/month',
+    price: 'Pricing on request',
     trial: 'Demo only',
     bestFor: 'Restaurant chains with 10+ outlets needing enterprise features',
     pros: [
@@ -64,13 +60,12 @@ const posData = [
       'International presence — good if you plan to expand abroad',
     ],
     cons: [
-      'Expensive — not practical for single-outlet restaurants',
+      'Quote-based pricing, so you cannot see the cost upfront',
       'Complex setup requiring professional onboarding',
       'Overkill for small restaurants — you pay for features you won&apos;t use',
-      'Long-term contracts often required',
-      'Custom pricing means you have to negotiate',
+      'Ask about contract length before signing',
     ],
-    verdict: 'If you run a chain of 10+ restaurants and need centralized control, POSist is worth the premium. For a single restaurant or even 2-3 outlets, it&apos;s overpriced and overcomplicated.',
+    verdict: 'If you run a chain of 10+ restaurants and need centralized control, POSist is worth the premium. For a single restaurant or even 2-3 outlets, it is likely more than you need.',
     highlight: false,
   },
   {
@@ -548,16 +543,16 @@ export default function BestPOSIndiaClient() {
               </thead>
               <tbody>
                 {[
-                  { feature: 'Monthly Cost', dineopen: '₹899/mo', petpooja: '₹1,000+/mo', posist: '₹2,000-5,000+/mo', gofrugal: '₹15K-30K one-time', marg: '₹4,500/year' },
-                  { feature: 'Transaction Fees', dineopen: 'None', petpooja: '1.5-2%', posist: 'Varies', gofrugal: 'None', marg: 'None' },
+                  { feature: 'Published Price', dineopen: '₹899/mo', petpooja: '₹12,000 + taxes (Base)', posist: 'On request', gofrugal: '₹15K-30K one-time', marg: '₹4,500/year' },
+                  { feature: 'Transaction Fees', dineopen: 'None', petpooja: 'None listed', posist: 'Ask for a quote', gofrugal: 'None', marg: 'None' },
                   { feature: 'Cloud-Based', dineopen: 'Yes', petpooja: 'Yes', posist: 'Yes', gofrugal: 'Desktop + cloud add-on', marg: 'Desktop only' },
                   { feature: 'GST Billing', dineopen: 'Full', petpooja: 'Full', posist: 'Full', gofrugal: 'Full', marg: 'Strongest' },
                   { feature: 'Zomato/Swiggy', dineopen: 'No', petpooja: 'Best-in-class', posist: 'Yes', gofrugal: 'Limited', marg: 'No' },
-                  { feature: 'AI Features', dineopen: 'Voice ordering, menu extraction', petpooja: 'No', posist: 'Basic analytics', gofrugal: 'No', marg: 'No' },
+                  { feature: 'AI Features', dineopen: 'Voice ordering, menu extraction', petpooja: 'AI agent (Base plan)', posist: 'Basic analytics', gofrugal: 'No', marg: 'No' },
                   { feature: 'Offline Mode', dineopen: 'Yes', petpooja: 'Yes', posist: 'Limited', gofrugal: 'Full (desktop)', marg: 'Full (desktop)' },
-                  { feature: 'KDS Included', dineopen: 'Yes', petpooja: 'Add-on', posist: 'Yes', gofrugal: 'Add-on', marg: 'No' },
-                  { feature: 'Inventory', dineopen: 'Included', petpooja: 'Add-on', posist: 'Included', gofrugal: 'Included', marg: 'Basic' },
-                  { feature: 'Setup Time', dineopen: '15 minutes', petpooja: '1-3 days', posist: '3-7 days', gofrugal: '1-2 days', marg: '1-2 days' },
+                  { feature: 'KDS Included', dineopen: 'Yes', petpooja: 'Operations plan', posist: 'Yes', gofrugal: 'Add-on', marg: 'No' },
+                  { feature: 'Inventory', dineopen: 'Included', petpooja: 'Base plan', posist: 'Included', gofrugal: 'Included', marg: 'Basic' },
+                  { feature: 'Setup Time', dineopen: '15 minutes', petpooja: 'Online installation', posist: '3-7 days', gofrugal: '1-2 days', marg: '1-2 days' },
                   { feature: 'Best For', dineopen: 'Small-mid restaurants', petpooja: 'Aggregator-heavy', posist: 'Large chains', gofrugal: 'Retail+restaurant', marg: 'Accounting-first' },
                 ].map((row, i) => (
                   <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>

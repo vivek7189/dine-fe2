@@ -11,7 +11,7 @@ export default function ROICalculatorClient() {
   const [currency, setCurrency] = useState('INR');
   const [monthlyRevenue, setMonthlyRevenue] = useState(500000);
   const [cardPercentage, setCardPercentage] = useState(40);
-  const [currentPOS, setCurrentPOS] = useState('petpooja');
+  const [currentPOS, setCurrentPOS] = useState('other');
   const [outlets, setOutlets] = useState(1);
   const [showResults, setShowResults] = useState(false);
 
@@ -19,8 +19,8 @@ export default function ROICalculatorClient() {
   const dineOpenPrices = { INR: 999, USD: 10, GBP: 8, AED: 149, SGD: 49, CAD: 39, AUD: 39 };
 
   const competitorData = {
-    petpooja: { name: 'Petpooja', monthly: { INR: 2500, USD: 60, GBP: 50, AED: 200, SGD: 80, CAD: 60, AUD: 60 }, setup: { INR: 15000, USD: 200, GBP: 150, AED: 500, SGD: 300, CAD: 200, AUD: 200 }, txnFee: 0 },
-    posist: { name: 'POSist', monthly: { INR: 4000, USD: 80, GBP: 65, AED: 250, SGD: 100, CAD: 80, AUD: 80 }, setup: { INR: 30000, USD: 400, GBP: 300, AED: 1000, SGD: 500, CAD: 400, AUD: 400 }, txnFee: 0 },
+    // Petpooja and POSist removed: Petpooja's pricing page does not state a billing period and POSist prices on request,
+    // so we cannot model a monthly cost for them honestly.
     square: { name: 'Square', monthly: { INR: 5000, USD: 60, GBP: 50, AED: 200, SGD: 80, CAD: 60, AUD: 60 }, setup: { INR: 0, USD: 0, GBP: 0, AED: 0, SGD: 0, CAD: 0, AUD: 0 }, txnFee: 2.6 },
     toast: { name: 'Toast', monthly: { INR: 6000, USD: 69, GBP: 55, AED: 220, SGD: 90, CAD: 69, AUD: 69 }, setup: { INR: 0, USD: 0, GBP: 0, AED: 0, SGD: 0, CAD: 0, AUD: 0 }, txnFee: 2.49 },
     lightspeed: { name: 'Lightspeed', monthly: { INR: 7000, USD: 69, GBP: 55, AED: 250, SGD: 100, CAD: 69, AUD: 69 }, setup: { INR: 0, USD: 0, GBP: 0, AED: 0, SGD: 0, CAD: 0, AUD: 0 }, txnFee: 2.6 },
@@ -143,8 +143,6 @@ export default function ROICalculatorClient() {
                     onChange={(e) => setCurrentPOS(e.target.value)}
                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '16px' }}
                   >
-                    <option value="petpooja">Petpooja</option>
-                    <option value="posist">POSist</option>
                     <option value="square">Square</option>
                     <option value="toast">Toast</option>
                     <option value="lightspeed">Lightspeed</option>

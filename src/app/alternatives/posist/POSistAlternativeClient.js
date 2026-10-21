@@ -7,15 +7,15 @@ import InternalLinks from '../../../components/InternalLinks';
 import { FaRupeeSign, FaMicrophone, FaHeadset, FaStore, FaArrowRight } from 'react-icons/fa';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '₹899/month', competitor: '₹2,500-5,000/month', winner: 'dineopen' },
-  { feature: 'Setup Fee', dineopen: '₹0', competitor: '₹15,000-50,000', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '₹899/month', competitor: 'Pricing on request', winner: 'tie' },
+  { feature: 'Setup Fee', dineopen: '₹0', competitor: 'Ask for a quote', winner: 'tie' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
   { feature: 'Multi-language Support', dineopen: '10+ Indian languages', competitor: 'Limited', winner: 'dineopen' },
   { feature: 'QR Code Menus', dineopen: '✓ Included', competitor: '✓ Included', winner: 'tie' },
   { feature: 'Kitchen Display (KDS)', dineopen: '✓ Included', competitor: '✓ Extra cost', winner: 'dineopen' },
   { feature: 'Zomato/Swiggy Integration', dineopen: 'Manual entry + reports', competitor: '✓ Available', winner: 'competitor' },
   { feature: 'Multi-Outlet Support', dineopen: '₹999/outlet', competitor: 'Custom pricing', winner: 'dineopen' },
-  { feature: 'Contract', dineopen: 'Month-to-month', competitor: 'Annual contract', winner: 'dineopen' },
+  { feature: 'Contract', dineopen: 'Month-to-month', competitor: 'Ask for a quote', winner: 'tie' },
   { feature: 'Customer Support', dineopen: '24/7 WhatsApp', competitor: 'Business hours', winner: 'dineopen' },
 ];
 
@@ -34,7 +34,7 @@ export default function POSistAlternativeClient() {
               Looking for a <span style={{ color: '#fcd34d' }}>POSist Alternative</span>?
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              DineOpen offers everything POSist does plus AI voice ordering in Indian languages. Over 50% lower cost, no setup fees, no annual contracts.
+              DineOpen offers everything POSist does plus AI voice ordering in Indian languages. Published pricing from ₹899/month, no setup fees, month-to-month billing.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#ea580c', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -47,26 +47,22 @@ export default function POSistAlternativeClient() {
           </div>
         </section>
 
-        {/* Savings */}
+        {/* Pricing */}
         <section style={{ backgroundColor: '#fff7ed', padding: '60px 20px' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>Your Potential Savings vs POSist</h2>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>Pricing: What Each Company Publishes</h2>
             <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-              <p style={{ color: '#6b7280', marginBottom: '24px' }}>First year cost comparison (single outlet):</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
                 <div>
-                  <p style={{ color: '#6b7280', fontSize: '14px' }}>POSist (with setup)</p>
-                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#dc2626' }}>₹80,000+/year</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>(₹30K setup + ₹4K/month)</p>
+                  <p style={{ color: '#6b7280', fontSize: '14px' }}>POSist (Restroworks)</p>
+                  <p style={{ fontSize: '28px', fontWeight: '800', color: '#374151' }}>Pricing on request</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>Ask for a written quote, including setup and contract terms</p>
                 </div>
                 <div>
                   <p style={{ color: '#6b7280', fontSize: '14px' }}>DineOpen</p>
-                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#059669' }}>₹11,988/year</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>(₹0 setup + ₹899/month)</p>
+                  <p style={{ fontSize: '28px', fontWeight: '800', color: '#059669' }}>From ₹899/month</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>₹0 setup, 7-day free trial, no card</p>
                 </div>
-              </div>
-              <div style={{ padding: '16px', backgroundColor: '#dcfce7', borderRadius: '8px' }}>
-                <p style={{ fontSize: '24px', fontWeight: '800', color: '#166534' }}>Save ₹68,000+ in first year!</p>
               </div>
             </div>
           </div>
@@ -115,7 +111,7 @@ export default function POSistAlternativeClient() {
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaRupeeSign size={32} style={{ color: '#ea580c', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>60% Lower Cost</h3>
-                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>POSist charges ₹2,500-5,000/month plus setup fees. DineOpen is ₹899/month with zero setup cost.</p>
+                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>POSist shares pricing on request. DineOpen publishes its price: ₹899/month with zero setup cost.</p>
               </div>
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaMicrophone size={32} style={{ color: '#ea580c', marginBottom: '16px' }} />

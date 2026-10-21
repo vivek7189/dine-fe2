@@ -6,8 +6,8 @@ import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$20/month', restroworks: '$100-300/month', winner: 'dineopen' },
-  { feature: 'Setup / Implementation Fee', dineopen: '$0', restroworks: '$1,000-5,000', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: '$20/month', restroworks: 'Pricing on request', winner: 'tie' },
+  { feature: 'Setup / Implementation Fee', dineopen: '$0', restroworks: 'Ask for a quote', winner: 'tie' },
   { feature: 'Transaction Fees', dineopen: '0%', restroworks: 'Varies by integration', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '\u2713', restroworks: '\u2717', winner: 'dineopen' },
   { feature: 'AI Menu Extraction', dineopen: '\u2713', restroworks: '\u2717', winner: 'dineopen' },
@@ -16,7 +16,7 @@ const comparisonData = [
   { feature: 'Kitchen Display (KDS)', dineopen: '\u2713 Included', restroworks: '\u2713 Included', winner: 'tie' },
   { feature: 'Multi-Location Support', dineopen: '\u2713 Transparent pricing', restroworks: '\u2713 Custom pricing', winner: 'dineopen' },
   { feature: 'Delivery Integration', dineopen: 'Talabat (auto); others via manual entry + reports', restroworks: '\u2713 Available', winner: 'restroworks' },
-  { feature: 'Contract Length', dineopen: 'Month-to-month', restroworks: 'Annual contract', winner: 'dineopen' },
+  { feature: 'Contract Length', dineopen: 'Month-to-month', restroworks: 'Ask for a quote', winner: 'tie' },
   { feature: 'Free Trial', dineopen: '7 days', restroworks: 'Demo only', winner: 'dineopen' },
 ];
 
@@ -25,22 +25,16 @@ const pricingScenarios = [
     type: 'Small Restaurant',
     subtitle: '1 location, 1 terminal',
     dineopen: { monthly: '$20', annual: '$240', setup: '$0', total: '$240/yr' },
-    restroworks: { monthly: '$150', annual: '$1,800', setup: '$2,000', total: '$3,800/yr' },
-    savings: '$3,560',
   },
   {
     type: 'Medium Restaurant',
     subtitle: '1 location, 3 terminals',
     dineopen: { monthly: '$50', annual: '$600', setup: '$0', total: '$600/yr' },
-    restroworks: { monthly: '$300', annual: '$3,600', setup: '$3,000', total: '$6,600/yr' },
-    savings: '$6,000',
   },
   {
     type: 'Chain Restaurant',
     subtitle: '5 locations',
     dineopen: { monthly: '$99', annual: '$1,188', setup: '$0', total: '$1,188/yr' },
-    restroworks: { monthly: '$750', annual: '$9,000', setup: '$5,000', total: '$14,000/yr' },
-    savings: '$12,812',
   },
 ];
 
@@ -88,7 +82,7 @@ export default function RestroworksAlternativeClient() {
               <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
                 <h3 className="font-bold text-lg mb-2">Enterprise Pricing for Small Restaurants</h3>
                 <p className="text-gray-600">
-                  Restroworks is built for large chains and charges enterprise rates. Small and mid-size restaurants end up overpaying for features they don&apos;t need. DineOpen starts at just $20/month.
+                  Restroworks is built for large chains and prices on request. Small and mid-size restaurants may not need everything it offers. DineOpen starts at $20/month, published openly.
                 </p>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
@@ -153,7 +147,7 @@ export default function RestroworksAlternativeClient() {
               Pricing Comparison: DineOpen vs Restroworks
             </h2>
             <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">
-              See how much you can save by switching from Restroworks to DineOpen across different restaurant sizes.
+              DineOpen publishes its prices. Restroworks shares pricing on request, so ask them for a written quote to compare.
             </p>
             <div className="grid md:grid-cols-3 gap-6">
               {pricingScenarios.map((scenario) => (
@@ -164,18 +158,14 @@ export default function RestroworksAlternativeClient() {
                   </div>
                   <div className="p-6">
                     <div className="mb-4">
-                      <p className="text-sm text-gray-500 mb-1">Restroworks (1st year)</p>
-                      <p className="text-2xl font-bold text-red-600">{scenario.restroworks.total}</p>
-                      <p className="text-xs text-gray-400">{scenario.restroworks.setup} setup + {scenario.restroworks.monthly}/mo</p>
+                      <p className="text-sm text-gray-500 mb-1">Restroworks</p>
+                      <p className="text-2xl font-bold text-gray-700">Pricing on request</p>
+                      <p className="text-xs text-gray-400">Ask about setup fees and contract length</p>
                     </div>
                     <div className="mb-4">
                       <p className="text-sm text-gray-500 mb-1">DineOpen (1st year)</p>
                       <p className="text-2xl font-bold text-green-600">{scenario.dineopen.total}</p>
                       <p className="text-xs text-gray-400">{scenario.dineopen.setup} setup + {scenario.dineopen.monthly}/mo</p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3 text-center">
-                      <p className="text-sm text-green-700">You save</p>
-                      <p className="text-xl font-extrabold text-green-700">{scenario.savings}/year</p>
                     </div>
                   </div>
                 </div>
@@ -195,9 +185,9 @@ export default function RestroworksAlternativeClient() {
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
                   <span className="text-2xl">$</span>
                 </div>
-                <h3 className="font-bold text-xl mb-3">80% Lower Cost</h3>
+                <h3 className="font-bold text-xl mb-3">Price You Can See</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Restroworks charges enterprise rates with custom quotes, setup fees, and annual contracts. DineOpen is $20/month with transparent pricing and zero hidden costs.
+                  Restroworks works on custom quotes. DineOpen is $20/month, published on the website, with no setup fee.
                 </p>
               </div>
               <div className="bg-white p-8 rounded-xl shadow-md">

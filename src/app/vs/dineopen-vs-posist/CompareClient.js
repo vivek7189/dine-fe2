@@ -8,12 +8,12 @@ import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { category: 'Pricing & Fees', features: [
-    { feature: 'Starting Price', dineopen: '$20/month (₹899 in India)', posist: '₹2,000-5,000+/month (custom quote)', winner: 'dineopen' },
-    { feature: 'Transaction Fees', dineopen: '0% — zero transaction fees', posist: 'Varies by plan', winner: 'dineopen' },
-    { feature: 'Setup Fee', dineopen: '₹0', posist: '₹15,000-50,000 (typical)', winner: 'dineopen' },
+    { feature: 'Starting Price', dineopen: '$20/month (₹899 in India)', posist: 'Pricing on request', winner: 'tie' },
+    { feature: 'Per-transaction Fee from the POS', dineopen: 'None (gateway charges still apply)', posist: 'Ask for a quote', winner: 'tie' },
+    { feature: 'Setup Fee', dineopen: '₹0', posist: 'Ask for a quote', winner: 'tie' },
     { feature: 'Pricing Transparency', dineopen: 'Published on website', posist: 'Contact sales for custom quote', winner: 'dineopen' },
-    { feature: 'Contract Terms', dineopen: 'Month-to-month, cancel anytime', posist: 'Annual contracts typical', winner: 'dineopen' },
-    { feature: 'Hardware Required', dineopen: 'Works on any device', posist: 'Proprietary hardware often required', winner: 'dineopen' },
+    { feature: 'Contract Terms', dineopen: 'Month-to-month, cancel anytime', posist: 'Ask for a quote', winner: 'tie' },
+    { feature: 'Devices', dineopen: 'Android, iPhone/iPad, Windows, browser', posist: 'Ask POSist', winner: 'tie' },
   ]},
   { category: 'Core Features', features: [
     { feature: 'Cloud-Based POS', dineopen: 'Yes — access from anywhere', posist: 'Yes — enterprise cloud', winner: 'tie' },
@@ -64,7 +64,7 @@ const faqs = [
   },
   {
     q: 'Which POS is better for a single restaurant in India?',
-    a: 'For a single-outlet restaurant, DineOpen is almost always the better choice. At Rs 899/month with all features included, zero transaction fees, and 15-minute self-setup, it is dramatically more affordable than POSist which starts at Rs 2,000-5,000/month and is designed for chains. POSist is enterprise software — powerful, but expensive and complex for a single restaurant.'
+    a: 'For a single-outlet restaurant, DineOpen is almost always the better choice. It starts at Rs 899/month with all features included, a published price and 15-minute self-setup. POSist shares pricing on request and is designed for chains. POSist is enterprise software — powerful, but expensive and complex for a single restaurant.'
   },
 ];
 
@@ -171,8 +171,8 @@ export default function CompareClient() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             {[
-              { stat: '₹899/mo', label: 'DineOpen starting price', sublabel: 'vs ₹2,000-5,000+/mo POSist' },
-              { stat: '0%', label: 'DineOpen transaction fees', sublabel: 'Zero hidden charges' },
+              { stat: '₹899/mo', label: 'DineOpen starting price', sublabel: 'POSist: pricing on request' },
+              { stat: '0%', label: 'DineOpen transaction fee', sublabel: 'Gateway charges still apply' },
               { stat: '15 min', label: 'DineOpen setup time', sublabel: 'vs days/weeks with POSist' },
               { stat: '20+', label: 'Countries supported', sublabel: 'POSist: India & select markets' },
             ].map((item, i) => (
@@ -212,7 +212,7 @@ export default function CompareClient() {
                 {[
                   '$20/month Starter plan (₹899 in India) | $99/month Pro plan',
                   'AI voice ordering, chat assistant, menu extraction',
-                  'Zero transaction fees on all plans',
+                  'No per-transaction fee from DineOpen',
                   '15-minute self-setup, works on any device',
                   '7-day free trial, no credit card required',
                   'No Zomato/Swiggy integration (honest limitation)',
@@ -235,12 +235,11 @@ export default function CompareClient() {
               <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', fontStyle: 'italic' }}>Best for: Enterprise chains, 10+ outlets</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '₹2,000-5,000+/month per outlet (custom pricing)',
+                  'Pricing on request',
                   'Enterprise-grade multi-outlet management',
                   'Direct Zomato/Swiggy/aggregator integration',
                   'On-ground technician support in major cities',
                   'Dedicated account managers for all customers',
-                  'No AI features (voice ordering, chat, etc.)',
                 ].map((item, i) => (
                   <li key={i} style={{ padding: '8px 0', color: '#374151', fontSize: '15px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <span style={{ color: i === 5 ? '#dc2626' : '#4f46e5', fontWeight: '700', flexShrink: 0 }}>{i === 5 ? '\u2717' : '\u2713'}</span>
@@ -328,11 +327,11 @@ export default function CompareClient() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
             {[
-              { title: 'AI-Powered Features', desc: 'Voice ordering in 10+ Indian languages, AI chat assistant, and menu extraction from photos. POSist has no equivalent AI capabilities.' },
-              { title: 'Dramatically Lower Cost', desc: 'Starting at ₹899/month vs POSist\'s ₹2,000-5,000+/month. For a single outlet, that\'s ₹20,000-56,000+ saved per year.' },
-              { title: 'Zero Transaction Fees', desc: 'Keep 100% of your revenue. No hidden per-transaction charges eating into your margins on any plan.' },
+              { title: 'AI-Powered Features', desc: 'Voice ordering in 10+ Indian languages, AI chat assistant, and menu extraction from photos. Built into every plan.' },
+              { title: 'Price on the Website', desc: 'From ₹899/month in India, published openly. No sales call needed to find out what it costs.' },
+              { title: 'No Per-Transaction Fee', desc: 'DineOpen takes no cut of your sales. Online payments still carry your payment gateway\'s own charges.' },
               { title: 'Self-Setup in 15 Minutes', desc: 'No waiting for technicians, no installation appointments. Download, photograph your menu, start billing. Works on any phone or tablet.' },
-              { title: 'No Annual Contracts', desc: 'Month-to-month billing, cancel anytime. POSist typically requires annual contracts with significant upfront commitments.' },
+              { title: 'No Annual Contracts', desc: 'Month-to-month billing, cancel anytime.' },
               { title: 'WhatsApp Ordering', desc: 'Built-in WhatsApp ordering lets customers place orders directly — no aggregator commissions, no third-party dependency.' },
             ].map((card, i) => (
               <div key={i} style={{
@@ -428,83 +427,32 @@ export default function CompareClient() {
         </div>
       </section>
 
-      {/* Pricing Breakdown */}
+      {/* Pricing */}
       <section style={{ padding: '60px 20px', backgroundColor: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '30px', fontWeight: '800', color: '#111827', marginBottom: '8px', textAlign: 'center' }}>
-            Pricing Comparison (1-Year Cost)
+            Pricing
           </h2>
           <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '32px' }}>
-            Estimated annual costs for different restaurant sizes
+            What each company publishes
           </p>
-
-          <div style={{ display: 'grid', gap: '24px' }}>
-            {[
-              { label: 'Single Outlet Restaurant', dineSub: 300, posistLow: 2000, posistHigh: 5000, outlets: 1 },
-              { label: 'Small Chain (3 Outlets)', dineSub: 300, posistLow: 2000, posistHigh: 5000, outlets: 3 },
-              { label: 'Growing Chain (5 Outlets)', dineSub: 300, posistLow: 2000, posistHigh: 5000, outlets: 5 },
-            ].map((s, i) => {
-              const dineTotal = s.dineSub * 12 * s.outlets;
-              const posistLowTotal = s.posistLow * 12 * s.outlets;
-              const posistHighTotal = s.posistHigh * 12 * s.outlets;
-              const savingsLow = posistLowTotal - dineTotal;
-              const savingsHigh = posistHighTotal - dineTotal;
-
-              return (
-                <div key={i} style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  padding: '28px',
-                  backgroundColor: '#ffffff',
-                }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '20px' }}>
-                    {s.label} <span style={{ fontWeight: '400', color: '#6b7280', fontSize: '15px' }}>({s.outlets} outlet{s.outlets > 1 ? 's' : ''})</span>
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div style={{
-                      backgroundColor: '#fff7ed',
-                      borderRadius: '10px',
-                      padding: '20px',
-                      border: '1px solid #fed7aa',
-                    }}>
-                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>DineOpen (Starter)</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>₹{s.dineSub}/month x {s.outlets} outlet{s.outlets > 1 ? 's' : ''} x 12</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>Transaction fees: ₹0</p>
-                      <p style={{ fontSize: '24px', fontWeight: '800', color: '#16a34a', marginTop: '12px', marginBottom: 0 }}>
-                        ₹{dineTotal.toLocaleString('en-IN')}<span style={{ fontSize: '14px', fontWeight: '400' }}>/year</span>
-                      </p>
-                    </div>
-                    <div style={{
-                      backgroundColor: '#eef2ff',
-                      borderRadius: '10px',
-                      padding: '20px',
-                      border: '1px solid #c7d2fe',
-                    }}>
-                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>POSist (estimated)</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>₹{s.posistLow.toLocaleString('en-IN')}-{s.posistHigh.toLocaleString('en-IN')}/month x {s.outlets} x 12</p>
-                      <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0' }}>+ setup fees (not included)</p>
-                      <p style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626', marginTop: '12px', marginBottom: 0 }}>
-                        ₹{posistLowTotal.toLocaleString('en-IN')}-{posistHighTotal.toLocaleString('en-IN')}<span style={{ fontSize: '14px', fontWeight: '400' }}>/year</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{
-                    marginTop: '16px',
-                    backgroundColor: '#dcfce7',
-                    borderRadius: '8px',
-                    padding: '12px 20px',
-                    textAlign: 'center',
-                  }}>
-                    <p style={{ fontSize: '16px', fontWeight: '700', color: '#15803d', margin: 0 }}>
-                      Save ₹{savingsLow.toLocaleString('en-IN')}-{savingsHigh.toLocaleString('en-IN')}/year with DineOpen
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+            <div style={{ backgroundColor: '#fff7ed', borderRadius: '10px', padding: '24px', border: '1px solid #fed7aa' }}>
+              <p style={{ fontSize: '15px', color: '#111827', marginBottom: '10px', fontWeight: '700' }}>DineOpen</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>From ₹899/month per outlet in India</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>All features included, no setup fee</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>7-day free trial, no card</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>No per-transaction fee from DineOpen</p>
+            </div>
+            <div style={{ backgroundColor: '#eef2ff', borderRadius: '10px', padding: '24px', border: '1px solid #c7d2fe' }}>
+              <p style={{ fontSize: '15px', color: '#111827', marginBottom: '10px', fontWeight: '700' }}>POSist (Restroworks)</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>Pricing on request</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>Quote depends on outlets and modules</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>Ask about setup fees and contract length</p>
+            </div>
           </div>
-          <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', marginTop: '16px' }}>
-            * POSist uses custom pricing. Estimates based on industry reports and user feedback. Setup fees (₹15,000-50,000) not included. Contact POSist for current quotes.
+          <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '13px', marginTop: '16px' }}>
+            Card and UPI payments carry your payment gateway&apos;s own charges whichever POS you use.
           </p>
         </div>
       </section>

@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "Is DineOpen a good alternative to Restroworks (POSist)?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen offers AI voice ordering, AI chat assistant, and AI menu extraction at just $20/month compared to Restroworks' enterprise pricing that starts at $100+/month per location. DineOpen has zero setup fees and instant self-serve onboarding."
+        "text": "Yes. DineOpen offers AI voice ordering, AI chat assistant, and AI menu extraction at just $20/month compared to Restroworks, which shares pricing on request. DineOpen has zero setup fees and instant self-serve onboarding."
       }
     },
     {
@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen compared to Restroworks?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $20/month with zero setup fees. Restroworks typically charges $100-300/month per location plus implementation fees of $1,000-5,000. Small restaurants save $2,000-5,000+ per year by switching to DineOpen."
+        "text": "DineOpen starts at $20/month with zero setup fees, published on its website. Restroworks shares pricing on request, so ask for a written quote including setup fees to compare."
       }
     },
     {
