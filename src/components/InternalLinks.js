@@ -65,6 +65,10 @@ const alternatives = [
   { name: 'Clover Alternative', href: '/alternatives/clover' },
   { name: 'DineOpen vs Petpooja', href: '/vs/dineopen-vs-petpooja' },
   { name: 'Petpooja vs POSist', href: '/vs/petpooja-vs-posist' },
+  { name: 'DineOpen vs Rista', href: '/vs/dineopen-vs-rista' },
+  { name: 'DineOpen vs DotPe', href: '/vs/dineopen-vs-dotpe' },
+  { name: 'DineOpen vs Gofrugal', href: '/vs/dineopen-vs-gofrugal' },
+  { name: 'DineOpen vs Foodics', href: '/vs/dineopen-vs-foodics' },
 ];
 
 const products = [

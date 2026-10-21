@@ -51,6 +51,12 @@ export default function FoodicsAlternativeClient() {
               See Full Comparison
             </a>
           </div>
+          <p className="mt-6 text-teal-100">
+            Want the plan-by-plan detail, including Saudi ZATCA?{' '}
+            <Link href="/vs/dineopen-vs-foodics" className="underline text-white font-semibold">
+              Read DineOpen vs Foodics
+            </Link>
+          </p>
         </div>
       </section>
 

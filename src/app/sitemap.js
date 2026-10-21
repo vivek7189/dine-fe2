@@ -133,6 +133,30 @@ export default function sitemap() {
       priority: 0.85,
     },
     {
+      url: `${baseUrl}/vs/dineopen-vs-rista`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-dotpe`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-gofrugal`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/vs/dineopen-vs-foodics`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
       url: `${baseUrl}/vs/petpooja-vs-posist`,
       lastModified: currentDate,
       changeFrequency: 'monthly',
