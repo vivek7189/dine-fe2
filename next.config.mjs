@@ -274,6 +274,7 @@ const nextConfig = {
       'chai-tapri-business-kaise-shuru-kare',
       'chhote-restaurant-ke-liye-billing-software',
       'chocolate-shop-pos-software-hindi',
+      'cloud-kitchen-kaise-shuru-kare',
       'cloud-kitchen-ya-restaurant-kya-behtar',
       'dhaba-business-kaise-shuru-kare',
       'dineopen-vs-posist-comparison-hindi',

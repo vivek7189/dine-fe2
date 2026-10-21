@@ -49,6 +49,7 @@ const hindiToEnglishMap = {
   'chai-tapri-business-kaise-shuru-kare': 'how-to-start-chai-tapri-business',
   'bakery-kaise-khole': 'how-to-start-bakery-india',
   'cloud-kitchen-ya-restaurant-kya-behtar': 'cloud-kitchen-vs-restaurant-india',
+  'cloud-kitchen-kaise-shuru-kare': 'cloud-kitchen-guide-2026',
   'dineopen-vs-posist-comparison-hindi': 'dineopen-vs-posist-detailed-comparison',
   'swiggy-zomato-commission-kaise-bachaye': 'swiggy-zomato-commission-calculator-guide',
   'chhote-restaurant-ke-liye-billing-software': 'best-billing-software-small-restaurant',
