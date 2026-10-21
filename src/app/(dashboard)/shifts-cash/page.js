@@ -701,6 +701,7 @@ export default function ShiftsCashPage() {
           <DownloadReportSection restaurantId={restaurantId} formatCurrency={formatCurrency} />
 
           <ShiftHistorySection
+            restaurantId={restaurantId}
             canCount={isOwnerAdmin || String(user.role || '').toLowerCase() === 'manager'}
             onCounted={loadData}
             shiftHistory={shiftHistory}
@@ -974,6 +975,7 @@ export default function ShiftsCashPage() {
           <DownloadReportSection restaurantId={restaurantId} formatCurrency={formatCurrency} />
 
           <ShiftHistorySection
+            restaurantId={restaurantId}
             canCount={isOwnerAdmin || String(user.role || '').toLowerCase() === 'manager'}
             onCounted={loadData}
             shiftHistory={shiftHistory}
@@ -1243,7 +1245,8 @@ function StatCard({ icon, label, value, color, bg }) {
 
 // ── Shift History ───────────────────────────────────────────────────────────
 
-function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, formatCurrency, canCount = false, onCounted }) {
+function ShiftHistorySection({ restaurantId, shiftHistory, showHistory, setShowHistory, formatCurrency, canCount = false, onCounted }) {
+  const [view, setView] = useState('shift'); // 'shift' = one row per shift · 'day' = one row per business day (managers)
   const [countFor, setCountFor] = useState(null); // shift id whose cash is being entered
   const [countVal, setCountVal] = useState('');
   const [countErr, setCountErr] = useState('');
@@ -1279,7 +1282,23 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
         {showHistory ? <LuChevronUp size={18} style={{ color: '#94a3b8' }} /> : <LuChevronDown size={18} style={{ color: '#94a3b8' }} />}
       </button>
 
-      {showHistory && (
+      {showHistory && canCount && restaurantId && (
+        <div style={{ marginTop: '14px', display: 'inline-flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
+          {[['shift', 'By shift'], ['day', 'By day']].map(([k, label]) => (
+            <button key={k} onClick={() => setView(k)} style={{
+              padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700,
+              background: view === k ? 'white' : 'transparent', color: view === k ? '#0f172a' : '#64748b',
+              boxShadow: view === k ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+            }}>{label}</button>
+          ))}
+        </div>
+      )}
+
+      {showHistory && view === 'day' && canCount && restaurantId && (
+        <ShiftsByDay restaurantId={restaurantId} formatCurrency={formatCurrency} />
+      )}
+
+      {showHistory && (view === 'shift' || !canCount || !restaurantId) && (
         <div style={{ marginTop: '16px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
@@ -1368,6 +1387,97 @@ function ShiftHistorySection({ shiftHistory, showHistory, setShowHistory, format
           <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '8px' }}>
             Total Sales counts every payment type; Cash Expected is only the cash that should be in the drawer, so the two differ when card / UPI / other payments were taken.
             An owner / admin shift counts every bill in the restaurant. To stop a cashier&apos;s shift and the owner&apos;s shift both counting the same bills, turn on &quot;Each bill in one shift only&quot; in Admin → Settings.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shift History by day ─────────────────────────────────────────────────────
+// One row per business day: that day's orders + sales and the shifts that covered it. Shift History
+// is one row per shift (dated by when it opened), so a day nobody opened a shift for had no row and
+// looked "missing". Days with orders billed while no shift was open are flagged.
+const BY_DAY_STATUS = {
+  covered: { label: 'In a shift', bg: '#f0fdf4', fg: '#15803d' },
+  partly: { label: 'Partly in a shift', bg: '#fffbeb', fg: '#b45309' },
+  'no-shift': { label: 'No shift open', bg: '#fef2f2', fg: '#dc2626' },
+  'no-sales': { label: 'No sales', bg: '#f1f5f9', fg: '#64748b' },
+};
+
+function ShiftsByDay({ restaurantId, formatCurrency }) {
+  const [range, setRange] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    let alive = true;
+    setLoading(true); setErr('');
+    const end = new Date();
+    const start = new Date(end.getTime() - (range - 1) * 86400000);
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    apiClient.getShiftsByDay(restaurantId, { startDate: ymd(start), endDate: ymd(end) })
+      .then((r) => { if (alive) setData(r); })
+      .catch((e) => { if (alive) setErr(e?.message || 'Could not load'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [restaurantId, range]);
+
+  const days = data?.days || [];
+  const gapDays = days.filter((d) => d.status === 'no-shift' || d.status === 'partly');
+  const gapOrders = gapDays.reduce((n, d) => n + (d.ordersOutsideShift || 0), 0);
+  const dayLabel = (ds) => fmtDate(`${ds}T12:00:00Z`, 'en-IN', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' }, ds);
+  const shiftLine = (x) => `${x.name}: ${formatDate(x.openedAt)}, ${formatTime(x.openedAt)} → ${x.open ? 'still open' : `${formatDate(x.closedAt) !== formatDate(x.openedAt) ? `${formatDate(x.closedAt)}, ` : ''}${formatTime(x.closedAt)}`}`;
+
+  return (
+    <div style={{ marginTop: '14px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: '13px', color: gapDays.length ? '#b91c1c' : '#15803d', fontWeight: 600 }}>
+          {loading ? 'Loading…' : err ? '' : gapDays.length
+            ? `${gapDays.length} of ${days.length} days had bills with no shift open (${gapOrders} orders)`
+            : `Every day with sales was inside a shift`}
+        </div>
+        <select value={range} onChange={(e) => setRange(Number(e.target.value))}
+          style={{ padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12.5px' }}>
+          {[7, 30, 60, 90].map((n) => <option key={n} value={n}>Last {n} days</option>)}
+        </select>
+      </div>
+      {err && <div style={{ marginTop: '10px', fontSize: '13px', color: '#dc2626' }}>{err}</div>}
+      {!loading && !err && (
+        <div style={{ marginTop: '10px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                {['Day', 'Orders', 'Sales', 'Shifts that covered it', 'Orders with no shift', 'Status'].map((h) => (
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 8px', color: '#64748b', fontWeight: '600', whiteSpace: 'nowrap', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {days.map((d) => {
+                const st = BY_DAY_STATUS[d.status] || BY_DAY_STATUS.covered;
+                const flag = d.status === 'no-shift' || d.status === 'partly';
+                return (
+                  <tr key={d.date} style={{ borderBottom: '1px solid #f8fafc', background: d.status === 'no-shift' ? '#fff7f7' : 'transparent' }}>
+                    <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: '#0f172a', fontWeight: 500 }}>{dayLabel(d.date)}</td>
+                    <td style={{ padding: '10px 8px', color: '#475569' }}>{d.orders}</td>
+                    <td style={{ padding: '10px 8px', color: '#0f172a', fontWeight: 600, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{formatCurrency(d.sales || 0)}</td>
+                    <td style={{ padding: '10px 8px', color: '#475569', fontSize: '12px', minWidth: '220px' }}>
+                      {d.shifts.length ? d.shifts.map((x) => (
+                        <div key={x.id}>{shiftLine(x)}{x.autoClosed && <span style={{ marginLeft: '6px', color: '#4338ca', fontWeight: 700 }}>auto-closed</span>}</div>
+                      )) : <span style={{ color: '#94a3b8' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '10px 8px', color: flag ? '#dc2626' : '#94a3b8', fontWeight: flag ? 700 : 400 }}>{flag ? d.ordersOutsideShift : '—'}</td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, background: st.bg, color: st.fg, whiteSpace: 'nowrap' }}>{st.label}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '8px' }}>
+            Sales and orders are the whole restaurant&apos;s for that day. &quot;Orders with no shift&quot; were billed while nobody had a shift open — open a shift at the start of every hand-over so each day is inside a shift.
           </div>
         </div>
       )}
@@ -1638,7 +1748,7 @@ function DownloadReportSection({ restaurantId, formatCurrency: fmtCurrency }) {
       {/* Report contents info */}
       <div style={{ marginTop: '14px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
         <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: '1.6' }}>
-          Report includes: Shift Summary, Payment Breakdown (Cash/Card/UPI), Cash Transactions{reportFormat === 'xlsx' ? ' - Excel has 3 separate sheets' : ''}
+          Report includes: Shift Summary, Payment Breakdown (Cash/Card/UPI), Cash Transactions{reportFormat === 'xlsx' ? ' - Excel has separate sheets, incl. "By Day" (every day, with days that had no shift open) for owners / managers' : ''}
         </p>
       </div>
     </div>
@@ -2028,6 +2138,7 @@ function AutoCloseControl({ restaurantId }) {
             <span>
               <span style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Close all shifts every day</span>
               <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginTop: '2px' }}>A shift never runs across days. Cash is marked “not counted”; enter the count later in Shift history.</span>
+              <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginTop: '4px' }}>A shift opened less than 2 hours before closing time is the next day&apos;s hand-over shift — it closes at the next day&apos;s closing time.</span>
             </span>
           </label>
           <div style={{ marginTop: '12px', fontSize: '13px', color: '#334155' }}>

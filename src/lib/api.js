@@ -2904,6 +2904,14 @@ class ApiClient {
   getShiftAutoClose(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/auto-close`); }
   saveShiftAutoClose(restaurantId, data) { return this.request(`/api/shifts-cash/${restaurantId}/auto-close`, { method: 'PUT', body: data }); }
   countShift(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/count`, { method: 'POST', body: data }); }
+  // Every business day with its sales and the shifts that covered it (owner / admin / manager)
+  getShiftsByDay(restaurantId, { startDate, endDate } = {}) {
+    const q = new URLSearchParams();
+    if (startDate) q.set('startDate', startDate);
+    if (endDate) q.set('endDate', endDate);
+    const qs = q.toString();
+    return this.request(`/api/shifts-cash/${restaurantId}/by-day${qs ? `?${qs}` : ''}`);
+  }
   shiftCashInOut(shiftId, data) { return this.request(`/api/shifts-cash/${shiftId}/cash-in-out`, { method: 'POST', body: data }); }
   getAllActiveShifts(restaurantId) { return this.request(`/api/shifts-cash/${restaurantId}/active-all`); }
   getShiftCashVariance(restaurantId, params) { const qs = params ? '?' + new URLSearchParams(params).toString() : ''; return this.request(`/api/shifts-cash/${restaurantId}/cash-variance${qs}`); }
