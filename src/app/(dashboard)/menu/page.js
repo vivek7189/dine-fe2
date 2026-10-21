@@ -3406,6 +3406,7 @@ const MenuManagement = () => {
             ...(itemData.costPrice !== undefined ? { costPrice: itemData.costPrice } : {}),
             variants: itemData.variants,
             customizations: itemData.customizations,
+            modifierGroups: itemData.modifierGroups, // was missing → modifier changes made offline were lost
             pricingRules: itemData.pricingRules,
             featured: itemData.featured || false,
             badge: itemData.badge || '',
@@ -3609,10 +3610,13 @@ const MenuManagement = () => {
   };
 
   const removeModifierGroup = (groupIndex) => {
-    setFormData(prev => ({
-      ...prev,
-      modifierGroups: (prev.modifierGroups || []).filter((_, i) => i !== groupIndex)
-    }));
+    setFormData(prev => {
+      const groups = (prev.modifierGroups || []).filter((_, i) => i !== groupIndex);
+      // While a product has groups, its flat `customizations` are only a copy of them. Removing the
+      // last group must clear that copy too — otherwise the removed modifier was saved back as a
+      // plain add-on ("Add Toppings/Extras: MILD" at billing).
+      return { ...prev, modifierGroups: groups, ...(groups.length === 0 ? { customizations: [] } : {}) };
+    });
   };
 
   const addItemToGroup = (groupIndex) => {
