@@ -65,6 +65,7 @@ export const STATIC_BLOG_SLUGS = [
   'restaurant-marketing-ideas-india',
   'restaurant-menu-pricing-formula-guide',
   'restaurant-profit-margins-india-guide',
+  'restaurant-staff-salary-india',
   'restaurant-technology-trends-2024',
   'restaurant-technology-trends-2026',
   'swiggy-zomato-commission-calculator-guide',

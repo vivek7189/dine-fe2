@@ -3,6 +3,17 @@
 
 export const blogPosts = [
   {
+    slug: 'restaurant-staff-salary-india',
+    title: 'How Much to Pay Restaurant Staff in India (2026): Salary by Role and City',
+    excerpt: 'Monthly pay for chefs, cooks, tandoor chefs, waiters, captains, cashiers, managers, cleaners and delivery staff in metros and tier-2 cities, plus PF, ESI, food and stay. Every number sourced.',
+    date: '2026-10-21',
+    category: 'Staff Management',
+    categoryColor: '#8b5cf6',
+    readTime: '12 min read',
+    isStatic: true,
+    staticPath: '/blog/restaurant-staff-salary-india.html'
+  },
+  {
     slug: 'offline-pos-restaurants-global-guide-2026',
     title: 'Offline POS for Restaurants: The Global Guide (Canada, Australia, Europe & More) 2026',
     excerpt: 'A region-by-region guide to offline POS for restaurants worldwide — Canada, Australia, Europe, Singapore, the GCC, Africa and Latin America. Why connectivity and tax differ by market, and how one multi-currency, multi-tax, local-network system bills without internet everywhere.',
