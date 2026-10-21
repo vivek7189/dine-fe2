@@ -122,7 +122,7 @@ const competitorComparison = [
   { feature: 'Captain/Waiter App', dineopen: 'included', petpooja: 'paid', posist: 'included' },
   { feature: 'Inventory Management', dineopen: 'included', petpooja: 'included', posist: 'included' },
   { feature: 'Central Kitchen', dineopen: 'included', petpooja: 'ask', posist: 'included' },
-  { feature: 'Swiggy/Zomato Integration', dineopen: 'ask', petpooja: 'included', posist: 'included' },
+  { feature: 'Swiggy/Zomato Integration', dineopen: 'no', petpooja: 'included', posist: 'included' },
   { feature: 'Per-transaction Fee from the POS', dineopen: '0%', petpooja: 'None listed', posist: 'ask' },
   { feature: 'Annual Lock-in Contract', dineopen: 'no', petpooja: 'ask', posist: 'ask' },
 ];
