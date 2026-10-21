@@ -88,6 +88,12 @@ function settlementMethodOptions(billingSettings, posSettings) {
   if (pos.length) return pos;
   return [{ id: 'cash', label: 'Cash', enabled: true }, { id: 'card', label: 'Card', enabled: true }, { id: 'upi', label: 'UPI', enabled: true }];
 }
+// A guest who never touched the method picker: Cash when it is offered (as before), else the first
+// method offered — never a 'cash' the picker doesn't even show.
+function defaultSplitMethod(billingSettings, posSettings) {
+  const opts = settlementMethodOptions(billingSettings, posSettings).filter(m => m && m.enabled);
+  return opts.some(m => m.id === 'cash') ? 'cash' : (opts[0]?.id || 'cash');
+}
 import UpiPaymentModal from './UpiPaymentModal';
 import EcrStatusModal from './EcrStatusModal';
 import useEcr from '../services/ecr/useEcr';
@@ -2813,7 +2819,7 @@ const OrderSummary = ({
     const addlCharges = additionalChargesInfo?.charges || [];
 
     const splits = valid.map(({ G, i }) => {
-      const pm = splitBillPaymentMethods[i] || 'cash';
+      const pm = splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings);
       const gTaxBreakdown = tb.map(t => scaleLine(t, G)).filter(t => t.amount !== 0);
       const addlF = addlTotal > 0 ? G.addl / addlTotal : 0;
       return {
@@ -6780,7 +6786,7 @@ const OrderSummary = ({
                             if (!splitBillMode) {
                               setSplitBillMode(billingSettings.splitBillDefaultMethod || 'equal');
                               const defaults = {};
-                              for (let i = 0; i < splitBillGuests; i++) defaults[i] = 'cash';
+                              for (let i = 0; i < splitBillGuests; i++) defaults[i] = defaultSplitMethod(billingSettings, posSettings);
                               setSplitBillPaymentMethods(defaults);
                             }
                             setActiveBillingPanel('splitBill');
@@ -6982,7 +6988,7 @@ const OrderSummary = ({
                             setSplitBillMode(m.id);
                             if (!splitBillPaymentMethods[0]) {
                               const defaults = {};
-                              for (let i = 0; i < splitBillGuests; i++) defaults[i] = 'cash';
+                              for (let i = 0; i < splitBillGuests; i++) defaults[i] = defaultSplitMethod(billingSettings, posSettings);
                               setSplitBillPaymentMethods(defaults);
                             }
                           }}
@@ -7039,7 +7045,7 @@ const OrderSummary = ({
                                   style={{ border: 'none', borderBottom: '1px dashed #bae6fd', background: 'transparent', fontSize: '11px', fontWeight: 600, color: '#0369a1', width: '80px', outline: 'none', padding: '2px 4px' }}
                                 />
                                 <span style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: '#0c4a6e' }}>{formatCurrency(amt)}</span>
-                                <select value={splitBillPaymentMethods[i] || 'cash'}
+                                <select value={splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings)}
                                   onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                   style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                 >
@@ -7177,7 +7183,7 @@ const OrderSummary = ({
                                   <span style={{ fontSize: '10px', fontWeight: 600, color: guestColors[i % guestColors.length], minWidth: '50px' }}>
                                     {splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`}
                                   </span>
-                                  <select value={splitBillPaymentMethods[i] || 'cash'}
+                                  <select value={splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings)}
                                     onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                     style={{ flex: 1, padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                                   >
@@ -7212,7 +7218,7 @@ const OrderSummary = ({
                                 onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
                                 style={{ flex: 1, padding: '5px 8px', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
                               />
-                              <select value={splitBillPaymentMethods[i] || 'cash'}
+                              <select value={splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings)}
                                 onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                                 style={{ padding: '3px 6px', border: '1px solid #bae6fd', borderRadius: '5px', fontSize: '10px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}
                               >
@@ -9296,7 +9302,7 @@ const OrderSummary = ({
                       setSplitBillMode(m.id);
                       if (!splitBillPaymentMethods[0]) {
                         const defaults = {};
-                        for (let gi = 0; gi < splitBillGuests; gi++) defaults[gi] = 'cash';
+                        for (let gi = 0; gi < splitBillGuests; gi++) defaults[gi] = defaultSplitMethod(billingSettings, posSettings);
                         setSplitBillPaymentMethods(defaults);
                       }
                     }}
@@ -9353,7 +9359,7 @@ const OrderSummary = ({
                             style={{ border: 'none', borderBottom: '1px dashed #d1d5db', background: 'transparent', fontSize: '13px', fontWeight: 600, color: '#374151', width: '120px', outline: 'none', padding: '2px 4px' }}
                           />
                           <span style={{ flex: 1, fontSize: '14px', fontWeight: 700, color: '#111827' }}>{formatCurrency(amt)}</span>
-                          <select value={splitBillPaymentMethods[i] || 'cash'}
+                          <select value={splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings)}
                             onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                             style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
                             {(settlementMethodOptions(billingSettings, posSettings))
@@ -9490,7 +9496,7 @@ const OrderSummary = ({
                               {splitBillGuestNames[i]?.trim() || `Guest ${i + 1}`}
                             </span>
                             <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, color: '#111827' }}>{formatCurrency(guestTotals[i] || 0)}</span>
-                            <select value={splitBillPaymentMethods[i] || 'cash'}
+                            <select value={splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings)}
                               onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                               style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
                               {(settlementMethodOptions(billingSettings, posSettings))
@@ -9524,7 +9530,7 @@ const OrderSummary = ({
                           onChange={(e) => setSplitBillAmounts(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ flex: 1, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: 600, outline: 'none', background: dm ? dm.white : 'white' }}
                         />
-                        <select value={splitBillPaymentMethods[i] || 'cash'}
+                        <select value={splitBillPaymentMethods[i] || defaultSplitMethod(billingSettings, posSettings)}
                           onChange={(e) => setSplitBillPaymentMethods(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: dm ? dm.white : 'white', outline: 'none' }}>
                           {(settlementMethodOptions(billingSettings, posSettings))
