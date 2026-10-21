@@ -346,7 +346,7 @@ var CustomerDetail = function() {
     if (bulkSettling || selectedSettleOrders.length === 0 || !bulkPaymentAmount) return;
     try {
       setBulkSettling(true);
-      await apiClient.bulkSettleCredit(customerId, {
+      var settleRes = await apiClient.bulkSettleCredit(customerId, {
         orderIds: selectedSettleOrders,
         totalAmount: parseFloat(bulkPaymentAmount),
         paymentMethod: bulkMethod || 'cash',
@@ -366,10 +366,15 @@ var CustomerDetail = function() {
       setBulkPaymentAmount('');
       setSelectedSettleOrders([]);
       setBulkUpdateOrderStatus(false);
+      if (bulkExtraAs === 'advance' && settleRes && settleRes.extraAmount > 0 && settleRes.extraAs !== 'advance') {
+        alert('Some bills were settled from another screen at the same moment, so the extra ' + formatCurrency(settleRes.extraAmount) + ' was not added as advance — give it back as change.');
+      }
       setBulkExtraAs('change');
     } catch (err) {
       console.error('Error bulk settling credit:', err);
       alert(err.message || 'Failed to settle credit');
+      // e.g. "already paid" — the server closed those entries; show the list as it is now
+      try { setCreditData(await apiClient.getCustomerCreditHistory(customerId)); setSelectedSettleOrders([]); } catch (e) {}
     } finally {
       setBulkSettling(false);
     }
