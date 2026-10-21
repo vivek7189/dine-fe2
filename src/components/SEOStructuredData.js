@@ -21,7 +21,11 @@ export default function SEOStructuredData() {
       "https://twitter.com/dineopenoffice",
       "https://www.linkedin.com/company/dineopen",
       "https://www.instagram.com/dineopenofficial",
-      "https://www.youtube.com/@dineopen"
+      "https://www.youtube.com/@dineopen",
+      "https://www.facebook.com/dineopen",
+      "https://www.producthunt.com/products/dineopen",
+      "https://www.capterra.com/p/10036776/DineOpen/",
+      "https://apps.apple.com/in/app/dineopen-restaurant-billing/id6761518444"
     ],
     "areaServed": [
       { "@type": "Country", "name": "United States" },
