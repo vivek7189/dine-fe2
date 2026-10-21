@@ -71,8 +71,8 @@ export function orderDisplayNumber(order) {
 // Bill number as PRINTED on a bill (bills only — KOTs and lists keep orderDisplayNumber).
 //   • Made offline and not synced yet (no number from the server): "OFFLINE-CBCF" — the last 4
 //     characters of the offline order's idempotency key (else its id). Clearly temporary, so nobody files it as a real number.
-//   • Made offline and synced since: "513 (offline CBCF)" — the real number plus the code the
-//     customer's offline paper shows, so the two papers can be matched.
+//   • Made offline and synced since: just the real number. (It used to print "513 (offline CBCF)" —
+//     customers read "offline" on their bill as something wrong; Desi Tandoor asked to drop it.)
 //   • Everything else: the normal number (unchanged).
 // Offline is recognised from the order itself: the server marks synced offline orders
 // syncSource 'offline' (+ offlineRef / idempotencyKey); an unsynced one has an offline-style id
@@ -91,10 +91,7 @@ export function billNumberLabel(order) {
     if (order._offlineGenerated || /-/.test(String(localId))) return `OFFLINE-${last4(order.idempotencyKey || localId)}`;
     return orderDisplayNumber(order);
   }
-  const offlineRef = order.offlineRef
-    || (String(order.syncSource || '').toLowerCase() === 'offline' && order.idempotencyKey ? last4(order.idempotencyKey) : '');
-  const num = orderDisplayNumber(order);
-  return offlineRef ? `${num} (offline ${offlineRef})` : num;
+  return orderDisplayNumber(order);
 }
 
 export default orderDisplayNumber;

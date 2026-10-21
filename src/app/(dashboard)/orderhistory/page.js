@@ -2005,7 +2005,7 @@ const OrderHistory = () => {
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
       orderNumberDisplay: order.orderNumberDisplay || null,
-      // Offline-made orders: the bill shows "513 (offline CBCF)" / "OFFLINE-CBCF" (billNumberLabel).
+      // Offline-made orders: an unsynced bill shows "OFFLINE-CBCF" (billNumberLabel); synced ones the real number.
       syncSource: order.syncSource || null,
       idempotencyKey: order.idempotencyKey || null,
       // Correct, template-matching header identity. (Previously used wrong keys —
@@ -7596,7 +7596,7 @@ const InvoiceModal = ({ order, restaurant, onClose, onDownloadPDF, calculateOrde
   const loyaltyDiscountAmt = b?.loyaltyDiscount ?? order.loyaltyDiscount ?? 0;
   const couponDiscountAmt = order.couponDiscount ?? 0;
   const totalDiscount = b?.totalDiscount ?? (offerDiscount + manualDiscountAmt + loyaltyDiscountAmt + couponDiscountAmt);
-  // Same bill number as the printed bill ("513 (offline CBCF)" for offline-made orders).
+  // Same bill number as the printed bill (billNumberLabel).
   const invoiceNumber = (b && (b.orderNumberDisplay || b.dailyOrderId != null || b.orderNumber != null))
     ? billNumberLabel({ ...order, ...b })
     : billNumberLabel(order);
