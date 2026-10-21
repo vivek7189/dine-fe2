@@ -1711,7 +1711,24 @@ const OrderHistory = () => {
     }
   };
 
-  const handleMarkPaid = (orderId) => { setMarkPaidOrderId(orderId); };
+  // Mark Paid: how the money came in (the store's own methods, e.g. M-Pesa) and how much — the full due
+  // by default; less leaves the rest due on the bill and the customer's khata.
+  const [markPaidMethod, setMarkPaidMethod] = useState('cash');
+  const [markPaidAmount, setMarkPaidAmount] = useState('');
+  const [markPaidMethods, setMarkPaidMethods] = useState([{ id: 'cash', label: 'Cash' }, { id: 'card', label: 'Card' }, { id: 'upi', label: 'UPI' }]);
+  const handleMarkPaid = (orderId) => {
+    const o = orders.find(x => x.id === orderId);
+    let list = [];
+    try {
+      const ps = (JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') || {}).posSettings || {};
+      list = Array.isArray(ps.paymentMethods) ? ps.paymentMethods.filter(m => m && m.id && m.enabled).map(m => ({ id: m.id, label: m.label || m.id })) : [];
+    } catch (e) {}
+    if (list.length) setMarkPaidMethods(list);
+    const opts = list.length ? list : markPaidMethods;
+    setMarkPaidMethod(opts.some(m => m.id === 'cash') ? 'cash' : (opts[0]?.id || 'cash'));
+    setMarkPaidAmount(o && o.outstandingAmount > 0 ? String(Math.round(o.outstandingAmount * 100) / 100) : '');
+    setMarkPaidOrderId(orderId);
+  };
 
   const executeMarkPaid = async (orderId) => {
     const order = orders.find(o => o.id === orderId);
@@ -1720,11 +1737,18 @@ const OrderHistory = () => {
     try {
       const outstanding = order.outstandingAmount || 0;
       const finalAmt = order.finalAmount || order.totalAmount || 0;
+      let paidNow = outstanding;
       if (order.customerId && outstanding > 0) {
-        // Use settle-credit API which updates order, customer totalSpent, and daily stats
+        paidNow = Math.round((parseFloat(markPaidAmount) || 0) * 100) / 100;
+        if (!(paidNow > 0) || paidNow > outstanding + 0.009) {
+          alert('Enter an amount between 0 and ' + formatCurrency(outstanding));
+          setMarkPaidSubmitting(false);
+          return;
+        }
+        // Use settle-credit API which updates order, customer khata, totalSpent, daily stats and the drawer
         await apiClient.settleCustomerCredit(order.customerId, {
-          amount: outstanding,
-          paymentMethod: order.paymentMethod || 'cash',
+          amount: paidNow,
+          paymentMethod: markPaidMethod || order.paymentMethod || 'cash',
           orderId: order.id
         });
       } else {
@@ -1735,8 +1759,13 @@ const OrderHistory = () => {
           paymentStatus: 'paid',
         });
       }
+      const leftAfter = Math.max(0, Math.round((outstanding - paidNow) * 100) / 100);
       setOrders(prev => prev.map(o =>
-        o.id === order.id ? { ...o, paidAmount: finalAmt, outstandingAmount: 0, paymentStatus: 'paid' } : o
+        o.id === order.id
+          ? (leftAfter > 0
+            ? { ...o, paidAmount: Math.round((finalAmt - leftAfter) * 100) / 100, outstandingAmount: leftAfter, paymentStatus: 'partial' }
+            : { ...o, paidAmount: finalAmt, outstandingAmount: 0, paymentStatus: 'paid' })
+          : o
       ));
       setMarkPaidOrderId(null);
       setTimeout(() => fetchOrders(false), 500);
@@ -5507,6 +5536,30 @@ const OrderHistory = () => {
                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
                       <span className="text-sm text-amber-700">{t('orderHistory.outstandingLabel')} </span>
                       <span className="text-lg font-bold text-amber-800">{formatCurrency(outstandingAmt)}</span>
+                    </div>
+                  )}
+                  {outstandingAmt > 0 && paidOrder?.customerId && (
+                    <div className="text-left mb-4 space-y-3">
+                      <div>
+                        <div className="text-xs font-semibold text-gray-600 mb-1">Amount received</div>
+                        <input type="number" min="0" step="0.01" value={markPaidAmount}
+                          onChange={(e) => setMarkPaidAmount(e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-base font-bold" />
+                        {(parseFloat(markPaidAmount) || 0) > 0 && (parseFloat(markPaidAmount) || 0) < outstandingAmt - 0.009 && (
+                          <div className="text-xs text-amber-700 mt-1">{formatCurrency(Math.round((outstandingAmt - (parseFloat(markPaidAmount) || 0)) * 100) / 100)} stays due on this bill</div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-600 mb-1">Paid by</div>
+                        <div className="flex flex-wrap gap-2">
+                          {markPaidMethods.map(m => (
+                            <button key={m.id} type="button" onClick={() => setMarkPaidMethod(m.id)}
+                              className={'px-3 py-1.5 rounded-lg text-xs font-semibold border-2 ' + (markPaidMethod === m.id ? 'border-green-600 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-700')}>
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                   <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-3">
