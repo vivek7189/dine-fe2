@@ -4401,6 +4401,7 @@ function RestaurantPOSContent() {
           },
         };
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
+        billingExisting.updateSaved = true; // the completion is saved (server, or this till's own sync)
 
         // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
         if (response?.data || response?.success) {
@@ -4891,17 +4892,27 @@ function RestaurantPOSContent() {
             paymentStatus: 'completed',
           };
           if (currentOrder && billingExisting) {
-            // An existing order: queue the FULL completion update + its payment (with the order
-            // id), exactly like the web offline path. If the till already saved the update
-            // offline, the server applies "completed" once (it checks), and the payment lands.
-            await queueOfflineOrder({
-              ...billingExisting.updateData,
-              restaurantId: selectedRestaurant.id,
-              _offlineAction: 'complete_billing_existing',
-              _existingOrderId: currentOrder.id,
-              _paymentData: billingExisting.payment,
-              idempotencyKey: generateIdempotencyKey(),
-            });
+            // An existing order: its payment (with the order id) — plus the full completion update
+            // only if that update never got saved anywhere.
+            await queueOfflineOrder(billingExisting.updateSaved
+              // completion already saved → only the payment (sending the completion twice would
+              // redo loyalty math / mark the bill as edited)
+              ? {
+                restaurantId: selectedRestaurant.id,
+                _offlineAction: 'complete_billing_existing',
+                _existingOrderId: currentOrder.id,
+                _paymentData: billingExisting.payment,
+                _paymentOnly: true,
+                idempotencyKey: generateIdempotencyKey(),
+              }
+              : {
+                ...billingExisting.updateData,
+                restaurantId: selectedRestaurant.id,
+                _offlineAction: 'complete_billing_existing',
+                _existingOrderId: currentOrder.id,
+                _paymentData: billingExisting.payment,
+                idempotencyKey: generateIdempotencyKey(),
+              });
             billingData._queued = true;
           }
           if (currentOrder) {

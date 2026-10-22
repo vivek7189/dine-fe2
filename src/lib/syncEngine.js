@@ -188,6 +188,19 @@ async function executeOfflineAction(apiClient, orderData) {
 
     case 'complete_billing_existing': {
       const orderId = orderData._existingOrderId;
+      if (orderData._paymentOnly) {
+        // The completion itself already reached the server (web) or is in the desktop's own
+        // sync (sent by it, never twice). Record only the payment — and only after the desktop
+        // has delivered that completion, so the server completes the bill first (stats, khata,
+        // table) and then takes the payment.
+        if (await desktopStillSending()) {
+          const waitErr = new Error('Waiting for this till to send the bill first');
+          waitErr.waitForSync = true;
+          throw waitErr;
+        }
+        await apiClient.verifyPayment({ ...orderData._paymentData, orderId: (orderData._paymentData && orderData._paymentData.orderId) || orderId });
+        return { order: { id: orderId }, actionType: action };
+      }
       const response = await apiClient.updateOrder(orderId, cleanData, { headers: syncHeaders });
       if (response.data && orderData._paymentData) {
         try {
@@ -271,6 +284,15 @@ async function syncSingleOrder(apiClient, order) {
     }
     return { success: false, reason: 'no_order_returned' };
   } catch (err) {
+    // Waiting for the till to send its own copy first is not a failure — don't use up retries
+    // (capped: ~1 h of 30 s checks, then it counts as a normal retry).
+    if (err && err.waitForSync && (order.waitCount || 0) < 120) {
+      await updateOrderSyncStatus(order.idempotencyKey, 'pending', {
+        waitCount: (order.waitCount || 0) + 1,
+        lastError: err.message,
+      });
+      return { success: false, reason: 'waiting', error: err.message };
+    }
     const newRetryCount = (order.retryCount || 0) + 1;
     await updateOrderSyncStatus(order.idempotencyKey, 'pending', {
       retryCount: newRetryCount,
@@ -325,6 +347,17 @@ async function desktopServerUnreachable() {
     const st = await api.getSyncStatus();
     // a user-paused desktop sync stops checking the network → don't let it hold this queue
     return !!(st && st.isRunning === true && st.isPaused !== true && st.isOnline === false);
+  } catch (_) { return false; }
+}
+
+// Desktop: the till's own sync still has changes to send (not counting ones it gave up on).
+async function desktopStillSending() {
+  try {
+    const api = typeof window !== 'undefined' && window.electronAPI && window.electronAPI.offlineSync;
+    if (!api || typeof api.getSyncStatus !== 'function') return false;
+    const st = await api.getSyncStatus();
+    if (!st || st.isRunning !== true) return false;
+    return (Number(st.pendingCount) || 0) - (Number(st.failedCount) || 0) > 0;
   } catch (_) { return false; }
 }
 
