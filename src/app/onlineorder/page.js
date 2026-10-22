@@ -2467,33 +2467,6 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             </div>
           );
         })()}
-        {sizeFor && typeof document !== 'undefined' && createPortal(
-          <div onClick={(e) => { if (e.target === e.currentTarget) setSizeFor(null); }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 10050, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '20px 20px 0 0', padding: '18px 18px calc(18px + env(safe-area-inset-bottom, 0px))', maxHeight: '80vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#1f2937' }}>{sizeFor.name}</h3>
-                <button type="button" onClick={() => setSizeFor(null)} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, border: 'none', background: '#f1f5f9', cursor: 'pointer', flexShrink: 0 }}>✕</button>
-              </div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>Choose a size</div>
-              <div style={{ display: 'grid', gap: '8px' }}>
-                {sizesOf(sizeFor).map(v => {
-                  const p = resolveVariantTierPrice(v, activePricingRuleId, restaurant?.multiPricing?.rules);
-                  const label = sizeLabel(sizeFor.name, v.name);
-                  const inCart = cart.find(ci => ci.id === sizeFor.id && ci.selectedVariant?.name === v.name)?.quantity || 0;
-                  return (
-                    <button key={v.name} type="button" onClick={() => { addToCart(sizeFor, v); setSizeFor(null); }}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', border: '1.5px solid #e5e7eb', background: 'white', cursor: 'pointer', textAlign: 'left', fontSize: '15px' }}>
-                      <span style={{ fontWeight: 600, color: '#1f2937' }}>{label}{inCart ? <span style={{ marginLeft: 8, fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>{inCart} in cart</span> : null}</span>
-                      <span style={{ fontWeight: 800, color: '#1f2937', whiteSpace: 'nowrap' }}>{cs}{Number(p || 0).toFixed(2)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
         {Object.keys(groupedMenu).length > 0 ? (
           Object.entries(groupedMenu).map(([category, items]) => (
             <div key={category} id={`category-${category}`} style={{ marginTop: '20px', scrollMarginTop: '180px' }}>
@@ -2576,6 +2549,35 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       />
 
       {/* Cart Modal - Shown to logged-in users or when login not required */}
+      {/* Size picker — for EVERY menu design (classic / carousel / bistro too, not only the
+          default one), else ADD on an item with sizes silently did nothing. */}
+        {sizeFor && typeof document !== 'undefined' && createPortal(
+          <div onClick={(e) => { if (e.target === e.currentTarget) setSizeFor(null); }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 10050, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '20px 20px 0 0', padding: '18px 18px calc(18px + env(safe-area-inset-bottom, 0px))', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#1f2937' }}>{sizeFor.name}</h3>
+                <button type="button" onClick={() => setSizeFor(null)} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, border: 'none', background: '#f1f5f9', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>Choose a size</div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {sizesOf(sizeFor).map(v => {
+                  const p = resolveVariantTierPrice(v, activePricingRuleId, restaurant?.multiPricing?.rules);
+                  const label = sizeLabel(sizeFor.name, v.name);
+                  const inCart = cart.find(ci => ci.id === sizeFor.id && ci.selectedVariant?.name === v.name)?.quantity || 0;
+                  return (
+                    <button key={v.name} type="button" onClick={() => { addToCart(sizeFor, v); setSizeFor(null); }}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', border: '1.5px solid #e5e7eb', background: 'white', cursor: 'pointer', textAlign: 'left', fontSize: '15px' }}>
+                      <span style={{ fontWeight: 600, color: '#1f2937' }}>{label}{inCart ? <span style={{ marginLeft: 8, fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>{inCart} in cart</span> : null}</span>
+                      <span style={{ fontWeight: 800, color: '#1f2937', whiteSpace: 'nowrap' }}>{cs}{Number(p || 0).toFixed(2)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       {showCart && (customerVerified || (customerAppSettings?.pageSettings?.loginMode || 'optional') !== 'required') && (
         <CartModal
           cart={cart}
