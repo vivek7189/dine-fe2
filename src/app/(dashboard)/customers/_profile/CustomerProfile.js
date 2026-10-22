@@ -147,6 +147,27 @@ var CustomerDetail = function() {
     });
     return list;
   })();
+  // Receive Payment fills the ticked bills OLDEST FIRST: whole bills first, then a part of the next one.
+  var r2c = function(n) { return Math.round((Number(n) || 0) * 100) / 100; };
+  var billsOldestFirst = openCreditEntries.slice().sort(function(a, b) { return String(a.date || '').localeCompare(String(b.date || '')); });
+  // amount typed → tick the oldest bills it reaches (the last one may be paid only in part)
+  var autoPickBills = function(amountStr) {
+    var amt = r2c(parseFloat(amountStr) || 0); var ids = []; var sum = 0;
+    for (var i = 0; i < billsOldestFirst.length && sum < amt - 0.009; i++) { ids.push(billsOldestFirst[i].orderId); sum = r2c(sum + billsOldestFirst[i].outstandingAmount); }
+    return ids;
+  };
+  // what each ticked bill gets, in the same order the server applies it
+  var settlePlan = (function() {
+    var left = r2c(parseFloat(bulkPaymentAmount) || 0); var plan = {}; var applied = 0; var selectedTotal = 0;
+    billsOldestFirst.forEach(function(e) {
+      if (selectedSettleOrders.indexOf(e.orderId) === -1) return;
+      selectedTotal = r2c(selectedTotal + e.outstandingAmount);
+      var pay = Math.max(0, Math.min(left, r2c(e.outstandingAmount)));
+      plan[e.orderId] = { pay: pay, rest: r2c(e.outstandingAmount - pay) };
+      left = r2c(left - pay); applied = r2c(applied + pay);
+    });
+    return { byBill: plan, applied: applied, selectedTotal: selectedTotal, extra: Math.max(0, left), stillDue: Math.max(0, r2c(selectedTotal - applied)) };
+  })();
   // Bills marked Due that are not on this customer's khata — owner / manager can fix them in one tap.
   var billsToCheck = (creditData.unpaidBills || []).filter(function(b) { return b && !b.onKhata && !b.running; });
   var canCheckKhata = (function() {
@@ -396,14 +417,12 @@ var CustomerDetail = function() {
     try {
       setBulkSettling(true);
       var settleRes = await apiClient.bulkSettleCredit(customerId, {
-        orderIds: selectedSettleOrders,
+        orderIds: billsOldestFirst.filter(function(e) { return selectedSettleOrders.indexOf(e.orderId) !== -1; }).map(function(e) { return e.orderId; }), // oldest first = the order money is applied
         totalAmount: parseFloat(bulkPaymentAmount),
         paymentMethod: bulkMethod || 'cash',
         extraAs: bulkExtraAs,
         // what the box showed as extra — the server never keeps more than this as advance
-        extraShown: Math.max(0, Math.round(((parseFloat(bulkPaymentAmount) || 0) - openCreditEntries
-          .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
-          .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)) * 100) / 100),
+        extraShown: settlePlan.extra,
         updateOrderStatus: bulkUpdateOrderStatus
       });
       var data = await apiClient.getCustomerCreditHistory(customerId);
@@ -1806,7 +1825,7 @@ var CustomerDetail = function() {
                   value={bulkPaymentAmount}
                   onChange={function(e) {
                     setBulkPaymentAmount(e.target.value);
-                    setSelectedSettleOrders([]);
+                    setSelectedSettleOrders(autoPickBills(e.target.value)); // oldest bills first, the last may be part-paid
                   }}
                   style={{
                     width: '100%', padding: '10px 12px', border: '1.5px solid #d1d5db', borderRadius: '10px',
@@ -1824,14 +1843,11 @@ var CustomerDetail = function() {
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
                     {(function() {
-                      var unsettled = openCreditEntries;
-                      var payAmount = parseFloat(bulkPaymentAmount) || 0;
-                      var selectedTotal = unsettled.filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
-                        .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0);
-
+                      var unsettled = billsOldestFirst;
                       return unsettled.map(function(entry) {
                         var isSelected = selectedSettleOrders.includes(entry.orderId);
-                        var wouldExceed = !isSelected && (selectedTotal + entry.outstandingAmount > payAmount);
+                        var wouldExceed = false; // any bill can be ticked; the money fills ticked bills oldest first
+                        var p = settlePlan.byBill[entry.orderId];
                         var entryDate = new Date(entry.date);
 
                         return (
@@ -1871,6 +1887,11 @@ var CustomerDetail = function() {
                                 {fmtDate(entryDate)}
                                 {entry.paidAmount > 0 ? ' \u00B7 Paid ' + formatCurrency(entry.paidAmount) + ' of ' + formatCurrency(entry.totalAmount) : ' \u00B7 Full due'}
                               </div>
+                              {isSelected && p && (
+                                <div style={{ fontSize: '11.5px', fontWeight: 600, marginTop: '3px', color: p.rest > 0.009 ? (p.pay > 0 ? '#b45309' : '#9ca3af') : '#15803d' }}>
+                                  {p.pay <= 0 ? 'Not reached — the money is used up' : (p.rest > 0.009 ? formatCurrency(p.pay) + ' paid now · ' + formatCurrency(p.rest) + ' still due' : 'Paid in full')}
+                                </div>
+                              )}
                             </div>
                             {isSelected && (
                               <FaCheckCircle size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
@@ -1888,23 +1909,19 @@ var CustomerDetail = function() {
                       borderRadius: '8px', border: '1px solid #bbf7d0'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
-                        <span style={{ color: '#475569' }}>Selected ({selectedSettleOrders.length} orders)</span>
-                        <span style={{ fontWeight: '700', color: '#166534' }}>
-                          {formatCurrency(openCreditEntries
-                            .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
-                            .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
-                          )}
-                        </span>
+                        <span style={{ color: '#475569' }}>Selected ({selectedSettleOrders.length} bills) · due</span>
+                        <span style={{ fontWeight: '700', color: '#166534' }}>{formatCurrency(settlePlan.selectedTotal)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                        <span style={{ color: '#6b7280' }}>Remaining from {formatCurrency(parseFloat(bulkPaymentAmount))}</span>
-                        <span style={{ color: '#6b7280' }}>
-                          {formatCurrency(Math.max(0, parseFloat(bulkPaymentAmount) - openCreditEntries
-                            .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
-                            .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
-                          ))}
-                        </span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
+                        <span style={{ color: '#6b7280' }}>Paid now (oldest bill first)</span>
+                        <span style={{ color: '#166534', fontWeight: 600 }}>{formatCurrency(settlePlan.applied)}</span>
                       </div>
+                      {settlePlan.stillDue > 0.009 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#b45309' }}>Still due on these bills after this</span>
+                          <span style={{ color: '#b45309', fontWeight: 600 }}>{formatCurrency(settlePlan.stillDue)}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1926,10 +1943,7 @@ var CustomerDetail = function() {
 
                   {/* Money beyond the ticked bills */}
                   {(function() {
-                    var sel = openCreditEntries
-                      .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
-                      .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0);
-                    var extra = Math.round(((parseFloat(bulkPaymentAmount) || 0) - sel) * 100) / 100;
+                    var extra = settlePlan.extra;
                     if (selectedSettleOrders.length === 0 || !(extra > 0.009)) return null;
                     return (
                       <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fde68a' }}>
@@ -1978,21 +1992,17 @@ var CustomerDetail = function() {
               </button>
               <button
                 onClick={handleBulkSettle}
-                disabled={bulkSettling || selectedSettleOrders.length === 0}
+                disabled={bulkSettling || selectedSettleOrders.length === 0 || !(settlePlan.applied > 0)}
                 style={{
                   padding: '8px 18px', borderRadius: '8px', border: 'none',
-                  background: (bulkSettling || selectedSettleOrders.length === 0) ? '#d1d5db' : '#16a34a',
+                  background: (bulkSettling || selectedSettleOrders.length === 0 || !(settlePlan.applied > 0)) ? '#d1d5db' : '#16a34a',
                   fontSize: '13px', fontWeight: '600', color: 'white',
-                  cursor: (bulkSettling || selectedSettleOrders.length === 0) ? 'not-allowed' : 'pointer',
+                  cursor: (bulkSettling || selectedSettleOrders.length === 0 || !(settlePlan.applied > 0)) ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', gap: '6px'
                 }}
               >
                 {bulkSettling && <FaSpinner className="animate-spin" size={12} />}
-                {bulkSettling ? 'Settling...' : 'Settle ' + formatCurrency(
-                  openCreditEntries
-                    .filter(function(e) { return selectedSettleOrders.includes(e.orderId); })
-                    .reduce(function(sum, e) { return sum + e.outstandingAmount; }, 0)
-                )}
+                {bulkSettling ? 'Settling...' : 'Receive ' + formatCurrency(settlePlan.applied + settlePlan.extra)}
               </button>
             </div>
           </div>
