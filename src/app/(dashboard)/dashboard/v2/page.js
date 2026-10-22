@@ -4439,7 +4439,7 @@ function RestaurantPOSContent() {
               },
               idempotencyKey: billingIdemKey,
             });
-            billingData.idempotencyKey = billingIdemKey; // the bill shown / printed below uses this id
+            billingData.idempotencyKey = billingIdemKey; // the success screen below shows this id
           } else {
             await queueOfflineOrder(billingData);
           }

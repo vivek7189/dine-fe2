@@ -192,9 +192,7 @@ function routeLocally(endpoint, method, body, caller) {
       const order = entityStore.createOrder(body.restaurantId, body);
       broadcastIfHub('orders', 'CREATE', { orderId: order.id, tableNumber: body.tableNumber }, order.id);
       // Trigger kot-print-request for the new order
-      // idempotencyKey: the till records that it printed this order's KOT, so the server's repeat
-      // after sync (same key, tagged offlineSync) is skipped here — see src/utils/localPrintLog.js
-      broadcastPrintEvent('kot-print-request', { orderId: order.id, id: order.id, dailyOrderId: order.dailyOrderId, tableNumber: body.tableNumber, idempotencyKey: order.idempotencyKey || null });
+      broadcastPrintEvent('kot-print-request', { orderId: order.id, id: order.id, dailyOrderId: order.dailyOrderId, tableNumber: body.tableNumber });
       return ok({ message: 'Order created successfully', data: { orderId: order.id }, order, success: true });
     });
   }

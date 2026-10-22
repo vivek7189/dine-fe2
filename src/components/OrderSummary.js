@@ -148,7 +148,6 @@ import {
 } from 'react-icons/fa';
 import { fmtDateTime } from '../lib/restaurantTime';
 import { filterAllowedOrderTypes } from '../lib/staffAccessClient';
-import { recordLocalPrint } from '../utils/localPrintLog';
 
 const OrderSummary = ({
   cart,
@@ -1320,7 +1319,6 @@ const OrderSummary = ({
     window.__autoPrintKOT = false;
     // Set dedup flag immediately (not inside setTimeout) to prevent race with effect re-fires
     if (thisOrderId) window.__lastKOTPrintedByEffect = thisOrderId;
-    if (thisOrderId) recordLocalPrint(thisOrderId); // printed here (an offline order's id = its key) — see localPrintLog
 
     // ── Electron + KOT stations: split the KOT PER STATION locally ──
     // This makes multi-outlet/kitchen routing work for LOCAL orders without any
@@ -1584,7 +1582,6 @@ const OrderSummary = ({
             if (localOrderId) {
               window.__lastLocalPrintedBill = localOrderId;
               window.__lastLocalPrintedTokens = localOrderId;
-              recordLocalPrint(localOrderId); // printed here — an offline bill's repeat after sync is skipped
             }
             allHtmlParts.forEach((html, i) => {
               setTimeout(() => printDocument({ html, type: 'bill', orderId: invoice?.id || invoice?.orderId, restaurantId, printSettings: printSettings || {}, orderData: invoiceData }), i * 600);
@@ -1601,7 +1598,6 @@ const OrderSummary = ({
               win.focus();
               setTimeout(() => {
                 win.print();
-                recordLocalPrint(invoice?.id || invoice?.orderId); // printed here (see localPrintLog)
                 printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
               }, 500);
             }
@@ -1617,7 +1613,6 @@ const OrderSummary = ({
             if (localOrderId) {
               window.__lastLocalPrintedBill = localOrderId;
               window.__lastLocalPrintedTokens = localOrderId;
-              recordLocalPrint(localOrderId); // printed here — an offline bill's repeat after sync is skipped
             }
             printDocument({ html: invoiceContent, type: 'bill', orderId: invoice?.id || invoice?.orderId, restaurantId, printSettings: printSettings || {}, orderData: invoiceData });
             // Print food court tokens after bill on native (each token = separate print job with auto-cut)
@@ -1632,7 +1627,6 @@ const OrderSummary = ({
               win.focus();
               setTimeout(() => {
                 win.print();
-                recordLocalPrint(invoice?.id || invoice?.orderId); // printed here (see localPrintLog)
                 printFoodCourtTokens(invoice?.restaurantId, invoice?.orderId || invoice?.id, { delay: 900 });
               }, 500);
             }

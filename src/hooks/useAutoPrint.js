@@ -12,7 +12,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument, buildKotDedupKey } from '../utils/printBridge';
 import { getStableTerminalId } from '../utils/terminalId';
-import { recordLocalPrint, wasPrintedLocally } from '../utils/localPrintLog';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
@@ -189,17 +188,6 @@ export function useAutoPrint(restaurantId, printSettings) {
     return !!(kind === 'bill' ? data.billPrintedBy : data.kotPrintedBy);
   }, [printSettings]);
 
-  // A bill / first KOT made offline is printed on this device under its own id (the bill's
-  // idempotencyKey) and recorded in localPrintLog. After sync the server repeats the print under
-  // the real order id, tagged offlineSync + that same key. Skip ONLY when this device's record has
-  // that key — i.e. it really printed it. Not printed here (another device made it, or it didn't
-  // print offline) → prints as before. Reprints / forced / added items / pre-bills always print.
-  const printedHereWhileOffline = useCallback((data) => {
-    if (!data || data.offlineSync !== true || !data.idempotencyKey) return false;
-    if (data.forcePrint || data.isReprint || data.isIncremental || data.isPreBill) return false;
-    return wasPrintedLocally(data.idempotencyKey);
-  }, []);
-
   // Report a remote-print diagnostic to the server (fire-and-forget). Only sends when the
   // restaurant has opted in (printSettings.printDiagnostics) OR the event is a failure — so
   // we can debug a specific terminal remotely without write-amplifying every print.
@@ -331,11 +319,6 @@ export function useAutoPrint(restaurantId, printSettings) {
       return;
     }
     if (!orderId || wasPrinted(orderId, 'kot')) return;
-    if (printedHereWhileOffline(data)) {
-      markPrinted(orderId, 'kot'); // also silences this order's first-KOT station events
-      logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: 'printed-here-while-offline' });
-      return;
-    }
     if (printedByApp(data, 'kot')) {
       markPrinted(orderId, 'kot'); // also silences this order's first-KOT station events
       logDiag({ phase: 'skipped', kind: 'kot', orderId, reason: `printed-by-app (${data.kotPrintedBy})` });
@@ -437,10 +420,6 @@ export function useAutoPrint(restaurantId, printSettings) {
     const orderId = data.orderId || data.id;
     if (!orderId) return true;
     const stationId = data.printStationId || null;
-    if (printedHereWhileOffline(data)) {
-      logDiag({ phase: 'skipped', kind: 'kot-request', orderId, stationId, reason: 'printed-here-while-offline' });
-      return true;
-    }
     if (printedByApp(data, 'kot')) {
       logDiag({ phase: 'skipped', kind: 'kot-request', orderId, stationId, reason: `printed-by-app (${data.kotPrintedBy})` });
       return true;
@@ -482,8 +461,6 @@ export function useAutoPrint(restaurantId, printSettings) {
         // signature (dedupKey) is what suppresses the OTHER path's echo of this same update.
         printQueueRef.current.push({ html, type: 'kot', orderId: dedupKey, stationId, dedupKey: buildKotDedupKey(renderData.kot, stationId) });
         processQueue();
-        // a KOT this till printed for an order saved offline (local event carries the bill's key)
-        if (!data.offlineSync && data.idempotencyKey) recordLocalPrint(data.idempotencyKey);
         return true;
       }
       if (renderData?.empty) {
@@ -511,17 +488,6 @@ export function useAutoPrint(restaurantId, printSettings) {
     // receipt. Skip the normal final-bill print here (a pre-bill still prints).
     if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
       console.log('🖨️ AutoPrint: Billing print skipped — eTIMS fiscal receipt handles it');
-      return;
-    }
-    if (printedHereWhileOffline(data)) {
-      console.log(`🖨️ AutoPrint: Billing print skipped — this till printed it while offline (${data.orderId || data.id})`);
-      logDiag({ phase: 'skipped', kind: 'bill', orderId: data.orderId || data.id, reason: 'printed-here-while-offline' });
-      // token slips need the server, so they could not print offline — print them now
-      const oid = data.orderId || data.id;
-      if (oid && printSettings?.autoPrintOnBilling && (data.tokenBillingEnabled || printSettings?.tokenBillingEnabled) && !wasPrinted(`tok-${oid}`, 'bill')) {
-        markPrinted(`tok-${oid}`, 'bill');
-        setTimeout(() => printTokensForOrder(oid, printSettings), 900);
-      }
       return;
     }
     if (printedByApp(data, 'bill')) {
