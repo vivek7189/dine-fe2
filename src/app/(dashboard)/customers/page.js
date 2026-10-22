@@ -8,6 +8,7 @@ import Head from 'next/head';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../lib/api';
 import StatementSettings from '../../../components/customers/StatementSettings';
+import UdhaarCheckBanner from '../../../components/customers/UdhaarCheckBanner';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
 import { getCachedCustomersData, setCachedCustomersData } from '../../../utils/dashboardCache';
@@ -2622,6 +2623,9 @@ const Customers = () => {
               </button>
             </div>
           </div>
+
+          {/* Udhaar check — bills vs khata (owner / manager; hidden when nothing to check) */}
+          <UdhaarCheckBanner restaurantId={restaurantId} formatCurrency={formatCurrency} onOpenCustomer={goToCustomer} onChanged={() => loadCustomers(false, currentPage, activeSearch)} />
 
           {/* Search and Filters */}
           <div style={{

@@ -132,12 +132,38 @@ var CustomerDetail = function() {
   // old settled entry next to a new one — never count those, or the box asks for double.
   var openCreditEntries = (function() {
     var seen = {};
-    return (creditData.creditHistory || []).filter(function(e) {
+    var list = (creditData.creditHistory || []).filter(function(e) {
       if (!e || e.settledAt || !(e.outstandingAmount > 0) || !e.orderId || seen[e.orderId]) return false;
       seen[e.orderId] = true;
       return true;
     });
+    // + billed bills marked Due that are not on the khata (missed by old bugs) — payable here too
+    (creditData.unpaidBills || []).forEach(function(b) {
+      if (!b || b.onKhata || b.running || seen[b.orderId]) return;
+      seen[b.orderId] = true;
+      list.push({ orderId: b.orderId, orderNumber: b.dailyOrderId ? String(b.dailyOrderId) : b.orderNumber, date: b.date,
+        totalAmount: b.totalAmount, paidAmount: b.paidAmount, outstandingAmount: b.outstandingAmount, notOnKhata: true });
+    });
+    return list;
   })();
+  // Bills marked Due that are not on this customer's khata — owner / manager can fix them in one tap.
+  var billsToCheck = (creditData.unpaidBills || []).filter(function(b) { return b && !b.onKhata && !b.running; });
+  var canCheckKhata = (function() {
+    if (typeof window === 'undefined') return false;
+    try { var r = String((JSON.parse(localStorage.getItem('user') || '{}').role) || '').toLowerCase(); return ['owner', 'admin', 'co-owner', 'manager'].indexOf(r) !== -1; } catch (e) { return false; }
+  })();
+  var [khataFixing, setKhataFixing] = useState(null);
+  var handleKhataAddBill = async function(b) {
+    if (khataFixing) return;
+    try {
+      setKhataFixing(b.orderId);
+      await apiClient.khataAddBill(customerId, b.orderId);
+      setCreditData(await apiClient.getCustomerCreditHistory(customerId));
+      await loadCustomer();
+    } catch (err) {
+      alert(err.message || 'Could not add the bill to the khata');
+    } finally { setKhataFixing(null); }
+  };
   var [bulkMethodOptions, setBulkMethodOptions] = useState([{ id: 'cash', label: 'Cash' }, { id: 'card', label: 'Card' }, { id: 'upi', label: 'UPI' }]);
   useEffect(function() {
     try {
@@ -969,6 +995,36 @@ var CustomerDetail = function() {
               </div>
             )}
 
+            {/* Bills marked Due that are not on the khata — one-tap fix (owner / manager) */}
+            {canCheckKhata && billsToCheck.length > 0 && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#92400e' }}>Bills to check ({billsToCheck.length})</div>
+                <div style={{ fontSize: '11.5px', color: '#92400e', margin: '2px 0 8px' }}>These bills are marked Due but are not in this customer’s khata. Is the money still owed, or did the customer pay?</div>
+                {billsToCheck.map(function(b) {
+                  return (
+                    <div key={b.orderId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid #fde68a' }}>
+                      <div style={{ fontSize: '12.5px', color: '#78350f' }}>
+                        <b>#{b.dailyOrderId || b.orderNumber}</b> · {b.date ? fmtDate(new Date(b.date)) : ''} · due <b>{formatCurrency(b.outstandingAmount)}</b>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button type="button" disabled={!!khataFixing} onClick={function() { handleKhataAddBill(b); }}
+                          style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #f59e0b', background: 'white', color: '#92400e', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
+                          {khataFixing === b.orderId ? 'Adding…' : 'Still owed – add to khata'}
+                        </button>
+                        <button type="button" disabled={!!khataFixing} onClick={function() {
+                            setBulkPaymentAmount(String(Math.round(b.outstandingAmount * 100) / 100));
+                            setSelectedSettleOrders([b.orderId]); setBulkExtraAs('change'); setShowBulkSettle(true);
+                          }}
+                          style={{ padding: '5px 10px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
+                          Customer paid
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Credit History */}
             {creditData.creditHistory.length > 0 && (
               <div style={{
@@ -1791,6 +1847,7 @@ var CustomerDetail = function() {
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
                                   #{entry.orderNumber}
+                                  {entry.notOnKhata && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 700, color: '#92400e', background: '#fef3c7', borderRadius: '6px', padding: '1px 6px' }}>not on khata</span>}
                                 </span>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? '#16a34a' : '#dc2626' }}>
                                   {formatCurrency(entry.outstandingAmount)}

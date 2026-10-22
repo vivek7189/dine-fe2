@@ -4735,6 +4735,17 @@ class ApiClient {
     });
   }
 
+  // Udhaar check — bills vs khata (owner / manager)
+  async getUdhaarCheck(restaurantId) {
+    return this.request(`/api/restaurants/${restaurantId}/udhaar-check`);
+  }
+  async khataAddBill(customerId, orderId) {
+    return this.request(`/api/customers/${customerId}/khata/add-bill`, { method: 'POST', body: { orderId } });
+  }
+  async khataCloseBill(customerId, orderId) {
+    return this.request(`/api/customers/${customerId}/khata/close-bill`, { method: 'POST', body: { orderId } });
+  }
+
   async bulkSettleCredit(customerId, data) {
     return this.request(`/api/customers/${customerId}/bulk-settle-credit`, {
       method: 'POST',
