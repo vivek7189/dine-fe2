@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { orderDisplayNumber } from '../../../../utils/orderNumber';
 import { createPortal } from 'react-dom';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../../lib/api';
 import StatementModal from '../../../../components/customers/StatementModal';
-import { fmtDate, fmtTime } from '../../../../lib/restaurantTime';
-import { posPaymentMethodOptions } from '../../../../utils/paymentMethodOptions'; // order / payment moments in the restaurant's timezone
+import { fmtDate, fmtTime } from '../../../../lib/restaurantTime'; // order / payment moments in the restaurant's timezone
+import { posPaymentMethodOptions } from '../../../../utils/paymentMethodOptions';
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
   FaArrowLeft,
@@ -129,6 +129,12 @@ var CustomerDetail = function() {
   // money beyond the ticked bills — give it back as change (default) or keep it as the customer's advance.
   var [bulkMethod, setBulkMethod] = useState('cash');
   var [bulkExtraAs, setBulkExtraAs] = useState('change');
+  // one request id per Receive Payment box (reused on a retry → the server never takes the same money twice)
+  var bulkKeyRef = useRef(null);
+  var bulkInFlight = useRef(false);
+  useEffect(function() {
+    if (showBulkSettle) bulkKeyRef.current = 'recv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  }, [showBulkSettle]);
   // Bills still owed, one row per bill: the khata may hold a bill twice (old double-post bug) or an
   // old settled entry next to a new one — never count those, or the box asks for double.
   var openCreditEntries = (function() {
@@ -413,7 +419,8 @@ var CustomerDetail = function() {
   };
 
   var handleBulkSettle = async function() {
-    if (bulkSettling || selectedSettleOrders.length === 0 || !bulkPaymentAmount) return;
+    if (bulkSettling || bulkInFlight.current || selectedSettleOrders.length === 0 || !bulkPaymentAmount) return;
+    bulkInFlight.current = true;
     try {
       setBulkSettling(true);
       var settleRes = await apiClient.bulkSettleCredit(customerId, {
@@ -423,6 +430,9 @@ var CustomerDetail = function() {
         extraAs: bulkExtraAs,
         // what the box showed as extra — the server never keeps more than this as advance
         extraShown: settlePlan.extra,
+        idempotencyKey: bulkKeyRef.current || undefined,
+        // the due each ticked bill showed here — a bill changed meanwhile is not touched
+        expected: billsOldestFirst.reduce(function(m, e) { if (selectedSettleOrders.indexOf(e.orderId) !== -1) m[e.orderId] = e.outstandingAmount; return m; }, {}),
         updateOrderStatus: bulkUpdateOrderStatus
       });
       var data = await apiClient.getCustomerCreditHistory(customerId);
@@ -434,8 +444,9 @@ var CustomerDetail = function() {
       setBulkPaymentAmount('');
       setSelectedSettleOrders([]);
       setBulkUpdateOrderStatus(false);
-      if (bulkExtraAs === 'advance' && settleRes && settleRes.extraAmount > 0 && settleRes.extraAs !== 'advance') {
-        alert('Some bills were settled from another screen at the same moment, so the extra ' + formatCurrency(settleRes.extraAmount) + ' was not added as advance — give it back as change.');
+      if (settleRes && (Number(settleRes.notUsed) > 0.009 || (settleRes.changedBills || []).length)) {
+        alert((Number(settleRes.notUsed) > 0.009 ? formatCurrency(settleRes.notUsed) + ' was not applied to any bill — give it back to the customer. ' : '')
+          + ((settleRes.changedBills || []).length ? 'Some bills changed since this screen opened and were not touched.' : ''));
       }
       setBulkExtraAs('change');
     } catch (err) {
@@ -443,7 +454,13 @@ var CustomerDetail = function() {
       alert(err.message || 'Failed to settle credit');
       // e.g. "already paid" — the server closed those entries; show the list as it is now
       try { setCreditData(await apiClient.getCustomerCreditHistory(customerId)); setSelectedSettleOrders([]); } catch (e) {}
+      // this payment was already saved (double tap / retry) — close the box, show the customer as it is now
+      if (err && err.code === 'ALREADY_SAVED') {
+        try { await loadCustomer(); } catch (e) {}
+        setShowBulkSettle(false); setBulkPaymentAmount('');
+      }
     } finally {
+      bulkInFlight.current = false;
       setBulkSettling(false);
     }
   };
