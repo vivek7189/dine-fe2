@@ -235,6 +235,15 @@ function itemSalesFromOrders(orders, categories) {
 const roleKey = (r) => String(r == null ? '' : r).trim().replace(/\s+/g, ' ').toLowerCase();
 const roleInList = (list, role) => Array.isArray(list) && list.some(r => roleKey(r) === roleKey(role));
 
+// A delivery order's address as one line (QR orders send text; other sources may send {street, city…})
+const deliveryAddressText = (order) => {
+  const a = order && order.deliveryAddress;
+  if (!a) return '';
+  if (typeof a === 'string') return a.trim();
+  return [a.street || a.line1 || a.address, a.area, a.city, a.landmark].filter(Boolean).join(', ');
+};
+const isDeliveryOrder = (order) => String((order && order.orderType) || '').toLowerCase() === 'delivery';
+
 const OrderHistory = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -3077,7 +3086,7 @@ const OrderHistory = () => {
                 )}
                 {order.deliveryAddress && (
                   <div className="flex items-center gap-1 mb-0.5">
-                    <span className="text-blue-500">Address:</span> <span className="font-medium">{order.deliveryAddress}</span>
+                    <span className="text-blue-500">Address:</span> <span className="font-medium">{deliveryAddressText(order)}</span>
                   </div>
                 )}
                 {order.deliveryInfo?.cashHandedOver && (
@@ -4409,10 +4418,17 @@ const OrderHistory = () => {
                             </td>
                             {/* Table/Room */}
                             <td className="px-3 py-2.5">
+                              {isDeliveryOrder(order) ? (
+                                <div className="flex items-center gap-1.5 text-xs text-gray-600 max-w-[220px]" title={deliveryAddressText(order) || 'No address'}>
+                                  <FaTruck size={10} className="text-gray-400 flex-shrink-0" />
+                                  <span className="truncate">{deliveryAddressText(order) || 'No address'}</span>
+                                </div>
+                              ) : (
                               <div className="flex items-center gap-1.5 text-xs text-gray-600">
                                 {isRoom ? <FaBed size={10} className="text-gray-400" /> : <FaTable size={10} className="text-gray-400" />}
                                 <span>{tableOrRoom}</span>
                               </div>
+                              )}
                             </td>
                             {/* Type */}
                             <td className="px-3 py-2.5">
@@ -4946,10 +4962,17 @@ const OrderHistory = () => {
                           <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-1.5 py-1 px-1.5 bg-gray-50 rounded-md">
                             <span className="flex items-center gap-1 truncate"><FaUser className="text-gray-400 text-[9px] flex-shrink-0" /> {order.customerDisplay?.name || t('orderHistory.walkIn')}</span>
                             <span className="text-gray-300">|</span>
+                            {isDeliveryOrder(order) ? (
+                            <span className="flex items-center gap-1 min-w-0 truncate" title={deliveryAddressText(order)}>
+                              <FaTruck className="text-gray-400 text-[9px] flex-shrink-0" />
+                              <span className="truncate">{deliveryAddressText(order) || 'No address'}</span>
+                            </span>
+                            ) : (
                             <span className="flex items-center gap-1 flex-shrink-0">
                               {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? <FaBed className="text-gray-400 text-[9px]" /> : <FaTable className="text-gray-400 text-[9px]" />}
                               {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
                             </span>
+                            )}
                             <span className="text-gray-300">|</span>
                             <span className="flex items-center gap-1 capitalize flex-shrink-0"><FaUtensils className="text-gray-400 text-[9px]" /> {order.orderType?.replace('-', ' ') || t('orderHistory.type.dineIn')}</span>
                           </div>
@@ -4968,6 +4991,15 @@ const OrderHistory = () => {
                               )}
                             </div>
                           </div>
+                          {isDeliveryOrder(order) ? (
+                          <div className="flex items-start gap-2 min-w-0">
+                            <FaTruck className="text-gray-400 text-sm mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <div className="text-xs text-gray-500">Delivery address</div>
+                              <div className="text-sm font-medium text-gray-900 break-words line-clamp-2" title={deliveryAddressText(order)}>{deliveryAddressText(order) || 'No address'}</div>
+                            </div>
+                          </div>
+                          ) : (
                           <div className="flex items-center gap-2">
                             {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? (
                               <FaBed className="text-gray-400 text-sm" />
@@ -4979,6 +5011,7 @@ const OrderHistory = () => {
                               <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}{!order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && order.customerDisplay?.floorName ? ` · ${order.customerDisplay.floorName}` : ''}{order.chairNumber ? ` · Seat ${order.chairNumber}` : ''}</div>
                             </div>
                           </div>
+                          )}
                           <div className="flex items-center gap-2">
                             <FaUtensils className="text-gray-400 text-sm" />
                             <div>
