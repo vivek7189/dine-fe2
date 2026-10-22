@@ -3730,6 +3730,9 @@ function RestaurantPOSContent() {
     // both, so its offline copy is the SAME bill (same id, same amounts / discounts / udhaar).
     let billingIdemKey = null;
     let billingOrderData = null;
+    // An existing order's full completion update + its payment (set just before sending) — the
+    // error handler queues exactly these if the payment step can't reach the server.
+    let billingExisting = null;
     try {
       setProcessing(true);
       setError('');
@@ -3934,6 +3937,17 @@ function RestaurantPOSContent() {
           return;
         }
 
+        billingExisting = {
+          updateData,
+          payment: {
+            orderId: currentOrder.id,
+            paymentMethod: (splitPay ? (splitPay[0]?.method || 'cash') : paymentMethod) || 'cash',
+            amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+            userId: currentUser.id,
+            restaurantId: selectedRestaurant.id,
+            paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
+          },
+        };
         const response = await apiClient.updateOrder(currentOrder.id, updateData);
 
         // Cloud returns { message, data: { orderId } }, Electron local fallback returns { order, success }
@@ -4393,13 +4407,12 @@ function RestaurantPOSContent() {
       const isNetworkError = !navigator.onLine || error.message?.includes('Load failed') || error.message?.includes('Failed to fetch') || error.message?.includes('Network');
       // Desktop with Wi-Fi up but no internet: the computer still says "online", and the desktop's
       // offline layer answers "Request failed offline" for a step it can't do locally (the payment).
-      // The new bill itself is already saved on the till — so for a NEW bill this is "offline,
-      // saved", not "billing failed" (staff would bill again → a second order). Existing table
-      // orders keep today's behaviour.
-      const isDesktopOfflineNewBill = !currentOrder && !!billingIdemKey
+      // The bill (new, or an existing order's completion) is already saved on the till — so this
+      // is "offline, saved", not "billing failed" (staff would bill again → a second order).
+      const isDesktopOfflineBill = (currentOrder ? !!billingExisting : !!billingIdemKey)
         && typeof window !== 'undefined' && !!window.electronAPI?.apiRequest
         && error.message === 'Request failed offline';
-      if ((isNetworkError || isDesktopOfflineNewBill) && offlineEnabled) {
+      if ((isNetworkError || isDesktopOfflineBill) && offlineEnabled) {
         try {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const billingData = {
@@ -4423,6 +4436,20 @@ function RestaurantPOSContent() {
             restaurantId: selectedRestaurant.id,
             paymentStatus: 'completed',
           };
+          if (currentOrder && billingExisting) {
+            // An existing order: queue the FULL completion update + its payment (with the order
+            // id), exactly like the web offline path. If the till already saved the update
+            // offline, the server applies "completed" once (it checks), and the payment lands.
+            await queueOfflineOrder({
+              ...billingExisting.updateData,
+              restaurantId: selectedRestaurant.id,
+              _offlineAction: 'complete_billing_existing',
+              _existingOrderId: currentOrder.id,
+              _paymentData: billingExisting.payment,
+              idempotencyKey: generateIdempotencyKey(),
+            });
+            billingData._queued = true;
+          }
           if (currentOrder) {
             billingData._offlineAction = 'complete_billing_existing';
             billingData._existingOrderId = currentOrder.id;
@@ -4448,7 +4475,7 @@ function RestaurantPOSContent() {
               idempotencyKey: billingIdemKey,
             });
             billingData.idempotencyKey = billingIdemKey; // the success screen below shows this id
-          } else {
+          } else if (!billingData._queued) {
             await queueOfflineOrder(billingData);
           }
           setNotification({ type: 'success', title: t('dashboard.billingSavedOffline'), message: t('dashboard.networkErrorBillingSaved'), show: true });
