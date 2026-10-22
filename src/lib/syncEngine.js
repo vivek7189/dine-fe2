@@ -323,7 +323,8 @@ async function desktopServerUnreachable() {
     const api = typeof window !== 'undefined' && window.electronAPI && window.electronAPI.offlineSync;
     if (!api || typeof api.getSyncStatus !== 'function') return false;
     const st = await api.getSyncStatus();
-    return !!(st && st.isRunning === true && st.isOnline === false);
+    // a user-paused desktop sync stops checking the network → don't let it hold this queue
+    return !!(st && st.isRunning === true && st.isPaused !== true && st.isOnline === false);
   } catch (_) { return false; }
 }
 
