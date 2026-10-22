@@ -4449,6 +4449,7 @@ function RestaurantPOSContent() {
                 _existingOrderId: currentOrder.id,
                 _paymentData: billingExisting.payment,
                 _paymentOnly: true,
+                _updateBackup: billingExisting.updateData, // sent only if the server never got the completion
                 idempotencyKey: generateIdempotencyKey(),
               }
               : {

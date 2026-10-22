@@ -198,6 +198,20 @@ async function executeOfflineAction(apiClient, orderData) {
           waitErr.waitForSync = true;
           throw waitErr;
         }
+        // Backup: if the server still doesn't have the bill completed (the till's own copy was
+        // rejected or never sent), send the completion first — the payment must never complete
+        // the bill on its own (that would skip stats / khata / table release).
+        if (orderData._updateBackup) {
+          let serverStatus = null;
+          try {
+            const r = await apiClient.getOrderById(orderId);
+            const o = (r && Array.isArray(r.orders) && r.orders[0]) || (r && (r.order || r.data)) || null;
+            serverStatus = o && o.status ? String(o.status).toLowerCase() : null;
+          } catch (_) { serverStatus = null; } // unknown → don't risk a second completion
+          if (serverStatus && serverStatus !== 'completed') {
+            await apiClient.updateOrder(orderId, orderData._updateBackup, { headers: syncHeaders });
+          }
+        }
         await apiClient.verifyPayment({ ...orderData._paymentData, orderId: (orderData._paymentData && orderData._paymentData.orderId) || orderId });
         return { order: { id: orderId }, actionType: action };
       }
@@ -285,7 +299,7 @@ async function syncSingleOrder(apiClient, order) {
     return { success: false, reason: 'no_order_returned' };
   } catch (err) {
     // Waiting for the till to send its own copy first is not a failure — don't use up retries
-    // (capped: ~1 h of 30 s checks, then it counts as a normal retry).
+    // (capped at 120 waits, then it counts as a normal retry).
     if (err && err.waitForSync && (order.waitCount || 0) < 120) {
       await updateOrderSyncStatus(order.idempotencyKey, 'pending', {
         waitCount: (order.waitCount || 0) + 1,
