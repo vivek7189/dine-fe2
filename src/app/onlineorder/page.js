@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo, useRef } from 'react';
 import { orderDisplayNumber } from '../../utils/orderNumber';
 import { resolveItemTierPrice, resolveOrderTypeRuleId, resolveVariantTierPrice } from '../../utils/variantPricing';
 import { createPortal } from 'react-dom';
@@ -36,7 +36,7 @@ const withOfferFlags = (cartLines, menuItems) => (cartLines || []).map(ci => {
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaSearch, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaArrowLeft,
-  FaPhone, FaChair, FaUtensils, FaLeaf, FaDrumstickBite, FaSpinner,
+  FaPhone, FaChair, FaUtensils, FaMotorcycle, FaLeaf, FaDrumstickBite, FaSpinner,
   FaLock, FaTimes, FaHotel, FaUser, FaHistory, FaGift, FaStar,
   FaCoins, FaChevronRight, FaCheck, FaPercent, FaCrown, FaSignOutAlt, FaEnvelope
 } from 'react-icons/fa';
@@ -274,8 +274,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     seatNumber: tableNumberProp || '',
     roomNumber: '',
     name: '',
-    email: ''
+    email: '',
+    deliveryAddress: ''
   });
+  // the customer's own saved country (returning customer) wins over the restaurant's country
+  const countryFromSession = useRef(false);
   // Dialling country for the phone fields. Defaults to India, then auto-detects
   // the customer's country from geo (Vercel cookie → timezone → language).
   const [selectedCountry, setSelectedCountry] = useState(DEFAULT_COUNTRY);
@@ -375,7 +378,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           phone: session.phone,
           name: session.name || prev.name
         }));
-        if (session.countryCode) setSelectedCountry(getCountryByCode(session.countryCode));
+        if (session.countryCode) { countryFromSession.current = true; setSelectedCountry(getCountryByCode(session.countryCode)); }
         setFirebaseUid(session.firebaseUid);
         setCustomerVerified(true);
 
@@ -568,6 +571,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
         if (response.success && response.restaurant && response.menu) {
           setRestaurant(response.restaurant);
+          if (response.restaurant.countryCode && !countryFromSession.current) {
+            try { setSelectedCountry(getCountryByCode(response.restaurant.countryCode)); } catch { /* keep detected */ }
+          }
           setQrMenuInfo(response.qrMenu || null);
           if (response.qrMenu?.orderType === 'takeaway') setOrderType('takeaway');
           else if (response.qrMenu?.orderType === 'dine-in' && orderTypeProp !== 'takeaway') setOrderType('table');
@@ -1320,7 +1326,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       orderType: (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType),
       notes: orderType === 'room'
         ? `Online order for Room ${customerInfo.roomNumber || 'N/A'}`
-        : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}${chairParam ? ` · Seat ${chairParam}` : ''}` : 'Takeaway'}`,
+        : `Online order - ${orderType === 'table' ? `Table ${customerInfo.seatNumber || 'Walk-in'}${chairParam ? ` · Seat ${chairParam}` : ''}` : orderType === 'delivery' ? 'Delivery' : 'Takeaway'}`,
+      ...(orderType === 'delivery' ? { deliveryAddress: (customerInfo.deliveryAddress || '').trim() } : {}),
       otp: firebaseUid ? 'verified' : 'skipped',
       verificationId: firebaseUid || null,
       offerIds: selectedOffers.map(o => o.id),
@@ -1527,6 +1534,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     // For optional/none modes, require at least a phone number
     if (loginMode !== 'none' && !customerInfo.phone.trim()) {
       setError('Please enter your phone number');
+      return;
+    }
+    if (orderType === 'delivery' && !(customerInfo.deliveryAddress || '').trim()) {
+      setError('Please enter your delivery address');
       return;
     }
 
@@ -3350,6 +3361,18 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
 
 // Cart Modal Component
 const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '', selectedCountry, setSelectedCountry }) => {
+  // Order types the restaurant offers on its QR (Customer App settings): Takeaway + Dine-in on unless
+  // switched off, Delivery only when switched on. Same rule the server checks.
+  const cartOrderTypes = [
+    customerAppSettings?.allowTakeaway !== false && 'takeaway',
+    customerAppSettings?.allowDineIn !== false && 'table',
+    customerAppSettings?.allowDelivery === true && 'delivery',
+  ].filter(Boolean);
+  const [addrMissing, setAddrMissing] = useState(false);
+  useEffect(() => {
+    // a type the restaurant switched off → move to the first one offered
+    if (cartOrderTypes.length && ['takeaway', 'table', 'delivery'].includes(orderType) && !cartOrderTypes.includes(orderType)) setOrderType(cartOrderTypes[0]);
+  }, [cartOrderTypes.join(','), orderType]); // eslint-disable-line react-hooks/exhaustive-deps
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
   return (
@@ -3516,13 +3539,14 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
                 Order Type
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {['takeaway', 'table'].map(type => (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {cartOrderTypes.map(type => (
                   <button
                     key={type}
                     onClick={() => setOrderType(type)}
                     style={{
                       flex: 1,
+                      minWidth: '90px',
                       padding: '10px',
                       backgroundColor: orderType === type ? '#ef4444' : '#f3f4f6',
                       color: orderType === type ? 'white' : '#6b7280',
@@ -3537,8 +3561,8 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
                       gap: '6px'
                     }}
                   >
-                    {type === 'takeaway' ? <FaUtensils size={12} /> : <FaChair size={12} />}
-                    {type === 'takeaway' ? 'Takeaway' : 'Dine In'}
+                    {type === 'takeaway' ? <FaUtensils size={12} /> : type === 'delivery' ? <FaMotorcycle size={12} /> : <FaChair size={12} />}
+                    {type === 'takeaway' ? 'Takeaway' : type === 'delivery' ? 'Delivery' : 'Dine In'}
                   </button>
                 ))}
               </div>
@@ -3567,6 +3591,23 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               </div>
             )}
 
+            {orderType === 'delivery' && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+                  Delivery address *
+                </label>
+                <textarea
+                  value={customerInfo.deliveryAddress || ''}
+                  onChange={(e) => { setCustomerInfo({ ...customerInfo, deliveryAddress: e.target.value }); setAddrMissing(false); }}
+                  placeholder="Building, street, area, landmark"
+                  rows={3}
+                  maxLength={500}
+                  style={{ width: '100%', padding: '12px', border: `2px solid ${addrMissing ? '#ef4444' : '#f3f4f6'}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+                />
+                {addrMissing && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>Please enter your delivery address</div>}
+              </div>
+            )}
+
             {/* Seat / chair from the scanned per-seat QR (?seat=). Read-only — it's already carried
                 on the order as chairNumber; shown here so the guest sees which seat they scanned. */}
             {orderType === 'table' && chairParam && (
@@ -3579,7 +3620,10 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
 
             {/* Checkout Button - Direct checkout for logged-in users */}
             <button
-              onClick={onCheckout}
+              onClick={() => {
+                if (orderType === 'delivery' && !(customerInfo.deliveryAddress || '').trim()) { setAddrMissing(true); return; }
+                onCheckout();
+              }}
               style={{
                 width: '100%',
                 background: 'linear-gradient(135deg, #ef4444, #dc2626)',
