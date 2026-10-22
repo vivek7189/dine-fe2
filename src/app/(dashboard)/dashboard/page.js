@@ -4177,6 +4177,10 @@ function RestaurantPOSContent() {
 
     // Table this bill is for — kept outside the try so the error handler can revert the table.
     let tableForRevert = null;
+    // The new bill's one id + full order (set when the order is built) — the error handler reuses
+    // both, so its offline copy is the SAME bill (same id, same amounts / discounts / udhaar).
+    let billingIdemKey = null;
+    let billingOrderData = null;
     try {
       setProcessing(true);
       setError('');
@@ -4482,7 +4486,11 @@ function RestaurantPOSContent() {
         const finalTableNumber = !isRoomOrder ? tableToUse : null;
 
         // Create new order for direct billing
+        // ONE id for this bill on every path (cloud, the till's offline store, the offline queue
+        // fallback below) — so a bill saved offline reaches the server once, never twice.
+        billingIdemKey = generateIdempotencyKey();
       const orderData = {
+        idempotencyKey: billingIdemKey,
         restaurantId: selectedRestaurant.id,
           tableNumber: finalTableNumber || null,
           roomNumber: roomNumber || null, // NEW: Include room number for hotel orders
@@ -4609,7 +4617,7 @@ function RestaurantPOSContent() {
               restaurantId: selectedRestaurant.id,
               paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
             };
-            const offlineIdempotencyKey = generateIdempotencyKey();
+            const offlineIdempotencyKey = orderData.idempotencyKey || generateIdempotencyKey();
             await queueOfflineOrder({
               ...orderData,
               _offlineAction: 'complete_billing_new',
@@ -4659,6 +4667,7 @@ function RestaurantPOSContent() {
         }
 
       stampChair(orderData);
+      billingOrderData = orderData;
       const orderResponse = await apiClient.createOrder(orderData);
       const orderId = orderResponse.order.id;
         console.log('✅ Order created successfully:', orderId);
@@ -4868,7 +4877,26 @@ function RestaurantPOSContent() {
           }
           billingData._paymentData = paymentData;
           billingData.idempotencyKey = generateIdempotencyKey();
-          await queueOfflineOrder(billingData);
+          if (!currentOrder && billingOrderData && billingIdemKey) {
+            // A new bill: queue the FULL bill under the id it was created with (same as the web
+            // offline path). If the till already saved it offline, both copies reach the server
+            // as ONE order — whichever arrives first is the same bill — and this payment lands on it.
+            await queueOfflineOrder({
+              ...billingOrderData,
+              _offlineAction: 'complete_billing_new',
+              _paymentData: {
+                paymentMethod: splitBillData ? 'split-bill' : paymentMethod,
+                amount: finalAmount || (subtotal || getTotalAmount()) + totalTax,
+                userId: currentUser.id,
+                restaurantId: selectedRestaurant.id,
+                paymentStatus: partialPay != null ? (partialPay === 0 ? 'due' : 'partial') : 'completed'
+              },
+              idempotencyKey: billingIdemKey,
+            });
+            billingData.idempotencyKey = billingIdemKey; // the bill shown / printed below uses this id
+          } else {
+            await queueOfflineOrder(billingData);
+          }
           setNotification({ type: 'success', title: t('dashboard.billingSavedOffline'), message: t('dashboard.networkErrorBillingSaved'), show: true });
           setTimeout(() => setNotification(null), 4000);
           setOrderSuccess({
