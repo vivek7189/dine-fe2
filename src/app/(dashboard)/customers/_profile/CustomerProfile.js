@@ -7,7 +7,8 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../../lib/api';
 import StatementModal from '../../../../components/customers/StatementModal';
-import { fmtDate, fmtTime } from '../../../../lib/restaurantTime'; // order / payment moments in the restaurant's timezone
+import { fmtDate, fmtTime } from '../../../../lib/restaurantTime';
+import { posPaymentMethodOptions } from '../../../../utils/paymentMethodOptions'; // order / payment moments in the restaurant's timezone
 import { useCurrency } from '../../../../contexts/CurrencyContext';
 import {
   FaArrowLeft,
@@ -42,7 +43,7 @@ function WalletModal(props) {
   if (typeof document === 'undefined') return null;
   return createPortal(
     <div onMouseDown={function(e) { if (e.target === e.currentTarget) props.onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 10050, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ background: '#fff', borderRadius: '16px', width: '100%', maxWidth: props.maxWidth || '440px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
           <div>
@@ -172,17 +173,22 @@ var CustomerDetail = function() {
       alert(err.message || 'Could not add the bill to the khata');
     } finally { setKhataFixing(null); }
   };
-  var [bulkMethodOptions, setBulkMethodOptions] = useState([{ id: 'cash', label: 'Cash' }, { id: 'card', label: 'Card' }, { id: 'upi', label: 'UPI' }]);
+  var [bulkMethodOptions, setBulkMethodOptions] = useState(posPaymentMethodOptions({}));
+  // the restaurant's own payment methods, fresh from the server — the same list the POS billing shows
+  var custRestaurantId = customer && customer.restaurantId;
   useEffect(function() {
-    try {
-      var ps = (JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') || {}).posSettings || {};
-      var list = Array.isArray(ps.paymentMethods) ? ps.paymentMethods.filter(function(m) { return m && m.id && m.enabled; }) : [];
-      if (list.length) {
-        setBulkMethodOptions(list.map(function(m) { return { id: m.id, label: m.label || m.id }; }));
-        if (!list.some(function(m) { return m.id === 'cash'; })) setBulkMethod(list[0].id); // Cash switched off → first method
-      }
-    } catch (e) {}
-  }, []);
+    var apply = function(ps) {
+      var list = posPaymentMethodOptions(ps);
+      setBulkMethodOptions(list);
+      setBulkMethod(function(cur) { return list.some(function(m) { return m.id === cur; }) ? cur : (list.some(function(m) { return m.id === 'cash'; }) ? 'cash' : list[0].id); });
+    };
+    try { apply(((JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') || {}).posSettings) || {}); } catch (e) {}
+    if (!custRestaurantId) return;
+    apiClient.getRestaurant(custRestaurantId).then(function(res) {
+      var r = (res && (res.restaurant || res.data)) || res || {};
+      if (r && r.posSettings) apply(r.posSettings);
+    }).catch(function() {});
+  }, [custRestaurantId]);
   var isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
 
   useEffect(function() {
@@ -1673,7 +1679,7 @@ var CustomerDetail = function() {
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
-          zIndex: 9999, padding: isMobile ? '0' : '32px',
+          zIndex: 10050, padding: isMobile ? '0' : '32px', // above the left menu (10000)
           paddingBottom: isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
         }}>
           <div style={{
@@ -1766,7 +1772,7 @@ var CustomerDetail = function() {
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
-          zIndex: 9999, padding: isMobile ? '0' : '32px',
+          zIndex: 10050, padding: isMobile ? '0' : '32px', // above the left menu (10000)
           paddingBottom: isMobileEmbed ? '70px' : (isMobile ? '0' : '32px'),
         }}>
           <div style={{

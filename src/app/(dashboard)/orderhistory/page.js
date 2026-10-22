@@ -1,5 +1,6 @@
 'use client';
 
+import { posPaymentMethodOptions } from '../../../utils/paymentMethodOptions';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1719,13 +1720,11 @@ const OrderHistory = () => {
   const [markPaidMethods, setMarkPaidMethods] = useState([{ id: 'cash', label: 'Cash' }, { id: 'card', label: 'Card' }, { id: 'upi', label: 'UPI' }]);
   const handleMarkPaid = (orderId) => {
     const o = orders.find(x => x.id === orderId);
-    let list = [];
-    try {
-      const ps = (JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') || {}).posSettings || {};
-      list = Array.isArray(ps.paymentMethods) ? ps.paymentMethods.filter(m => m && m.id && m.enabled).map(m => ({ id: m.id, label: m.label || m.id })) : [];
-    } catch (e) {}
-    if (list.length) setMarkPaidMethods(list);
-    const opts = list.length ? list : markPaidMethods;
+    // the restaurant's own payment methods — the same list the POS billing shows
+    let ps = {};
+    try { ps = (restaurant && restaurant.posSettings) || (JSON.parse(localStorage.getItem('selectedRestaurant') || '{}') || {}).posSettings || {}; } catch (e) {}
+    const opts = posPaymentMethodOptions(ps);
+    setMarkPaidMethods(opts);
     setMarkPaidMethod(opts.some(m => m.id === 'cash') ? 'cash' : (opts[0]?.id || 'cash'));
     setMarkPaidAmount(o && o.outstandingAmount > 0 ? String(Math.round(o.outstandingAmount * 100) / 100) : '');
     setMarkPaidKey('markpaid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
