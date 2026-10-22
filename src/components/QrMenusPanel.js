@@ -10,7 +10,7 @@ import QRCode from 'qrcode';
 import apiClient from '../lib/api';
 import { FaPlus, FaTrash, FaSpinner, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
-const newMenu = () => ({ id: '', name: '', categories: [], itemIds: [], orderType: 'any', note: '', active: true });
+const newMenu = () => ({ id: '', name: '', categories: [], itemIds: [], orderType: 'any', note: '', viewOnly: false, allItems: false, active: true });
 
 function qrUrl(restaurant, m) {
   const isDev = process.env.NODE_ENV === 'development';
@@ -53,7 +53,10 @@ export default function QrMenusPanel({ restaurant }) {
 
   // same matching as the server: a category id ("main-course") or name ("Main Course")
   const catId = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  const countFor = (m) => items.filter((i) => (m.itemIds || []).includes(String(i.id)) || (m.categories || []).some((c) => catId(c) === catId(i.category))).length;
+  const countFor = (m) => (m.allItems ? items.filter((i) => i.hideOnQr !== true).length
+    : items.filter((i) => (m.itemIds || []).includes(String(i.id)) || (m.categories || []).some((c) => catId(c) === catId(i.category))).length);
+  // can be saved: a name, and something to show (the whole menu, or picked categories / items)
+  const canSave = (m) => !!m.name.trim() && (m.allItems || (m.categories || []).length > 0 || (m.itemIds || []).length > 0);
   const setM = (k, patch) => setMenus((list) => list.map((m, j) => (j === k ? { ...m, ...patch } : m)));
   // Save ONE menu (k) or delete it: built from the last saved list, so other menus' unsaved edits stay unsaved
   const save = async (k, remove = false) => {
@@ -102,7 +105,7 @@ export default function QrMenusPanel({ restaurant }) {
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>{m.name || 'New QR menu'} {m.active === false && <span style={{ fontSize: 11, color: '#b91c1c', fontWeight: 700 }}>· off</span>}</div>
                 <div style={{ fontSize: '12px', color: '#6b7280', marginTop: 2 }}>
-                  {countFor(m)} items · {m.orderType === 'takeaway' ? 'takeaway' : m.orderType === 'dine-in' ? 'dine-in' : 'any order type'}
+                  {m.allItems ? 'Whole menu' : `${countFor(m)} items`} · {m.viewOnly ? <b style={{ color: '#0369a1' }}>view only — no ordering</b> : (m.orderType === 'takeaway' ? 'takeaway' : m.orderType === 'dine-in' ? 'dine-in' : 'any order type')}
                 </div>
                 {m.id && (
                   <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
@@ -119,13 +122,24 @@ export default function QrMenusPanel({ restaurant }) {
               <div style={{ borderTop: '1px solid #f3f4f6', padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', background: '#fcfcfd' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                   <label style={lbl}>Name<input value={m.name} onChange={(e) => setM(k, { name: e.target.value })} placeholder="e.g. Corporate lunch" style={inp} /></label>
+                  {!m.viewOnly && (
                   <label style={lbl}>Orders from this QR are
                     <select value={m.orderType} onChange={(e) => setM(k, { orderType: e.target.value })} style={inp}>
                       <option value="any">Customer chooses</option><option value="takeaway">Takeaway</option><option value="dine-in">Dine-in</option>
                     </select>
                   </label>
+                  )}
                 </div>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
+                  <input type="checkbox" checked={m.viewOnly === true} onChange={(e) => setM(k, { viewOnly: e.target.checked })} style={{ marginTop: 3 }} />
+                  <span><b>View only</b> — customers who scan this QR can see the menu and prices but cannot order (no Add / cart). Other QR codes still take orders.</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
+                  <input type="checkbox" checked={m.allItems === true} onChange={(e) => setM(k, { allItems: e.target.checked })} style={{ marginTop: 3 }} />
+                  <span><b>Whole menu</b> — show every item (no need to pick categories). Items set to “Hide from the QR menu” stay hidden.</span>
+                </label>
                 <label style={lbl}>Note at the top of the menu (optional)<input value={m.note} onChange={(e) => setM(k, { note: e.target.value })} placeholder="e.g. Staff lunch — pay at the counter" style={inp} /></label>
+                {!m.allItems && (<>
                 <div>
                   <div style={{ ...lbl, display: 'block', marginBottom: 6 }}>Categories on this menu</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -158,13 +172,14 @@ export default function QrMenusPanel({ restaurant }) {
                     </div>
                   )}
                 </div>
+                </>)}
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151' }}>
                   <input type="checkbox" checked={m.active !== false} onChange={(e) => setM(k, { active: e.target.checked })} /> On — when off, this QR shows the normal full menu
                 </label>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
                   <button type="button" onClick={() => (m.id ? save(k, true) : (setMenus((cur) => cur.filter((_, j) => j !== k)), setOpen(null)))} disabled={saving} style={{ ...btn, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaTrash size={11} /> Delete</button>
-                  <button type="button" onClick={() => save(k)} disabled={saving || !m.name.trim() || (!(m.categories || []).length && !(m.itemIds || []).length)}
-                    style={{ ...btn, background: '#7c3aed', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: (saving || !m.name.trim() || (!(m.categories || []).length && !(m.itemIds || []).length)) ? 0.5 : 1 }}>
+                  <button type="button" onClick={() => save(k)} disabled={saving || !canSave(m)}
+                    style={{ ...btn, background: '#7c3aed', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: (saving || !canSave(m)) ? 0.5 : 1 }}>
                     {saving ? <FaSpinner className="animate-spin" size={11} /> : <FaCheck size={11} />} Save
                   </button>
                 </div>

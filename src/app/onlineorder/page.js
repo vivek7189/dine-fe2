@@ -342,6 +342,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const qrMenuParam = String(searchParams.get('menu') || '').slice(0, 40);
   const menuCacheKey = qrMenuParam ? `menu:${qrMenuParam}` : 'menu';
   const [qrMenuInfo, setQrMenuInfo] = useState(null);
+  // Look-only menu: the restaurant's "Public Menu Only" switch, or this QR is a view-only QR menu.
+  const viewOnlyMenu = customerAppSettings?.pageSettings?.publicMenuOnly === true || qrMenuInfo?.viewOnly === true;
 
   useEffect(() => {
     if (!tableParam) return; // no table in the URL → don't blank a value the customer may type
@@ -755,7 +757,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // each size is its own cart line (key = item + size) and is sent as selectedVariant, priced like the POS.
   const qtyOf = (itemId) => cart.filter(ci => ci.id === itemId).reduce((n, ci) => n + ci.quantity, 0);
   const addToCart = (item, variant = null) => {
-    if (customerAppSettings?.pageSettings?.publicMenuOnly === true) return;
+    if (viewOnlyMenu) { showMenuNotice('This menu is for viewing only — please order with the staff'); return; }
     // Menu timings: outside its hours an item can't be added (the backend refuses it too)
     if (item && item.availableNow === false) {
       showMenuNotice(`${item.name} is not available right now${item.availableText ? ` · available ${item.availableText}` : ''}`);
@@ -1581,7 +1583,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // ============================================
   const handleCartClick = () => {
     const loginMode = customerAppSettings?.pageSettings?.loginMode || 'optional';
-    const publicMenuOnly = customerAppSettings?.pageSettings?.publicMenuOnly === true;
+    const publicMenuOnly = viewOnlyMenu;
 
     if (publicMenuOnly) return; // No cart in public menu only mode
 
@@ -2029,7 +2031,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     <FaUser size={16} color={['gradient', 'solid'].includes(headerStyle) ? textColor : '#6b7280'} />
                   </button>
                 )}
-                {customerAppSettings?.pageSettings?.publicMenuOnly !== true && (
+                {!viewOnlyMenu && (
                 <button
                   onClick={handleCartClick}
                   style={{
@@ -2286,8 +2288,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         </div>
       )}
 
-      {/* Public Menu Only Banner */}
-      {customerAppSettings?.pageSettings?.publicMenuOnly === true && (
+      {/* Public Menu Only Banner (restaurant switch or a view-only QR) */}
+      {viewOnlyMenu && (
         <div style={{
           maxWidth: '1400px',
           margin: '0 auto',
@@ -2544,7 +2546,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         cartItemCount={getCartItemCount()}
         cartSubtotal={getCartSubtotal()}
         onViewCart={handleCartClick}
-        publicMenuOnly={customerAppSettings?.pageSettings?.publicMenuOnly === true}
+        publicMenuOnly={viewOnlyMenu}
         cs={cs}
       />
 
