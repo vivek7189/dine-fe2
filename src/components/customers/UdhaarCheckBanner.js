@@ -32,6 +32,7 @@ export default function UdhaarCheckBanner({ restaurantId, formatCurrency, onOpen
 
   const closeEntry = async (it) => {
     if (busy) return;
+    if (!window.confirm(`Close the khata entry of bill #${it.dailyOrderId || it.orderNumber} for ${it.customerName || 'this customer'}? Their Outstanding goes down by ${fmt(it.amount)}.`)) return;
     setBusy(it.orderId);
     try { await apiClient.khataCloseBill(it.customerId, it.orderId); await load(); if (onChanged) onChanged(); }
     catch (err) { alert(err.message || 'Could not close the entry'); }
@@ -39,7 +40,7 @@ export default function UdhaarCheckBanner({ restaurantId, formatCurrency, onOpen
   };
 
   const label = {
-    notOnKhata: (it) => <>Bill <b>#{it.dailyOrderId || it.orderNumber}</b> is marked Due (<b>{fmt(it.amount)}</b>) but is not on the khata</>,
+    notOnKhata: (it) => <>Bill <b>#{it.dailyOrderId || it.orderNumber}</b> is marked Due (<b>{fmt(it.amount)}</b>) but is not on the khata{it.wasOnKhata ? <span style={{ color: '#b45309' }}> — it was on the khata before and was closed{it.wasOnKhata.note ? ` (${it.wasOnKhata.note})` : ''}: check if it was already paid</span> : null}</>,
     paidButOpen: (it) => <>Khata still shows bill <b>#{it.dailyOrderId || it.orderNumber}</b> (<b>{fmt(it.amount)}</b>) but the bill is {it.billStatus}</>,
     balanceOff: (it) => <>Outstanding {fmt(it.balance)} does not match the khata ({fmt(it.openEntries)}) — DineOpen support will fix this</>,
   };

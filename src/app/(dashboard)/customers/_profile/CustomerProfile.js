@@ -155,9 +155,17 @@ var CustomerDetail = function() {
   var [khataFixing, setKhataFixing] = useState(null);
   var handleKhataAddBill = async function(b) {
     if (khataFixing) return;
+    if (!window.confirm('Add bill #' + (b.dailyOrderId || b.orderNumber) + ' (' + formatCurrency(b.outstandingAmount) + ') to this customer’s khata as still owed?')) return;
     try {
       setKhataFixing(b.orderId);
-      await apiClient.khataAddBill(customerId, b.orderId);
+      try {
+        await apiClient.khataAddBill(customerId, b.orderId);
+      } catch (e1) {
+        // the bill was on the khata before and was closed — maybe already collected: ask once more
+        if (e1 && /was on the khata before/i.test(e1.message || '') && window.confirm(e1.message + '\n\nAdd it again anyway?')) {
+          await apiClient.request('/api/customers/' + customerId + '/khata/add-bill', { method: 'POST', body: { orderId: b.orderId, confirm: true } });
+        } else { throw e1; }
+      }
       setCreditData(await apiClient.getCustomerCreditHistory(customerId));
       await loadCustomer();
     } catch (err) {
@@ -804,7 +812,7 @@ var CustomerDetail = function() {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: outstandingBalance > 0 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #34d399)' }}></div>
             <p style={{ margin: 0, fontSize: isMobile ? '24px' : '30px', fontWeight: '800', color: outstandingBalance > 0 ? '#ef4444' : '#10b981' }}>{formatCurrency(outstandingBalance)}</p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding</p>
-            {outstandingBalance > 0 && (
+            {(outstandingBalance > 0 || openCreditEntries.length > 0) && (
               <button onClick={function() { setShowBulkSettle(true); }} style={{
                 marginTop: '8px', padding: '4px 12px', fontSize: '11px', fontWeight: '600',
                 background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px',
