@@ -433,6 +433,8 @@ var CustomerDetail = function() {
         idempotencyKey: bulkKeyRef.current || undefined,
         // the due each ticked bill showed here — a bill changed meanwhile is not touched
         expected: billsOldestFirst.reduce(function(m, e) { if (selectedSettleOrders.indexOf(e.orderId) !== -1) m[e.orderId] = e.outstandingAmount; return m; }, {}),
+        // what this screen pays on each bill — the server never moves a skipped bill's money onto another
+        planned: Object.keys(settlePlan.byBill).reduce(function(m, id) { m[id] = settlePlan.byBill[id].pay; return m; }, {}),
         updateOrderStatus: bulkUpdateOrderStatus
       });
       var data = await apiClient.getCustomerCreditHistory(customerId);
@@ -444,6 +446,7 @@ var CustomerDetail = function() {
       setBulkPaymentAmount('');
       setSelectedSettleOrders([]);
       setBulkUpdateOrderStatus(false);
+      if (settleRes && settleRes.incomplete) alert(settleRes.warning || 'Some of this payment could not be fully saved — refresh before taking any more money.');
       if (settleRes && (Number(settleRes.notUsed) > 0.009 || (settleRes.changedBills || []).length)) {
         alert((Number(settleRes.notUsed) > 0.009 ? formatCurrency(settleRes.notUsed) + ' was not applied to any bill — give it back to the customer. ' : '')
           + ((settleRes.changedBills || []).length ? 'Some bills changed since this screen opened and were not touched.' : ''));
@@ -455,7 +458,7 @@ var CustomerDetail = function() {
       // e.g. "already paid" — the server closed those entries; show the list as it is now
       try { setCreditData(await apiClient.getCustomerCreditHistory(customerId)); setSelectedSettleOrders([]); } catch (e) {}
       // this payment was already saved (double tap / retry) — close the box, show the customer as it is now
-      if (err && err.code === 'ALREADY_SAVED') {
+      if (err && (err.code === 'ALREADY_SAVED' || err.code === 'PARTLY_SAVED')) {
         try { await loadCustomer(); } catch (e) {}
         setShowBulkSettle(false); setBulkPaymentAmount('');
       }
