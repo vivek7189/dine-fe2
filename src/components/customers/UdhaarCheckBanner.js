@@ -7,6 +7,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import apiClient from '../../lib/api';
 
 const MANAGERS = ['owner', 'admin', 'co-owner', 'manager'];
+// bill states where closing the khata entry is right (the server allows exactly these)
+const CLOSABLE = ['paid', 'cancelled', 'deleted', 'refunded', 'not found', 'on another customer'];
 
 export default function UdhaarCheckBanner({ restaurantId, formatCurrency, onOpenCustomer, onChanged }) {
   const [data, setData] = useState(null);
@@ -68,7 +70,10 @@ export default function UdhaarCheckBanner({ restaurantId, formatCurrency, onOpen
                   Open customer
                 </button>
               )}
-              {it.type === 'paidButOpen' && (
+              {it.type === 'paidButOpen' && !CLOSABLE.includes(it.billStatus) && (
+                <span style={{ fontSize: '11.5px', color: '#92400e', fontWeight: 600 }}>Check this bill first</span>
+              )}
+              {it.type === 'paidButOpen' && CLOSABLE.includes(it.billStatus) && (
                 <button type="button" disabled={!!busy} onClick={() => closeEntry(it)}
                   style={{ padding: '5px 10px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
                   {busy === it.orderId ? 'Closing…' : 'Close entry'}

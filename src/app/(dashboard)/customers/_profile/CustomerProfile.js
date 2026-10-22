@@ -162,9 +162,9 @@ var CustomerDetail = function() {
         await apiClient.khataAddBill(customerId, b.orderId);
       } catch (e1) {
         // the bill was on the khata before and was closed — maybe already collected: ask once more
-        if (e1 && /was on the khata before/i.test(e1.message || '') && window.confirm(e1.message + '\n\nAdd it again anyway?')) {
-          await apiClient.request('/api/customers/' + customerId + '/khata/add-bill', { method: 'POST', body: { orderId: b.orderId, confirm: true } });
-        } else { throw e1; }
+        if (!(e1 && /was on the khata before/i.test(e1.message || ''))) throw e1;
+        if (!window.confirm(e1.message + '\n\nAdd it again anyway?')) return; // said no — nothing to report
+        await apiClient.request('/api/customers/' + customerId + '/khata/add-bill', { method: 'POST', body: { orderId: b.orderId, confirm: true } });
       }
       setCreditData(await apiClient.getCustomerCreditHistory(customerId));
       await loadCustomer();
