@@ -314,10 +314,24 @@ async function recoverStuckOrders() {
 // Sync: single-threaded FIFO (for small batches)
 // ==========================================
 
+// Desktop: the computer can say "online" while the internet is down (Wi-Fi up). Replaying then
+// would land in the till's own offline store (not the server), fail, and use up the item's retries
+// — e.g. a bill's payment lost. The desktop's background sync knows if the server really answers:
+// while it is running and says offline, wait. Unknown / not a desktop → as before (fail-open).
+async function desktopServerUnreachable() {
+  try {
+    const api = typeof window !== 'undefined' && window.electronAPI && window.electronAPI.offlineSync;
+    if (!api || typeof api.getSyncStatus !== 'function') return false;
+    const st = await api.getSyncStatus();
+    return !!(st && st.isRunning === true && st.isOnline === false);
+  } catch (_) { return false; }
+}
+
 export async function syncPendingOrders(apiClient) {
   if (isSyncing) return;
   if (_syncPaused) return;
   if (!navigator.onLine) return;
+  if (await desktopServerUnreachable()) return;
   if (isCircuitOpen()) {
     notifyListeners({ type: 'circuit_blocked', ...getCircuitState() });
     return;
@@ -384,6 +398,7 @@ export async function syncPendingOrdersBatch(apiClient) {
   if (isSyncing) return;
   if (_syncPaused) return;
   if (!navigator.onLine) return;
+  if (await desktopServerUnreachable()) return;
   if (isCircuitOpen()) {
     notifyListeners({ type: 'circuit_blocked', ...getCircuitState() });
     return;

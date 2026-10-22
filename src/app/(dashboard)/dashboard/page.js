@@ -4845,7 +4845,15 @@ function RestaurantPOSContent() {
       // If this is a network error (offline), try to queue the billing offline
       // Electron: also allow IndexedDB fallback — the local SQLite path may have failed
       const isNetworkError = !navigator.onLine || error.message?.includes('Load failed') || error.message?.includes('Failed to fetch') || error.message?.includes('Network');
-      if (isNetworkError && offlineEnabled) {
+      // Desktop with Wi-Fi up but no internet: the computer still says "online", and the desktop's
+      // offline layer answers "Request failed offline" for a step it can't do locally (the payment).
+      // The new bill itself is already saved on the till — so for a NEW bill this is "offline,
+      // saved", not "billing failed" (staff would bill again → a second order). Existing table
+      // orders keep today's behaviour.
+      const isDesktopOfflineNewBill = !currentOrder && !!billingIdemKey
+        && typeof window !== 'undefined' && !!window.electronAPI?.apiRequest
+        && error.message === 'Request failed offline';
+      if ((isNetworkError || isDesktopOfflineNewBill) && offlineEnabled) {
         try {
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const billingData = {
