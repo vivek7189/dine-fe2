@@ -165,6 +165,7 @@ import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
 import { settingsPatch, applySettingsPatch } from '../../../utils/settingsPatch';
 import AlsoWorksAs from '../../../components/staff/AlsoWorksAs';
 import RolesSettings from '../../../components/admin/RolesSettings';
+import { normOT, ruleForOrderType, newOrderTypeRule, isOrderTypeRule } from '../../../utils/orderTypePrices';
 
 // Reusable shimmer skeleton for tab content while restaurants load
 const AdminTabSkeleton = ({ variant = 'single' }) => (
@@ -1865,9 +1866,12 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
   // Grouping helpers — categorize rules by channel
   const allRules = pricingSettings.multiPricing?.rules || [];
   const DINEIN_NAMES = ['dine-in', 'dine in', 'dinein'];
+  // Rules named like a custom order type (GLOVO, UBER…) are that order type's prices, not a dine-in
+  // area — shown in their own section (set up from Admin → Order Types → Own prices).
+  const orderTypeRules = allRules.filter(r => isOrderTypeRule(r, selectedRestaurant?.posSettings) && !(r.tableMappings || []).length);
   const dineInZoneRules = allRules.filter(r => {
     const name = (r.name || '').toLowerCase().trim();
-    return !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name) && !DINEIN_NAMES.includes(name);
+    return !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name) && !DINEIN_NAMES.includes(name) && !orderTypeRules.includes(r);
   });
   const takeawayRule = allRules.find(r => TAKEAWAY_NAMES.includes((r.name || '').toLowerCase().trim()));
   const deliveryRule = allRules.find(r => DELIVERY_NAMES.includes((r.name || '').toLowerCase().trim()));
@@ -2267,6 +2271,32 @@ const ZonePricingManagement = ({ restaurants, selectedRestaurant, setSelectedRes
 
             {pricingSettings.multiPricing?.enabled && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                {/* ━━━ ORDER TYPE PRICES (custom order types: GLOVO / BOLT / UBER…) ━━━ */}
+                {orderTypeRules.length > 0 && (
+                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', background: '#fff' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>🛵 Order type prices
+                      <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginLeft: '8px', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
+                        {orderTypeRules.filter(r => r.isActive !== false).length} on
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 10px' }}>
+                      Your own order types with their own item prices. Set the prices per item in Menu → Edit item → Channel Prices (empty = Dine-In price). Names follow the order type — rename or remove it in Admin → Order Types.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {orderTypeRules.map(rule => {
+                        const index = getRuleIndex(rule.id);
+                        return (
+                          <label key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#374151' }}>
+                            <input type="checkbox" checked={rule.isActive !== false} onChange={(e) => updateRule(index, 'isActive', e.target.checked)} style={{ width: 16, height: 16 }} />
+                            <b>{rule.name}</b>
+                            <span style={{ fontSize: '11.5px', color: '#9ca3af' }}>{rule.isActive !== false ? 'own prices on' : 'off — uses normal prices'}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* ━━━ SECTION 1: DINE-IN ZONES ━━━ */}
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
@@ -6251,6 +6281,91 @@ const Admin = () => {
   const [editCompletedTogglingId, setEditCompletedTogglingId] = useState(null);
   const [currentLang, setCurrentLang] = useState('en');
   const [posSettings, setPosSettings] = useState({});
+  // "Own prices" for custom order types (GLOVO / BOLT / UBER): the price rule of the same name.
+  const [otPricing, setOtPricing] = useState(null);       // { enabled, rules } once loaded
+  const [otPricingBusy, setOtPricingBusy] = useState(null); // order type id being switched
+  const [otPricingMsg, setOtPricingMsg] = useState('');
+  const freshPricing = async (rid) => {
+    apiClient.invalidateCache(`/api/restaurants/${rid}/pricing-settings`);
+    const res = await apiClient.getPricingSettings(rid);
+    const mp = res?.settings?.multiPricing || {};
+    return { enabled: mp.enabled === true, rules: Array.isArray(mp.rules) ? mp.rules.map(r => ({ ...r })) : [] };
+  };
+  useEffect(() => {
+    const rid = selectedRestaurant?.id;
+    setOtPricing(null);
+    if (!rid) return;
+    let alive = true;
+    freshPricing(rid).then(p => { if (alive) setOtPricing(p); }).catch(() => { if (alive) setOtPricing({ enabled: false, rules: [], error: true }); });
+    return () => { alive = false; };
+  }, [selectedRestaurant?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Switch "Own prices" for one custom order type: creates (or switches back on) the price rule with
+  // the same name — every POS / app version already prices the order type from it. Off only
+  // switches the rule off; its item prices are kept and come back when switched on again.
+  const setOwnPrices = async (type, on) => {
+    const rid = selectedRestaurant?.id;
+    if (!rid || otPricingBusy) return;
+    setOtPricingBusy(type.id);
+    setOtPricingMsg('');
+    try {
+      const cur = await freshPricing(rid);
+      const rules = cur.rules;
+      let enabled = cur.enabled;
+      const match = ruleForOrderType(rules, type);
+      if (on) {
+        if (match && (match.tableMappings || []).length) {
+          alert(`"${match.name}" is already a dine-in area linked to floors. Rename this order type or that area first.`);
+          return;
+        }
+        if (!enabled) {
+          const others = rules.filter(r => r !== match && r.isActive !== false);
+          if (others.length && !window.confirm(`Turning on prices for ${type.label} also switches your saved price rules back on: ${others.map(r => r.name).join(', ')}.\n\nContinue?`)) return;
+          enabled = true;
+        }
+        if (match) match.isActive = true; else rules.push(newOrderTypeRule(type, rules));
+      } else {
+        if (!match || match.isActive === false) { setOtPricing(cur); return; }
+        match.isActive = false;
+      }
+      await apiClient.updatePricingSettings(rid, { multiPricing: { enabled, rules } });
+      setOtPricing({ enabled, rules });
+      setOtPricingMsg(on ? `${type.label}: own prices on — set them per item in Menu (empty = Dine-In price).` : `${type.label}: own prices off (saved prices kept).`);
+      setTimeout(() => setOtPricingMsg(''), 5000);
+    } catch (e) {
+      alert(e?.message || 'Could not save the price setting');
+    } finally {
+      setOtPricingBusy(null);
+    }
+  };
+  // Add a custom order type — refused when the name is already used (an order type, a built-in, or
+  // a dine-in area linked to floors — the same name would quietly share prices).
+  const addCustomOrderType = (label) => {
+    const clean = String(label || '').trim();
+    if (!clean) return false;
+    const n = normOT(clean);
+    const list = Array.isArray(posSettings.orderTypes) ? posSettings.orderTypes : [];
+    if (['dinein', 'takeaway', 'delivery'].includes(n) || list.some(t => normOT(t.id) === n || normOT(t.label) === n)) {
+      alert(`"${clean}" is already an order type.`);
+      return false;
+    }
+    const area = (otPricing?.rules || []).find(r => normOT(r.name) === n && (r.tableMappings || []).length);
+    if (area) {
+      alert(`"${clean}" is the name of a dine-in area (linked to floors) in Pricing Rules. Use a different name.`);
+      return false;
+    }
+    const id = clean.toLowerCase().replace(/\s+/g, '-');
+    setPosSettings(prev => {
+      const cur = Array.isArray(prev.orderTypes) ? [...prev.orderTypes] : [
+        { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
+        { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
+        { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
+      ];
+      if (cur.some(t => t.id === id)) return prev;
+      cur.push({ id, label: clean, enabled: true });
+      return { ...prev, orderTypes: cur };
+    });
+    return true;
+  };
   // The posSettings as loaded — saving sends only what was changed since (see handleSaveDashboardSettings).
   const posSettingsBaseRef = useRef({});
   const loadPosSettingsFrom = (saved) => {
@@ -12102,10 +12217,27 @@ const Admin = () => {
                       </button>
                       <span style={{ fontSize: '13px', color: '#374151' }}>{ot.label}</span>
                       {isLastEnabled && <span style={{ fontSize: '11px', color: '#9ca3af' }}>(must keep at least one)</span>}
+                      {!isBuiltIn && (() => {
+                        const rule = otPricing ? ruleForOrderType(otPricing.rules, ot) : null;
+                        const own = !!(otPricing?.enabled && rule && rule.isActive !== false);
+                        const isArea = !!(rule && (rule.tableMappings || []).length);
+                        return (
+                          <button type="button" disabled={!otPricing || otPricing.error || otPricingBusy === ot.id || isArea}
+                            title={isArea ? 'This name is a dine-in area in Pricing Rules' : 'Different item prices for this order type (set per item in Menu)'}
+                            onClick={() => setOwnPrices(ot, !own)}
+                            style={{ marginLeft: 'auto', padding: '3px 10px', borderRadius: 999, fontSize: '11px', fontWeight: 700, cursor: otPricing && !isArea ? 'pointer' : 'default',
+                              border: `1px solid ${own ? '#16a34a' : '#e5e7eb'}`, background: own ? '#f0fdf4' : '#fff', color: own ? '#15803d' : '#6b7280' }}>
+                            {otPricingBusy === ot.id ? 'Saving…' : own ? '✓ Own prices' : 'Own prices: off'}
+                          </button>
+                        );
+                      })()}
                       {!isBuiltIn && (
                         <button
                           type="button"
                           onClick={() => {
+                            // its own prices are switched off (kept — they come back if added again)
+                            const r = otPricing ? ruleForOrderType(otPricing.rules, ot) : null;
+                            if (r && r.isActive !== false && !(r.tableMappings || []).length) setOwnPrices(ot, false);
                             setPosSettings(prev => {
                               const list = (Array.isArray(prev.orderTypes) ? prev.orderTypes : []).filter(t => t.id !== ot.id);
                               const updates = { ...prev, orderTypes: list };
@@ -12136,20 +12268,7 @@ const Admin = () => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      const label = e.target.value.trim();
-                      if (!label) return;
-                      const id = label.toLowerCase().replace(/\s+/g, '-');
-                      setPosSettings(prev => {
-                        const list = Array.isArray(prev.orderTypes) ? [...prev.orderTypes] : [
-                          { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
-                          { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
-                          { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
-                        ];
-                        if (list.some(t => t.id === id)) return prev;
-                        list.push({ id, label, enabled: true });
-                        return { ...prev, orderTypes: list };
-                      });
-                      e.target.value = '';
+                      if (addCustomOrderType(e.target.value)) e.target.value = '';
                     }
                   }}
                 />
@@ -12157,20 +12276,7 @@ const Admin = () => {
                   type="button"
                   onClick={() => {
                     const input = document.getElementById('newOrderTypeInput');
-                    const label = input?.value?.trim();
-                    if (!label) return;
-                    const id = label.toLowerCase().replace(/\s+/g, '-');
-                    setPosSettings(prev => {
-                      const list = Array.isArray(prev.orderTypes) ? [...prev.orderTypes] : [
-                        { id: 'dine-in', label: 'Dine-in', enabled: true, builtIn: true },
-                        { id: 'takeaway', label: 'Takeaway', enabled: true, builtIn: true },
-                        { id: 'delivery', label: 'Delivery', enabled: true, builtIn: true },
-                      ];
-                      if (list.some(t => t.id === id)) return prev;
-                      list.push({ id, label, enabled: true });
-                      return { ...prev, orderTypes: list };
-                    });
-                    if (input) input.value = '';
+                    if (addCustomOrderType(input?.value) && input) input.value = '';
                   }}
                   style={{
                     padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
@@ -12179,6 +12285,11 @@ const Admin = () => {
                 >
                   + Add
                 </button>
+              </div>
+
+              <div style={{ fontSize: '11.5px', color: '#6b7280', margin: '-8px 0 14px' }}>
+                <b>Own prices</b> — tap it on an order type (e.g. GLOVO, UBER) to give it its own item prices; then set them in <b>Menu → Edit item → Channel Prices</b>. Empty price = Dine-In price. Order types are saved with <b>Save</b>; Own prices saves at once.
+                {otPricingMsg && <div style={{ marginTop: 6, color: '#15803d', fontWeight: 600 }}>{otPricingMsg}</div>}
               </div>
 
               {/* Default Order Type */}

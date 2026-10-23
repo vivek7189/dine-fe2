@@ -105,6 +105,7 @@ import {
   FaFileCsv,
   FaFilePdf
 } from 'react-icons/fa';
+import { isOrderTypeRule } from '../../../utils/orderTypePrices';
 const RecipeFormBody = dynamic(() => import('../inventory/components/InventoryModals').then(m => ({ default: m.RecipeFormBody })), { ssr: false });
 
 // Capitalize first character, keep rest as-is
@@ -6196,7 +6197,8 @@ const MenuManagement = () => {
                   {multiPricingEnabled && activePricingRules.length > 0 && (() => {
                     const extraRules = activePricingRules.filter(r => {
                       const name = (r.name || '').toLowerCase().trim();
-                      return r.isActive && !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name) && !DINEIN_NAMES.includes(name);
+                      return r.isActive && !TAKEAWAY_NAMES.includes(name) && !DELIVERY_NAMES.includes(name) && !DINEIN_NAMES.includes(name)
+                        && !isOrderTypeRule(r, currentRestaurant?.posSettings); // GLOVO / UBER… get their own rows below
                     });
                     if (extraRules.length === 0) return null;
                     const inheritedPrice = formData.dineInPrice || formData.price || '';
@@ -6295,6 +6297,43 @@ const MenuManagement = () => {
                       </div>
                     );
                   })()}
+
+                  {/* Your own order types (GLOVO / BOLT / UBER…) with Own prices on — same level as Takeaway / Delivery */}
+                  {multiPricingEnabled && activePricingRules
+                    .filter(r => r.isActive && isOrderTypeRule(r, currentRestaurant?.posSettings) && !(r.tableMappings || []).length)
+                    .map(rule => {
+                      const saved = formData.pricingRules?.[rule.id];
+                      const has = saved !== undefined && saved !== '' && saved !== null;
+                      const inherit = formData.dineInPrice || formData.price || '';
+                      return (
+                        <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '14px', width: '22px', textAlign: 'center' }}>🏷️</span>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: '#334155', width: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={rule.name}>{rule.name}</span>
+                          <input
+                            type="number"
+                            placeholder={inherit ? `${getCurrencySymbol()}${inherit}` : `${getCurrencySymbol()}0`}
+                            value={has ? saved : ''}
+                            onChange={(e) => { const val = e.target.value; setFormData(prev => ({ ...prev, pricingRules: { ...(prev.pricingRules || {}), [rule.id]: val === '' ? undefined : val } })); }}
+                            min="0" step="0.01"
+                            style={{
+                              flex: 1, maxWidth: '140px', padding: '7px 10px', borderRadius: '6px',
+                              border: has ? '1.5px solid #10b981' : '1px solid #e2e8f0', fontSize: '13px', boxSizing: 'border-box',
+                              backgroundColor: has ? '#f0fdf4' : 'white', fontWeight: has ? '600' : '400', color: has ? '#166534' : '#374151'
+                            }}
+                          />
+                          {!has && <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>= Dine-In price</span>}
+                        </div>
+                      );
+                    })}
+
+                  {/* A Dine-In price typed while pricing rules are on but there is no Dine-In rule is not saved —
+                      say so instead of losing it quietly (adding a Dine-In rule changes walk-in prices, so not automatic) */}
+                  {multiPricingEnabled && formData.dineInPrice !== '' && formData.dineInPrice !== undefined
+                    && !activePricingRules.some(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim())) && (
+                    <p style={{ fontSize: '11.5px', color: '#b91c1c', margin: '6px 0 0', fontWeight: 600 }}>
+                      This Dine-In price will not be saved — there is no “Dine-In” price channel yet. Add it in Admin → Pricing Rules first, or leave the box empty.
+                    </p>
+                  )}
 
                   <p style={{ fontSize: '11px', color: '#94a3b8', margin: '8px 0 0' }}>
                     {t('menu.emptyZonesInfo')}{' '}
