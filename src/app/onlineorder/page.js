@@ -2134,7 +2134,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 multi-pricing and this isn't a table-locked QR; hidden otherwise. */}
             {(() => {
               if (!restaurant?.multiPricing?.enabled || tableNumberProp) return null;
-              const opts = (restaurant?.orderTypes || []).filter(o => o.enabled !== false && !['dine-in', 'booking'].includes(o.id));
+              // Only the customer channels this restaurant allows online (Takeaway / Delivery) — never its own
+              // channels like GLOVO / Uber / Talabat (their prices are for the POS; the server refuses them too).
+              const opts = (restaurant?.orderTypes || []).filter(o => o.enabled !== false
+                && ((o.id === 'takeaway' && customerAppSettings?.allowTakeaway !== false)
+                  || (o.id === 'delivery' && customerAppSettings?.allowDelivery === true)));
               if (opts.length < 2) return null;
               return (
                 <div style={{ display: 'flex', gap: '8px', margin: '2px 4px 12px', flexWrap: 'wrap', alignItems: 'center' }}>
