@@ -97,6 +97,7 @@ import useTimedMenu from '../../../../hooks/useTimedMenu';
 import { resolveVariantTierPrice, resolveItemTierPrice } from '../../../../utils/variantPricing';
 import { calculatePerItemTax, savedLineBasePrice } from '../../../../utils/taxEngine';
 import { resolveAdditionalCharges } from '../../../../utils/additionalCharges';
+import { floorRuleFor } from '../../../../utils/floorRule';
 
 // Safe wrappers for contexts that may not be available in mobile embed mode
 function useSafeLoading() {
@@ -2046,12 +2047,8 @@ function RestaurantPOSContent() {
     if (!multiPricingEnabled || pricingRules.length === 0) return;
     if (selectedTable?.floor) {
       const floorName = selectedTable.floor;
-      const matchedRule = pricingRules.find(rule =>
-        (rule.tableMappings || []).some(m =>
-          // Server rule (resolveTablePricingRule): the floor name CONTAINS the mapping.
-          !!m && floorName.toLowerCase().includes(String(m).toLowerCase())
-        )
-      );
+      // Same rule as the server: exact floor name first, else a mapping the floor name contains.
+      const matchedRule = floorRuleFor(pricingRules, floorName);
       if (matchedRule) {
         setActivePricingRuleId(matchedRule.id);
         setAutoSelectedRule(true);
@@ -2084,7 +2081,7 @@ function RestaurantPOSContent() {
     // "no rule" (the server would still price at one of those).
     if (selectedTable?.floor) {
       const fl = String(selectedTable.floor).toLowerCase();
-      if (pricingRules.some(r => (r.tableMappings || []).some(m => !!m && fl.includes(String(m).toLowerCase())))) return;
+      if (floorRuleFor(pricingRules, fl)) return;
       const fromOrder = currentOrder?.pricingRuleId ? pricingRules.find(r => r.id === currentOrder.pricingRuleId) : null;
       if (fromOrder) { setActivePricingRuleId(fromOrder.id); setAutoSelectedRule(false); return; }
       if (activePricingRuleId && pricingRules.some(r => r.id === activePricingRuleId)) return;
@@ -2130,7 +2127,7 @@ function RestaurantPOSContent() {
     if (!pricingRules.some(r => r.id === currentOrder.pricingRuleId)) return;
     if (selectedTable?.floor) {
       const fl = String(selectedTable.floor).toLowerCase();
-      if (pricingRules.some(r => (r.tableMappings || []).some(m => !!m && fl.includes(String(m).toLowerCase())))) return;
+      if (floorRuleFor(pricingRules, fl)) return;
     }
     setActivePricingRuleId(currentOrder.pricingRuleId);
     // eslint-disable-next-line react-hooks/exhaustive-deps

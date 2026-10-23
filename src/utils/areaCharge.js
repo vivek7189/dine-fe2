@@ -1,3 +1,4 @@
+import { floorRuleFor } from './floorRule';
 // Area / zone surcharge — an EXACT mirror of the backend (dine-backend index.js):
 //   calculatePricingAdjustments()  — POST /api/orders (new order at a table)
 //   orderZoneSurchargeFor()        — PATCH / edit of an existing order
@@ -51,20 +52,15 @@ export function findTableFloor(floors, selectedTable, tableNumber) {
 }
 
 // The pricing rule the server resolves for a new order (POST /api/orders): only when multiPricing
-// is enabled — the table floor's mapping (resolveTablePricingRule: floor name CONTAINS the mapping)
+// is enabled — the table floor's mapping (resolveTablePricingRule: exact floor name first, else one it contains)
 // → the client's pricingRuleId if it is an active rule → the order-type rule
 // (resolveOrderTypePricingRule: order type id / label ⇄ rule name, normalised). null = none.
 export function serverPricingRuleId(multiPricing, floorName, clientRuleId, orderType, orderTypesList) {
   if (!multiPricing?.enabled) return null;
   const rules = Array.isArray(multiPricing.rules) ? multiPricing.rules : [];
   if (floorName) {
-    const fl = String(floorName).toLowerCase();
-    for (const rule of rules) {
-      if (!rule?.isActive) continue;
-      for (const m of (rule.tableMappings || [])) {
-        if (m && fl.includes(String(m).toLowerCase())) return rule.id;
-      }
-    }
+    const hit = floorRuleFor(rules, floorName, { activeOnly: true }); // exact name first (same as the server)
+    if (hit) return hit.id;
   }
   if (clientRuleId) {
     const r = rules.find(x => x && x.id === clientRuleId && x.isActive);
