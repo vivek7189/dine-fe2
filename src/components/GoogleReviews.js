@@ -643,7 +643,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
               </div>
               <div>
                 <div style={{ fontWeight: '600', color: '#065f46', fontSize: '14px' }}>
-                  Connected as {authStatus.email}
+                  {authStatus.email ? `Connected as ${authStatus.email}` : 'Google account connected'}
                 </div>
                 {authStatus.connectedAt && (
                   <div style={{ fontSize: '12px', color: '#059669', marginTop: '2px' }}>
@@ -1264,11 +1264,11 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
             }}>
               <div>
                 <div style={{ fontWeight: '600', color: '#065f46', fontSize: '15px', marginBottom: '4px' }}>
-                  Connected as {authStatus.email}
+                  {authStatus.email ? `Connected as ${authStatus.email}` : 'Google account connected'}
                 </div>
                 {authStatus.connectedAt && (
                   <div style={{ fontSize: '13px', color: '#059669' }}>
-                    Connected since {new Date(authStatus.connectedAt).toLocaleDateString('en-US', {
+                    Connected since {isNaN(new Date(authStatus.connectedAt)) ? '—' : new Date(authStatus.connectedAt).toLocaleDateString('en-US', {
                       year: 'numeric', month: 'long', day: 'numeric'
                     })}
                   </div>
