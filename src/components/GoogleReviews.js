@@ -49,6 +49,9 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
   const [generatingReply, setGeneratingReply] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
   const [reviewSource, setReviewSource] = useState('none');
+  // From the server: Google's own average / total (Places gives only 5 reviews), paging, messages.
+  const [reviewMeta, setReviewMeta] = useState({ averageRating: null, totalReviewCount: null, nextPageToken: null, message: '', approvalPending: false });
+  const [loadingMore, setLoadingMore] = useState(false);
   const [stats, setStats] = useState({ avg: 0, total: 0, responseRate: 0, newThisMonth: 0 });
   const [expandedReviews, setExpandedReviews] = useState(new Set());
   const [editingReplyFor, setEditingReplyFor] = useState(null);
@@ -152,10 +155,18 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
       if (!silent) setReviewsLoading(true);
       const response = await apiClient.getGoogleReviews(restaurantId, { pageSize: 50 });
       if (response.success) {
-        const fetchedReviews = response.reviews || [];
+        const fetchedReviews = (response.reviews || []).map(normalizeReview);
+        const meta = {
+          averageRating: response.averageRating ?? null,
+          totalReviewCount: response.totalReviewCount ?? null,
+          nextPageToken: response.nextPageToken || null,
+          message: response.message || '',
+          approvalPending: response.googleApprovalPending === true,
+        };
         setReviews(fetchedReviews);
+        setReviewMeta(meta);
         setReviewSource(response.source || (fetchedReviews.length > 0 ? 'places' : 'none'));
-        computeStats(fetchedReviews);
+        computeStats(fetchedReviews, meta);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
@@ -164,15 +175,49 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
     }
   };
 
-  const computeStats = (reviewsList) => {
-    if (!reviewsList || reviewsList.length === 0) {
+  // The server sends Google's field names (starRating / reviewReply / comment / reviewer); the cards,
+  // filters and stats read rating / reply / text / authorName — map once here.
+  const normalizeReview = (r) => ({
+    ...r,
+    rating: r.rating ?? r.starRating ?? 0,
+    reply: r.reply ?? r.reviewReply ?? null,
+    text: r.text ?? r.comment ?? '',
+    authorName: r.authorName ?? r.reviewer?.displayName,
+    canReply: !String(r.reviewId || r.id || '').startsWith('places_'), // Places reviews can't be answered via the API
+  });
+
+  const loadMoreReviews = async () => {
+    if (!reviewMeta.nextPageToken || loadingMore) return;
+    try {
+      setLoadingMore(true);
+      const response = await apiClient.getGoogleReviews(restaurantId, { pageSize: 50, pageToken: reviewMeta.nextPageToken });
+      if (response.success) {
+        const more = (response.reviews || []).map(normalizeReview);
+        setReviews(prev => {
+          const next = [...prev, ...more];
+          computeStats(next, reviewMeta);
+          return next;
+        });
+        setReviewMeta(prev => ({ ...prev, nextPageToken: response.nextPageToken || null }));
+      }
+    } catch (error) {
+      console.error('Error loading more reviews:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const computeStats = (reviewsList, meta = reviewMeta) => {
+    if ((!reviewsList || reviewsList.length === 0) && !meta?.totalReviewCount) {
       setStats({ avg: 0, total: 0, responseRate: 0, newThisMonth: 0 });
       return;
     }
-    const total = reviewsList.length;
-    const avg = reviewsList.reduce((sum, r) => sum + (r.rating || 0), 0) / total;
+    reviewsList = reviewsList || [];
+    const shown = reviewsList.length;
+    const total = meta?.totalReviewCount || shown;
+    const avg = meta?.averageRating || (shown ? reviewsList.reduce((sum, r) => sum + (r.rating || 0), 0) / shown : 0);
     const replied = reviewsList.filter(r => r.reply && r.reply.comment).length;
-    const responseRate = total > 0 ? Math.round((replied / total) * 100) : 0;
+    const responseRate = shown > 0 ? Math.round((replied / shown) * 100) : 0;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const newThisMonth = reviewsList.filter(r => {
@@ -265,6 +310,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
         reviewText: review.text || review.comment || '',
         reviewerName: review.authorName || review.reviewer?.displayName || 'Customer',
         rating: review.starRating || review.rating,
+        starRating: review.starRating || review.rating,
         tone: replyTone,
         restaurantName: restaurant?.name || ''
       });
@@ -285,14 +331,13 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
       setSendingReply(true);
       await apiClient.replyToGoogleReview(restaurantId, reviewId, replyText.trim());
       // Update local state
-      setReviews(prev => prev.map(r => {
-        if ((r.reviewId || r.id) === reviewId) {
-          return { ...r, reply: { comment: replyText.trim(), updateTime: new Date().toISOString() } };
-        }
-        return r;
-      }));
+      const text = replyText.trim();
+      setReviews(prev => {
+        const next = prev.map(r => ((r.reviewId || r.id) === reviewId ? { ...r, reply: { comment: text, updateTime: new Date().toISOString() } } : r));
+        computeStats(next);
+        return next;
+      });
       cancelReply();
-      computeStats(reviews);
     } catch (error) {
       console.error('Error sending reply:', error);
       alert('Failed to send reply: ' + (error.message || 'Unknown error'));
@@ -305,38 +350,18 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
     if (!confirm('Delete this reply?')) return;
     try {
       await apiClient.deleteGoogleReviewReply(restaurantId, reviewId);
-      setReviews(prev => prev.map(r => {
-        if ((r.reviewId || r.id) === reviewId) {
-          return { ...r, reply: null };
-        }
-        return r;
-      }));
-      computeStats(reviews);
+      setReviews(prev => {
+        const next = prev.map(r => ((r.reviewId || r.id) === reviewId ? { ...r, reply: null } : r));
+        computeStats(next);
+        return next;
+      });
     } catch (error) {
       console.error('Error deleting reply:', error);
       alert('Failed to delete reply: ' + (error.message || 'Unknown error'));
     }
   };
 
-  const generateReviewContent = async () => {
-    if (!settings.aiEnabled || !reviewForm.customerName) return;
-    try {
-      setGeneratingContent(true);
-      const response = await apiClient.generateReviewContent(
-        restaurantId,
-        reviewForm.customerName,
-        reviewForm.rating
-      );
-      if (response.success) {
-        setReviewForm(prev => ({ ...prev, reviewText: response.reviewContent }));
-      }
-    } catch (error) {
-      console.error('Error generating review content:', error);
-      alert('Failed to generate review content: ' + (error.message || 'Unknown error'));
-    } finally {
-      setGeneratingContent(false);
-    }
-  };
+
 
   // ─── Helpers ───
   const copyToClipboard = (text, type = 'default') => {
@@ -363,15 +388,17 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
 
   const printQRCode = () => {
     if (!settings.qrCodeUrl) return;
+    const esc = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(String(settings.qrCodeUrl))) return;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
-        <head><title>Google Review QR Code - ${restaurant?.name || 'Restaurant'}</title></head>
+        <head><title>Google Review QR Code - ${esc(restaurant?.name || 'Restaurant')}</title></head>
         <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;margin:0;padding:40px;">
-          <h2 style="margin-bottom:8px;color:#1f2937;">${restaurant?.name || 'Restaurant'}</h2>
+          <h2 style="margin-bottom:8px;color:#1f2937;">${esc(restaurant?.name || 'Restaurant')}</h2>
           <p style="color:#6b7280;margin-bottom:24px;font-size:16px;">Scan to leave us a Google Review</p>
           <img src="${settings.qrCodeUrl}" style="width:300px;height:300px;" />
-          ${settings.customMessage ? `<p style="margin-top:24px;color:#374151;text-align:center;max-width:400px;font-size:14px;">${settings.customMessage}</p>` : ''}
+          ${settings.customMessage ? `<p style="margin-top:24px;color:#374151;text-align:center;max-width:400px;font-size:14px;">${esc(settings.customMessage)}</p>` : ''}
           <p style="margin-top:32px;color:#9ca3af;font-size:12px;">Powered by DineOpen</p>
         </body>
       </html>
@@ -381,19 +408,17 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
     setTimeout(() => { printWindow.print(); }, 300);
   };
 
+  // Same rule as the server (routes/googleReviews.js normalizeReviewLink): a "ChIJ…" place id (or a
+  // link carrying one) → Google's write-review page; any other https link is kept (it opens the
+  // place page); anything else → nothing. ".../maps/place/<Name>/..." is NOT a place id.
   const constructGoogleReviewUrl = (input) => {
-    if (!input) return '';
-    if (input.includes('writereview') || input.includes('placeid=')) return input;
-    if (input.startsWith('http')) {
-      const placeIdMatch = input.match(/place\/([^\/]+)/) || input.match(/placeid=([^&]+)/);
-      if (placeIdMatch) return `https://search.google.com/local/writereview?placeid=${placeIdMatch[1]}`;
-      if (input.includes('g.page')) return input;
-      return input;
-    }
-    if (input.length > 20 && !input.includes('/') && !input.includes('?')) {
-      return `https://search.google.com/local/writereview?placeid=${input}`;
-    }
-    return '';
+    const v = String(input || '').trim();
+    if (!v) return '';
+    const W = 'https://search.google.com/local/writereview?placeid=';
+    if (/^ChIJ[A-Za-z0-9_-]{10,}$/.test(v)) return W + v;
+    if (!/^https?:\/\//i.test(v)) return '';
+    const id = (v.match(/[?&]place_?id=(ChIJ[A-Za-z0-9_-]{10,})/i) || v.match(/!1s(ChIJ[A-Za-z0-9_-]{10,})/) || [])[1];
+    return id ? W + id : v;
   };
 
   const getRelativeTime = (dateStr) => {
@@ -638,6 +663,18 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
           </div>
         )}
 
+        {/* Connected, but Google hasn't approved DineOpen's review access yet */}
+        {reviewMeta.approvalPending && (
+          <div style={{ ...cardStyle, background: '#eff6ff', border: '1px solid #bfdbfe', marginBottom: '24px', padding: '16px', fontSize: '13px', color: '#1e40af' }}>
+            Your Google account is connected. Full review history and replying from DineOpen start once Google approves DineOpen&apos;s review access — no action needed from you.
+          </div>
+        )}
+        {!authStatus.connected && reviews.length === 0 && reviewMeta.message && (
+          <div style={{ ...cardStyle, background: '#fffbeb', border: '1px solid #fcd34d', marginBottom: '24px', padding: '16px', fontSize: '13px', color: '#92400e' }}>
+            {reviewMeta.message}
+          </div>
+        )}
+
         {/* Places API notice */}
         {reviewSource === 'places' && (
           <div style={{
@@ -740,7 +777,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
               {reviews.length === 0 && !authStatus.connected
                 ? 'Connect your Google Business Profile to see your reviews'
                 : reviews.length === 0 && authStatus.connected
-                  ? 'No reviews found. Share your QR code to start collecting reviews!'
+                  ? (reviewMeta.message || (reviewMeta.approvalPending ? 'Your Google account is connected. Reviews will appear here once Google approves DineOpen\'s review access.' : 'No reviews found. Share your QR code to start collecting reviews!'))
                   : 'No reviews match your filters'}
             </h3>
             {reviews.length === 0 && !authStatus.connected && (
@@ -835,7 +872,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                   )}
 
                   {/* Existing Reply */}
-                  {hasReply && !isReplying && (
+                  {hasReply && !isReplying && review.canReply !== false && (
                     <div style={{
                       backgroundColor: '#f9fafb', borderRadius: '12px', padding: '16px',
                       marginBottom: '12px', borderLeft: '3px solid #4285F4'
@@ -876,8 +913,11 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                     </div>
                   )}
 
-                  {/* Reply Button (when no reply and not replying) */}
-                  {!hasReply && !isReplying && (
+                  {/* Reply Button (when no reply and not replying) — only for reviews Google lets us answer */}
+                  {!hasReply && !isReplying && !review.canReply && (
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Reply to this review in Google Maps</span>
+                  )}
+                  {!hasReply && !isReplying && review.canReply && (
                     <button
                       onClick={() => handleReply(reviewId, '')}
                       style={{
@@ -995,6 +1035,11 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                 </div>
               );
             })}
+            {reviewMeta.nextPageToken && (
+              <button onClick={loadMoreReviews} disabled={loadingMore} style={{ ...secondaryBtnStyle, alignSelf: 'center', padding: '10px 20px' }}>
+                {loadingMore ? 'Loading…' : 'Load more reviews'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1138,133 +1183,22 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
           </div>
         </div>
 
-        {/* AI Review Content Generator */}
+        {/* Open the review page — customers write their own review (no AI-written reviews:
+            Google's policy forbids reviews drafted for customers). */}
         <div style={cardStyle}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px'
-          }}>
-            <FaRobot size={18} style={{ color: '#8b5cf6' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-              AI Review Assistant
-            </h3>
-          </div>
-
-          <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px', lineHeight: '1.6' }}>
-            Help customers write their review by generating a personalized draft they can use as a starting point.
+          <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px', lineHeight: '1.6' }}>
+            Share your review link or QR so happy customers can leave a review in their own words.
           </p>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-            gap: '16px',
-            marginBottom: '20px'
-          }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Customer Name
-              </label>
-              <input
-                type="text"
-                value={reviewForm.customerName}
-                onChange={(e) => setReviewForm(prev => ({ ...prev, customerName: e.target.value }))}
-                placeholder="Enter customer name"
-                style={{
-                  width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb',
-                  borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Rating
-              </label>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                {[1, 2, 3, 4, 5].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setReviewForm(prev => ({ ...prev, rating: r }))}
-                    style={{
-                      padding: '8px', backgroundColor: reviewForm.rating >= r ? '#FFC107' : '#f3f4f6',
-                      color: reviewForm.rating >= r ? 'white' : '#9ca3af',
-                      border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '18px'
-                    }}
-                  >
-                    <FaStar size={18} />
-                  </button>
-                ))}
-                <span style={{ fontSize: '13px', color: '#6b7280', marginLeft: '6px', fontWeight: '600' }}>
-                  {reviewForm.rating} Star{reviewForm.rating !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                Generated Review Text
-              </label>
-              <button
-                onClick={generateReviewContent}
-                disabled={generatingContent || !reviewForm.customerName || !settings.aiEnabled}
-                style={{
-                  padding: '6px 14px',
-                  background: (generatingContent || !reviewForm.customerName || !settings.aiEnabled)
-                    ? '#9ca3af'
-                    : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                  color: 'white', border: 'none', borderRadius: '8px',
-                  fontWeight: '600', fontSize: '12px',
-                  cursor: (generatingContent || !reviewForm.customerName || !settings.aiEnabled) ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: '6px'
-                }}
-              >
-                {generatingContent ? (
-                  <><FaSpinner size={11} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</>
-                ) : (
-                  <><FaRobot size={11} /> AI Generate</>
-                )}
-              </button>
-            </div>
-            <textarea
-              value={reviewForm.reviewText}
-              onChange={(e) => setReviewForm(prev => ({ ...prev, reviewText: e.target.value }))}
-              placeholder={settings.aiEnabled
-                ? "Click 'AI Generate' to create review content, or type your own..."
-                : "AI generation is disabled. Enable it in Settings."}
-              rows={5}
-              style={{
-                width: '100%', padding: '12px', border: '1px solid #e5e7eb',
-                borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit',
-                resize: 'vertical', lineHeight: '1.6', boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => {
-                if (reviewForm.reviewText) copyToClipboard(reviewForm.reviewText);
-              }}
-              disabled={!reviewForm.reviewText}
-              style={{
-                ...secondaryBtnStyle,
-                opacity: !reviewForm.reviewText ? 0.5 : 1,
-                cursor: !reviewForm.reviewText ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <FaCopy size={14} /> Copy Review Text
-            </button>
-            <button
-              onClick={() => {
-                const url = constructGoogleReviewUrl(settings.googleReviewUrl);
-                if (url) window.open(url, '_blank');
-                else alert('Please configure Google Review URL in Settings');
-              }}
-              style={primaryBtnStyle(!settings.googleReviewUrl)}
-            >
-              <FaGoogle size={14} /> Open Google Review Page
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              const url = constructGoogleReviewUrl(settings.googleReviewUrl);
+              if (url) window.open(url, '_blank');
+              else alert('Please configure Google Review URL in Settings');
+            }}
+            style={primaryBtnStyle(!settings.googleReviewUrl)}
+          >
+            <FaGoogle size={14} /> Open Google Review Page
+          </button>
         </div>
       </div>
     );
