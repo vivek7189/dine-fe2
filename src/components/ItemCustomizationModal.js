@@ -5,6 +5,7 @@ import { FaTimes, FaPlus, FaMinus, FaLeaf, FaDrumstickBite } from 'react-icons/f
 import { getDisplayImage } from '../utils/placeholderImages';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { resolveVariantTierPrice } from '../utils/variantPricing';
+import { visibleModifierGroups, hasSizeLinkedGroups } from '../utils/modifierSizes';
 
 const ItemCustomizationModal = ({
   item,
@@ -32,6 +33,9 @@ const ItemCustomizationModal = ({
   const hasCustomizations = item?.customizations && Array.isArray(item.customizations) && item.customizations.length > 0;
   const hasModifierGroups = item?.modifierGroups && Array.isArray(item.modifierGroups) && item.modifierGroups.length > 0;
   const useGroupedUI = hasModifierGroups;
+  // Some add-on groups only belong to one size (e.g. "Extra Toppings (Large)") — only then do the
+  // size-aware rules below apply; every other item keeps the exact behaviour it had before.
+  const sizeLinked = hasModifierGroups && hasSizeLinkedGroups(item.modifierGroups, item.variants);
 
   // Initialize variant/customization selection when modal opens
   useEffect(() => {
@@ -46,15 +50,14 @@ const ItemCustomizationModal = ({
     }
 
     // Pre-select variant from initialVariant (e.g. editing existing cart item)
+    let startVariant = null;
     if (initialVariant && item.variants && Array.isArray(item.variants)) {
-      const matched = item.variants.find(v => v.name === initialVariant.name) || initialVariant;
-      setSelectedVariant(matched);
+      startVariant = item.variants.find(v => v.name === initialVariant.name) || initialVariant;
     } else if (item.variants && Array.isArray(item.variants) && item.variants.length === 1) {
       // Auto-select variant if only one exists
-      setSelectedVariant(item.variants[0]);
-    } else {
-      setSelectedVariant(null);
+      startVariant = item.variants[0];
     }
+    setSelectedVariant(startVariant);
 
     // Pre-select customizations from initialCustomizations
     if (initialCustomizations && Array.isArray(initialCustomizations) && initialCustomizations.length > 0) {
@@ -64,7 +67,30 @@ const ItemCustomizationModal = ({
     }
 
     // Pre-populate group selections from initialCustomizations
-    if (item?.modifierGroups?.length > 0 && initialCustomizations && initialCustomizations.length > 0) {
+    if (item?.modifierGroups?.length > 0 && initialCustomizations && initialCustomizations.length > 0
+      && hasSizeLinkedGroups(item.modifierGroups, item.variants)) {
+      // Size-linked groups repeat the same option names (Mushroom in Regular / Medium / Large), so
+      // each picked add-on goes to ONE group: id match first, the chosen size's groups first.
+      const shown = visibleModifierGroups(item.modifierGroups, startVariant, item.variants);
+      const order = [...shown, ...item.modifierGroups.filter(g => !shown.includes(g))];
+      const map = {};
+      for (const c of initialCustomizations) {
+        const free = (g, gi) => !(map[g.id] || []).some(x => x.id === gi.id);
+        let hit = null;
+        for (const g of order) {
+          const gi = (g.items || []).find(x => c.id != null && x.id === c.id);
+          if (gi && free(g, gi)) { hit = { g, gi }; break; }
+        }
+        if (!hit) {
+          for (const g of order) {
+            const gi = (g.items || []).find(x => x.name === c.name);
+            if (gi && free(g, gi)) { hit = { g, gi }; break; }
+          }
+        }
+        if (hit) (map[hit.g.id] = map[hit.g.id] || []).push({ id: hit.gi.id, name: c.name, price: c.price || 0 });
+      }
+      setSelectedGroupItems(map);
+    } else if (item?.modifierGroups?.length > 0 && initialCustomizations && initialCustomizations.length > 0) {
       const map = {};
       for (const group of item.modifierGroups) {
         const matched = initialCustomizations.filter(c =>
@@ -109,7 +135,7 @@ const ItemCustomizationModal = ({
 
   // Calculate customization price
   const getCustomizationPrice = () => {
-    return selectedCustomizations.reduce((total, cust) => total + (cust.price || 0), 0);
+    return finalCustomizations.reduce((total, cust) => total + (cust.price || 0), 0);
   };
 
   // Calculate total price
@@ -122,6 +148,15 @@ const ItemCustomizationModal = ({
   // Handle variant selection
   const handleVariantSelect = (variant) => {
     setSelectedVariant(variant);
+    if (sizeLinked) {
+      // Changing the size drops add-ons from groups that don't belong to the new size.
+      const keep = {};
+      for (const g of visibleModifierGroups(item.modifierGroups, variant, item.variants)) {
+        if (selectedGroupItems[g.id]?.length) keep[g.id] = selectedGroupItems[g.id];
+      }
+      setSelectedGroupItems(keep);
+      setSelectedCustomizations(Object.values(keep).flat());
+    }
   };
 
   // Handle customization toggle
@@ -172,9 +207,15 @@ const ItemCustomizationModal = ({
     return true;
   };
 
+  // Groups shown for the chosen size (all groups unless some are size-linked).
+  const shownGroups = sizeLinked ? visibleModifierGroups(item.modifierGroups, selectedVariant, item.variants) : (item.modifierGroups || []);
   const allGroupsValid = hasModifierGroups
-    ? item.modifierGroups.every(g => isGroupValid(g))
+    ? shownGroups.every(g => isGroupValid(g))
     : true;
+  // Size-linked: only add-ons from the chosen size's groups go on the bill.
+  const finalCustomizations = sizeLinked
+    ? shownGroups.flatMap(g => selectedGroupItems[g.id] || [])
+    : selectedCustomizations;
 
   // Handle add to cart
   const handleAddToCart = () => {
@@ -193,7 +234,7 @@ const ItemCustomizationModal = ({
         price: variantDisplayPrice(selectedVariant),
         ...(selectedVariant.pricingRules ? { pricingRules: selectedVariant.pricingRules } : {}),
       } : null,
-      selectedCustomizations: selectedCustomizations.map(c => ({
+      selectedCustomizations: finalCustomizations.map(c => ({
         id: c.id,
         name: c.name,
         price: c.price || 0
@@ -511,7 +552,12 @@ const ItemCustomizationModal = ({
             {/* GROUPED MODIFIER UI */}
                 {useGroupedUI && (
                   <div style={{ marginBottom: '24px' }}>
-                    {item.modifierGroups.map((group) => {
+                    {sizeLinked && !selectedVariant && hasVariants && (
+                      <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px 0' }}>
+                        Choose a size to see its add-ons.
+                      </p>
+                    )}
+                    {shownGroups.map((group) => {
                       const selectedInGroup = selectedGroupItems[group.id] || [];
                       const isValid = isGroupValid(group);
                       const isRadio = (group.max || 1) === 1;
@@ -800,10 +846,10 @@ const ItemCustomizationModal = ({
                   {formatCurrency(getBasePrice())}
                 </span>
               </div>
-              {(hasCustomizations || hasModifierGroups) && selectedCustomizations.length > 0 && (
+              {(hasCustomizations || hasModifierGroups) && finalCustomizations.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                    Toppings/Extras ({selectedCustomizations.length})
+                    Toppings/Extras ({finalCustomizations.length})
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
                     +{formatCurrency(getCustomizationPrice())}

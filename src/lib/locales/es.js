@@ -231,6 +231,8 @@ const es = {
     min: 'Mín',
     max: 'Máx',
     radioSingle: 'elegir uno',
+    showForSizes: 'Mostrar para tamaños',
+    allSizes: 'Todos los tamaños',
     checkboxMulti: 'selección múltiple',
     switchToGroups: 'Cambiar a Grupos',
     addItem: 'Agregar ítem',

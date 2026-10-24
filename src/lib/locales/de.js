@@ -231,6 +231,8 @@ const de = {
     min: 'Min',
     max: 'Max',
     radioSingle: 'eine wählen',
+    showForSizes: 'Anzeigen für Größen',
+    allSizes: 'Alle Größen',
     checkboxMulti: 'Mehrfachauswahl',
     switchToGroups: 'Zu Gruppen wechseln',
     addItem: 'Artikel hinzufügen',

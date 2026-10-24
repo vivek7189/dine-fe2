@@ -737,15 +737,17 @@ const OrderSummary = ({
       extras = cartItem.selectedCustomizations.reduce((sum, c) => {
         // Try to find the matching customization in current menu for price validation
         if (menuCustomizations.length > 0) {
-          const menuCust = menuCustomizations.find(mc => mc.id === c.id || mc.name === c.name);
+          // Id first: size-linked groups repeat names (Mushroom in Regular / Large) at different prices.
+          const menuCust = (c.id != null && menuCustomizations.find(mc => mc.id === c.id))
+            || menuCustomizations.find(mc => mc.id === c.id || mc.name === c.name);
           if (menuCust && typeof menuCust.price === 'number') return sum + menuCust.price;
         }
         // Fallback: search modifierGroups if menu item has them
         if (menuItem?.modifierGroups) {
-          for (const group of menuItem.modifierGroups) {
-            const match = (group.items || []).find(gi => gi.id === c.id || gi.name === c.name);
-            if (match && typeof match.price === 'number') return sum + match.price;
-          }
+          const groupItems = menuItem.modifierGroups.flatMap(group => group.items || []);
+          const match = (c.id != null && groupItems.find(gi => gi.id === c.id))
+            || groupItems.find(gi => gi.id === c.id || gi.name === c.name);
+          if (match && typeof match.price === 'number') return sum + match.price;
         }
         return sum + (c?.price || 0);
       }, 0);

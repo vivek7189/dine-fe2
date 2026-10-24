@@ -231,6 +231,8 @@ const pt = {
     min: 'Mín',
     max: 'Máx',
     radioSingle: 'escolher um',
+    showForSizes: 'Mostrar para tamanhos',
+    allSizes: 'Todos os tamanhos',
     checkboxMulti: 'seleção múltipla',
     switchToGroups: 'Mudar para Grupos',
     addItem: 'Adicionar item',

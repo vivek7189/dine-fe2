@@ -1822,6 +1822,8 @@ const en = {
     min: 'Min',
     max: 'Max',
     radioSingle: 'pick one',
+    showForSizes: 'Show for sizes',
+    allSizes: 'All sizes',
     checkboxMulti: 'multi-select',
     switchToGroups: 'Switch to Groups',
     addItem: 'Add item',

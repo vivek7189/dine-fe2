@@ -231,6 +231,8 @@ const zh = {
     min: '最少',
     max: '最多',
     radioSingle: '选一个',
+    showForSizes: '适用规格',
+    allSizes: '所有规格',
     checkboxMulti: '多选',
     switchToGroups: '切换到分组',
     addItem: '添加项目',

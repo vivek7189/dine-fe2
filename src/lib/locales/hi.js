@@ -231,6 +231,8 @@ const hi = {
     min: 'न्यूनतम',
     max: 'अधिकतम',
     radioSingle: 'एक चुनें',
+    showForSizes: 'इन साइज़ के लिए',
+    allSizes: 'सभी साइज़',
     checkboxMulti: 'बहु-चयन',
     switchToGroups: 'समूहों में बदलें',
     addItem: 'आइटम जोड़ें',

@@ -231,6 +231,8 @@ const fr = {
     min: 'Min',
     max: 'Max',
     radioSingle: 'choisir un',
+    showForSizes: 'Afficher pour les tailles',
+    allSizes: 'Toutes les tailles',
     checkboxMulti: 'sélection multiple',
     switchToGroups: 'Passer aux Groupes',
     addItem: 'Ajouter un article',

@@ -1764,6 +1764,8 @@ const ar = {
     min: 'الحد الأدنى',
     max: 'الحد الأقصى',
     radioSingle: 'اختر واحداً',
+    showForSizes: 'عرض للأحجام',
+    allSizes: 'كل الأحجام',
     checkboxMulti: 'اختيار متعدد',
     switchToGroups: 'التبديل إلى المجموعات',
     addItem: 'إضافة عنصر',

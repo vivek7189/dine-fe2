@@ -3284,6 +3284,13 @@ const MenuManagement = () => {
               required: g.required === true,
               min: parseInt(g.min) || 0,
               max: parseInt(g.max) || 1,
+              // "Show for sizes": keep only sizes this item still has (a renamed / removed size
+              // must not hide the group for good — none left = every size).
+              ...(() => {
+                const sizeNames = cleanedVariants.map(v => String(v?.name || '').trim()).filter(Boolean);
+                const keep = (Array.isArray(g.forSizes) ? g.forSizes : []).filter(sz => sizeNames.includes(sz));
+                return keep.length && keep.length < sizeNames.length ? { forSizes: keep } : {};
+              })(),
               items: (g.items || [])
                 .filter(item => item.name)
                 .map(item => ({
@@ -7342,6 +7349,33 @@ const MenuManagement = () => {
                             {(group.max ?? 1) === 1 ? `(${t('menu.radioSingle') || 'pick one'})` : `(${t('menu.checkboxMulti') || 'multi-select'})`}
                           </span>
                         </div>
+
+                        {/* Show for sizes — only when the item has 2+ sizes. None ticked = every size. */}
+                        {(() => {
+                          const sizeNames = [...new Set((formData.variants || []).map(v => String(v?.name || '').trim()).filter(Boolean))];
+                          if (sizeNames.length < 2) return null;
+                          const picked = (Array.isArray(group.forSizes) ? group.forSizes : []).filter(sz => sizeNames.includes(sz));
+                          const toggle = (sz) => {
+                            const next = picked.includes(sz) ? picked.filter(x => x !== sz) : [...picked, sz];
+                            updateModifierGroup(gIdx, 'forSizes', next.length === sizeNames.length ? [] : next);
+                          };
+                          const chip = (active) => ({
+                            padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                            border: `1px solid ${active ? '#ef4444' : '#e5e7eb'}`,
+                            backgroundColor: active ? '#fef2f2' : 'white', color: active ? '#dc2626' : '#6b7280'
+                          });
+                          return (
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>{t('menu.showForSizes') || 'Show for sizes'}:</span>
+                              <button type="button" onClick={() => updateModifierGroup(gIdx, 'forSizes', [])} style={chip(picked.length === 0)}>
+                                {t('menu.allSizes') || 'All sizes'}
+                              </button>
+                              {sizeNames.map(sz => (
+                                <button key={sz} type="button" onClick={() => toggle(sz)} style={chip(picked.includes(sz))}>{sz}</button>
+                              ))}
+                            </div>
+                          );
+                        })()}
 
                         {/* Items within group */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

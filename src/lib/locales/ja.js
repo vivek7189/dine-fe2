@@ -231,6 +231,8 @@ const ja = {
     min: '最小',
     max: '最大',
     radioSingle: '一つ選択',
+    showForSizes: '対象サイズ',
+    allSizes: '全サイズ',
     checkboxMulti: '複数選択',
     switchToGroups: 'グループに切替',
     addItem: 'アイテム追加',
