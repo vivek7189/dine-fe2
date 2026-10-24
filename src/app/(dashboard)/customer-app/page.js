@@ -2849,6 +2849,34 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   ))}
                 </div>
               </div>
+
+              {/* Black menu — dark look for the QR page (Classic menu design) */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setSettings(prev => {
+                    const on = !(prev.branding?.darkMode === true);
+                    // Turning it on also gives a matching black header / white text in one tap.
+                    const look = on ? { headerStyle: 'solid', primaryColor: '#000000', textColor: '#ffffff', pageBackgroundColor: '#000000' } : {};
+                    return { ...prev, branding: { ...prev.branding, ...look, darkMode: on } };
+                  })}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+                    padding: '12px 14px', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                    border: settings.branding?.darkMode ? '2px solid #111827' : '2px solid #e5e7eb',
+                    backgroundColor: settings.branding?.darkMode ? '#111827' : '#f9fafb',
+                    color: settings.branding?.darkMode ? '#ffffff' : '#374151'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '13px' }}>Black menu</div>
+                    <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>Dark QR menu with white text — for the Classic menu design (Menu → Customize)</div>
+                  </div>
+                  <div style={{ width: '40px', height: '22px', borderRadius: '999px', flexShrink: 0, position: 'relative', backgroundColor: settings.branding?.darkMode ? '#22c55e' : '#d1d5db' }}>
+                    <div style={{ position: 'absolute', top: '2px', left: settings.branding?.darkMode ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#ffffff', transition: 'left 0.2s ease' }} />
+                  </div>
+                </button>
+              </div>
             </div>
 
             {/* Right Column - Live Preview */}

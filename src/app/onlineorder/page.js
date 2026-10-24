@@ -305,6 +305,16 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [hasAutoApplied, setHasAutoApplied] = useState(false); // Track if auto-apply has been done
   const [customerData, setCustomerData] = useState(null);
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
+  // Customer App → Branding → dark menu: buttons / cart accents follow the black look (page-level
+  // CSS variables; every accent falls back to today's red when this is off).
+  const qrDark = customerAppSettings?.branding?.darkMode === true;
+  useEffect(() => {
+    if (!qrDark || typeof document === 'undefined') return undefined;
+    const root = document.documentElement;
+    root.style.setProperty('--qr-accent', '#171717');
+    root.style.setProperty('--qr-accent-2', '#000000');
+    return () => { root.style.removeProperty('--qr-accent'); root.style.removeProperty('--qr-accent-2'); };
+  }, [qrDark]);
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [customerVerified, setCustomerVerified] = useState(false);
   const [loyaltyHistory, setLoyaltyHistory] = useState(null);
@@ -1893,6 +1903,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         const logoUrl = customerAppSettings?.branding?.logoUrl || restaurant?.logo;
         const tagline = customerAppSettings?.branding?.tagline || 'Online Ordering';
         const headerStyle = customerAppSettings?.branding?.headerStyle || 'modern';
+        const darkMenu = customerAppSettings?.branding?.darkMode === true; // black QR look
 
         // Helper to darken color for gradient
         const getDarkerShade = (hex) => {
@@ -2112,18 +2123,19 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                   borderRadius: '12px',
                   fontSize: '14px',
                   outline: 'none',
-                  backgroundColor: ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.95)' : '#f9fafb',
+                  backgroundColor: darkMenu ? '#171717' : (['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.95)' : '#f9fafb'),
+                  ...(darkMenu ? { color: '#f3f4f6', border: '1px solid #262626' } : {}),
                   boxSizing: 'border-box',
                   boxShadow: ['gradient', 'solid'].includes(headerStyle) ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
                 }}
                 onFocus={(e) => {
-                  e.target.style.backgroundColor = '#ffffff';
+                  e.target.style.backgroundColor = darkMenu ? '#262626' : '#ffffff';
                   e.target.style.borderColor = brandColor;
                   e.target.style.boxShadow = `0 0 0 3px ${brandColor}22`;
                 }}
                 onBlur={(e) => {
-                  e.target.style.backgroundColor = ['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.95)' : '#f9fafb';
-                  e.target.style.borderColor = '#f3f4f6';
+                  e.target.style.backgroundColor = darkMenu ? '#171717' : (['gradient', 'solid'].includes(headerStyle) ? 'rgba(255,255,255,0.95)' : '#f9fafb');
+                  e.target.style.borderColor = darkMenu ? '#262626' : '#f3f4f6';
                   e.target.style.boxShadow = ['gradient', 'solid'].includes(headerStyle) ? '0 2px 8px rgba(0,0,0,0.1)' : 'none';
                 }}
               />
@@ -2337,7 +2349,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         if (['classic', 'carousel'].includes(themeId)) {
           themeProps.addToCart = addToCart;
           themeProps.cart = cart;
-          if (themeId === 'classic') themeProps.removeFromCart = removeFromCart;
+          if (themeId === 'classic') {
+            themeProps.removeFromCart = removeFromCart;
+            // Customer App → Branding: black menu + the restaurant's own logo
+            themeProps.dark = customerAppSettings?.branding?.darkMode === true;
+            themeProps.logoUrl = customerAppSettings?.branding?.logoUrl || null;
+          }
         }
         if (themeId === 'bistro') {
           themeProps.onAddToCart = addToCart;
@@ -2525,7 +2542,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
               <button
                 onClick={() => setSearchTerm('')}
                 style={{
-                  backgroundColor: '#ef4444',
+                  backgroundColor: 'var(--qr-accent, #ef4444)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -3298,7 +3315,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
       <div
         onClick={onViewCart}
         style={{
-          backgroundColor: '#dc2626',
+          backgroundColor: 'var(--qr-accent-2, #dc2626)',
           margin: '0 12px 12px',
           borderRadius: '16px',
           padding: '12px 14px',
@@ -3530,7 +3547,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
                     <FaMinus size={10} color="#64748b" />
                   </button>
                   <span style={{ fontSize: '14px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
-                  <button onClick={() => addToCart(item)} style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
+                  <button onClick={() => addToCart(item)} style={{ background: 'linear-gradient(135deg, var(--qr-accent, #ef4444), var(--qr-accent-2, #dc2626))', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
                     <FaPlus size={10} color="white" />
                   </button>
                 </div>
@@ -3556,7 +3573,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
                       flex: 1,
                       minWidth: '90px',
                       padding: '10px',
-                      backgroundColor: orderType === type ? '#ef4444' : '#f3f4f6',
+                      backgroundColor: orderType === type ? 'var(--qr-accent, #ef4444)' : '#f3f4f6',
                       color: orderType === type ? 'white' : '#6b7280',
                       border: 'none',
                       borderRadius: '8px',
@@ -3634,7 +3651,7 @@ const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemC
               }}
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                background: 'linear-gradient(135deg, var(--qr-accent, #ef4444), var(--qr-accent-2, #dc2626))',
                 color: 'white',
                 padding: '16px',
                 borderRadius: '12px',
@@ -3690,7 +3707,7 @@ const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError
             width: '72px',
             height: '72px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            background: 'linear-gradient(135deg, var(--qr-accent, #ef4444) 0%, var(--qr-accent-2, #dc2626) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -3791,7 +3808,7 @@ const LoginPopup = ({ customerInfo, setCustomerInfo, sendingOtp, error, setError
               flex: 1.5,
               background: sendingOtp || !phoneValid
                 ? '#d1d5db'
-                : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                : 'linear-gradient(135deg, var(--qr-accent, #ef4444), var(--qr-accent-2, #dc2626))',
               color: 'white',
               border: 'none',
               padding: '14px',
@@ -3939,7 +3956,7 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
               flex: 1,
               background: sendingOtp || otp.length !== otpLength
                 ? '#d1d5db'
-                : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                : 'linear-gradient(135deg, var(--qr-accent, #ef4444), var(--qr-accent-2, #dc2626))',
               color: 'white',
               border: 'none',
               padding: '14px',
@@ -4778,7 +4795,7 @@ const CheckoutView = ({
                         <FaMinus size={10} color="#6b7280" />
                       </button>
                       <span style={{ fontWeight: '600', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
-                      <button onClick={() => addToCart(item)} style={{ background: '#ef4444', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
+                      <button onClick={() => addToCart(item)} style={{ background: 'var(--qr-accent, #ef4444)', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
                         <FaPlus size={10} color="white" />
                       </button>
                     </div>
@@ -4858,7 +4875,7 @@ const CheckoutView = ({
                         justifyContent: 'space-between',
                         padding: '14px',
                         backgroundColor: isSelected ? '#fef2f2' : isApplicable ? '#f9fafb' : '#f3f4f6',
-                        border: isSelected ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                        border: isSelected ? '2px solid var(--qr-accent, #ef4444)' : '1px solid #e5e7eb',
                         borderRadius: '12px',
                         cursor: isApplicable ? 'pointer' : 'not-allowed',
                         opacity: isApplicable ? 1 : 0.6,
@@ -4885,7 +4902,7 @@ const CheckoutView = ({
                           </div>
                         )}
                       </div>
-                      {isSelected && <FaCheck size={16} color="#ef4444" />}
+                      {isSelected && <FaCheck size={16} color="var(--qr-accent, #ef4444)" />}
                     </button>
                   );
                 })}
@@ -5016,7 +5033,7 @@ const CheckoutView = ({
                   marginTop: '8px'
                 }}>
                   <span style={{ color: '#1f2937' }}>Total</span>
-                  <span style={{ color: '#ef4444' }}>{cs}{getFinalTotal().toFixed(2)}</span>
+                  <span style={{ color: 'var(--qr-accent, #ef4444)' }}>{cs}{getFinalTotal().toFixed(2)}</span>
                 </div>
                 {getLoyaltyPointsToEarn() > 0 && (
                   <div style={{
@@ -5131,7 +5148,7 @@ const CheckoutView = ({
                   width: '100%',
                   background: placingOrder
                     ? '#d1d5db'
-                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    : 'linear-gradient(135deg, var(--qr-accent, #ef4444), var(--qr-accent-2, #dc2626))',
                   color: 'white',
                   padding: '18px',
                   borderRadius: '14px',
@@ -5178,7 +5195,7 @@ const CheckoutView = ({
                 <button
                   onClick={() => setCurrentView('menu')}
                   style={{
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    background: 'linear-gradient(135deg, var(--qr-accent, #ef4444), var(--qr-accent-2, #dc2626))',
                     color: 'white',
                     border: 'none',
                     padding: '14px 28px',

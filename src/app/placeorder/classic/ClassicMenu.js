@@ -3,7 +3,24 @@ import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'reac
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import PublicMenuBadge from '../../../components/PublicMenuBadge';
 
-const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹' }) => {
+const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, logoUrl = null }) => {
+  // Black look (Customer App → Branding → Dark menu). Off = exactly the classes used before.
+  const t = dark ? {
+    page: 'bg-black', search: 'bg-neutral-900 border-neutral-800', searchText: 'text-gray-100 placeholder-gray-500', searchIcon: 'text-gray-500',
+    bar: 'bg-black/95 border-neutral-800', chipOff: 'bg-neutral-900 text-gray-300 border border-neutral-700 hover:bg-neutral-800',
+    chipOn: 'bg-white text-black ring-2 ring-neutral-700', heading: 'text-white', count: 'text-gray-300 bg-neutral-800',
+    card: 'bg-neutral-900 border-neutral-800', imgBg: 'bg-neutral-800', name: 'text-white', desc: 'text-gray-400', price: 'text-white',
+    add: 'bg-white border border-white text-black hover:bg-gray-200', step: 'bg-neutral-800 border-neutral-700', stepBtn: 'text-white hover:bg-neutral-700 active:bg-neutral-600', stepQty: 'text-white',
+    empty: 'text-gray-500', logoRing: 'bg-black ring-2 ring-white',
+  } : {
+    page: 'bg-gray-50', search: 'bg-white border-gray-100', searchText: 'text-gray-700 placeholder-gray-400', searchIcon: 'text-gray-400',
+    bar: 'bg-gray-50/95 border-gray-100', chipOff: 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100',
+    chipOn: 'bg-red-600 text-white shadow-red-200 ring-2 ring-red-100', heading: 'text-gray-800', count: 'text-gray-500 bg-gray-200',
+    card: 'bg-white border-gray-100', imgBg: 'bg-gray-100', name: 'text-gray-800', desc: 'text-gray-500', price: 'text-gray-900',
+    add: 'bg-white border border-red-200 text-red-600 hover:bg-red-50', step: 'bg-red-50 border-red-100', stepBtn: 'text-red-600 hover:bg-red-100 active:bg-red-200', stepQty: 'text-red-700',
+    empty: 'text-gray-400', logoRing: 'bg-white',
+  };
+  const logo = logoUrl || restaurant?.logo || null;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -64,24 +81,25 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
     return item ? item.quantity : 0;
   };
 
-  const headerImage = restaurant?.menuTheme?.headerImage || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop";
+  // Dark look with no photo of their own: plain black header (their logo stands out), not the stock café photo.
+  const headerImage = restaurant?.menuTheme?.headerImage || (dark ? null : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop");
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+    <div className={`min-h-screen ${t.page} pb-24 font-sans`}>
       {/* Header Section */}
-      <div className="relative h-64 w-full bg-gray-900 overflow-hidden">
+      <div className={`relative h-64 w-full ${dark ? 'bg-black' : 'bg-gray-900'} overflow-hidden`}>
         <div 
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${headerImage})` }}
+          style={headerImage ? { backgroundImage: `url(${headerImage})` } : undefined}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         </div>
         
         <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col items-center justify-center text-white pb-12">
-          <div className="w-20 h-20 rounded-full bg-white p-1 shadow-xl overflow-hidden shrink-0 mb-3">
+          <div className={`w-20 h-20 rounded-full ${t.logoRing} p-1 shadow-xl overflow-hidden shrink-0 mb-3`}>
              {/* Logo or Placeholder */}
-             {restaurant?.logo ? (
-               <img src={restaurant.logo} alt="Logo" className="w-full h-full object-cover rounded-full" />
+             {logo ? (
+               <img src={logo} alt="Logo" className="w-full h-full object-cover rounded-full" />
              ) : (
                <div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-3xl font-bold text-white">
                  {restaurant?.name?.[0] || 'R'}
@@ -95,12 +113,13 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
 
       {/* Floating Search Bar - Overlapping Header */}
       <div className="px-4 -mt-7 relative z-10 mb-4 max-w-xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-3.5 flex items-center gap-3 border border-gray-100">
-          <FaSearch className="text-gray-400 ml-1" />
+        <div className={`${t.search} rounded-xl shadow-lg p-3.5 flex items-center gap-3 border`}>
+          <FaSearch className={`${t.searchIcon} ml-1`} />
           <input
             type="text"
             placeholder="Search for a dish..."
-            className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm font-medium"
+            className={`flex-1 outline-none ${t.searchText} bg-transparent text-sm font-medium`}
+            style={dark ? { background: 'transparent', color: '#f3f4f6' } : undefined}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -108,14 +127,14 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
       </div>
 
       {/* Categories Horizontal Scroll */}
-      <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-2 pb-4 px-4 shadow-sm border-b border-gray-100">
+      <div className={`sticky top-0 z-20 ${t.bar} backdrop-blur-sm pt-2 pb-4 px-4 shadow-sm border-b`}>
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 max-w-3xl mx-auto">
           <button
             onClick={() => scrollToCategory('all')}
             className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shadow-sm
               ${selectedCategory === 'all' 
-                ? 'bg-red-600 text-white shadow-red-200 ring-2 ring-red-100' 
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'}`}
+                ? t.chipOn 
+                : t.chipOff}`}
           >
             All
           </button>
@@ -125,8 +144,8 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
               onClick={() => scrollToCategory(cat)}
               className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all shadow-sm capitalize
                 ${selectedCategory === cat 
-                  ? 'bg-red-600 text-white shadow-red-200 ring-2 ring-red-100' 
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'}`}
+                  ? t.chipOn 
+                  : t.chipOff}`}
             >
               {cat}
             </button>
@@ -138,8 +157,8 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
       <div className="px-4 space-y-8 mt-4 max-w-3xl mx-auto">
         {Object.entries(groupedItems).map(([category, items]) => (
           <div key={category} id={`category-${category}`} className="scroll-mt-40">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 capitalize flex items-center gap-2">
-              {category} <span className="text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">{items.length}</span>
+            <h3 className={`text-xl font-bold ${t.heading} mb-4 capitalize flex items-center gap-2`}>
+              {category} <span className={`text-xs font-semibold ${t.count} px-2 py-0.5 rounded-full`}>{items.length}</span>
             </h3>
             
             <div className="space-y-4">
@@ -149,14 +168,14 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                 const displayImage = shouldHideImage ? null : getDisplayImage(item);
 
                 return (
-                  <div key={item.id} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex gap-4 transition-all hover:shadow-md">
+                  <div key={item.id} className={`${t.card} p-3 rounded-2xl shadow-sm border flex gap-4 transition-all hover:shadow-md`}>
                     {/* Item Image */}
                     {!shouldHideImage && (
-                    <div className="w-28 h-28 shrink-0 rounded-xl overflow-hidden bg-gray-100 relative group">
+                    <div className={`w-28 h-28 shrink-0 rounded-xl overflow-hidden ${t.imgBg} relative group`}>
                       {displayImage ? (
                         <img src={displayImage} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-3xl">🍽️</div>
+                        <div className={`w-full h-full flex items-center justify-center ${t.imgBg} text-3xl`}>🍽️</div>
                       )}
                       {/* Veg/Non-Veg Badge on Image */}
                       <div className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur rounded p-1 shadow-sm">
@@ -177,34 +196,34 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                     <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
                       <div>
                         {item.badge && <div className="mb-1"><PublicMenuBadge badge={item.badge} /></div>}
-                        <h4 className="font-bold text-gray-800 text-base leading-tight mb-1 truncate">{item.name}</h4>
-                        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.description || 'Delicious and freshly prepared.'}</p>
+                        <h4 className={`font-bold ${t.name} text-base leading-tight mb-1 truncate`}>{item.name}</h4>
+                        <p className={`text-xs ${t.desc} line-clamp-2 leading-relaxed`}>{item.description || 'Delicious and freshly prepared.'}</p>
                       </div>
                       
                       <div className="flex items-center justify-between mt-3">
-                        <div className="font-bold text-gray-900 text-lg">
+                        <div className={`font-bold ${t.price} text-lg`}>
                           {currencySymbol}{item.price}
                         </div>
 
                         {qty === 0 ? (
                           <button 
                             onClick={() => addToCart(item)}
-                            className="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-5 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1"
+                            className={`${t.add} px-5 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1`}
                           >
                             ADD <FaPlus size={8} />
                           </button>
                         ) : (
-                          <div className="flex items-center bg-red-50 rounded-lg border border-red-100 overflow-hidden shadow-sm h-9">
+                          <div className={`flex items-center ${t.step} rounded-lg border overflow-hidden shadow-sm h-9`}>
                             <button 
                               onClick={() => removeFromCart(item.id)}
-                              className="px-3 h-full text-red-600 hover:bg-red-100 transition-colors active:bg-red-200 flex items-center justify-center"
+                              className={`px-3 h-full ${t.stepBtn} transition-colors flex items-center justify-center`}
                             >
                               <FaMinus size={10} />
                             </button>
-                            <span className="font-bold text-sm text-red-700 w-6 text-center">{qty}</span>
+                            <span className={`font-bold text-sm ${t.stepQty} w-6 text-center`}>{qty}</span>
                             <button 
                               onClick={() => addToCart(item)}
-                              className="px-3 h-full text-red-600 hover:bg-red-100 transition-colors active:bg-red-200 flex items-center justify-center"
+                              className={`px-3 h-full ${t.stepBtn} transition-colors flex items-center justify-center`}
                             >
                               <FaPlus size={10} />
                             </button>
@@ -220,7 +239,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
         ))}
 
         {Object.keys(groupedItems).length === 0 && (
-          <div className="text-center py-16 text-gray-400">
+          <div className={`text-center py-16 ${t.empty}`}>
             <p className="text-lg">No items found matching your search.</p>
           </div>
         )}
