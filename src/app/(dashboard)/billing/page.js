@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { getApiBase } from '@/lib/apiBase';
 import { track } from '@/lib/analytics';
+import LinkPlansSection from '@/components/LinkPlansSection';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FaCreditCard,
@@ -49,6 +50,9 @@ function BillingContent() {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
   // Special prices set for this account in dine-admin (Razorpay / INR only).
   const [customPlans, setCustomPlans] = useState([]);
+  // One-time payment-link plans set for this restaurant in dine-admin — when present, the page
+  // shows only these (Razorpay links + QR) instead of the standard plans.
+  const [linkPlans, setLinkPlans] = useState([]);
 
   const API_BASE_URL = getApiBase();
   const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY || 'rzp_live_lMZVjvewP7tKIL';
@@ -536,6 +540,31 @@ function BillingContent() {
           }
 
           setUser(parsedUser);
+
+          // Payment-link plans (never blocks the page; none → the standard plans as before)
+          try {
+            const _tok = localStorage.getItem('authToken');
+            if (_tok && parsedUser.role === 'owner') {
+              const _hdr = { Authorization: `Bearer ${_tok}` };
+              // Back from the Razorpay payment page: confirm it (signed params) → plan switches on.
+              const _sp = new URLSearchParams(window.location.search);
+              if (_sp.get('razorpay_payment_link_id') && _sp.get('razorpay_payment_link_status') === 'paid') {
+                const _body = {};
+                ['razorpay_payment_id', 'razorpay_payment_link_id', 'razorpay_payment_link_reference_id', 'razorpay_payment_link_status', 'razorpay_signature'].forEach(k => { _body[k] = _sp.get(k); });
+                fetch(`${API_BASE_URL}/api/billing/link-plans/return`, { method: 'POST', headers: { ..._hdr, 'Content-Type': 'application/json' }, body: JSON.stringify(_body) })
+                  .then(r => r.json().catch(() => ({})))
+                  .then(d => {
+                    if (d && d.success) { showNotification('success', `Payment received — ${d.planName || 'your plan'} is active.`); setTimeout(() => window.location.replace('/billing'), 1500); }
+                    else showNotification('error', (d && d.error) || 'Could not confirm the payment yet — use "I\'ve paid" on the plan.');
+                  })
+                  .catch(() => {});
+              }
+              fetch(`${API_BASE_URL}/api/billing/link-plans`, { headers: _hdr })
+                .then(r => (r.ok ? r.json() : null))
+                .then(d => setLinkPlans(Array.isArray(d?.plans) ? d.plans : []))
+                .catch(() => {});
+            }
+          } catch (_) { /* standard plans */ }
 
           // Special prices for this account (never blocks the page; none → standard plans only)
           if (parsedUser.uid || parsedUser.id) {
@@ -1570,7 +1599,19 @@ function BillingContent() {
           );
         })()}
 
+        {linkPlans.length > 0 && (
+          <LinkPlansSection
+            plans={linkPlans}
+            apiBase={API_BASE_URL}
+            token={typeof window !== 'undefined' ? localStorage.getItem('authToken') : ''}
+            subscription={currentSubscription}
+            isMobile={isMobile}
+            onPaid={() => setTimeout(() => window.location.reload(), 1500)}
+          />
+        )}
+
         {/* Currency Toggle - Centered */}
+        {linkPlans.length === 0 && (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           gap: '12px', marginBottom: '20px'
@@ -1657,6 +1698,7 @@ function BillingContent() {
             </div>
           )}
         </div>
+        )}
 
         {/* Paid Plan Renewal / Expiration Banner */}
         {(() => {
@@ -1776,7 +1818,8 @@ function BillingContent() {
           return null;
         })()}
 
-        {/* Plans Grid */}
+        {/* Plans Grid — hidden when this restaurant has payment-link plans */}
+        {linkPlans.length === 0 && (
         <div style={{
           backgroundColor: 'white', borderRadius: '12px', padding: '20px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'visible'
@@ -1973,6 +2016,7 @@ function BillingContent() {
             })}
           </div>
         </div>
+        )}
 
         {/* Quick Benefits */}
         <div style={{
