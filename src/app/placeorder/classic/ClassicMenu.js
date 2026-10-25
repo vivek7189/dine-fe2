@@ -3,9 +3,19 @@ import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'reac
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import PublicMenuBadge from '../../../components/PublicMenuBadge';
 
-const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, logoUrl = null }) => {
-  // Black look (Customer App → Branding → Dark menu). Off = exactly the classes used before.
-  const t = dark ? {
+const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null }) => {
+  // Menu look (Customer App → Branding): 'standard' (exactly the classes used before) | 'dark' |
+  // 'green' (racing green + white + gold). `dark` is the older switch for 'dark'.
+  const style = look || (dark ? 'dark' : 'standard');
+  const GREEN = {
+    page: 'bg-[#F3F7F4]', search: 'bg-white border-[#D6E5DB]', searchText: 'text-[#10291F] placeholder-[#7C9A88]', searchIcon: 'text-[#1F7A4D]',
+    bar: 'bg-[#F3F7F4]/95 border-[#D6E5DB]', chipOff: 'bg-white text-[#0B3D2E] border border-[#CFE0D5] hover:bg-[#E7F1EA]',
+    chipOn: 'bg-[#0B3D2E] text-white ring-2 ring-[#C9A227]', heading: 'text-[#0B3D2E]', count: 'text-[#0B3D2E] bg-[#E3EFE7]',
+    card: 'bg-white border-[#E1ECE5]', imgBg: 'bg-[#E7F1EA]', name: 'text-[#10291F]', desc: 'text-[#5B7565]', price: 'text-[#1F7A4D]',
+    add: 'bg-[#1F7A4D] border border-[#1F7A4D] text-white hover:bg-[#17633E]', step: 'bg-[#E7F1EA] border-[#CFE0D5]', stepBtn: 'text-[#0B3D2E] hover:bg-[#D6E9DC] active:bg-[#C4DECD]', stepQty: 'text-[#0B3D2E]',
+    empty: 'text-[#7C9A88]', logoRing: 'bg-white ring-2 ring-[#C9A227]', hero: 'bg-[#0B3D2E]',
+  };
+  const t = style === 'green' ? GREEN : style === 'dark' ? {
     page: 'bg-black', search: 'bg-neutral-900 border-neutral-800', searchText: 'text-gray-100 placeholder-gray-500', searchIcon: 'text-gray-500',
     bar: 'bg-black/95 border-neutral-800', chipOff: 'bg-neutral-900 text-gray-300 border border-neutral-700 hover:bg-neutral-800',
     chipOn: 'bg-white text-black ring-2 ring-neutral-700', heading: 'text-white', count: 'text-gray-300 bg-neutral-800',
@@ -21,6 +31,8 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
     empty: 'text-gray-400', logoRing: 'bg-white',
   };
   const logo = logoUrl || restaurant?.logo || null;
+  // Coloured looks show "breakfast-special-platter" as "breakfast special platter" (capitalize class does the rest).
+  const catLabel = (c) => (style === 'standard' ? c : String(c).replace(/-+/g, ' '));
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -82,17 +94,18 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
   };
 
   // Dark look with no photo of their own: plain black header (their logo stands out), not the stock café photo.
-  const headerImage = restaurant?.menuTheme?.headerImage || (dark ? null : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop");
+  const headerImage = restaurant?.menuTheme?.headerImage || (style !== 'standard' ? null : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop");
 
   return (
     <div className={`min-h-screen ${t.page} pb-24 font-sans`}>
       {/* Header Section */}
-      <div className={`relative h-64 w-full ${dark ? 'bg-black' : 'bg-gray-900'} overflow-hidden`}>
+      <div className={`relative h-64 w-full ${style === 'green' ? t.hero : style === 'dark' ? 'bg-black' : 'bg-gray-900'} overflow-hidden`}>
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={headerImage ? { backgroundImage: `url(${headerImage})` } : undefined}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          {/* photo shade — not over a plain coloured header (it turned the green header black) */}
+          {(headerImage || style === 'standard') && <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />}
         </div>
         
         <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col items-center justify-center text-white pb-12">
@@ -119,7 +132,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
             type="text"
             placeholder="Search for a dish..."
             className={`flex-1 outline-none ${t.searchText} bg-transparent text-sm font-medium`}
-            style={dark ? { background: 'transparent', color: '#f3f4f6' } : undefined}
+            style={style === 'dark' ? { background: 'transparent', color: '#f3f4f6' } : style === 'green' ? { background: 'transparent', color: '#10291F' } : undefined}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -147,7 +160,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                   ? t.chipOn 
                   : t.chipOff}`}
             >
-              {cat}
+              {catLabel(cat)}
             </button>
           ))}
         </div>
@@ -158,7 +171,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
         {Object.entries(groupedItems).map(([category, items]) => (
           <div key={category} id={`category-${category}`} className="scroll-mt-40">
             <h3 className={`text-xl font-bold ${t.heading} mb-4 capitalize flex items-center gap-2`}>
-              {category} <span className={`text-xs font-semibold ${t.count} px-2 py-0.5 rounded-full`}>{items.length}</span>
+              {catLabel(category)} <span className={`text-xs font-semibold ${t.count} px-2 py-0.5 rounded-full`}>{items.length}</span>
             </h3>
             
             <div className="space-y-4">

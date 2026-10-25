@@ -2850,32 +2850,43 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 </div>
               </div>
 
-              {/* Black menu — dark look for the QR page (Classic menu design) */}
+              {/* Menu look for the QR page (Classic menu design). Each look also sets matching header
+                  colours in one tap; colours can still be fine-tuned above. */}
               <div>
-                <button
-                  type="button"
-                  onClick={() => setSettings(prev => {
-                    const on = !(prev.branding?.darkMode === true);
-                    // Turning it on also gives a matching black header / white text in one tap.
-                    const look = on ? { headerStyle: 'solid', primaryColor: '#000000', textColor: '#ffffff', pageBackgroundColor: '#000000' } : {};
-                    return { ...prev, branding: { ...prev.branding, ...look, darkMode: on } };
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                  Menu look <span style={{ fontWeight: 400, color: '#9ca3af' }}>(Classic menu design — Menu → Customize)</span>
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexDirection: isMobile ? 'column' : 'row' }}>
+                  {[
+                    { value: 'standard', label: 'Standard', desc: 'Light, red accents', sw: ['#ffffff', '#ef4444'], look: { darkMode: false } },
+                    { value: 'dark', label: 'Black', desc: 'Black with white text', sw: ['#000000', '#ffffff'], look: { darkMode: true, headerStyle: 'solid', primaryColor: '#000000', textColor: '#ffffff', pageBackgroundColor: '#000000' } },
+                    { value: 'green', label: 'Green & White', desc: 'Racing green, white cards, gold touches', sw: ['#0B3D2E', '#C9A227'], look: { darkMode: false, headerStyle: 'solid', primaryColor: '#0B3D2E', textColor: '#ffffff', pageBackgroundColor: '#F3F7F4' } },
+                  ].map(opt => {
+                    const current = settings.branding?.menuStyle || (settings.branding?.darkMode ? 'dark' : 'standard');
+                    const on = current === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, branding: { ...prev.branding, ...opt.look, menuStyle: opt.value } }))}
+                        style={{
+                          flex: isMobile ? 'none' : 1, padding: '10px 12px', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                          border: on ? '2px solid #111827' : '2px solid #e5e7eb', backgroundColor: on ? '#f9fafb' : 'white', color: '#374151',
+                          display: 'flex', alignItems: 'center', gap: '10px'
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', flexShrink: 0, borderRadius: '6px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                          <span style={{ width: '14px', height: '22px', background: opt.sw[0] }} />
+                          <span style={{ width: '14px', height: '22px', background: opt.sw[1] }} />
+                        </span>
+                        <span>
+                          <span style={{ display: 'block', fontWeight: '600', fontSize: '13px' }}>{opt.label}{on ? ' ✓' : ''}</span>
+                          <span style={{ display: 'block', fontSize: '11px', opacity: 0.75 }}>{opt.desc}</span>
+                        </span>
+                      </button>
+                    );
                   })}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                    padding: '12px 14px', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                    border: settings.branding?.darkMode ? '2px solid #111827' : '2px solid #e5e7eb',
-                    backgroundColor: settings.branding?.darkMode ? '#111827' : '#f9fafb',
-                    color: settings.branding?.darkMode ? '#ffffff' : '#374151'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '13px' }}>Black menu</div>
-                    <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>Dark QR menu with white text — for the Classic menu design (Menu → Customize)</div>
-                  </div>
-                  <div style={{ width: '40px', height: '22px', borderRadius: '999px', flexShrink: 0, position: 'relative', backgroundColor: settings.branding?.darkMode ? '#22c55e' : '#d1d5db' }}>
-                    <div style={{ position: 'absolute', top: '2px', left: settings.branding?.darkMode ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#ffffff', transition: 'left 0.2s ease' }} />
-                  </div>
-                </button>
+                </div>
               </div>
             </div>
 

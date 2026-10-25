@@ -307,14 +307,21 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
   // Customer App → Branding → dark menu: buttons / cart accents follow the black look (page-level
   // CSS variables; every accent falls back to today's red when this is off).
-  const qrDark = customerAppSettings?.branding?.darkMode === true;
+  // Menu look: 'standard' | 'dark' | 'green' (branding.menuStyle; the older darkMode switch = 'dark').
+  const qrLook = (() => {
+    const b = customerAppSettings?.branding || {};
+    if (b.menuStyle === 'green' || b.menuStyle === 'dark') return b.menuStyle;
+    return b.darkMode === true ? 'dark' : 'standard';
+  })();
+  const qrDark = qrLook === 'dark';
   useEffect(() => {
-    if (!qrDark || typeof document === 'undefined') return undefined;
+    if (qrLook === 'standard' || typeof document === 'undefined') return undefined;
     const root = document.documentElement;
-    root.style.setProperty('--qr-accent', '#171717');
-    root.style.setProperty('--qr-accent-2', '#000000');
+    const [a1, a2] = qrLook === 'green' ? ['#1F7A4D', '#0B3D2E'] : ['#171717', '#000000'];
+    root.style.setProperty('--qr-accent', a1);
+    root.style.setProperty('--qr-accent-2', a2);
     return () => { root.style.removeProperty('--qr-accent'); root.style.removeProperty('--qr-accent-2'); };
-  }, [qrDark]);
+  }, [qrLook]);
   const [redeemLoyaltyPoints, setRedeemLoyaltyPoints] = useState(0);
   const [customerVerified, setCustomerVerified] = useState(false);
   const [loyaltyHistory, setLoyaltyHistory] = useState(null);
@@ -1903,7 +1910,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         const logoUrl = customerAppSettings?.branding?.logoUrl || restaurant?.logo;
         const tagline = customerAppSettings?.branding?.tagline || 'Online Ordering';
         const headerStyle = customerAppSettings?.branding?.headerStyle || 'modern';
-        const darkMenu = customerAppSettings?.branding?.darkMode === true; // black QR look
+        const darkMenu = qrLook === 'dark'; // black QR look (green look keeps the light search box)
 
         // Helper to darken color for gradient
         const getDarkerShade = (hex) => {
@@ -2352,7 +2359,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           if (themeId === 'classic') {
             themeProps.removeFromCart = removeFromCart;
             // Customer App → Branding: black menu + the restaurant's own logo
-            themeProps.dark = customerAppSettings?.branding?.darkMode === true;
+            themeProps.dark = qrDark;
+            themeProps.look = qrLook;
             themeProps.logoUrl = customerAppSettings?.branding?.logoUrl || null;
           }
         }
