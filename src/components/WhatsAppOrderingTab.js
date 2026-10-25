@@ -31,6 +31,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [paymentMode, setPaymentMode] = useState('pay_at_counter');
   const [paymentLink, setPaymentLink] = useState('');
   const [orderingMode, setOrderingMode] = useState('chat');
+  const [orderTypes, setOrderTypes] = useState([]); // [] = original single type (takeaway / delivery by the address switch)
   const [toast, setToast] = useState('');
 
   useEffect(() => { if (restaurantId) loadAll(); /* eslint-disable-next-line */ }, [restaurantId]);
@@ -49,6 +50,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       setWelcomeMessage(c.welcomeMessage || `Welcome to *${restaurantName}*! 🍽️\n\nI can help you place an order.\nType *menu* to see our menu.`);
       setRequireAddress(c.requireAddress !== false);
       setOrderingMode(c.orderingMode || 'chat');
+      setOrderTypes(Array.isArray(c.orderTypes) ? c.orderTypes : []);
       setPaymentMode(c.paymentMode || 'pay_at_counter');
       setPaymentLink(c.paymentLink || '');
     } catch (e) { /* ignore — show defaults */ }
@@ -64,6 +66,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
         enabled: nextEnabled != null ? nextEnabled : enabled,
         welcomeMessage,
         requireAddress,
+        orderTypes,
         orderingMode,
         paymentMode,
         paymentLink,
@@ -187,6 +190,34 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
             </div>
 
             <div style={{ marginBottom: 16 }}>
+              <label style={label}><FaListUl style={{ marginRight: 6, verticalAlign: -1 }} />Order types to offer</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'dine-in', label: 'Dine-in', desc: 'Asks the table number' },
+                  { id: 'takeaway', label: 'Takeaway', desc: 'Pick up at the counter' },
+                  { id: 'delivery', label: 'Delivery', desc: 'Asks the address' },
+                ].map(opt => {
+                  const on = orderTypes.includes(opt.id);
+                  return (
+                    <button key={opt.id} onClick={() => setOrderTypes(prev => on ? prev.filter(t => t !== opt.id) : [...prev, opt.id])}
+                      style={{ flex: '1 1 130px', textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: on ? `2px solid ${WA_GREEN}` : '1px solid #d1d5db', background: on ? '#f0fdf4' : '#fff' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: on ? '#065f46' : '#374151' }}>{on ? '☑' : '☐'} {opt.label}</div>
+                      <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{opt.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                {orderTypes.length > 1
+                  ? 'Customers pick one of these before the menu opens; the order reaches your POS with that type.'
+                  : orderTypes.length === 1
+                    ? 'Every WhatsApp order will be this type (no question asked).'
+                    : 'None ticked: orders come as Takeaway — or Delivery when the address switch below is on.'}
+              </div>
+            </div>
+
+            {orderTypes.length === 0 && (
+            <div style={{ marginBottom: 16 }}>
               <label style={label}><FaMotorcycle style={{ marginRight: 6, verticalAlign: -1 }} />Delivery address</label>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 9, padding: '10px 12px' }}>
                 <span style={{ fontSize: 13.5, color: '#374151' }}>Ask the customer for a delivery address</span>
@@ -196,6 +227,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
                 </button>
               </div>
             </div>
+            )}
 
             <div style={{ marginBottom: 16 }}>
               <label style={label}><FaMoneyBillWave style={{ marginRight: 6, verticalAlign: -1 }} />Payment</label>

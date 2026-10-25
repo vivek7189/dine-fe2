@@ -720,10 +720,104 @@ const KitchenOrderTicket = () => {
     alert(`Printing KOT ${kot.kotId || kot.id} to kitchen printer...`);
   };
 
+  // ─── Bar / Kitchen stations (screen-only) ───
+  // posSettings.kdsStations.barCategories = the menu categories made at the bar. When set, each
+  // machine can pick its station (saved in this browser): Bar shows only bar items, Kitchen
+  // everything else, All = today's screen. Nothing else changes — orders, KOT printing and routing
+  // are untouched. On a station screen "Done" only clears the ticket from THAT screen (it comes
+  // back if new items for this station are added to the order); order status is not changed.
+  const [stationCfg, setStationCfg] = useState(null);       // { barCategories: [] }
+  const [menuCatOf, setMenuCatOf] = useState(null);         // Map menuItemId → category
+  const [menuCats, setMenuCats] = useState([]);             // [{ value, label }]
+  const [station, setStation] = useState('all');
+  const [stationDone, setStationDone] = useState([]);       // keys of tickets cleared on this screen
+  const [stationSetup, setStationSetup] = useState(null);   // draft list while the setup panel is open
+  const [stationSaving, setStationSaving] = useState(false);
+  const stationRid = rtdbRestaurantId || currentRestaurant?.id || null;
+  const normCat = (c) => String(c || '').trim().toLowerCase();
+
+  useEffect(() => {
+    if (!stationRid) return;
+    let alive = true;
+    try {
+      setStation(localStorage.getItem(`kds_station:${stationRid}`) || 'all');
+      setStationDone(JSON.parse(localStorage.getItem(`kds_station_done:${stationRid}`) || '[]'));
+    } catch (_) { /* storage blocked — defaults */ }
+    apiClient.getRestaurant(stationRid)
+      .then((r) => { if (alive) setStationCfg((r && r.restaurant && r.restaurant.posSettings && r.restaurant.posSettings.kdsStations) || {}); })
+      .catch(() => { if (alive) setStationCfg({}); });
+    return () => { alive = false; };
+  }, [stationRid]);
+
+  const barCategories = Array.isArray(stationCfg?.barCategories) ? stationCfg.barCategories : [];
+  const stationsOn = barCategories.length > 0;
+  const activeStation = stationsOn ? station : 'all';
+
+  // The menu tells each item's category (order lines may not carry it). Loaded only when needed.
+  useEffect(() => {
+    if (!stationRid || menuCatOf || (!stationsOn && !stationSetup)) return;
+    let alive = true;
+    apiClient.getMenu(stationRid).then((res) => {
+      if (!alive) return;
+      const items = (res && res.menuItems) || [];
+      const names = new Map(((res && res.categories) || []).map(c => [normCat(c.id), c.name]).concat(((res && res.categories) || []).map(c => [normCat(c.name), c.name])));
+      const map = new Map();
+      const cats = new Map();
+      items.forEach((it) => {
+        map.set(it.id, it.category);
+        const v = normCat(it.category);
+        if (v && !cats.has(v)) cats.set(v, { value: v, label: names.get(v) || String(it.category).replace(/[-_]+/g, ' ') });
+      });
+      setMenuCatOf(map);
+      setMenuCats([...cats.values()].sort((a, b) => a.label.localeCompare(b.label)));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [stationRid, stationsOn, stationSetup, menuCatOf]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const barSet = new Set(barCategories.map(normCat));
+  const isBarItem = (item) => {
+    const cat = (menuCatOf && menuCatOf.get(item.menuItemId || item.id)) || item.category;
+    return barSet.has(normCat(cat));
+  };
+  const stationKey = (o) => `${activeStation}:${o.id}:${(o.items || []).map(i => `${i.menuItemId || i.id || i.name}x${i.quantity}`).join(',')}`;
+  const stationOrders = activeStation === 'all'
+    ? kotOrders
+    : kotOrders
+      .map(o => ({ ...o, items: (Array.isArray(o.items) ? o.items : []).filter(i => (activeStation === 'bar' ? isBarItem(i) : !isBarItem(i))) }))
+      .filter(o => o.items.length > 0 && !stationDone.includes(stationKey(o)));
+
+  const pickStation = (s) => {
+    setStation(s);
+    try { localStorage.setItem(`kds_station:${stationRid}`, s); } catch (_) { /* ignore */ }
+  };
+  const markStationDone = (o) => {
+    const next = [...stationDone, stationKey(o)].slice(-500);
+    setStationDone(next);
+    try { localStorage.setItem(`kds_station_done:${stationRid}`, JSON.stringify(next)); } catch (_) { /* ignore */ }
+  };
+  const [canSetStations, setCanSetStations] = useState(false);
+  useEffect(() => {
+    try { setCanSetStations(['owner', 'admin', 'manager'].includes(String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase())); } catch (_) { /* ignore */ }
+  }, []);
+  const saveStations = async () => {
+    setStationSaving(true);
+    try {
+      const next = { ...(stationCfg || {}), barCategories: stationSetup || [] };
+      await apiClient.updateRestaurant(stationRid, { posSettingsPatch: { kdsStations: next } });
+      apiClient.invalidateCache && apiClient.invalidateCache(`/api/restaurants/${stationRid}`);
+      setStationCfg(next);
+      setStationSetup(null);
+      setNotification({ show: true, type: 'success', message: next.barCategories.length ? 'Bar categories saved. Pick Bar or Kitchen on each screen.' : 'Bar / Kitchen screens turned off.' });
+    } catch (e) {
+      setNotification({ show: true, type: 'error', message: e?.message || 'Could not save' });
+    }
+    setStationSaving(false);
+  };
+
   // ─── Filtering & Sorting ───
   const currentTab = TABS.find(t => t.key === selectedTab) || TABS[0];
 
-  const filteredOrders = kotOrders
+  const filteredOrders = stationOrders
     .filter(order => {
       const orderDate = order.kotTime || order.createdAt || order.timestamp;
       if (!orderDate) return false;
@@ -748,7 +842,7 @@ const KitchenOrderTicket = () => {
   // Tab counts
   const tabCounts = {};
   TABS.forEach(tab => {
-    tabCounts[tab.key] = kotOrders.filter(order => {
+    tabCounts[tab.key] = stationOrders.filter(order => {
       const orderDate = order.kotTime || order.createdAt || order.timestamp;
       if (!orderDate) return false;
       if (dateFilter === 'today') {
@@ -912,6 +1006,26 @@ const KitchenOrderTicket = () => {
 
             {/* Right controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Bar / Kitchen station (this screen) */}
+              {stationsOn && (
+                <div style={{ display: 'flex', gap: 2, background: '#f3f4f6', padding: 3, borderRadius: 9 }}>
+                  {[['all', 'All'], ['kitchen', 'Kitchen'], ['bar', 'Bar']].map(([k, label]) => (
+                    <button key={k} onClick={() => pickStation(k)}
+                      style={{ padding: isClient && isMobile ? '5px 8px' : '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: isClient && isMobile ? '11px' : '13px', fontWeight: 600,
+                        background: activeStation === k ? (k === 'bar' ? '#7c3aed' : k === 'kitchen' ? '#ea580c' : 'white') : 'transparent',
+                        color: activeStation === k ? (k === 'all' ? '#111827' : 'white') : '#6b7280',
+                        boxShadow: activeStation === k ? '0 1px 3px rgba(0,0,0,0.12)' : 'none' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {canSetStations && (
+                <button onClick={() => setStationSetup(barCategories.map(normCat))} title="Bar / Kitchen screens"
+                  style={{ padding: isClient && isMobile ? '6px 8px' : '7px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer', backgroundColor: '#f9fafb', color: '#374151', fontSize: isClient && isMobile ? '11px' : '13px', fontWeight: 500 }}>
+                  {isClient && isMobile ? 'Bar' : 'Bar / Kitchen'}
+                </button>
+              )}
               {/* Date dropdown */}
               <select
                 value={dateFilter}
@@ -1067,6 +1181,16 @@ const KitchenOrderTicket = () => {
                     color: statusConfig.actionColor,
                     shadow: `${statusConfig.actionColor}40`,
                     onClick: () => markDone(kot.kotId, kot.id)
+                  };
+                }
+                // Bar / Kitchen screen: "Done" clears the ticket from this screen only.
+                if (activeStation !== 'all' && !['completed', 'served'].includes(kot.status)) {
+                  actionButton = {
+                    label: activeStation === 'bar' ? 'Bar done' : 'Kitchen done',
+                    icon: FaCheck,
+                    color: '#16a34a',
+                    shadow: '#16a34a40',
+                    onClick: () => markStationDone(kot)
                   };
                 }
 
@@ -1643,6 +1767,39 @@ const KitchenOrderTicket = () => {
           )}
         </div>
 
+
+        {/* ─── Bar / Kitchen setup (owner / manager) ─── */}
+        {stationSetup && (
+          <div onClick={() => !stationSaving && setStationSetup(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: '18px 20px 10px' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>Bar &amp; Kitchen screens</div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4, lineHeight: 1.45 }}>
+                  Tick the categories made at the <b>bar</b>. Then on each machine open this page and pick <b>Bar</b> or <b>Kitchen</b> at the top — the bar screen shows only these items, the kitchen screen everything else. Printing and order routing don&apos;t change. Untick all to turn it off.
+                </div>
+              </div>
+              <div style={{ padding: '6px 20px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {!menuCatOf && <div style={{ fontSize: 13, color: '#9ca3af', padding: '8px 0' }}>Loading categories…</div>}
+                {menuCats.map((c) => {
+                  const on = stationSetup.includes(c.value);
+                  return (
+                    <button key={c.value} onClick={() => setStationSetup(on ? stationSetup.filter(x => x !== c.value) : [...stationSetup, c.value])}
+                      style={{ padding: '7px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: on ? '2px solid #7c3aed' : '1px solid #d1d5db', background: on ? '#f5f3ff' : 'white', color: on ? '#5b21b6' : '#374151', textTransform: 'capitalize' }}>
+                      {on ? '✓ ' : ''}{c.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ padding: '14px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 12, color: '#6b7280' }}>{stationSetup.length} bar categor{stationSetup.length === 1 ? 'y' : 'ies'}</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setStationSetup(null)} disabled={stationSaving} style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+                  <button onClick={saveStations} disabled={stationSaving} style={{ padding: '9px 16px', borderRadius: 9, border: 'none', background: '#111827', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: stationSaving ? 0.7 : 1 }}>{stationSaving ? 'Saving…' : 'Save'}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ─── Undo Toast ─── */}
         {undoToast && (
