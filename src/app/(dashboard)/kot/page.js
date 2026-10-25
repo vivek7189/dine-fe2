@@ -797,7 +797,7 @@ const KitchenOrderTicket = () => {
   };
   const [canSetStations, setCanSetStations] = useState(false);
   useEffect(() => {
-    try { setCanSetStations(['owner', 'admin', 'manager'].includes(String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase())); } catch (_) { /* ignore */ }
+    try { setCanSetStations(['owner'].includes(String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase())); } catch (_) { /* ignore */ }
   }, []);
   const saveStations = async () => {
     setStationSaving(true);
