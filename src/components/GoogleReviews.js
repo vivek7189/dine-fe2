@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiClient from '../lib/api';
+import ReviewPageCard from './ReviewPageCard';
 import {
   FaStar,
   FaQrcode,
@@ -1054,6 +1055,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
 
     return (
       <div>
+        <ReviewPageCard restaurantId={restaurantId} cardStyle={cardStyle} isMobile={isMobile} />
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
