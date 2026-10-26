@@ -4283,17 +4283,21 @@ class ApiClient {
   }
 
   async connectWhatsApp(restaurantId, settings) {
-    return this.request(`/api/automation/${restaurantId}/whatsapp/connect`, {
+    const res = await this.request(`/api/automation/${restaurantId}/whatsapp/connect`, {
       method: 'POST',
       body: settings, // Should include: { mode: 'restaurant' | 'dineopen', accessToken, phoneNumberId, businessAccountId, webhookVerifyToken }
     });
+    this.invalidateCache(`/api/automation/${restaurantId}/whatsapp`); // status is cached 10 min — show the new one now
+    return res;
   }
 
   async connectWhatsAppEmbeddedSignup(restaurantId, { code, phone_number_id, waba_id, redirect_uri }) {
-    return this.request(`/api/automation/${restaurantId}/whatsapp/embedded-signup`, {
+    const res = await this.request(`/api/automation/${restaurantId}/whatsapp/embedded-signup`, {
       method: 'POST',
       body: { code, phone_number_id, waba_id, ...(redirect_uri ? { redirect_uri } : {}) },
     });
+    this.invalidateCache(`/api/automation/${restaurantId}/whatsapp`);
+    return res;
   }
 
   // Report a browser-side WhatsApp connect failure (popup closed / not verified / SDK error) so
@@ -4312,9 +4316,11 @@ class ApiClient {
   }
 
   async disconnectWhatsApp(restaurantId) {
-    return this.request(`/api/automation/${restaurantId}/whatsapp/disconnect`, {
+    const res = await this.request(`/api/automation/${restaurantId}/whatsapp/disconnect`, {
       method: 'POST',
     });
+    this.invalidateCache(`/api/automation/${restaurantId}/whatsapp`);
+    return res;
   }
 
   // Shared DineOpen number: is "Send a test to my WhatsApp" available for this login (+ masked number)

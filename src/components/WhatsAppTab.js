@@ -22,7 +22,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [testAsTemplate, setTestAsTemplate] = useState(true);
   const [testSending, setTestSending] = useState(false);
   const [testTarget, setTestTarget] = useState(null); // shared number: { available, masked }
-  const [connectMode, setConnectMode] = useState('dineopen');
+  // No option is pre-selected: the owner picks DineOpen's number or their own. (Pre-selecting
+  // DineOpen's made owners who'd chosen their own number tap its button after coming back from
+  // Facebook — Svadhaa.) The choice is remembered in this browser, and ?wa=own opens on 'Own'.
+  const [connectMode, setConnectModeState] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
   const [copied, setCopied] = useState(false);
   const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false);
@@ -42,6 +45,20 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   // v4). The older "60-day expiry token" config (1503970314508774) shows "Feature unavailable".
 
   const restaurantId = selectedRestaurant?.id;
+  const modeKey = restaurantId ? `dine_wa_connect_mode:${restaurantId}` : null;
+  const setConnectMode = (m) => {
+    setConnectModeState(m);
+    try { if (modeKey) localStorage.setItem(modeKey, m); } catch (_) { /* ignore */ }
+  };
+  useEffect(() => {
+    if (!modeKey) return;
+    let m = null;
+    try {
+      const q = new URLSearchParams(window.location.search).get('wa');
+      m = q === 'own' ? 'restaurant' : (localStorage.getItem(modeKey) || null);
+    } catch (_) { m = null; }
+    if (m === 'restaurant' || m === 'dineopen') setConnectModeState(m);
+  }, [modeKey]);
   restaurantIdRef.current = restaurantId; // keep the listener's id current without re-binding
 
   // Load Facebook SDK for Embedded Signup
@@ -109,8 +126,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
       const res = await apiClient.getWhatsAppSettings(restaurantId);
       setWaSettings(res);
       // Pre-fill mode from saved settings
-      if (res?.settings?.mode) {
-        setConnectMode(res.settings.mode === 'restaurant' ? 'restaurant' : 'dineopen');
+      if (res?.settings?.mode && res?.settings?.connected) {
+        setConnectModeState(res.settings.mode === 'restaurant' ? 'restaurant' : 'dineopen');
       }
     } catch (err) {
       console.error('Load WA settings error:', err);
@@ -204,6 +221,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
     // Phone browser: Facebook in the same tab, back to /whatsapp/connected (a popup's result gets lost
     // on phones). Computers keep the popup below.
+    setConnectMode('restaurant'); // back from Facebook → the page reopens on "Use Own Number"
     if (isPhoneBrowser() && restaurantId) {
       apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-phone-redirect', ok: true, errorMessage: 'Phone browser — opening Facebook in the same tab' }).catch(() => {});
       if (startPhoneConnect(restaurantId)) return;
@@ -268,6 +286,9 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     try {
       await apiClient.disconnectWhatsApp(restaurantId);
       setStatusMsg({ type: 'success', text: 'WhatsApp disconnected' });
+      // Back to "choose an option" — never fall back to DineOpen's number pre-selected.
+      setConnectModeState(null);
+      try { if (modeKey) localStorage.removeItem(modeKey); } catch (_) { /* ignore */ }
       await loadSettings();
     } catch (err) {
       setStatusMsg({ type: 'error', text: 'Failed to disconnect' });
@@ -520,6 +541,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                     ))}
                   </div>
 
+                  {!connectMode && (
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>Choose one option above to continue.</div>
+                  )}
+
                   {/* Restaurant's own number — Embedded Signup */}
                   {connectMode === 'restaurant' && (
                     <div style={{ marginBottom: '16px' }}>
@@ -617,7 +642,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                       }}
                     >
                       {saving ? <FaSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <FaWhatsapp size={16} />}
-                      {saving ? 'Connecting...' : 'Connect WhatsApp'}
+                      {saving ? 'Connecting...' : "Connect DineOpen's shared number"}
                     </button>
                   )}
                 </div>

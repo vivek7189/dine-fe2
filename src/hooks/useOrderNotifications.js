@@ -55,7 +55,27 @@ const saveNotifications = (notifications) => {
   } catch {}
 };
 
-export function useOrderNotifications(restaurantId, notificationOrderTypes = null) {
+// Which alert a new order gets → { skip, orderType, isWhatsApp }.
+// Online orders (public QR page + dine-app/crave) come through with an orderSource tag, or a
+// 'dine_in' (underscore) orderType from the public endpoint: they always notify (staff aren't at the
+// counter for these) and show the "Online" badge. WhatsApp orders (orderSource 'whatsapp') do the
+// same with a "WhatsApp" badge, but follow their own setting: whatsappAlerts 'off' → no alert.
+// Everything else follows notificationOrderTypes when it is set.
+export function classifyOrderAlert(orderData, notificationOrderTypes, whatsappAlerts = 'sound') {
+  const rawType = orderData.orderType || 'dine-in';
+  const isWhatsApp = /whatsapp/i.test(String(orderData.orderSource || ''));
+  if (isWhatsApp && whatsappAlerts === 'off') return { skip: true, orderType: 'whatsapp', isWhatsApp };
+  const isOnline = isWhatsApp || /online|crave/i.test(String(orderData.orderSource || '')) || rawType === 'dine_in';
+  const orderType = isWhatsApp ? 'whatsapp' : (isOnline ? 'online' : rawType);
+  if (!isOnline && notificationOrderTypes && notificationOrderTypes.length > 0 && !notificationOrderTypes.includes(orderType)) {
+    return { skip: true, orderType, isWhatsApp };
+  }
+  return { skip: false, orderType, isWhatsApp };
+}
+
+// whatsappAlerts (restaurant orderSettings.whatsappOrderAlerts): 'sound' (default) popup + sound,
+// 'silent' popup only, 'off' nothing. WhatsApp orders are told apart by orderSource 'whatsapp'.
+export function useOrderNotifications(restaurantId, notificationOrderTypes = null, whatsappAlerts = 'sound') {
   const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -81,22 +101,9 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const addNotification = useCallback((orderData) => {
-    const rawType = orderData.orderType || 'dine-in';
-    // Online orders (public QR page + dine-app/crave) come through with an
-    // orderSource tag, or a 'dine_in' (underscore) orderType from the public
-    // endpoint. Detect them explicitly so they (a) always notify — staff aren't
-    // at the counter for these, so they must never be filtered out — and
-    // (b) always render with the "Online" badge.
-    const isOnline = /online|crave/i.test(String(orderData.orderSource || '')) || rawType === 'dine_in';
-    const orderType = isOnline ? 'online' : rawType;
-
-    // If notificationOrderTypes is set, only notify for matching types.
-    // Online orders bypass this filter — they are never silently dropped.
-    if (!isOnline && notificationOrderTypes && notificationOrderTypes.length > 0) {
-      if (!notificationOrderTypes.includes(orderType)) {
-        return; // Skip — this order type has notifications disabled
-      }
-    }
+    const decision = classifyOrderAlert(orderData, notificationOrderTypes, whatsappAlerts);
+    if (decision.skip) return;
+    const { orderType, isWhatsApp } = decision;
 
     const notification = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -128,10 +135,10 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     });
 
     // Play sound (skip on KOT page — it has its own)
-    if (soundEnabledRef.current && pathnameRef.current !== '/kot') {
+    if (soundEnabledRef.current && pathnameRef.current !== '/kot' && !(isWhatsApp && whatsappAlerts === 'silent')) {
       playOrderSound();
     }
-  }, [notificationOrderTypes]);
+  }, [notificationOrderTypes, whatsappAlerts]);
 
   const markAsRead = useCallback((notificationId) => {
     setNotifications(prev => {

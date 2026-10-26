@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { orderDisplayNumber } from '../utils/orderNumber';
 import { useRouter } from 'next/navigation';
-import { FaBell, FaVolumeUp, FaVolumeMute, FaCheck, FaTrash, FaShoppingBag, FaUtensils, FaTruck, FaStore } from 'react-icons/fa';
+import { FaBell, FaVolumeUp, FaVolumeMute, FaCheck, FaTrash, FaShoppingBag, FaUtensils, FaTruck, FaStore, FaWhatsapp } from 'react-icons/fa';
 
 const orderTypeConfig = {
   'dine-in': { icon: FaUtensils, label: 'Dine-in', color: '#3b82f6' },
   'takeaway': { icon: FaShoppingBag, label: 'Takeaway', color: '#f59e0b' },
   'delivery': { icon: FaTruck, label: 'Delivery', color: '#22c55e' },
   'online': { icon: FaStore, label: 'Online', color: '#8b5cf6' },
+  'whatsapp': { icon: FaWhatsapp, label: 'WhatsApp', color: '#16a34a' },
 };
 
 function timeAgo(timestamp) {

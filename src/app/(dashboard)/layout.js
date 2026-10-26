@@ -71,6 +71,13 @@ function DashboardLayoutContent({ children }) {
   // <OfflineFallback/> reconciler below — it probes the real cloud and pins/unpins accordingly.
 
   const [notificationOrderTypes, setNotificationOrderTypes] = useState(null);
+  // New WhatsApp order alert on the POS (WhatsApp Ordering page): 'sound' | 'silent' | 'off'.
+  const [whatsappAlerts, setWhatsappAlerts] = useState('sound');
+  useEffect(() => {
+    const onChange = (e) => setWhatsappAlerts(['silent', 'off'].includes(e?.detail) ? e.detail : 'sound');
+    window.addEventListener('dine-whatsapp-alerts', onChange);
+    return () => window.removeEventListener('dine-whatsapp-alerts', onChange);
+  }, []);
   const [isClient, setIsClient] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
@@ -108,7 +115,7 @@ function DashboardLayoutContent({ children }) {
     clearAll: clearAllOrders,
     dismissToast: dismissOrderToast,
     toggleSound: toggleOrderSound,
-  } = useOrderNotifications(selectedRestaurantId, notificationOrderTypes);
+  } = useOrderNotifications(selectedRestaurantId, notificationOrderTypes, whatsappAlerts);
 
   // Broadcast unread count to child pages (dashboard, home) via CustomEvent
   useEffect(() => {
@@ -397,6 +404,7 @@ function DashboardLayoutContent({ children }) {
         const restaurant = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
         const types = restaurant?.orderSettings?.notificationOrderTypes;
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
+        setWhatsappAlerts(['silent', 'off'].includes(restaurant?.orderSettings?.whatsappOrderAlerts) ? restaurant.orderSettings.whatsappOrderAlerts : 'sound');
         apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
         apiClient.setRestaurantTimezone(restaurant?.posSettings?.timezone || null);
         apiClient.setWeekStartsOn(restaurant?.posSettings?.weekStartsOn || null);
@@ -416,6 +424,7 @@ function DashboardLayoutContent({ children }) {
         const restaurant = event.detail?.restaurant || JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
         const types = restaurant?.orderSettings?.notificationOrderTypes;
         setNotificationOrderTypes(types && types.length > 0 ? types : ['online']);
+        setWhatsappAlerts(['silent', 'off'].includes(restaurant?.orderSettings?.whatsappOrderAlerts) ? restaurant.orderSettings.whatsappOrderAlerts : 'sound');
         apiClient.setBusinessDayStartHour(restaurant?.posSettings?.businessDayStartHour || 0);
         apiClient.setRestaurantTimezone(restaurant?.posSettings?.timezone || null);
         apiClient.setWeekStartsOn(restaurant?.posSettings?.weekStartsOn || null);

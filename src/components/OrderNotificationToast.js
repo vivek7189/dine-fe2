@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { orderDisplayNumber } from '../utils/orderNumber';
 import { useRouter } from 'next/navigation';
-import { FaShoppingBag, FaUtensils, FaTruck, FaStore, FaTimes } from 'react-icons/fa';
+import { FaShoppingBag, FaUtensils, FaTruck, FaStore, FaTimes, FaWhatsapp } from 'react-icons/fa';
 
 const orderTypeConfig = {
   'dine-in': { icon: FaUtensils, label: 'Dine-in', color: '#3b82f6', bg: '#eff6ff' },
   'takeaway': { icon: FaShoppingBag, label: 'Takeaway', color: '#f59e0b', bg: '#fffbeb' },
   'delivery': { icon: FaTruck, label: 'Delivery', color: '#22c55e', bg: '#f0fdf4' },
   'online': { icon: FaStore, label: 'Online', color: '#8b5cf6', bg: '#f5f3ff' },
+  'whatsapp': { icon: FaWhatsapp, label: 'WhatsApp', color: '#16a34a', bg: '#f0fdf4' },
 };
 
 function ToastItem({ notification, onDismiss, index }) {

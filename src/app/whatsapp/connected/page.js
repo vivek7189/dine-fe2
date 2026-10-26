@@ -48,7 +48,7 @@ export default function WhatsAppConnectedPage() {
         <div style={{ fontSize: 40, lineHeight: 1 }}>{state.phase === 'done' ? '✅' : state.phase === 'error' ? '⚠️' : '⏳'}</div>
         <div style={{ fontSize: 17, fontWeight: 700, color, marginTop: 12, lineHeight: 1.4 }}>{state.text}</div>
         {state.phase !== 'working' && (
-          <Link href="/admin?tab=whatsapp" style={{ display: 'inline-block', marginTop: 20, padding: '12px 18px', borderRadius: 12, background: '#111827', color: 'white', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+          <Link href={state.phase === 'error' ? '/admin?tab=whatsapp&wa=own' : '/admin?tab=whatsapp'} style={{ display: 'inline-block', marginTop: 20, padding: '12px 18px', borderRadius: 12, background: '#111827', color: 'white', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
             Back to WhatsApp settings
           </Link>
         )}

@@ -32,6 +32,11 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [paymentLink, setPaymentLink] = useState('');
   const [orderingMode, setOrderingMode] = useState('chat');
   const [orderTypes, setOrderTypes] = useState([]); // [] = original single type (takeaway / delivery by the address switch)
+  // New WhatsApp order alert on the POS — restaurant orderSettings.whatsappOrderAlerts:
+  // 'sound' (popup + sound, default) | 'silent' (popup only) | 'off' (no popup / sound / phone push).
+  // KOT printing is never affected.
+  const [alerts, setAlerts] = useState('sound');
+  const [alertsSaving, setAlertsSaving] = useState(false);
   const [toast, setToast] = useState('');
 
   useEffect(() => { if (restaurantId) loadAll(); /* eslint-disable-next-line */ }, [restaurantId]);
@@ -51,6 +56,11 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       setRequireAddress(c.requireAddress !== false);
       setOrderingMode(c.orderingMode || 'chat');
       setOrderTypes(Array.isArray(c.orderTypes) ? c.orderTypes : []);
+      try {
+        const r = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+        const a = r && r.id === restaurantId ? r.orderSettings?.whatsappOrderAlerts : null;
+        setAlerts(['silent', 'off'].includes(a) ? a : 'sound');
+      } catch (_) { /* default */ }
       setPaymentMode(c.paymentMode || 'pay_at_counter');
       setPaymentLink(c.paymentLink || '');
     } catch (e) { /* ignore — show defaults */ }
@@ -58,6 +68,24 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   }
 
   function showToast(m) { setToast(m); setTimeout(() => setToast(''), 2600); }
+
+  async function saveAlerts(next) {
+    const prev = alerts;
+    setAlerts(next); setAlertsSaving(true);
+    try {
+      await apiClient.updateRestaurant(restaurantId, { orderSettings: { whatsappOrderAlerts: next } });
+      try {
+        const r = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+        if (r && r.id === restaurantId) localStorage.setItem('selectedRestaurant', JSON.stringify({ ...r, orderSettings: { ...(r.orderSettings || {}), whatsappOrderAlerts: next } }));
+      } catch (_) { /* ignore */ }
+      window.dispatchEvent(new CustomEvent('dine-whatsapp-alerts', { detail: next }));
+      showToast('Saved ✓');
+    } catch (e) {
+      setAlerts(prev);
+      showToast(e?.status === 403 ? 'Only the owner can change this' : 'Save failed');
+    }
+    setAlertsSaving(false);
+  }
 
   async function save(nextEnabled) {
     setSaving(true);
@@ -228,6 +256,27 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
               </div>
             </div>
             )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={label}><FaCommentDots style={{ marginRight: 6, verticalAlign: -1 }} />New WhatsApp order alert (POS)</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'sound', label: 'Popup + sound', desc: 'Recommended' },
+                  { id: 'silent', label: 'Popup only', desc: 'No sound' },
+                  { id: 'off', label: 'Off', desc: 'No popup, sound or phone alert' },
+                ].map(opt => {
+                  const on = alerts === opt.id;
+                  return (
+                    <button key={opt.id} disabled={alertsSaving} onClick={() => !on && saveAlerts(opt.id)}
+                      style={{ flex: '1 1 130px', textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: on ? `2px solid ${WA_GREEN}` : '1px solid #d1d5db', background: on ? '#f0fdf4' : '#fff', opacity: alertsSaving ? 0.7 : 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: on ? '#065f46' : '#374151' }}>{opt.label}</div>
+                      <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{opt.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>WhatsApp orders always go to the POS and print the KOT. This only changes the alert. Saved straight away.</div>
+            </div>
 
             <div style={{ marginBottom: 16 }}>
               <label style={label}><FaMoneyBillWave style={{ marginRight: 6, verticalAlign: -1 }} />Payment</label>
