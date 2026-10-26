@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { handoffQuery } from '../../../utils/dashboardHandoff';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -391,10 +392,12 @@ function RestaurantPOSContent() {
     window.addEventListener('touchend', onUp);
   }, []);
 
-  // Dashboard version redirect — if V2 is selected, redirect to /dashboard/v2
+  // Dashboard version redirect — if V2 is selected, redirect to /dashboard/v2, keeping what the link
+  // asked to open (order to edit / table) — captured on first render, before the URL is tidied.
+  const openedWithQueryRef = useRef(typeof window !== 'undefined' ? window.location.search : '');
   useEffect(() => {
     if (selectedRestaurant?.posSettings?.dashboardVersion === 'v2') {
-      router.replace('/dashboard/v2');
+      router.replace('/dashboard/v2' + handoffQuery(openedWithQueryRef.current));
     }
   }, [selectedRestaurant?.posSettings?.dashboardVersion, router]);
 

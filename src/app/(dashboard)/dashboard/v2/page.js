@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { handoffQuery } from '../../../../utils/dashboardHandoff';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLocalServerUrl } from '../../../../lib/localServer';
@@ -299,11 +300,13 @@ function RestaurantPOSContent() {
   // Responsive panel width for order summary (tablet = narrower)
   const orderPanelWidth = isTablet ? 340 : 450;
 
-  // Dashboard version redirect — if V1 is selected (or no version set), redirect back to /dashboard
+  // Dashboard version redirect — if V1 is selected (or no version set), redirect back to /dashboard,
+  // keeping what the link asked to open (captured on first render, before the URL is tidied).
+  const openedWithQueryRef = useRef(typeof window !== 'undefined' ? window.location.search : '');
   useEffect(() => {
     const version = selectedRestaurant?.posSettings?.dashboardVersion;
     if (selectedRestaurant && version !== 'v2') {
-      router.replace('/dashboard');
+      router.replace('/dashboard' + handoffQuery(openedWithQueryRef.current));
     }
   }, [selectedRestaurant?.posSettings?.dashboardVersion, selectedRestaurant, router]);
 
