@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../lib/api';
+import { FACEBOOK_APP_ID, EMBEDDED_SIGNUP_CONFIG_ID, isPhoneBrowser, startPhoneConnect } from '../utils/whatsappConnect';
 import { FaPhone, FaCheckCircle, FaTimesCircle, FaSpinner, FaPaperPlane, FaWhatsapp, FaArrowLeft, FaSearch, FaPlug, FaToggleOn, FaToggleOff, FaCopy, FaCheck, FaFacebook, FaImage, FaFileAlt, FaMapMarkerAlt, FaVolumeUp, FaVideo, FaChevronDown } from 'react-icons/fa';
 
 export default function WhatsAppTab({ selectedRestaurant }) {
@@ -36,12 +37,9 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   // at mount, so a plain closure would capture a stale/undefined id). Kept in sync below.
   const restaurantIdRef = useRef(null);
 
-  const FACEBOOK_APP_ID = '1591044548986175';
-  // Config ID from Meta App → Facebook Login for Business → Configurations: the "Tech Provider
-  // Embedded Signup config" with Embedded Signup v4 (what Meta's Embedded Signup Builder uses).
-  // The older "60-day expiry token" config (1503970314508774, no ES version) shows "Feature
-  // unavailable" since Oct 2026. New env name on purpose, so an old build setting can't override it.
-  const EMBEDDED_SIGNUP_CONFIG_ID = process.env.NEXT_PUBLIC_WA_TECH_PROVIDER_CONFIG_ID || '1297353665849277';
+  // FACEBOOK_APP_ID / EMBEDDED_SIGNUP_CONFIG_ID: utils/whatsappConnect. Config = Meta App → Facebook
+  // Login for Business → Configurations: the "Tech Provider Embedded Signup config" (Embedded Signup
+  // v4). The older "60-day expiry token" config (1503970314508774) shows "Feature unavailable".
 
   const restaurantId = selectedRestaurant?.id;
   restaurantIdRef.current = restaurantId; // keep the listener's id current without re-binding
@@ -204,6 +202,13 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     setStatusMsg(null);
     wabaDataRef.current = null;
 
+    // Phone browser: Facebook in the same tab, back to /whatsapp/connected (a popup's result gets lost
+    // on phones). Computers keep the popup below.
+    if (isPhoneBrowser() && restaurantId) {
+      apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-phone-redirect', ok: true, errorMessage: 'Phone browser — opening Facebook in the same tab' }).catch(() => {});
+      if (startPhoneConnect(restaurantId)) return;
+    }
+
     window.FB.login(
       function (response) {
         if (response.status === 'connected' && response.authResponse?.code) {
@@ -211,12 +216,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
           setStatusMsg(null);
 
           // Use .then() instead of async/await since FB.login doesn't accept async callbacks
-          const wabaData = wabaDataRef.current;
-          if (!wabaData?.phone_number_id || !wabaData?.waba_id) {
-            setStatusMsg({ type: 'error', text: 'Signup was not completed fully. Please try again and complete all steps including phone verification.' });
-            apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-abort', ok: false, errorMessage: 'Signup not completed fully — no phone_number_id/waba_id (customer likely closed before phone verification)' });
-            setEmbeddedSignupLoading(false);
-            return;
+          // Account + number from Facebook's message; if that message got lost, the server looks
+          // them up from the login itself (and says so if the signup really wasn't finished).
+          const wabaData = wabaDataRef.current || {};
+          if (!wabaData.phone_number_id || !wabaData.waba_id) {
+            apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-no-session-info', ok: false, errorMessage: 'No account/number message from Facebook — server will look them up' }).catch(() => {});
           }
 
           apiClient.connectWhatsAppEmbeddedSignup(restaurantId, {
@@ -236,6 +240,10 @@ export default function WhatsAppTab({ selectedRestaurant }) {
           if (response.status !== 'unknown') {
             setStatusMsg({ type: 'error', text: 'Facebook login was cancelled or not authorized.' });
             apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-login-cancelled', ok: false, errorMessage: `Facebook login not completed (status: ${response.status})` });
+          } else {
+            // Window closed / result lost — was silent before, so support saw nothing.
+            setStatusMsg({ type: 'error', text: 'Facebook closed without finishing. Please try again and complete all the steps.' });
+            apiClient.reportWhatsAppConnectDiagnostic(restaurantId, { phase: 'client-login-unknown', ok: false, errorMessage: 'Facebook returned without a result (window closed or result lost)' }).catch(() => {});
           }
         }
       },

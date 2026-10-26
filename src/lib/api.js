@@ -4289,10 +4289,10 @@ class ApiClient {
     });
   }
 
-  async connectWhatsAppEmbeddedSignup(restaurantId, { code, phone_number_id, waba_id }) {
+  async connectWhatsAppEmbeddedSignup(restaurantId, { code, phone_number_id, waba_id, redirect_uri }) {
     return this.request(`/api/automation/${restaurantId}/whatsapp/embedded-signup`, {
       method: 'POST',
-      body: { code, phone_number_id, waba_id },
+      body: { code, phone_number_id, waba_id, ...(redirect_uri ? { redirect_uri } : {}) },
     });
   }
 
