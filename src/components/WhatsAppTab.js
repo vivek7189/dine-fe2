@@ -15,6 +15,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesDenied, setMessagesDenied] = useState(false); // chats are for the owner / admins only
   const [testPhone, setTestPhone] = useState('');
   const [testMessage, setTestMessage] = useState('hello_world');
   const [testAsTemplate, setTestAsTemplate] = useState(true);
@@ -130,7 +131,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
         setConversations(res.conversations);
       }
     } catch (err) {
-      console.error('Load messages error:', err);
+      if (err?.status === 403) setMessagesDenied(true);
+      else console.error('Load messages error:', err);
     } finally {
       setMessagesLoading(false);
     }
@@ -332,7 +334,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
   // Auto-poll conversations every 15s when on messages tab
   useEffect(() => {
-    if (subTab === 'messages' && restaurantId) {
+    if (subTab === 'messages' && restaurantId && !messagesDenied) {
       pollRef.current = setInterval(() => {
         apiClient.getWhatsAppMessages(restaurantId, { limit: 200 }).then(res => {
           if (res?.conversations) setConversations(res.conversations);
@@ -340,7 +342,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
       }, 15000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [subTab, restaurantId]);
+  }, [subTab, restaurantId, messagesDenied]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -690,7 +692,12 @@ export default function WhatsAppTab({ selectedRestaurant }) {
       )}
 
       {/* Messages Tab */}
-      {subTab === 'messages' && (
+      {subTab === 'messages' && messagesDenied && (
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+          Customer WhatsApp chats can be seen only by the owner or an admin.
+        </div>
+      )}
+      {subTab === 'messages' && !messagesDenied && (
         <div style={{ display: 'flex', height: '560px' }}>
           {/* Conversations list */}
           <div style={{

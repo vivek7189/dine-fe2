@@ -6564,6 +6564,7 @@ const Admin = () => {
     refundsRequireApproval: true,
     emailInvoiceEnabled: false,
     whatsappBillingEnabled: false,
+    whatsappSendFrom: 'auto',
     whatsappOrderConfirmation: false,
     orderStatusRoles: [],
   });
@@ -15123,6 +15124,27 @@ const Admin = () => {
                     name: 'WhatsApp Bill',
                     desc: 'Auto-send invoice via WhatsApp after billing',
                     icon: FaPhone,
+                    expandedContent: (
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 6px 0' }}>
+                          If you connected your own WhatsApp number, send bills, order confirmations and statements from:
+                        </p>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {[['auto', 'Auto (own number, else DineOpen)'], ['own', 'Own number only'], ['dineopen', 'DineOpen number']].map(([v, l]) => {
+                            const on = (billingSettings.whatsappSendFrom || 'auto') === v;
+                            return (
+                              <button key={v} type="button" onClick={(e) => { e.stopPropagation(); updateBillingSetting('whatsappSendFrom', v); }}
+                                style={{ padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', border: on ? '1px solid #16a34a' : '1px solid #e5e7eb', background: on ? '#f0fdf4' : 'white', color: on ? '#166534' : '#374151' }}>
+                                {l}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                          Your own number needs Meta-approved message templates; until they&apos;re approved, Auto sends from DineOpen&apos;s number so customers still get them. Using DineOpen&apos;s shared number? Nothing changes for you.
+                        </div>
+                      </div>
+                    )
                   },
                   {
                     key: 'whatsappOrderConfirmation',
