@@ -2104,6 +2104,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 )}
               </div>
             </div>
+            {themeId !== 'classic' && (<>
             {/* Search */}
             <div style={{
               position: 'relative',
@@ -2147,6 +2148,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 }}
               />
             </div>
+            </>)}
 
             {/* Order-type selector — lets the customer pick Takeaway/Delivery so the correct
                 per-order-type price shows (mirrors the POS). Only when the restaurant uses
@@ -2178,6 +2180,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
               );
             })()}
 
+            {/* The Classic design draws its own search + category row — not twice. */}
+            {themeId !== 'classic' && (<>
             {/* Categories - Mobile horizontal scroll */}
             <div className="mobile-categories" style={{
               display: 'flex',
@@ -2234,6 +2238,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 </button>
               ))}
             </div>
+            </>)}
             </div>
           </div>
         );
@@ -2362,6 +2367,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             themeProps.dark = qrDark;
             themeProps.look = qrLook;
             themeProps.logoUrl = customerAppSettings?.branding?.logoUrl || null;
+            themeProps.foodFilter = customerAppSettings?.branding?.foodFilter === true;
           }
         }
         if (themeId === 'bistro') {

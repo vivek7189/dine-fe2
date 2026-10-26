@@ -3,7 +3,23 @@ import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'reac
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import PublicMenuBadge from '../../../components/PublicMenuBadge';
 
-const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null }) => {
+// Liquor items: the menu's liquor flag / ABV / spirit category, else a liquor-type category name.
+const LIQUOR_CATEGORY = /(whisk(e)?y|scotch|bourbon|\bgin\b|vodka|\brum\b|tequila|mezcal|beer|lager|\bale\b|wine|champagne|prosecco|liquor|liqueur|brandy|cognac|cocktail|spirit|alcohol|sake|cider|\bshots?\b)/i;
+export const isLiquorItem = (item) => !!item && (
+  item.liquor === true || item.liquor === 'true' || (item.liquor && typeof item.liquor === 'object')
+  || Number(item.abv) > 0 || !!(item.spiritCategory && String(item.spiritCategory).trim())
+  || LIQUOR_CATEGORY.test(String(item.category || '').replace(/[-_]+/g, ' '))
+);
+// The Veg / Non-veg / Liquor filter (Customer App → Branding → foodFilter). Veg / Non-veg = food
+// only; drinks with alcohol are under Liquor.
+const DIET_MATCH = {
+  all: () => true,
+  veg: (i) => i.isVeg === true && !isLiquorItem(i),
+  nonveg: (i) => i.isVeg === false && !isLiquorItem(i),
+  liquor: (i) => isLiquorItem(i),
+};
+
+const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null, foodFilter = false }) => {
   // Menu look (Customer App → Branding): 'standard' (exactly the classes used before) | 'dark' |
   // 'green' (racing green + white + gold). `dark` is the older switch for 'dark'.
   const style = look || (dark ? 'dark' : 'standard');
@@ -36,19 +52,27 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [diet, setDiet] = useState('all');
+  // Only the filters this menu has something for (no "Liquor" chip on a menu without liquor).
+  const dietOptions = foodFilter ? [
+    { id: 'veg', label: 'Veg', dot: 'veg' },
+    { id: 'nonveg', label: 'Non-veg', dot: 'nonveg' },
+    { id: 'liquor', label: 'Liquor', icon: '🍸' },
+  ].filter(o => menu.some(DIET_MATCH[o.id])) : [];
+  const dietFn = DIET_MATCH[diet] || DIET_MATCH.all;
 
   // Filter items
   const filteredItems = menu.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesCategory && dietFn(item);
   });
 
   // Group by category for list view
   const groupedItems = categories.reduce((acc, category) => {
     if (category === 'all') return acc;
-    const items = menu.filter(item => item.category === category && (
+    const items = menu.filter(item => item.category === category && dietFn(item) && (
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       item.description?.toLowerCase().includes(searchTerm.toLowerCase())
     ));
@@ -141,6 +165,26 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
 
       {/* Categories Horizontal Scroll */}
       <div className={`sticky top-0 z-20 ${t.bar} backdrop-blur-sm pt-2 pb-4 px-4 shadow-sm border-b`}>
+        {dietOptions.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-1 max-w-3xl mx-auto" role="group" aria-label="Filter">
+            {dietOptions.map(o => {
+              const on = diet === o.id;
+              return (
+                <button key={o.id} type="button" aria-pressed={on}
+                  onClick={() => { setDiet(on ? 'all' : o.id); setSelectedCategory('all'); }} /* tap again = show all */
+                  className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${on ? t.chipOn : t.chipOff}`}>
+                  {o.dot && (
+                    <span className={`inline-flex items-center justify-center w-3.5 h-3.5 border bg-white ${o.dot === 'veg' ? 'border-green-600' : 'border-red-600'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${o.dot === 'veg' ? 'bg-green-600' : 'bg-red-600'}`} />
+                    </span>
+                  )}
+                  {o.icon && <span aria-hidden>{o.icon}</span>}
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 max-w-3xl mx-auto">
           <button
             onClick={() => scrollToCategory('all')}
@@ -151,7 +195,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
           >
             All
           </button>
-          {categories.filter(c => c !== 'all').map(cat => (
+          {categories.filter(c => c !== 'all' && (diet === 'all' || groupedItems[c])).map(cat => (
             <button
               key={cat}
               onClick={() => scrollToCategory(cat)}
@@ -190,7 +234,8 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                       ) : (
                         <div className={`w-full h-full flex items-center justify-center ${t.imgBg} text-3xl`}>🍽️</div>
                       )}
-                      {/* Veg/Non-Veg Badge on Image */}
+                      {/* Veg/Non-Veg Badge on Image (not on liquor when the food filter is on) */}
+                      {!(foodFilter && isLiquorItem(item)) && (
                       <div className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur rounded p-1 shadow-sm">
                         {item.isVeg ? (
                           <div className="border border-green-600 p-[1px] flex items-center justify-center w-3 h-3">
@@ -202,6 +247,7 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                           </div>
                         )}
                       </div>
+                      )}
                     </div>
                     )}
 
@@ -209,7 +255,15 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
                     <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
                       <div>
                         {item.badge && <div className="mb-1"><PublicMenuBadge badge={item.badge} /></div>}
-                        <h4 className={`font-bold ${t.name} text-base leading-tight mb-1 truncate`}>{item.name}</h4>
+                        <h4 className={`font-bold ${t.name} text-base leading-tight mb-1 truncate flex items-center gap-1.5`}>
+                          {/* veg / non-veg mark here when the photo (which carries it) is hidden */}
+                          {shouldHideImage && typeof item.isVeg === 'boolean' && !(foodFilter && isLiquorItem(item)) && (
+                            <span className={`inline-flex shrink-0 items-center justify-center w-3.5 h-3.5 border bg-white ${item.isVeg ? 'border-green-600' : 'border-red-600'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'}`} />
+                            </span>
+                          )}
+                          <span className="truncate">{item.name}</span>
+                        </h4>
                         <p className={`text-xs ${t.desc} line-clamp-2 leading-relaxed`}>{item.description || 'Delicious and freshly prepared.'}</p>
                       </div>
                       

@@ -2888,6 +2888,19 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   })}
                 </div>
               </div>
+
+              {/* Veg / Non-veg / Liquor filter on the QR menu (Classic design) — off by default. */}
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', cursor: 'pointer', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', background: 'white' }}>
+                  <span>
+                    <span style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151' }}>Veg / Non-veg / Liquor filter</span>
+                    <span style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>Filter buttons at the top of the QR menu (Classic design). Only shows the ones your menu has.</span>
+                  </span>
+                  <input type="checkbox" checked={settings.branding?.foodFilter === true}
+                    onChange={(e) => setSettings(prev => ({ ...prev, branding: { ...prev.branding, foodFilter: e.target.checked } }))}
+                    style={{ width: '18px', height: '18px', accentColor: '#111827', flexShrink: 0 }} />
+                </label>
+              </div>
             </div>
 
             {/* Right Column - Live Preview */}
