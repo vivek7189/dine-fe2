@@ -838,7 +838,7 @@ const OrderSummary = ({
   const {
     applicableOffers, genericOffers, personalizedOffers,
     selectedOfferId, setSelectedOfferId,
-    selectedOfferIds, toggleOffer,
+    selectedOfferIds, toggleOffer, selectOffers,
     offerDiscount, selectedOfferName, resetOffers, getCashbackForAmount,
     autoApplied, firstOrderOfferRejected,
     offerSettings, loyaltySettings,
@@ -2189,18 +2189,10 @@ const OrderSummary = ({
     }
 
     if (offerSettings.allowMultipleOffers) {
-      // Multi-offer mode: first remove any auto-applied offers that weren't in the saved order,
-      // then add the saved offers that are still applicable
-      selectedOfferIds.forEach(oid => {
-        if (!stillApplicable.includes(oid)) {
-          toggleOffer(oid); // toggleOffer removes if already selected
-        }
-      });
-      stillApplicable.forEach(oid => {
-        if (!selectedOfferIds.includes(oid)) {
-          toggleOffer(oid);
-        }
-      });
+      // Multi-offer mode: the selection becomes exactly the saved offers that are still applicable
+      // (auto-applied extras removed). Set directly — toggling here read a stale selection and could
+      // switch OFF a saved offer that auto-apply had just turned on, so the bill lost its discount.
+      selectOffers(stillApplicable);
     } else {
       // Single-offer mode: always re-select the saved offer (override auto-apply)
       // Use the best-matching saved offer (not just the first)

@@ -1003,6 +1003,20 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     });
   }, [offerSettings.maxOffersAllowed]);
 
+  // Multi-offer: set the selection to EXACTLY these offers (re-selecting a saved order's offers when
+  // it is opened for billing/editing). Unlike toggleOffer this doesn't flip based on the current
+  // selection — toggling a saved offer that auto-apply had just selected in the same render switched
+  // it back OFF, so the bill went out with no offer (Mwikoo, Oct 2026).
+  const selectOffers = useCallback((offerIds) => {
+    const max = offerSettings.maxOffersAllowed || 1;
+    const next = [...new Set((Array.isArray(offerIds) ? offerIds : []).filter(Boolean))].slice(0, max);
+    wasManuallySelectedRef.current = next.length > 0;
+    setAutoApplied(false);
+    setFirstOrderOfferRejected(false);
+    setSelectedOfferIdsInternal(next);
+    setSelectedOfferIdInternal(next[0] || null);
+  }, [offerSettings.maxOffersAllowed]);
+
   // Reset
   const resetOffers = useCallback(() => {
     setSelectedOfferIdInternal(null);
@@ -1044,6 +1058,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
     setSelectedOfferId,
     selectedOfferIds,
     toggleOffer,
+    selectOffers,
     offerDiscount,
     selectedOfferName,
     resetOffers,
