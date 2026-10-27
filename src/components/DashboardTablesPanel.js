@@ -430,7 +430,9 @@ export default function DashboardTablesPanel({
   const buildInvoiceFromOrder = (order) => {
     const currencySymbol = getCurrencySymbol();
     const items = order.items || [];
-    const subtotal = order.totalAmount || order.subtotal || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+    // Subtotal = before discount (order.subtotal). totalAmount is AFTER the discount, so a pre-bill with an
+    // offer printed the discounted amount as the subtotal too (Subtotal 1299, Offer -76, Total 1299).
+    const subtotal = order.subtotal || order.totalAmount || items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
     return {
       // Real bill times → bills print the FIRST bill time (helpers.billDateOf), not the print time.
       billedAt: (order.billedBy && order.billedBy.at) || null,
