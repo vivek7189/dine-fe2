@@ -3,7 +3,7 @@ import { reportNetworkFailure, reportNetworkSuccess } from '../hooks/useNetworkS
 import { setCachedData, getCachedData } from './offlineDb';
 import { getLocalServerUrl, setLocalServerUrl, isServerApp } from './localServer';
 import { offlineEditBlocked } from './offlineEditLock';
-import { getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride, getPublicBackend } from './apiBase';
+import { getCloudPin, getApiBase, getCloudApiBase, setApiBase, clearApiBase, refreshRemoteBackend, DEFAULT_API_BASE, PG_API_BASE, BACKEND_URL_KEY, getBackendOverride, clearBackendOverride, getPublicBackend } from './apiBase';
 import { detectMultiTerminal } from '../utils/orderNumber';
 import { getStableTerminalId } from '../utils/terminalId';
 import { isElectron } from '../utils/platform';
@@ -1555,8 +1555,8 @@ class ApiClient {
   // (local or cloud) via bulk-save. Returns the persisted cloud choice, else the default base.
   cloudBase() {
     try {
-      const persisted = typeof window !== 'undefined' ? window.localStorage.getItem(BACKEND_URL_KEY) : null;
-      return persisted || API_BASE_URL;
+      // The remembered cloud pin with the same rules as everywhere else (never the old GCP forwarder).
+      return getCloudPin() || API_BASE_URL;
     } catch (_) { return API_BASE_URL; }
   }
 
@@ -1575,7 +1575,7 @@ class ApiClient {
     // No local pin (already cloud) or web/cloud app → undefined (normal routing).
     try {
       if (typeof window === 'undefined' || !getLocalServerUrl()) return undefined;
-      const pin = window.localStorage.getItem(BACKEND_URL_KEY);
+      const pin = getCloudPin();
       if (pin && !/127\.0\.0\.1|localhost|\.local|:3003/.test(pin)) return pin.replace(/\/+$/, '');
       return PG_API_BASE;
     } catch (_) { return undefined; }

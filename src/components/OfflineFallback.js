@@ -21,6 +21,7 @@
 import { useEffect, useRef } from 'react';
 import apiClient from '../lib/api';
 import { isServerApp, getLocalServerUrl, setLocalServerUrl } from '../lib/localServer';
+import { getCloudPin, PG_API_BASE } from '../lib/apiBase';
 import { reconnectLan } from '../lib/lanRealtime';
 import { subscribeNetworkStatus } from '../hooks/useNetworkStatus';
 
@@ -35,9 +36,9 @@ const PROBE_TIMEOUT_MS = 3000;
 function cloudTarget() {
   try {
     const pin = window.localStorage.getItem('dineopen_backend_url');
-    if (pin && !/127\.0\.0\.1|localhost|\.local|:3003/.test(pin)) return pin.replace(/\/+$/, '');
+    if (pin && !/127\.0\.0\.1|localhost|\.local|:3003/.test(pin)) return (getCloudPin() || pin).replace(/\/+$/, '');
   } catch (_) {}
-  return (process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineopen.com').replace(/\/+$/, '');
+  return PG_API_BASE.replace(/\/+$/, '');
 }
 
 async function reachable(url, ms) {

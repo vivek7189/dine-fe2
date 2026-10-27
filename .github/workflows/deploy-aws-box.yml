@@ -39,7 +39,13 @@ jobs:
           restore-keys: |
             nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - name: Write build settings
-        run: printf '%s\n' "$WEB_ENV" > .env.production
+        run: |
+          printf '%s\n' "$WEB_ENV" > .env.production
+          # The old GCP forwarder (34-93-129-104.sslip.io) only forwards to this same AWS box — build with
+          # its main name so no page sends customers through GCP. Only that exact address is changed.
+          n=$(grep -c '34-93-129-104\.sslip\.io' .env.production || true)
+          sed -i 's#https://34-93-129-104\.sslip\.io#https://api.dineopen.com#g' .env.production
+          echo "old GCP address replaced on ${n:-0} line(s)"
         env:
           WEB_ENV: ${{ secrets.WEB_ENV_PRODUCTION }}
       - name: Build (standalone)

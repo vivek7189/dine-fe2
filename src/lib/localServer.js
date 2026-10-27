@@ -81,9 +81,10 @@ const PG_DEFAULT_URL = (process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineo
 function cloudTarget() {
   try {
     const pin = window.localStorage.getItem('dineopen_backend_url');
-    if (pin) return pin.replace(/\/+$/, '');
+    // The old GCP forwarder is the same box as api.dineopen.com — probe it by its main name.
+    if (pin) return (/\/\/34-93-129-104\.sslip\.io/i.test(pin) ? 'https://api.dineopen.com' : pin).replace(/\/+$/, '');
   } catch (_) {}
-  return PG_DEFAULT_URL;
+  return PG_DEFAULT_URL.replace('https://34-93-129-104.sslip.io', 'https://api.dineopen.com');
 }
 
 async function probeHealth(url, ms) {

@@ -30,13 +30,20 @@ const COOKIE_KEY = 'dineopen_backend';
 // Set from /local-login, cleared on logout. Never set during a normal login.
 export const BACKEND_OVERRIDE_KEY = 'dineopen_backend_override';
 
+// The old GCP forwarder (34-93…sslip.io). It only forwards to the same AWS box as api.dineopen.com;
+// a build setting that still names it is read as api.dineopen.com, so nothing goes through GCP.
+const OLD_GCP_HOST = '34-93-129-104.sslip.io';
+const notOldGcp = (u) => {
+  try { return u && new URL(u).hostname.toLowerCase() === OLD_GCP_HOST ? 'https://api.dineopen.com' : u; } catch (_) { return u; }
+};
+
 // Default cloud backend (existing users / fallback). Built at deploy time.
 export const DEFAULT_API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com';
+  notOldGcp(process.env.NEXT_PUBLIC_API_URL) || 'https://api.dineopen.com';
 
 // New-user (Postgres/GCP) backend. Overridable per environment; falls back to the VM.
 export const PG_API_BASE =
-  process.env.NEXT_PUBLIC_PG_API_URL || 'https://api.dineopen.com';
+  notOldGcp(process.env.NEXT_PUBLIC_PG_API_URL) || 'https://api.dineopen.com';
 
 // The cloud backend is ONLY our own box (AWS, api.dineopen.com). A saved per-user pin or remote config
 // pointing anywhere else (the retired Vercel / Cloud Run backends — old pins survive in localStorage) →
@@ -184,7 +191,8 @@ export async function refreshRemoteBackend() {
  */
 export function setApiBase(url) {
   if (typeof window === 'undefined' || !url) return;
-  const u = norm(url);
+  // Never remember the old GCP forwarder — the same box under its main name instead.
+  const u = norm(_hostOf(url) === OLD_GCP_HOST ? followRemoteForSameBox(url) : url);
   try { window.localStorage.setItem(BACKEND_URL_KEY, u); } catch (_) {}
   try { document.cookie = `${COOKIE_KEY}=${encodeURIComponent(u)};path=/;max-age=31536000;SameSite=Lax`; } catch (_) {}
 }
@@ -242,4 +250,26 @@ export function clearBackendOverride() {
   try { window.localStorage.removeItem(BACKEND_OVERRIDE_KEY); } catch (_) {}
   const dom = _baseDomain();
   try { document.cookie = `${OVERRIDE_COOKIE}=;path=/;max-age=0${dom ? ';domain=' + dom : ''}`; } catch (_) {}
+}
+
+/**
+ * The remembered cloud backend as it should really be used (same rules as getCloudApiBase): the
+ * old GCP forwarder or a retired backend → the main address. For code that needs the per-user pin
+ * itself (cloud probes, cloud-only calls) instead of reading localStorage raw. null when none.
+ */
+export function getCloudPin() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(BACKEND_URL_KEY);
+    return raw ? norm(followRemoteForSameBox(ownCloudBase(raw))) : null;
+  } catch (_) { return null; }
+}
+
+// One-time tidy-up: a browser that remembered the old GCP forwarder (from before the move to AWS)
+// now remembers the same box under its main name, so every reader of the pin agrees.
+if (typeof window !== 'undefined') {
+  try {
+    const raw = window.localStorage.getItem(BACKEND_URL_KEY);
+    if (raw && _hostOf(raw) === OLD_GCP_HOST) setApiBase(followRemoteForSameBox(raw));
+  } catch (_) { /* storage blocked */ }
 }
