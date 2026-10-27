@@ -1178,6 +1178,8 @@ class ApiClient {
     if (typeof window === 'undefined') return '/login';
     const user = this.getUser();
     if (!user) return '/login';
+    // Kitchen display login: only ever the kitchen screen.
+    if (String(user.role || '').toLowerCase() === 'kitchen_display') return '/kitchen-display';
 
     // Role-based landing page (opt-in). Owner/admin configure a per-role default
     // page in POS Settings (posSettings.roleLandingPages), e.g. cashier -> /dashboard,

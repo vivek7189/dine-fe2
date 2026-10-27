@@ -122,6 +122,7 @@ import {
 // ShiftScheduling moved to /shifts page df
 import dynamic from 'next/dynamic';
 import GoogleReviews from '../../../components/GoogleReviews';
+import KitchenDisplaySettings from '../../../components/KitchenDisplaySettings';
 import OfflineDataTab from '../../../components/OfflineDataTab';
 import TerminalsTab from '../../../components/lan/TerminalsTab';
 import WhatsAppTab from '../../../components/WhatsAppTab';
@@ -6181,6 +6182,8 @@ const Admin = () => {
     employee: { dashboard:true, history:true, tables:{ read:true, add:false, update:false, delete:false, reset:false }, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:true, calendar:true },
     captain:  { dashboard:true, history:true, tables:{ read:true, add:false, update:true, delete:false, reset:true }, menu:true, analytics:false, inventory:false, kot:true, admin:false, completeBill:true, invoice:false, customers:false, offers:false, printer:true, calendar:true, orders:{ read:true, update:true, cancel:true, refund:true, completeBill:true } },
     sales:    { dashboard:true, history:true, tables:false, menu:true, analytics:false, inventory:false, kot:false, admin:false, completeBill:false, invoice:false, customers:true, offers:true, printer:true, calendar:true },
+    // Kitchen screen login — the KOT screen only (the server enforces it).
+    kitchen_display: { dashboard:false, history:false, tables:false, menu:false, analytics:false, inventory:false, kot:true, admin:false, completeBill:false, invoice:false, customers:false, offers:false, printer:false, calendar:false },
   };
 
   const ROLE_DESCRIPTIONS = {
@@ -6191,6 +6194,7 @@ const Admin = () => {
     captain:  'Floor supervisor. Manages waiters and tables in assigned sections. Can override orders, void/comp items, and approve discounts.',
     employee: 'Basic staff. Only gets access to what you explicitly grant.',
     sales:    'Sales staff. Access to customers and offers by default.',
+    kitchen_display: 'A login for a kitchen screen: opens only the KOT screen (full screen). Cannot bill, change prices or see sales.',
   };
 
   const [newStaff, setNewStaff] = useState({
@@ -6220,7 +6224,7 @@ const Admin = () => {
     }
   });
   const [showPassword, setShowPassword] = useState({});
-  const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'captain', 'cashier', 'manager', 'sales', 'admin']);
+  const [customRoles, setCustomRoles] = useState(['employee', 'waiter', 'captain', 'cashier', 'manager', 'sales', 'admin', 'kitchen_display']);
   const [shiftExtraRoles, setShiftExtraRoles] = useState([]);
   const [showStaffActivity, setShowStaffActivity] = useState(false);
   // Role picker options: built-ins + roles added this session (customRoles), then every role the
@@ -6239,7 +6243,7 @@ const Admin = () => {
     extra.map(norm).filter(Boolean).sort().forEach(add);
     return out;
   }, [customRoles, staff, shiftExtraRoles]);
-  const roleLabel = (r) => String(r || '').replace(/\b\w/g, c => c.toUpperCase());
+  const roleLabel = (r) => String(r || '').toLowerCase() === 'kitchen_display' ? 'Kitchen display (KOT screen)' : String(r || '').replace(/\b\w/g, c => c.toUpperCase());
   // Role options are lowercase; a staff member saved as "Chef" must still show as selected and keep
   // their spelling when re-picked (was: no chip selected, and saving changed it to "chef").
   const sameRole = (a, b) => String(a || '').trim().toLowerCase().replace(/\s+/g, ' ') === String(b || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -7383,6 +7387,7 @@ const Admin = () => {
       assignedFloorIds: selectedStaff.assignedFloorIds || [],
       assignedWaiterIds: selectedStaff.assignedWaiterIds || [],
       extraRoles: Array.isArray(selectedStaff.extraRoles) ? selectedStaff.extraRoles : [],
+      kitchenDisplay: selectedStaff.kitchenDisplay || null,
       pageAccess: withDefaultOnAccess(JSON.parse(JSON.stringify(selectedStaff.pageAccess || ROLE_DEFAULT_PAGE_ACCESS[selectedStaff.role] || ROLE_DEFAULT_PAGE_ACCESS.employee))),
     });
     setEditingStaff(true);
@@ -7398,7 +7403,7 @@ const Admin = () => {
     if (!selectedStaff) return;
     const { name, phone, email, role } = editStaffForm;
     if (!name.trim()) { showWarning('Name is required'); return; }
-    if (!phone.trim()) { showWarning('Phone is required'); return; }
+    if (!phone.trim() && role !== 'kitchen_display') { showWarning('Phone is required'); return; }
 
     // Only owner can assign admin role
     if (role === 'admin' && currentUserRole !== 'owner') {
@@ -7421,6 +7426,9 @@ const Admin = () => {
       updateData.pageAccess = editStaffForm.pageAccess;
       updateData.isDeliveryPartner = !!editStaffForm.isDeliveryPartner;
       updateData.extraRoles = (editStaffForm.extraRoles || []).filter(r => String(r).toLowerCase() !== String(role).toLowerCase());
+
+      // Kitchen screen login settings (start/ready allowed, station)
+      if (role === 'kitchen_display') updateData.kitchenDisplay = editStaffForm.kitchenDisplay || {};
 
       // Captain-specific fields
       if (role === 'captain') {
@@ -10015,12 +10023,12 @@ const Admin = () => {
                   </div>
                   <div>
                     <label className="staff-modal-label" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                      Phone <span style={{ color: '#ef4444' }}>*</span>
+                      Phone {newStaff.role !== 'kitchen_display' && <span style={{ color: '#ef4444' }}>*</span>}
                     </label>
                     <input
                       className="staff-modal-input"
                       type="tel"
-                      required
+                      required={newStaff.role !== 'kitchen_display'}
                       value={newStaff.phone}
                       onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
                       placeholder="+91 98765 43210"
@@ -10128,9 +10136,11 @@ const Admin = () => {
                     </select>
                   </div>
                 </div>
-                <AlsoWorksAs value={newStaff.extraRoles || []} mainRole={newStaff.role} roleOptions={staffRoleOptions}
+                {newStaff.role !== 'kitchen_display' && (
+                <AlsoWorksAs value={newStaff.extraRoles || []} mainRole={newStaff.role} roleOptions={staffRoleOptions.filter(r => r !== 'kitchen_display')}
                   labelFor={(r) => roleLabel(r)}
                   onChange={(extraRoles) => setNewStaff(prev => ({ ...prev, extraRoles }))} />
+                )}
                 {ROLE_DESCRIPTIONS[newStaff.role] && (
                   <div style={{
                     marginTop: '10px', padding: '10px 14px',
@@ -10138,9 +10148,13 @@ const Admin = () => {
                     borderLeft: '3px solid #3b82f6', borderRadius: '0 10px 10px 0',
                     fontSize: '12px', color: '#475569', lineHeight: '1.5'
                   }}>
-                    <span style={{ fontWeight: 700, color: '#1e40af' }}>{newStaff.role?.charAt(0).toUpperCase() + newStaff.role?.slice(1)}:</span>{' '}
+                    <span style={{ fontWeight: 700, color: '#1e40af' }}>{newStaff.role === 'kitchen_display' ? roleLabel(newStaff.role) : newStaff.role?.charAt(0).toUpperCase() + newStaff.role?.slice(1)}:</span>{' '}
                     {ROLE_DESCRIPTIONS[newStaff.role]}
                   </div>
+                )}
+                {newStaff.role === 'kitchen_display' && (
+                  <KitchenDisplaySettings value={newStaff.kitchenDisplay}
+                    onChange={(kitchenDisplay) => setNewStaff(prev => ({ ...prev, kitchenDisplay }))} />
                 )}
 
                 {/* Custom Role Input */}
@@ -11248,9 +11262,11 @@ const Admin = () => {
                           })}
                         </div>
                       </div>
-                      <AlsoWorksAs value={editStaffForm.extraRoles || []} mainRole={editStaffForm.role} roleOptions={staffRoleOptions}
+                      {editStaffForm.role !== 'kitchen_display' && (
+                <AlsoWorksAs value={editStaffForm.extraRoles || []} mainRole={editStaffForm.role} roleOptions={staffRoleOptions.filter(r => r !== 'kitchen_display')}
                         labelFor={(r) => getRoleInfo(r)?.label || r}
                         onChange={(extraRoles) => setEditStaffForm(f => ({ ...f, extraRoles }))} />
+                )}
                       <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
                         <strong>Status:</strong> {getStatusInfo(selectedStaff.status || 'active').label}
                       </div>
@@ -11270,6 +11286,11 @@ const Admin = () => {
                           {editStaffForm.isDeliveryPartner ? 'Can receive delivery assignments' : 'Not a delivery partner'}
                         </span>
                       </div>
+
+                      {editStaffForm.role === 'kitchen_display' && (
+                        <KitchenDisplaySettings value={editStaffForm.kitchenDisplay}
+                          onChange={(kitchenDisplay) => setEditStaffForm(f => ({ ...f, kitchenDisplay }))} />
+                      )}
 
                       {/* Captain Assignment — Floors & Waiters */}
                       {editStaffForm.role === 'captain' && (

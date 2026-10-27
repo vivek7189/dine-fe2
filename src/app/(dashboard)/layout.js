@@ -230,6 +230,11 @@ function DashboardLayoutContent({ children }) {
         router.replace('/login');
         return;
       }
+      // Kitchen display login: no dashboard pages — always the full-screen kitchen screen.
+      if (String(user.role).toLowerCase() === 'kitchen_display') {
+        router.replace('/kitchen-display');
+        return;
+      }
 
       // Super admin disabled pages check — applies to ALL roles including owner/admin
       const routeSegment = pathname.split('/').filter(Boolean)[0] || '';
@@ -438,6 +443,11 @@ function DashboardLayoutContent({ children }) {
       window.removeEventListener('restaurantChanged', handleRestaurantChange);
     };
   }, []);
+
+  // Kitchen display login: render nothing here (the route guard above sends it to /kitchen-display).
+  if (typeof window !== 'undefined') {
+    try { if (String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase() === 'kitchen_display') return null; } catch { /* ignore */ }
+  }
 
   return (
     <TerminalLockProvider restaurantId={selectedRestaurantId} restaurantName={lockRestaurant?.name} terminalLock={lockRestaurant?.posSettings?.terminalLock}>

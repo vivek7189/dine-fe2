@@ -144,7 +144,9 @@ async function mergeOfflineKotOrders(existingOrders, restaurantId) {
   }
 }
 
-const KitchenOrderTicket = () => {
+// kdsMode (kitchen display login, /kitchen-display): { canUpdateStatus, station } from the login's
+// settings. Absent on the normal /kot page → everything below behaves exactly as before.
+const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
   const [kotOrders, setKotOrders] = useState([]);
@@ -637,7 +639,8 @@ const KitchenOrderTicket = () => {
         // Admin → KOT "Kitchen Done": 'auto' (default) closes the bill as before; if this person may
         // not take payment (server says no), the order is marked SERVED instead of failing. 'complete'
         // = always close the bill (old behaviour), 'served' = kitchen never closes the bill.
-        const doneAction = currentRestaurant?.posSettings?.kitchenDoneAction || 'auto';
+        // Kitchen display login: Done only marks the order served — it never closes the bill.
+        const doneAction = kdsMode ? 'served' : (currentRestaurant?.posSettings?.kitchenDoneAction || 'auto');
         if (doneAction === 'served') {
           await apiClient.updateKotStatus(orderId, 'served');
         } else {
@@ -756,7 +759,9 @@ const KitchenOrderTicket = () => {
 
   const barCategories = Array.isArray(stationCfg?.barCategories) ? stationCfg.barCategories : [];
   const stationsOn = barCategories.length > 0;
-  const activeStation = stationsOn ? station : 'all';
+  // Kitchen display login with a fixed station (Bar / Kitchen / All) — no picker on that screen.
+  const fixedStation = kdsMode && ['all', 'bar', 'kitchen'].includes(kdsMode.station) ? kdsMode.station : null;
+  const activeStation = stationsOn ? (fixedStation || station) : 'all';
 
   // The menu tells each item's category (order lines may not carry it). Loaded only when needed.
   useEffect(() => {
@@ -1012,7 +1017,7 @@ const KitchenOrderTicket = () => {
             {/* Right controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {/* Bar / Kitchen station (this screen) */}
-              {stationsOn && (
+              {stationsOn && !fixedStation && (
                 <div style={{ display: 'flex', gap: 2, background: '#f3f4f6', padding: 3, borderRadius: 9 }}>
                   {[['all', 'All'], ['kitchen', 'Kitchen'], ['bar', 'Bar']].map(([k, label]) => (
                     <button key={k} onClick={() => pickStation(k)}
@@ -1195,9 +1200,13 @@ const KitchenOrderTicket = () => {
                     icon: FaCheck,
                     color: '#16a34a',
                     shadow: '#16a34a40',
-                    onClick: () => markStationDone(kot)
+                    onClick: () => markStationDone(kot),
+                    screenOnly: true,
                   };
                 }
+                // View-only kitchen display: no buttons that change the order (clearing a ticket from a
+                // Bar / Kitchen screen only hides it on this screen, so it stays).
+                if (kdsMode && !kdsMode.canUpdateStatus && actionButton && !actionButton.screenOnly) actionButton = null;
 
                 const isTransitioning = !!transitioning[kot.id];
                 const transitionInfo = transitioning[kot.id];
@@ -1694,7 +1703,7 @@ const KitchenOrderTicket = () => {
                               >
                                 <FaPrint size={12} /> {t('kot.printKOT')}
                               </button>
-                              {kot.status !== 'completed' && kot.status !== 'cancelled' && (
+                              {!kdsMode && kot.status !== 'completed' && kot.status !== 'cancelled' && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); cancelOrder(kot.kotId, kot.id); setOpenMenuId(null); }}
                                   style={{
