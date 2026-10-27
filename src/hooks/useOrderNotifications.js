@@ -204,6 +204,9 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
           console.log(`🔔 OrderNotifications: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
           return;
         }
+        // Inside the DineOpen phone app, the app shows its own WhatsApp-order banner + ring (it sets
+        // this flag only for logins that get it) → skip ours so the phone doesn't alert twice.
+        if (/whatsapp/i.test(String(data.orderSource || '')) && typeof window !== 'undefined' && window.__DINEOPEN_NATIVE_WA_ALERTS__ === true) return;
         console.log(`🔔 OrderNotifications: ${isQrAddition ? 'Items added to order' : 'New order received'}`, data);
         addNotification(isQrAddition ? { ...data, isAddition: true, itemsCount: data.addedItemsCount } : data);
       }
