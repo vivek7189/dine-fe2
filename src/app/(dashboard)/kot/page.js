@@ -367,6 +367,11 @@ const KitchenOrderTicket = () => {
       if (eventName === 'order-created' && soundEnabledRef.current && data?.status !== 'awaiting_approval' && data?.status !== 'pending_payment') {
         playSound('newOrder');
       }
+      // QR customer added items to their running table order (same order, so it arrives as an
+      // update) — the kitchen gets the same chime. Ordinary order updates stay silent.
+      if (eventName === 'order-updated' && data?.merged === true && data?.approvedReplay !== true && soundEnabledRef.current) {
+        playSound('newOrder');
+      }
     };
 
     const processEvent = (data) => {

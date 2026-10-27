@@ -236,7 +236,7 @@ export default function OrderNotificationBell({
                       </div>
                       <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
                         {notif.customerName && `${notif.customerName} • `}
-                        {notif.itemsCount > 0 && `${notif.itemsCount} items`}
+                        {notif.itemsCount > 0 && `${notif.itemsCount} items${notif.isAddition ? ' added' : ''}`}
                         {notif.tableNumber && ` • Table ${notif.tableNumber}`}
                       </div>
                     </div>

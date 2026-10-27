@@ -118,6 +118,8 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
       totalAmount: orderData.totalAmount || orderData.finalAmount || 0,
       // QR order approval: the customer order is waiting for Approve / Reject.
       needsApproval: orderData.status === 'awaiting_approval',
+      // Customer added more items to their running table order (QR) — not a new order.
+      isAddition: orderData.isAddition === true,
       timestamp: Date.now(),
       read: false,
     };
@@ -191,7 +193,10 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     console.log(`🔔 OrderNotifications: Subscribed to ${restaurantId}/orders`);
 
     const processEvent = (data) => {
-      if (data && data.type === 'order-created') {
+      // A QR customer adding items to their running order arrives as an order UPDATE (same order);
+      // it alerts like a new order. Every other update stays silent, as before.
+      const isQrAddition = !!data && data.type === 'order-updated' && data.merged === true && data.approvedReplay !== true;
+      if (data && (data.type === 'order-created' || isQrAddition)) {
         // Skip stale events (> 2 min old) to prevent notification floods
         // after a real-time reconnect from a network drop.
         const eventAge = data.ts ? Date.now() - data.ts : 0;
@@ -199,8 +204,8 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
           console.log(`🔔 OrderNotifications: Skipping stale order event (${Math.round(eventAge / 1000)}s old)`);
           return;
         }
-        console.log('🔔 OrderNotifications: New order received', data);
-        addNotification(data);
+        console.log(`🔔 OrderNotifications: ${isQrAddition ? 'Items added to order' : 'New order received'}`, data);
+        addNotification(isQrAddition ? { ...data, isAddition: true, itemsCount: data.addedItemsCount } : data);
       }
     };
 
