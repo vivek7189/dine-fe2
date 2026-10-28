@@ -28,13 +28,15 @@ const INCIDENTS = {
   other: { label: 'Other', emoji: '📝' },
 };
 const SEV = { low: 'bg-gray-100 text-gray-700', medium: 'bg-amber-100 text-amber-800', high: 'bg-red-100 text-red-700' };
+// Emergency services involved in an incident (any combination).
+const SERVICES = { police: { emoji: '🚓', label: 'Police' }, ambulance: { emoji: '🚑', label: 'Ambulance' }, fire: { emoji: '🚒', label: 'Fire' }, other: { emoji: '🆘', label: 'Other' } };
 const RATINGS = [[1, '😣', 'Bad'], [2, '😕', 'Below par'], [3, '😐', 'OK'], [4, '🙂', 'Good'], [5, '🤩', 'Great']];
 const FOCUS_CHIPS = ['Push promo items', 'Upsell drinks & desserts', 'Festival / event day', 'Big booking / catering', 'Deep cleaning', 'New staff training'];
 
 const addDays = (d, n) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const fmtDay = (d, opts = { weekday: 'long', day: 'numeric', month: 'long' }) => { try { return new Date(`${d}T12:00:00`).toLocaleDateString([], opts); } catch { return d; } };
 const fmtTime = (iso) => { try { return new Date(iso).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
-const newIncident = () => ({ id: '', type: 'other', severity: 'medium', title: '', note: '', people: '', amount: '', followUp: '', status: 'open', resolution: '' });
+const newIncident = () => ({ id: '', type: 'other', severity: 'medium', title: '', note: '', people: '', amount: '', followUp: '', time: '', services: [], servicesNote: '', status: 'open', resolution: '' });
 
 export default function DiaryPage() {
   const searchParams = useSearchParams();
@@ -75,7 +77,7 @@ export default function DiaryPage() {
       setForm({
         anticipation: { target: e.anticipation?.target ?? '', focus: e.anticipation?.focus || '', staffing: e.anticipation?.staffing || '', notes: e.anticipation?.notes || '' },
         assessment: { rating: e.assessment?.rating || null, wentWell: e.assessment?.wentWell || '', wentWrong: e.assessment?.wentWrong || '', tomorrow: e.assessment?.tomorrow || '' },
-        incidents: (e.incidents || []).map((i) => ({ ...newIncident(), ...i, amount: i.amount ?? '', followUp: i.followUp || '' })),
+        incidents: (e.incidents || []).map((i) => ({ ...newIncident(), ...i, amount: i.amount ?? '', followUp: i.followUp || '', time: i.time || '', services: Array.isArray(i.services) ? i.services : [], servicesNote: i.servicesNote || '' })),
       });
       setDirty(false); setSavedAt(e.updatedAt ? { at: e.updatedAt, by: e.updatedBy?.name } : null);
     } catch (err) {
@@ -107,13 +109,13 @@ export default function DiaryPage() {
       const body = {};
       if (changed.anticipation) body.anticipation = { ...form.anticipation, target: form.anticipation.target === '' ? null : Number(form.anticipation.target) };
       if (changed.assessment) body.assessment = form.assessment;
-      if (changed.incidents) body.incidents = form.incidents.map((i) => ({ ...i, amount: i.amount === '' ? null : Number(i.amount), followUp: i.followUp || null }));
+      if (changed.incidents) body.incidents = form.incidents.map((i) => ({ ...i, amount: i.amount === '' ? null : Number(i.amount), followUp: i.followUp || null, time: i.time || null }));
       const r = await apiClient.saveDiaryDay(rid, date, body);
       const e = r.entry || {};
       setForm({
         anticipation: { target: e.anticipation?.target ?? '', focus: e.anticipation?.focus || '', staffing: e.anticipation?.staffing || '', notes: e.anticipation?.notes || '' },
         assessment: { rating: e.assessment?.rating || null, wentWell: e.assessment?.wentWell || '', wentWrong: e.assessment?.wentWrong || '', tomorrow: e.assessment?.tomorrow || '' },
-        incidents: (e.incidents || []).map((i) => ({ ...newIncident(), ...i, amount: i.amount ?? '', followUp: i.followUp || '' })),
+        incidents: (e.incidents || []).map((i) => ({ ...newIncident(), ...i, amount: i.amount ?? '', followUp: i.followUp || '', time: i.time || '', services: Array.isArray(i.services) ? i.services : [], servicesNote: i.servicesNote || '' })),
       });
       setSavedAt({ at: e.updatedAt, by: e.updatedBy?.name }); setDirty(false); setChanged({});
     } catch (err) {
@@ -274,11 +276,32 @@ export default function DiaryPage() {
                           </div>
                         </div>
                         <textarea rows={2} value={x.note} onChange={(e) => setInc(k, { note: e.target.value })} placeholder="Details, action taken" className="w-full mt-2 px-3 py-2 rounded-lg border border-gray-200 resize-y text-sm" />
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <label className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="text-xs font-semibold text-gray-500">Time of incident</span>
+                            <input type="time" value={x.time} onChange={(e) => setInc(k, { time: e.target.value })} className="px-2 py-1.5 rounded-lg border border-gray-200 text-sm" />
+                          </label>
+                          <span className="text-xs font-semibold text-gray-500 ml-1">Services involved</span>
+                          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Emergency services involved">
+                            {Object.entries(SERVICES).map(([sv, m]) => {
+                              const on = (x.services || []).includes(sv);
+                              return (
+                                <button key={sv} type="button" aria-pressed={on}
+                                  onClick={() => setInc(k, { services: on ? x.services.filter((v) => v !== sv) : [...(x.services || []), sv] })}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${on ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600'}`}>{m.emoji} {m.label}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        {(x.services || []).length > 0 && (
+                          <input value={x.servicesNote} onChange={(e) => setInc(k, { servicesNote: e.target.value })} placeholder="Services details — report no., officer, hospital…" className="w-full mt-2 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        )}
                         <div className="grid sm:grid-cols-3 gap-2 mt-2">
                           <input value={x.people} onChange={(e) => setInc(k, { people: e.target.value })} placeholder="People involved" className="px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                           <input type="number" min="0" value={x.amount} onChange={(e) => setInc(k, { amount: e.target.value })} placeholder="Amount (if any)" className="px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                           <label className="flex items-center gap-2 text-sm text-gray-600">
                             <FaCalendarAlt className="text-gray-400 shrink-0" />
+                            <span className="text-xs font-semibold text-gray-500 shrink-0">Follow-up</span>
                             <input type="date" value={x.followUp} onChange={(e) => setInc(k, { followUp: e.target.value })} className="flex-1 min-w-0 px-2 py-2 rounded-lg border border-gray-200 text-sm" title="Follow-up date (shows in the calendar)" />
                           </label>
                         </div>
@@ -348,7 +371,8 @@ export default function DiaryPage() {
                           <span className="font-semibold text-gray-900">{i.title || INCIDENTS[i.type]?.label}</span>
                           <span className={`text-[11px] px-2 py-0.5 rounded-full capitalize ${SEV[i.severity] || SEV.medium}`}>{i.severity}</span>
                           <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${i.status === 'open' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{i.status === 'open' ? 'Open' : 'Resolved'}</span>
-                          <span className="ml-auto text-xs text-gray-500">{fmtDay(i.date, { day: 'numeric', month: 'short' })}{i.followUp ? ` · follow up ${fmtDay(i.followUp, { day: 'numeric', month: 'short' })}` : ''}</span>
+                          {(i.services || []).map((sv) => SERVICES[sv] && <span key={sv} className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{SERVICES[sv].emoji} {SERVICES[sv].label}</span>)}
+                          <span className="ml-auto text-xs text-gray-500">{fmtDay(i.date, { day: 'numeric', month: 'short' })}{i.time ? ` ${i.time}` : ''}{i.followUp ? ` · follow up ${fmtDay(i.followUp, { day: 'numeric', month: 'short' })}` : ''}</span>
                         </div>
                         {(i.note || i.resolution) && <div className="text-sm text-gray-600 mt-1 line-clamp-2">{i.note}{i.resolution ? ` — ✔ ${i.resolution}` : ''}</div>}
                       </button>
