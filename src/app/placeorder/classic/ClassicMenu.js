@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'react-icons/fa';
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import PublicMenuBadge from '../../../components/PublicMenuBadge';
+import QrTodaySpecial from '../../../components/QrTodaySpecial';
 
 // Liquor items: the menu's liquor flag / ABV / spirit category, else a liquor-type category name.
 const LIQUOR_CATEGORY = /(whisk(e)?y|scotch|bourbon|\bgin\b|vodka|\brum\b|tequila|mezcal|beer|lager|\bale\b|wine|champagne|prosecco|liquor|liqueur|brandy|cognac|cocktail|spirit|alcohol|sake|cider|\bshots?\b)/i;
@@ -19,7 +20,7 @@ const DIET_MATCH = {
   liquor: (i) => isLiquorItem(i),
 };
 
-const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null, foodFilter = false }) => {
+const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null, foodFilter = false, todaySpecial = null, qtyOf = null }) => {
   // Menu look (Customer App → Branding): 'standard' (exactly the classes used before) | 'dark' |
   // 'green' (racing green + white + gold). `dark` is the older switch for 'dark'.
   const style = look || (dark ? 'dark' : 'standard');
@@ -162,6 +163,15 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
           />
         </div>
       </div>
+
+      {/* Today's special (Menu → Today's special) — above the category bar */}
+      {todaySpecial && !searchTerm && (
+        <div className="px-4 max-w-3xl mx-auto">
+          <QrTodaySpecial special={todaySpecial} menu={menu} look={style} cs={currencySymbol}
+            qtyOf={qtyOf || getCartQuantity} onAdd={addToCart} onRemove={removeFromCart}
+            hideImages={restaurant?.posSettings?.hideMenuImages === true} />
+        </div>
+      )}
 
       {/* Categories Horizontal Scroll */}
       <div className={`sticky top-0 z-20 ${t.bar} backdrop-blur-sm pt-2 pb-4 px-4 shadow-sm border-b`}>

@@ -47,6 +47,7 @@ import { getDisplayImage } from '../../utils/placeholderImages';
 import { toJsDate } from '../../utils/dateParse';
 import { matchesAudience, calculateDiscountForOffer, isScheduleValid, isDateValid } from '../../hooks/useOfferEngine';
 import PhoneInputWithCountry from '../../components/PhoneInputWithCountry';
+import QrTodaySpecial from '../../components/QrTodaySpecial';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
 import { openPaytmCheckout } from '../../utils/paytmCheckout';
@@ -259,7 +260,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState(null);
   const [menu, setMenu] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [menuCategories, setCategories] = useState([]); // menu order; `categories` below puts Today's special first
   // Full category objects (id/name/taxGroupId) — per-category tax groups for the bill (server parity)
   const [menuCategoryObjs, setMenuCategoryObjs] = useState([]);
   // Items carry the category ID ("sandwiches--wraps"); show its saved name ("Sandwiches & Wraps").
@@ -305,6 +306,15 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [hasAutoApplied, setHasAutoApplied] = useState(false); // Track if auto-apply has been done
   const [customerData, setCustomerData] = useState(null);
   const [customerAppSettings, setCustomerAppSettings] = useState(null);
+  // Today's special (Menu → Today's special): its categories come first everywhere on this page.
+  const todaySpecial = customerAppSettings?.todaySpecial || null;
+  const categories = useMemo(() => {
+    const first = (todaySpecial?.categories || []).map((c) => String(c).toLowerCase());
+    if (!first.length) return menuCategories;
+    const lead = menuCategories.filter((c) => c !== 'all' && first.includes(String(c).toLowerCase()))
+      .sort((a, b) => first.indexOf(String(a).toLowerCase()) - first.indexOf(String(b).toLowerCase()));
+    return [...menuCategories.filter((c) => c === 'all'), ...lead, ...menuCategories.filter((c) => c !== 'all' && !lead.includes(c))];
+  }, [menuCategories, todaySpecial]);
   // Customer App → Branding → dark menu: buttons / cart accents follow the black look (page-level
   // CSS variables; every accent falls back to today's red when this is off).
   // Menu look: 'standard' | 'dark' | 'green' (branding.menuStyle; the older darkMode switch = 'dark').
@@ -2368,6 +2378,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             themeProps.look = qrLook;
             themeProps.logoUrl = customerAppSettings?.branding?.logoUrl || null;
             themeProps.foodFilter = customerAppSettings?.branding?.foodFilter === true;
+            themeProps.todaySpecial = todaySpecial;
+            themeProps.qtyOf = qtyOf;
           }
         }
         if (themeId === 'bistro') {
@@ -2475,6 +2487,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
           {/* Main Menu Content */}
           <div className="desktop-main-content" style={{ flex: 1, minWidth: 0 }}>
+        {/* ── Today's special (Menu → Today's special) ── */}
+        {todaySpecial && selectedCategory === 'all' && !searchTerm && (
+          <QrTodaySpecial special={todaySpecial} menu={filteredMenu} look="standard" cs={cs} qtyOf={qtyOf}
+            onAdd={addToCart} onRemove={removeFromCart} hideImages={restaurant?.posSettings?.hideMenuImages === true} />
+        )}
         {/* ── Featured / Bestseller band (public-menu merchandising, display-only) ── */}
         {(() => {
           const featured = (filteredMenu || []).filter(i => i.featured);

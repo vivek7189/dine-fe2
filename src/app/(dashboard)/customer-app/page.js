@@ -30,6 +30,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import PaytmConnectSection from '../../../components/PaytmConnectSection';
+import TodaySpecialEditor from '../../../components/TodaySpecialEditor';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // Helper function to determine if text should be light or dark based on background color
@@ -64,6 +65,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
   const [isMobile, setIsMobile] = useState(false);
   const [copied, setCopied] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
+  const [showTodaySpecial, setShowTodaySpecial] = useState(false); // Today's special editor (saves on its own)
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [onlineOrderUrl, setOnlineOrderUrl] = useState(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -1343,6 +1345,21 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 </div>
               );
             })()}
+
+            {/* Today's special — its own editor, saves on its own (not with the Save button below) */}
+            <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 8px' }}>Today&apos;s special</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', background: '#fff7ed', border: '1px solid #fed7aa', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '22px' }} aria-hidden>🐟</span>
+              <div style={{ flex: 1, minWidth: '180px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#9a3412' }}>Highlight dishes at the top of the QR menu</div>
+                <div style={{ fontSize: '12px', color: '#b45309' }}>e.g. &quot;Fresh catch of the day&quot; — change it every day. Also in Menu → Today&apos;s special.</div>
+              </div>
+              <button type="button" disabled={!restaurantId} onClick={() => setShowTodaySpecial(true)}
+                style={{ padding: '9px 16px', borderRadius: '10px', border: 'none', background: '#ea580c', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                Set today&apos;s special
+              </button>
+            </div>
+            {showTodaySpecial && restaurantId && <TodaySpecialEditor restaurantId={restaurantId} onClose={() => setShowTodaySpecial(false)} />}
 
             <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: '24px 0 12px' }}>Page Behavior</h3>
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import TodaySpecialEditor from '../../../components/TodaySpecialEditor';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useLoading } from '../../../contexts/LoadingContext';
@@ -2578,6 +2579,9 @@ const MenuManagement = () => {
   const canDeleteMenuItem = canPerform(menuUserData, menuPageAccess, 'menu', 'delete', currentRestaurant?.posSettings?.waiterAppConfig);
   const canMarkOutOfStock = canPerform(menuUserData, menuPageAccess, 'menu', 'markOutOfStock', currentRestaurant?.posSettings?.waiterAppConfig);
   const isOwnerOrAdmin = ['owner', 'admin'].includes(menuUserData.role);
+  // Today's special on the QR menu — same roles the server allows (owner / admin / co-owner / manager)
+  const canTodaySpecial = ['owner', 'admin', 'co-owner', 'manager'].includes(String(menuUserData.role || '').toLowerCase());
+  const [showTodaySpecial, setShowTodaySpecial] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -4866,6 +4870,7 @@ const MenuManagement = () => {
               { icon: <FaTags size={isMobileEmbed ? 11 : 16} />, label: 'Modifiers', onClick: () => setShowBulkModifier(true), bg: '#faf5ff', color: '#7c3aed', hoverBg: '#f3e8ff', border: '#e9d5ff' },
               { icon: <FaCamera size={isMobileEmbed ? 11 : 16} />, label: t('menu.photo'), onClick: handleCameraCapture, bg: '#fffbeb', color: '#d97706', hoverBg: '#fef3c7', border: '#fde68a' },
               { icon: <FaQrcode size={isMobileEmbed ? 11 : 16} />, label: t('menu.qrCode'), onClick: () => setShowQRCodeModal(true), bg: '#ecfdf5', color: '#059669', hoverBg: '#d1fae5', border: '#a7f3d0' },
+              ...(canTodaySpecial && currentRestaurant?.id ? [{ icon: <span aria-hidden style={{ fontSize: isMobileEmbed ? 11 : 15 }}>🐟</span>, label: "Today's special", onClick: () => setShowTodaySpecial(true), bg: '#fff7ed', color: '#c2410c', hoverBg: '#ffedd5', border: '#fed7aa' }] : []),
               { icon: <FaEye size={isMobileEmbed ? 11 : 16} />, label: t('menu.customize'), onClick: () => { const rid = currentRestaurant?.id || localStorage.getItem('restaurantId'); const p = `/menu/customize${rid ? `?restaurant=${rid}` : ''}`; router.push(isMobileEmbed ? `/mobile${p}` : p); }, bg: '#eff6ff', color: '#2563eb', hoverBg: '#dbeafe', border: '#bfdbfe' },
               ...(isOwnerOrAdmin ? [{ icon: <FaImage size={isMobileEmbed ? 11 : 16} />, label: globalHideImages ? 'Show Images' : 'Hide Images', onClick: async () => { const newVal = !globalHideImages; try { await apiClient.updateRestaurant(currentRestaurant.id, { posSettings: { hideMenuImages: newVal } }); setCurrentRestaurant(prev => ({ ...prev, posSettings: { ...prev?.posSettings, hideMenuImages: newVal } })); } catch (e) { console.error('Failed to toggle images:', e); } }, bg: globalHideImages ? '#fef2f2' : '#f0fdf4', color: globalHideImages ? '#dc2626' : '#059669', hoverBg: globalHideImages ? '#fee2e2' : '#dcfce7', border: globalHideImages ? '#fecaca' : '#a7f3d0' }] : []),
             ].map((action, i) => (
@@ -7716,6 +7721,8 @@ const MenuManagement = () => {
         document.body
       )}
 
+      {showTodaySpecial && currentRestaurant?.id && typeof document !== 'undefined' && createPortal(
+        <TodaySpecialEditor restaurantId={currentRestaurant.id} onClose={() => setShowTodaySpecial(false)} />, document.body)}
       {/* Bulk Upload Modal — lazy-loaded, portal to render above sidebar */}
       {showBulkUpload && typeof document !== 'undefined' && createPortal(
         <BulkMenuUpload
