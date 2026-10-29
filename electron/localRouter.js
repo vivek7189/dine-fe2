@@ -128,6 +128,25 @@ function analyticsScope(caller) {
   return { ownerId: (caller && caller.userId) || '__none__' }; // unknown caller → nothing
 }
 
+const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+function deepMerge(base, patch) {
+  const out = { ...(isPlainObject(base) ? base : {}) };
+  for (const [k, v] of Object.entries(patch || {})) out[k] = isPlainObject(v) && isPlainObject(out[k]) ? deepMerge(out[k], v) : v;
+  return out;
+}
+
+// Same merge as the server's PATCH /api/restaurants/:id: other fields stay; a settings object
+// (posSettings, printSettings…) is merged one level deep; posSettingsPatch is merged deeply.
+function mergeRestaurantPatch(existing, body) {
+  const out = { ...(isPlainObject(existing) ? existing : {}) };
+  for (const [k, v] of Object.entries(isPlainObject(body) ? body : {})) {
+    if (k === 'posSettingsPatch') continue;
+    out[k] = isPlainObject(v) && isPlainObject(out[k]) ? { ...out[k], ...v } : v;
+  }
+  if (isPlainObject(body?.posSettingsPatch)) out.posSettings = deepMerge(out.posSettings, body.posSettingsPatch);
+  return out;
+}
+
 function routeLocally(endpoint, method, body, caller) {
   const m = method.toUpperCase();
   const query = parseQuery(endpoint);
@@ -524,9 +543,14 @@ function routeLocally(endpoint, method, body, caller) {
   }
   if (m === 'PATCH' && (p = match('/api/restaurants/:restaurantId', path))) {
     return safe(() => {
-      entityStore.saveRestaurant(p.restaurantId, body);
+      // A PATCH carries only what changed (e.g. { posSettings: { cardSize } }). Saving it as the whole
+      // restaurant wiped this till's copy — billing settings (round-off), GSTIN, tax… — until the next
+      // cloud pull (Anna's Coconut Chutney 29 Oct: ₹199.50 bill, no GSTIN on the pre-bill). Merge it the
+      // way the server does instead.
+      const merged = mergeRestaurantPatch(entityStore.getRestaurant(p.restaurantId), body);
+      entityStore.saveRestaurant(p.restaurantId, merged);
       entityStore.logChange('restaurant', p.restaurantId, p.restaurantId, 'UPDATE', `/api/restaurants/${p.restaurantId}`, 'PATCH', body);
-      return ok({ restaurant: body, success: true });
+      return ok({ restaurant: merged, success: true });
     });
   }
   if (m === 'GET' && path === '/api/restaurants') {
@@ -838,4 +862,4 @@ function routeLocally(endpoint, method, body, caller) {
   return NOT_HANDLED;
 }
 
-module.exports = { routeLocally };
+module.exports = { routeLocally, mergeRestaurantPatch };
