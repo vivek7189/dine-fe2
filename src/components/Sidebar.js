@@ -48,6 +48,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import apiClient from '../lib/api';
 import { t } from '../lib/i18n';
 import { performLogout } from '../lib/logout';
+import LoginActivity from './LoginActivity';
 import { useLoading } from '../contexts/LoadingContext';
 import { isElectron } from '../utils/platform';
 import { NAV_ID_TO_ACCESS_KEY, NAV_ALT_ACCESS_KEYS, WAITER_ENFORCEABLE_KEYS, DEFAULT_ON_ACCESS_KEYS, defaultOnAccessAllowed, accessValueOn } from '../lib/pageAccessConfig';
@@ -802,6 +803,8 @@ export default function Sidebar({ isDashboardPage = false }) {
                     </div>
                   </div>
                 </Link>
+                {/* Last login + Login activity (own logins only) */}
+                <LoginActivity userId={user?.id || user?.userId} />
 
                 {electronVersion && (
                   <div className="px-3 -mt-1 mb-1">

@@ -507,6 +507,7 @@ class ApiClient {
         if (response.status === 401) {
           console.log('🔒 401 Unauthorized - Token may be expired');
           this.forceLogout();
+          if (data && data.code === 'SESSION_ENDED') this.noteLogoutReason('session-ended');
           // Don't redirect in mobile WebView embed — let the native app handle auth
           if (typeof window !== 'undefined' && !window.__DINEOPEN_MOBILE_EMBED__ && !window.location.pathname.includes('/login')) {
             window.location.href = '/login';
@@ -1057,7 +1058,10 @@ class ApiClient {
       // Token is invalid or expired - clean up
       if (response.status === 401 || response.status === 403) {
         console.log('🔒 Token expired or invalid, logging out...');
+        let code = null;
+        try { code = (await response.json())?.code || null; } catch { /* not JSON */ }
         this.forceLogout();
+        if (code === 'SESSION_ENDED') this.noteLogoutReason('session-ended');
         return false;
       }
 
@@ -1070,6 +1074,12 @@ class ApiClient {
       // Don't force logout on network issues
       return this.isAuthenticated();
     }
+  }
+
+  // Why this browser was logged out, for the login page (set AFTER forceLogout, which clears storage).
+  // 'session-ended' = "Log out other devices" was used on another device.
+  noteLogoutReason(reason) {
+    try { if (typeof window !== 'undefined') sessionStorage.setItem('dine_logout_reason', reason); } catch { /* ignore */ }
   }
 
   // Force logout - clears all auth data completely
@@ -1096,7 +1106,7 @@ class ApiClient {
     localStorage.clear();
 
     // Clear sessionStorage
-    sessionStorage.clear();
+    { let _why = null; try { _why = sessionStorage.getItem('dine_logout_reason'); } catch { /* ignore */ } sessionStorage.clear(); if (_why) { try { sessionStorage.setItem('dine_logout_reason', _why); } catch { /* ignore */ } } } // keep why we were logged out (many requests log out at once)
 
     // Reset refresh state
     this.isRefreshing = false;

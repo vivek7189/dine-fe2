@@ -109,6 +109,15 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false); // Separate loading state for Google login
   const [error, setError] = useState('');
+  // Logged out by "Log out other devices" on another device (lib/api.js noteLogoutReason)
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('dine_logout_reason') === 'session-ended') {
+        sessionStorage.removeItem('dine_logout_reason');
+        setError('You were logged out because your account was logged out from another device. Please log in again.');
+      }
+    } catch { /* ignore */ }
+  }, []);
   const [showRestaurantPicker, setShowRestaurantPicker] = useState(false);
   const [availableRestaurants, setAvailableRestaurants] = useState([]);
   const [pendingLoginData, setPendingLoginData] = useState(null);
