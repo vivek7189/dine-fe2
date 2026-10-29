@@ -888,10 +888,19 @@ const OrderHistory = () => {
         // 1. For staff members (not owners) - use assigned restaurant from user data
         if (userData.restaurantId && ['waiter', 'manager', 'employee', 'cashier'].includes(userData.role)) {
           finalRestaurantId = userData.restaurantId;
-          finalRestaurant = {
-            id: userData.restaurantId,
-            name: userData.restaurant?.name || 'Restaurant'
-          };
+          // The FULL restaurant: billing here reads its billingSettings (round-off, service charge…) and
+          // bills print its GSTIN / address. Only { id, name } was kept → staff bills from Order History
+          // had no round-off and no GSTIN (Anna's Coconut Chutney 29 Oct: ₹199.50 bill, pre-bill without
+          // GSTIN). Same sources as the POS: restaurant list → this restaurant → the copy on this device.
+          const rid = userData.restaurantId;
+          try { const res = await apiClient.getRestaurants(); finalRestaurant = (res?.restaurants || []).find(r => r.id === rid) || null; } catch (_) { /* offline → below */ }
+          if (!finalRestaurant) {
+            try { const one = await apiClient.getRestaurant(rid); const r = one?.restaurant || one; if (r && (r.id || r.name)) finalRestaurant = { ...r, id: r.id || rid }; } catch (_) { /* below */ }
+          }
+          if (!finalRestaurant) {
+            try { const saved = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null'); if (saved && saved.id === rid) finalRestaurant = saved; } catch (_) { /* below */ }
+          }
+          if (!finalRestaurant) finalRestaurant = { id: rid, name: userData.restaurant?.name || 'Restaurant' };
           console.log('👨‍💼 OrderHistory: Using staff assigned restaurant:', finalRestaurantId);
         }
         // 2. For owners - fetch restaurants from API (includes defaultRestaurantId from BE)
