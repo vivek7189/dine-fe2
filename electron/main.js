@@ -314,6 +314,27 @@ async function waitForPrintPaint(webContents, maxMs = 2500) {
   }
 }
 
+// Page height for one receipt, in microns. The page used to be a fixed 297 mm (A4 length): a bill
+// longer than that spilled onto a second page and the printer cut between the two (Xpress Grub:
+// the eTIMS QR came out on its own slip). Short bills keep 297 mm exactly as before; a longer bill
+// gets a page tall enough for all of it. The print window is 302 px wide (80 mm); a 58 mm page lays
+// the receipt out narrower and so taller, hence the width ratio, plus a spare margin.
+const RECEIPT_PAGE_MIN_MICRONS = 297000;
+const RECEIPT_PAGE_MAX_MICRONS = 3000000; // 3 m — far past any real bill, within thermal drivers' limits
+async function receiptPageHeightMicrons(webContents, widthMicrons) {
+  try {
+    const px = Number(await webContents.executeJavaScript(
+      'Math.max(document.documentElement.scrollHeight||0, document.body ? document.body.scrollHeight : 0)', true));
+    if (!px || !Number.isFinite(px)) return RECEIPT_PAGE_MIN_MICRONS;
+    const pagePx = (widthMicrons / 25400) * 96;
+    const reflow = pagePx < 302 ? 302 / pagePx : 1;
+    const microns = Math.ceil(px * reflow * 1.1 * (25400 / 96)) + 20000;
+    return Math.min(RECEIPT_PAGE_MAX_MICRONS, Math.max(RECEIPT_PAGE_MIN_MICRONS, microns));
+  } catch {
+    return RECEIPT_PAGE_MIN_MICRONS;
+  }
+}
+
 // ──── Print diagnostics log (local, for remote root-cause without site visit) ────
 // Every print attempt appends one structured line here with the REAL outcome and
 // full machine context. This does NOT change what the handler returns to the app
@@ -1030,9 +1051,10 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
 
       if (!printWindow || printWindow.isDestroyed()) createPrintWindow();
       await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      const dbgH = await receiptPageHeightMicrons(printWindow.webContents, widthMicrons);
       const pdfData = await printWindow.webContents.printToPDF({
         printBackground: true,
-        pageSize: pdfPageSize,
+        pageSize: { width: pdfPageSize.width, height: dbgH / 25400 },
       });
       fs.writeFileSync(pdfPath, pdfData);
       console.log('[Print] Debug PDF saved:', pdfPath);
@@ -1132,6 +1154,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
   // Fix A: ensure the receipt has actually painted before we hand it to the
   // printer (see waitForPrintPaint). This is the core Windows 10 fix.
   await waitForPrintPaint(printWindow.webContents);
+  const pageHeightMicrons = await receiptPageHeightMicrons(printWindow.webContents, widthMicrons);
 
   // Use cached printer list (avoids OS enumeration on every print)
   const printers = await getCachedPrinters(printWindow.webContents);
@@ -1145,7 +1168,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
     const pdfPath = path.join(app.getPath('desktop'), `DineOpen-print-${Date.now()}.pdf`);
     const pdfData = await printWindow.webContents.printToPDF({
       printBackground: true,
-      pageSize: pdfPageSize,
+      pageSize: { width: pdfPageSize.width, height: pageHeightMicrons / 25400 },
     });
     fs.writeFileSync(pdfPath, pdfData);
     logPrintEvent({
@@ -1210,7 +1233,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
       copies: copies || 1,
       printBackground: true,
       // Thermal paper size in microns (58mm or 80mm width, long roll height)
-      pageSize: { width: widthMicrons, height: 297000 },
+      pageSize: { width: widthMicrons, height: pageHeightMicrons },
       // Use 'none' so the printer driver doesn't add its own margins — CSS padding
       // (via printLeftMargin setting) has full control over content positioning.
       // This is the industry standard for thermal receipt printers and fixes left-side
