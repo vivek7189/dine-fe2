@@ -89,8 +89,9 @@ export async function fiscaliseAndPrint({ restaurantId, order, restaurant, print
     return { error: e && e.message, fallbackPrinted };
   }
   if (result.skipped) return result;
-  // the PIN typed in the prompt is now on the bill → print it on this receipt too
-  if (customerTin !== undefined) fullOrder = { ...fullOrder, customerTin: customerTin || null };
+  // the PIN typed in the prompt went to KRA with this send → print it on this receipt too
+  // (not when the bill was already at KRA — the backend kept its PIN, so the receipt keeps it too)
+  if (customerTin !== undefined && !result.alreadyFiscalised) fullOrder = { ...fullOrder, customerTin: customerTin || null };
 
   // Fiscalised OK → print the combined receipt (bill + KRA block/QR).
   try {

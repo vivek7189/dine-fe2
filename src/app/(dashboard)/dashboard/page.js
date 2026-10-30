@@ -253,6 +253,9 @@ function RestaurantPOSContent() {
   const [assignedStaff, setAssignedStaff] = useState(null); // { name, id } for staff assignment
   const [orderLookup, setOrderLookup] = useState(''); // For table number or order ID lookup
   const [currentOrder, setCurrentOrder] = useState(null); // Current order being viewed/updated
+  // KRA PIN box follows the open order: opening another order shows THAT order's PIN, so a PIN typed
+  // for one table can never be billed onto the next (keyed on the id → refreshes keep what is typed).
+  useEffect(() => { setCustomerTin(currentOrder?.customerTin || ''); }, [currentOrder?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [orderSearchLoading, setOrderSearchLoading] = useState(false); // Loading state for order search
   const [taxSettings, setTaxSettings] = useState(null); // Tax settings for the restaurant
 

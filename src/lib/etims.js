@@ -184,7 +184,7 @@ export async function fiscaliseOrder(restaurantId, orderId, opts = {}) {
   for (let attempt = 0; ; attempt++) {
     const prepBody = opts.customerTin !== undefined ? { orderId, customerTin: opts.customerTin } : { orderId };
     prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: prepBody });
-    if (prep.alreadyFiscalised) return { etims: prep.etims };
+    if (prep.alreadyFiscalised) return { etims: prep.etims, alreadyFiscalised: true };
     invcNo = prep.body && prep.body.invcNo;
     try {
       relayRes = await window.electronAPI.etimsRelay({ url: prep.vscuUrl, path: prep.path, body: prep.body, timeoutMs: prep.timeoutMs });

@@ -28,7 +28,7 @@ import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import { toPrintDate, buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber, billNumberLabel } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
-import { cleanKraPin, isKraPin, kraPinLocked, KRA_PIN_HINT } from '../../../utils/kraPin';
+import { cleanKraPin, isKraPin, kraPinLocked, kraPinLockReason, KRA_PIN_HINT } from '../../../utils/kraPin';
 import { getCartSubtotal } from '../../../utils/billingPrice';
 import { lineTaxFlags, savedLineBasePrice } from '../../../utils/taxEngine';
 import { etimsActiveFor } from '../../../lib/etimsDecision';
@@ -1852,7 +1852,7 @@ const OrderHistory = () => {
       };
       // Customer's KRA PIN — sent only when changed (the field shows for Kenya eTIMS stores only)
       const newPin = editCompletedForm.customerTin || '';
-      if (newPin !== (editCompletedOrder.customerTin || '')) {
+      if (newPin !== (editCompletedOrder.customerTin || '') && !kraPinLocked(editCompletedOrder)) {
         if (newPin && !isKraPin(newPin)) { alert(KRA_PIN_HINT); return; }
         payload.customerTin = newPin;
       }
@@ -6369,11 +6369,7 @@ const OrderHistory = () => {
                     {kraPinLocked(editCompletedOrder) ? (
                       <div className="px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-600">
                         {editCompletedOrder.customerTin || 'No PIN'}
-                        <div className="text-xs text-gray-500 mt-1">
-                          {editCompletedOrder.etims?.rcptSign
-                            ? 'This bill is already at KRA, so the PIN cannot change. Refund it and bill again to issue a KRA receipt with a PIN.'
-                            : 'This bill may already be at KRA (waiting for a check on the KRA portal), so the PIN cannot change now.'}
-                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{kraPinLockReason(editCompletedOrder)}</div>
                       </div>
                     ) : (
                       <>

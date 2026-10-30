@@ -60,9 +60,12 @@ export function useEtimsBillPrint() {
     if (!kraPrompt || answeredRef.current) return;
     let ctx = kraPrompt;
     if (sendToKra && !kraPinLocked(ctx.order)) {
+      // Only a PIN the cashier changed is checked + sent; an untouched saved PIN goes as before.
       const pin = cleanKraPin(kraPin);
-      if (pin && !isKraPin(pin)) { setKraPinError(KRA_PIN_HINT); return; }
-      if (pin !== (ctx.order.customerTin || '')) ctx = { ...ctx, customerTin: pin };
+      if (pin !== cleanKraPin(ctx.order.customerTin)) {
+        if (pin && !isKraPin(pin)) { setKraPinError(KRA_PIN_HINT); return; }
+        ctx = { ...ctx, customerTin: pin };
+      }
     }
     answeredRef.current = true;
     setKraPrompt(null);
