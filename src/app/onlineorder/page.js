@@ -2348,15 +2348,15 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         </div>
       )}
 
-      {/* Opened through a QR menu (e.g. "Corporate lunch"): its name + note above the items */}
-      {qrMenuInfo && (
+      {/* Opened through a QR menu: only its note (if the owner wrote one) shows above the items —
+          the menu's name is for the owner's list, customers don't see it */}
+      {qrMenuInfo?.note ? (
         <div style={{ maxWidth: '960px', margin: '12px auto 0', padding: '0 16px' }}>
-          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '10px 14px', color: '#9a3412' }}>
-            <div style={{ fontWeight: 700, fontSize: '15px' }}>{qrMenuInfo.name}</div>
-            {qrMenuInfo.note ? <div style={{ fontSize: '13px', marginTop: '2px' }}>{qrMenuInfo.note}</div> : null}
+          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '10px 14px', color: '#9a3412', fontSize: '13px' }}>
+            {qrMenuInfo.note}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Theme Menu - Renders theme component instead of default menu grid */}
       {themeId !== 'default' && themeComponents[themeId] && (() => {
