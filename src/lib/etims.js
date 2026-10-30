@@ -170,7 +170,8 @@ function isDuplicateInvoiceResult(vscu) {
   return rc === '924' || /invoice.*already exist|already exist.*invoice/i.test(rm);
 }
 
-export async function fiscaliseOrder(restaurantId, orderId) {
+// opts.customerTin (optional) = customer's KRA PIN to save on the bill and put on this KRA invoice.
+export async function fiscaliseOrder(restaurantId, orderId, opts = {}) {
   if (!isEtimsCapable()) return { skipped: 'not-desktop' };
 
   // Self-healing loop: if KRA rejects the reserved invoice number as a duplicate (code 924),
@@ -181,7 +182,8 @@ export async function fiscaliseOrder(restaurantId, orderId) {
   let prep, invcNo, relayRes;
   let reusedDup = false; // set when a 924 hits a REUSED reserved number → tell confirm-sale it's a dup
   for (let attempt = 0; ; attempt++) {
-    prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: { orderId } });
+    const prepBody = opts.customerTin !== undefined ? { orderId, customerTin: opts.customerTin } : { orderId };
+    prep = await apiClient.request(`/api/etims/${restaurantId}/prepare-sale`, { method: 'POST', body: prepBody });
     if (prep.alreadyFiscalised) return { etims: prep.etims };
     invcNo = prep.body && prep.body.invcNo;
     try {

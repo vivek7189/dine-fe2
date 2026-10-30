@@ -4294,7 +4294,9 @@ function RestaurantPOSContent() {
             floorName: selectedTable?.floor || null
           },
           customerId: customerData?.id || null,
-          assignedStaff: assignedStaff || null
+          assignedStaff: assignedStaff || null,
+          // KRA PIN typed in the billing box (Kenya eTIMS) — only when typed, so a saved one is never cleared
+          ...(customerTin ? { customerTin } : {})
         };
 
         // If split payment, override payment method

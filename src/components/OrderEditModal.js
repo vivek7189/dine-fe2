@@ -12,6 +12,7 @@ import CategorySubRow from './CategorySubRow';
 import { buildCategoryIndex, isAncestorOrSelf } from '../utils/categoryTree';
 import MenuItemCard from './MenuItemCard';
 import { sanitizeSeat, getOrderItemKey } from '../utils/orderItemKey';
+import { isKraPin, kraPinLocked, KRA_PIN_HINT } from '../utils/kraPin';
 
 /**
  * Edit Order modal — rebuilt to reuse the dashboard billing UI.
@@ -55,6 +56,7 @@ const OrderEditModal = ({
   const [modalPaymentMethod, setModalPaymentMethod] = useState('cash');
   const [modalCustomerName, setModalCustomerName] = useState('');
   const [modalCustomerMobile, setModalCustomerMobile] = useState('');
+  const [modalCustomerTin, setModalCustomerTin] = useState(''); // customer's KRA PIN (Kenya eTIMS)
   // The CRM customer OrderSummary resolves from the phone (parity with dashboard),
   // used to re-link customerId on save (loyalty/wallet accrual).
   const [editCustomerData, setEditCustomerData] = useState(null);
@@ -106,6 +108,7 @@ const OrderEditModal = ({
     setModalPaymentMethod('cash');
     setModalCustomerName('');
     setModalCustomerMobile('');
+    setModalCustomerTin('');
     setActiveSeat(null);
     setErrorMsg(null);
     setLoading(true);
@@ -196,6 +199,7 @@ const OrderEditModal = ({
           setModalPaymentMethod(ord.paymentMethod || 'cash');
           setModalCustomerName(ord.customerInfo?.name || '');
           setModalCustomerMobile(ord.customerInfo?.phone || '');
+          setModalCustomerTin(ord.customerTin || '');
         } else {
           setErrorMsg('Order not found');
         }
@@ -338,9 +342,17 @@ const OrderEditModal = ({
     onClose?.();
   };
 
+  // Kenya eTIMS: on a closed bill not yet at KRA, show the KRA PIN box so it can be added / fixed
+  // (then "Send to KRA" puts it on the KRA receipt). Same switch the dashboard billing box uses.
+  const kraPinEditable = mode === 'completed' && !!selectedRestaurant?.etimsConfig?.enabled && !!order && !kraPinLocked(order);
+
   // ---- Save (baseline copied from TableBillingModal.handleModalProcessOrder) ----
   const handleSave = async (taxData = {}) => {
     if (!order || !selectedRestaurant?.id || saving) return;
+
+    // Customer's KRA PIN — sent only when changed on a closed bill that is not yet at KRA
+    const pinChanged = kraPinEditable && modalCustomerTin !== (order.customerTin || '');
+    if (pinChanged && modalCustomerTin && !isKraPin(modalCustomerTin)) { setErrorMsg(KRA_PIN_HINT); return; }
 
     setSaving(true);
     setErrorMsg(null);
@@ -484,6 +496,7 @@ const OrderEditModal = ({
         // order's existing link. Preserve delivery staff assignment on edit.
         customerId: editCustomerData?.id || order.customerId || null,
         assignedStaff: order.assignedStaff || null,
+        ...(pinChanged ? { customerTin: modalCustomerTin } : {}),
         customerInfo: {
           name: modalCustomerName || order.customerInfo?.name || '',
           phone: modalCustomerMobile || order.customerInfo?.phone || null,
@@ -784,6 +797,9 @@ const OrderEditModal = ({
                 onTableNumberChange={() => {}}
                 onCustomerNameChange={(val) => setModalCustomerName(val)}
                 onCustomerMobileChange={(val) => setModalCustomerMobile(val)}
+                etimsEnabled={kraPinEditable}
+                customerTin={modalCustomerTin}
+                onCustomerTinChange={setModalCustomerTin}
                 processing={saving}
                 placingOrder={false}
                 orderSuccess={false}

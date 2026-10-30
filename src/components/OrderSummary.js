@@ -6239,6 +6239,10 @@ const OrderSummary = ({
                         letterSpacing: '0.03em',
                       }}
                     />
+                    {/* hint only — never blocks billing */}
+                    {customerTin && !/^[A-Z]\d{9}[A-Z]$/.test(customerTin) && (
+                      <div style={{ fontSize: '10px', color: '#dc2626', marginTop: '3px' }}>KRA PIN: letter + 9 digits + letter (e.g. P051813230X)</div>
+                    )}
                     </div>
                     )}
 

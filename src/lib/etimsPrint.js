@@ -42,7 +42,9 @@ async function printPlainBill(fullOrder, restaurantId, printSettings, labels) {
   } catch { return false; }
 }
 
-export async function fiscaliseAndPrint({ restaurantId, order, restaurant, printSettings = {}, labels = {}, sendToKra = true }) {
+// customerTin (optional) = a customer's KRA PIN typed in the "Send to KRA?" prompt; saved on the bill
+// by the backend and put on this KRA receipt. Left out → the bill's saved PIN, exactly as before.
+export async function fiscaliseAndPrint({ restaurantId, order, restaurant, printSettings = {}, labels = {}, sendToKra = true, customerTin }) {
   if (!isEtimsCapable()) return { skipped: 'not-desktop' };
   const cc = restaurant && restaurant.currencySettings && restaurant.currencySettings.countryCode;
   const ccode = restaurant && restaurant.currencySettings && restaurant.currencySettings.currencyCode;
@@ -75,7 +77,9 @@ export async function fiscaliseAndPrint({ restaurantId, order, restaurant, print
 
   let result;
   try {
-    result = await fiscaliseOrder(restaurantId, order.id);
+    result = customerTin !== undefined
+      ? await fiscaliseOrder(restaurantId, order.id, { customerTin })
+      : await fiscaliseOrder(restaurantId, order.id);
   } catch (e) {
     // Fiscalisation failed → still give the customer a (non-fiscal) receipt.
     const fallbackPrinted = await printPlainBill(fullOrder, restaurantId, printSettings, labels);
@@ -85,6 +89,8 @@ export async function fiscaliseAndPrint({ restaurantId, order, restaurant, print
     return { error: e && e.message, fallbackPrinted };
   }
   if (result.skipped) return result;
+  // the PIN typed in the prompt is now on the bill → print it on this receipt too
+  if (customerTin !== undefined) fullOrder = { ...fullOrder, customerTin: customerTin || null };
 
   // Fiscalised OK → print the combined receipt (bill + KRA block/QR).
   try {

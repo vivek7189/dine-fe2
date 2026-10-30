@@ -28,6 +28,7 @@ import { generateBillHTML } from '../../../utils/printHtmlGenerator';
 import { toPrintDate, buildBillIdentity } from '../../../utils/printTemplates/helpers';
 import { orderDisplayNumber, billNumberLabel } from '../../../utils/orderNumber';
 import { useEtimsBillPrint } from '../../../hooks/useEtimsBillPrint';
+import { cleanKraPin, isKraPin, kraPinLocked, KRA_PIN_HINT } from '../../../utils/kraPin';
 import { getCartSubtotal } from '../../../utils/billingPrice';
 import { lineTaxFlags, savedLineBasePrice } from '../../../utils/taxEngine';
 import { etimsActiveFor } from '../../../lib/etimsDecision';
@@ -1817,6 +1818,7 @@ const OrderHistory = () => {
       notes: order.notes || order.specialInstructions || '',
       customerName: order.customerInfo?.name || order.customerDisplay?.name || '',
       customerPhone: order.customerInfo?.phone || order.customerDisplay?.phone || '',
+      customerTin: order.customerTin || '',
     });
     setEditCompletedHistory(order.editHistory || []);
     // Also fetch latest edit history from server
@@ -1848,6 +1850,12 @@ const OrderHistory = () => {
           phone: editCompletedForm.customerPhone,
         },
       };
+      // Customer's KRA PIN — sent only when changed (the field shows for Kenya eTIMS stores only)
+      const newPin = editCompletedForm.customerTin || '';
+      if (newPin !== (editCompletedOrder.customerTin || '')) {
+        if (newPin && !isKraPin(newPin)) { alert(KRA_PIN_HINT); return; }
+        payload.customerTin = newPin;
+      }
 
       // Only send split payments if method is/was split
       if (isSplit || origMethod === 'split') {
@@ -6353,6 +6361,38 @@ const OrderHistory = () => {
                     />
                   </div>
                 </div>
+
+                {/* Customer's KRA PIN (Kenya eTIMS) — add / fix it while the bill is not yet at KRA */}
+                {kraEnabled && (
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Customer KRA PIN</label>
+                    {kraPinLocked(editCompletedOrder) ? (
+                      <div className="px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-600">
+                        {editCompletedOrder.customerTin || 'No PIN'}
+                        <div className="text-xs text-gray-500 mt-1">
+                          {editCompletedOrder.etims?.rcptSign
+                            ? 'This bill is already at KRA, so the PIN cannot change. Refund it and bill again to issue a KRA receipt with a PIN.'
+                            : 'This bill may already be at KRA (waiting for a check on the KRA portal), so the PIN cannot change now.'}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={editCompletedForm.customerTin || ''}
+                          onChange={(e) => setEditCompletedForm(f => ({ ...f, customerTin: cleanKraPin(e.target.value) }))}
+                          placeholder="e.g. P051813230X"
+                          className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm tracking-wide focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                        />
+                        <div className={`text-xs mt-1 ${editCompletedForm.customerTin && !isKraPin(editCompletedForm.customerTin) ? 'text-red-600' : 'text-gray-500'}`}>
+                          {editCompletedForm.customerTin && !isKraPin(editCompletedForm.customerTin)
+                            ? KRA_PIN_HINT
+                            : 'Not sent to KRA yet. Save, then use Send to KRA (or Print → Yes) and the PIN goes on the KRA receipt.'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Notes */}
                 <div>

@@ -21,13 +21,18 @@
  *   // render once, anywhere in the page:  {KraPrompt}
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { etimsActiveFor, etimsAskPerBillFor } from '../lib/etimsDecision';
+import { cleanKraPin, isKraPin, kraPinLocked, KRA_PIN_HINT } from '../utils/kraPin';
 
 export function useEtimsBillPrint() {
   // ctx while awaiting the per-bill Yes/No answer: { restaurantId, order, restaurant, printSettings, plainPrint }
   const [kraPrompt, setKraPrompt] = useState(null);
+  // Customer's KRA PIN typed in the prompt (a bill closed without one); starts with the bill's saved PIN
+  const [kraPin, setKraPin] = useState('');
+  const [kraPinError, setKraPinError] = useState('');
+  const answeredRef = useRef(false); // one answer per prompt (a fast double-click must not send twice)
 
   const runEtims = useCallback(async (ctx, sendToKra) => {
     try {
@@ -40,6 +45,8 @@ export function useEtimsBillPrint() {
         restaurant: ctx.restaurant,
         printSettings: ctx.printSettings || {},
         sendToKra,
+        // only when the cashier changed it in the prompt — otherwise the bill's saved PIN is used as before
+        ...(sendToKra && ctx.customerTin !== undefined ? { customerTin: ctx.customerTin } : {}),
       });
       // Not actually applicable (not desktop / not Kenya) → nothing printed → do the normal bill.
       if (res && res.skipped) { try { await ctx.plainPrint(); } catch (_) {} }
@@ -50,11 +57,18 @@ export function useEtimsBillPrint() {
   }, []);
 
   const chooseKra = useCallback((sendToKra) => {
-    setKraPrompt((cur) => {
-      if (cur) runEtims(cur, sendToKra);
-      return null;
-    });
-  }, [runEtims]);
+    if (!kraPrompt || answeredRef.current) return;
+    let ctx = kraPrompt;
+    if (sendToKra && !kraPinLocked(ctx.order)) {
+      const pin = cleanKraPin(kraPin);
+      if (pin && !isKraPin(pin)) { setKraPinError(KRA_PIN_HINT); return; }
+      if (pin !== (ctx.order.customerTin || '')) ctx = { ...ctx, customerTin: pin };
+    }
+    answeredRef.current = true;
+    setKraPrompt(null);
+    setKraPinError('');
+    runEtims(ctx, sendToKra);
+  }, [kraPrompt, kraPin, runEtims]);
 
   /**
    * Print a bill, KRA-aware. `order` needs at least { id }. `plainPrint` is the caller's existing
@@ -67,7 +81,7 @@ export function useEtimsBillPrint() {
     const isFinal = !!order && (order.status === 'completed' || order.status === 'paid');
     if (etimsActiveFor(restaurant) && order && order.id && isFinal) {
       const ctx = { restaurantId, order, restaurant, printSettings, plainPrint: doPlain };
-      if (etimsAskPerBillFor(restaurant)) { setKraPrompt(ctx); return; }
+      if (etimsAskPerBillFor(restaurant)) { setKraPin(order.customerTin || ''); setKraPinError(''); answeredRef.current = false; setKraPrompt(ctx); return; }
       return runEtims(ctx, true);
     }
     return doPlain();
@@ -86,6 +100,16 @@ export function useEtimsBillPrint() {
               <b>Yes</b> — report to KRA eTIMS and print the fiscal receipt (SDC ID, signature &amp; QR).<br />
               <b>No</b> — print a normal bill only; nothing is sent to KRA.
             </div>
+            {/* Customer's KRA PIN — goes on the KRA receipt. Hidden once the bill is already at KRA. */}
+            {!kraPinLocked(kraPrompt.order) && (
+              <div style={{ textAlign: 'left', margin: '-6px 0 18px' }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 5 }}>Customer KRA PIN (optional)</label>
+                <input type="text" value={kraPin} placeholder="e.g. P051813230X"
+                  onChange={(e) => { setKraPin(cleanKraPin(e.target.value)); setKraPinError(''); }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', fontSize: 14, letterSpacing: '0.04em', borderRadius: 10, border: `1.5px solid ${kraPinError ? '#dc2626' : '#e2e8f0'}`, outline: 'none' }} />
+                {kraPinError && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 5 }}>{kraPinError}</div>}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" onClick={() => chooseKra(false)}
                 style={{ flex: 1, padding: '14px', fontSize: 15, fontWeight: 800, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc', color: '#334155', cursor: 'pointer' }}>
