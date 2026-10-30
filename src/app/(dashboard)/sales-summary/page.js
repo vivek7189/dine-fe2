@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import CategoryGroupsReport from '../../../components/CategoryGroupsReport';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   FaChartPie,
@@ -45,6 +46,7 @@ export default function SalesSummaryPage() {
 
   // Active tab
   const [activeTab, setActiveTab] = useState('overview');
+  const [catView, setCatView] = useState('categories'); // Category Sales: categories | groups | byday
 
   // Sorting & filtering
   const [sortBy, setSortBy] = useState('quantity'); // quantity | revenue | name
@@ -713,17 +715,33 @@ export default function SalesSummaryPage() {
             {/* === CATEGORY SALES TAB === */}
             {activeTab === 'category' && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-base font-bold text-gray-800">Category-wise Sales</h3>
-                  <button
+                <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-base font-bold text-gray-800">Category-wise Sales</h3>
+                    <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                      {[['categories', 'Categories'], ['groups', 'Groups'], ['byday', 'By day']].map(([k, t]) => (
+                        <button key={k} onClick={() => setCatView(k)} className={`px-3 py-1.5 ${catView === k ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {catView === 'categories' && <button
                     onClick={() => handleExcelDownload('category')}
                     className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
                   >
                     <FaFileExcel className="text-xs" />
                     Download Excel
-                  </button>
+                  </button>}
                 </div>
-                {summary.categoryBreakdown && summary.categoryBreakdown.length > 0 ? (
+                {catView !== 'categories' ? (
+                  <CategoryGroupsReport
+                    restaurantId={restaurantId}
+                    startDate={summary.dateRange?.start}
+                    endDate={summary.dateRange?.end}
+                    subRestaurantId={selectedSubRestaurant || ''}
+                    mode={catView}
+                    formatCurrency={formatCurrency}
+                  />
+                ) : summary.categoryBreakdown && summary.categoryBreakdown.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
