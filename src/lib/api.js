@@ -1618,11 +1618,13 @@ class ApiClient {
     return this.request(`/api/menus/upload-result/${restaurantId}/${jobId}`, { baseOverride: this.cloudBase() });
   }
 
-  async bulkSaveMenuItems(restaurantId, menuItems, categories = null) {
+  // qrMenuId: save into that QR menu's own menu (e.g. an event menu) instead of the normal menu
+  async bulkSaveMenuItems(restaurantId, menuItems, categories = null, qrMenuId = null) {
     const body = { menuItems };
     if (categories && Array.isArray(categories) && categories.length > 0) {
       body.categories = categories;
     }
+    if (qrMenuId) body.qrMenuId = qrMenuId;
     const result = await this.request(`/api/menus/bulk-save/${restaurantId}`, {
       method: 'POST',
       body,

@@ -4,13 +4,24 @@
 // that shows only the categories / items you pick (e.g. "Corporate lunch", "Drinks only"); only
 // those can be ordered from it — the server checks every order. The normal table / takeaway QRs
 // keep showing the full menu. Items switched to "Hide from the QR / online menu" never show.
+// A QR menu can also have its OWN separate menu (e.g. an event): upload it here; those dishes show
+// only on that QR (staff still see them at the POS, under a category named after the QR menu).
 
 import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import QRCode from 'qrcode';
 import apiClient from '../lib/api';
-import { FaPlus, FaTrash, FaSpinner, FaCheck, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaSpinner, FaCheck, FaChevronDown, FaChevronUp, FaUpload } from 'react-icons/fa';
 
-const newMenu = () => ({ id: '', name: '', categories: [], itemIds: [], orderType: 'any', note: '', viewOnly: false, allItems: false, active: true });
+const BulkMenuUpload = dynamic(() => import('./BulkMenuUpload'), { ssr: false });
+
+const newMenu = () => ({ id: '', name: '', categories: [], itemIds: [], orderType: 'any', note: '', viewOnly: false, allItems: false, ownMenu: false, active: true });
+
+// today as YYYY-MM-DD on this device (the server checks the restaurant's own day)
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const niceDate = (s) => { try { return new Date(`${s}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); } catch (_) { return s; } };
+// Is this menu on all QR codes right now?
+const onAllQrsNow = (m) => m.allQrs === true && m.active !== false && (!m.allQrsUntil || todayStr() <= m.allQrsUntil);
 
 function qrUrl(restaurant, m) {
   const isDev = process.env.NODE_ENV === 'development';
@@ -32,10 +43,16 @@ export default function QrMenusPanel({ restaurant }) {
   const [msg, setMsg] = useState('');
   const [qrs, setQrs] = useState({});       // id → data url
   const [itemSearch, setItemSearch] = useState('');
+  const [ownDishes, setOwnDishes] = useState({}); // menu id → how many dishes of its own
+  const [uploadFor, setUploadFor] = useState(null); // QR menu the upload window is open for
+  const [confirmDelete, setConfirmDelete] = useState(null); // { k, count } — menu with own dishes
+
+  const loadOwnDishes = () => apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`)
+    .then((r) => setOwnDishes(r?.ownDishes || {})).catch(() => {});
 
   useEffect(() => {
     if (!restaurant?.id) return;
-    apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`).then((r) => { setMenus(r?.qrMenus || []); setSaved(r?.qrMenus || []); }).catch((e) => { setMenus([]); setMsg(e?.message || 'Could not load QR menus'); });
+    apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`).then((r) => { setMenus(r?.qrMenus || []); setSaved(r?.qrMenus || []); setOwnDishes(r?.ownDishes || {}); }).catch((e) => { setMenus([]); setMsg(e?.message || 'Could not load QR menus'); });
     apiClient.getPublicMenu(restaurant.id).then((r) => {
       setCats(Array.isArray(r?.categories) ? r.categories : []);
       setItems(Array.isArray(r?.menu) ? r.menu : []);
@@ -55,20 +72,32 @@ export default function QrMenusPanel({ restaurant }) {
   const catId = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const countFor = (m) => (m.allItems ? items.filter((i) => i.hideOnQr !== true).length
     : items.filter((i) => (m.itemIds || []).includes(String(i.id)) || (m.categories || []).some((c) => catId(c) === catId(i.category))).length);
-  // can be saved: a name, and something to show (the whole menu, or picked categories / items)
-  const canSave = (m) => !!m.name.trim() && (m.allItems || (m.categories || []).length > 0 || (m.itemIds || []).length > 0);
+  // can be saved: a name, and something to show (its own menu, the whole menu, or picked categories / items)
+  const canSave = (m) => !!m.name.trim() && (m.ownMenu || m.allItems || (m.categories || []).length > 0 || (m.itemIds || []).length > 0);
+  const summary = (m) => {
+    if (m.ownMenu) {
+      const own = ownDishes[m.id] || 0;
+      const picked = (m.categories || []).length || (m.itemIds || []).length ? countFor(m) : 0;
+      return `Own menu · ${own} dish${own === 1 ? '' : 'es'}${picked ? ` + ${picked} from your menu` : ''}`;
+    }
+    return m.allItems ? 'Whole menu' : `${countFor(m)} items`;
+  };
   const setM = (k, patch) => setMenus((list) => list.map((m, j) => (j === k ? { ...m, ...patch } : m)));
   // Save ONE menu (k) or delete it: built from the last saved list, so other menus' unsaved edits stay unsaved
-  const save = async (k, remove = false) => {
+  const save = async (k, remove = false, deleteOwnDishes = false) => {
     const m = menus[k];
     const isSaved = !!(m && m.id && saved.some((x) => x.id === m.id));
     const list = remove
       ? saved.filter((x) => !(m && m.id && x.id === m.id))
-      : (isSaved ? saved.map((x) => (x.id === m.id ? m : x)) : [...saved, m]);
+      : (isSaved ? saved.map((x) => (x.id === m.id ? m : x)) : [...saved, m])
+        // only one menu can be on all QR codes: this one takes over from any other
+        .map((x) => (m.allQrs && x.id !== m.id && x.allQrs ? { ...x, allQrs: false } : x));
     setSaving(true); setMsg('');
     try {
-      const r = await apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`, { method: 'PUT', body: { qrMenus: list } });
+      const r = await apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`, { method: 'PUT', body: { qrMenus: list, ...(deleteOwnDishes ? { deleteOwnDishes: true } : {}) } });
       const next = r?.qrMenus || [];
+      setConfirmDelete(null);
+      if (r?.deletedDishes) loadOwnDishes();
       setSaved(next);
       // keep other menus' unsaved edits on screen; this one now shows what was saved
       setMenus((cur) => {
@@ -78,7 +107,11 @@ export default function QrMenusPanel({ restaurant }) {
       });
       setOpen(null); setMsg('Saved');
       setTimeout(() => setMsg(''), 2000);
-    } catch (e) { setMsg(e?.message || 'Could not save'); }
+    } catch (e) {
+      // deleting a menu that has its own dishes: ask first (the server refuses without deleteOwnDishes)
+      if (remove && e?.code === 'HAS_OWN_DISHES') setConfirmDelete({ k, count: e?.data?.ownDishes || ownDishes[m.id] || 0 });
+      else setMsg(e?.message || 'Could not save');
+    }
     setSaving(false);
   };
   const filteredItems = useMemo(() => {
@@ -92,7 +125,8 @@ export default function QrMenusPanel({ restaurant }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '4px 0 20px' }}>
       <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
         A QR that shows only the menu you pick — give it to a company, an event or a counter. Only those items can be ordered from it.
-        Your table and takeaway QRs keep the full menu.
+        Or give it a <b>separate menu of its own</b> (e.g. for an event) and upload that menu here. Your table and takeaway QRs keep the full menu —
+        unless you switch on <b>Use on all my QR codes</b> for one menu (e.g. an event day).
       </p>
 
       {menus.map((m, k) => {
@@ -104,14 +138,22 @@ export default function QrMenusPanel({ restaurant }) {
               {qr ? <img src={qr} alt={`${m.name} QR`} style={{ width: 96, height: 96, borderRadius: 8, border: '1px solid #f3f4f6' }} /> : <div style={{ width: 96, height: 96, borderRadius: 8, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af', textAlign: 'center' }}>Save to get the QR</div>}
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>{m.name || 'New QR menu'} {m.active === false && <span style={{ fontSize: 11, color: '#b91c1c', fontWeight: 700 }}>· off</span>}</div>
+                {m.allQrs && saved.some((x) => x.id === m.id && x.allQrs) && (
+                  <div style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: onAllQrsNow(m) ? '#dcfce7' : '#f3f4f6', color: onAllQrsNow(m) ? '#166534' : '#6b7280' }}>
+                    {onAllQrsNow(m) ? `On all QR codes${m.allQrsUntil ? ` till ${niceDate(m.allQrsUntil)}` : ''}` : (m.active === false ? 'All QR codes — menu is off' : `Was on all QR codes till ${niceDate(m.allQrsUntil)}`)}
+                  </div>
+                )}
                 <div style={{ fontSize: '12px', color: '#6b7280', marginTop: 2 }}>
-                  {m.allItems ? 'Whole menu' : `${countFor(m)} items`} · {m.viewOnly ? <b style={{ color: '#0369a1' }}>view only — no ordering</b> : (m.orderType === 'takeaway' ? 'takeaway' : m.orderType === 'dine-in' ? 'dine-in' : 'any order type')}
+                  {summary(m)} · {m.viewOnly ? <b style={{ color: '#0369a1' }}>view only — no ordering</b> : (m.orderType === 'takeaway' ? 'takeaway' : m.orderType === 'dine-in' ? 'dine-in' : 'any order type')}
                 </div>
                 {m.id && (
                   <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
                     <button onClick={() => { if (!qr) return; const a = document.createElement('a'); a.href = qr; a.download = `QR-${m.name.replace(/[^a-z0-9]+/gi, '-')}.png`; a.click(); }} style={btn}>Download</button>
                     <button onClick={() => { try { navigator.clipboard.writeText(qrUrl(restaurant, m)); setMsg('Link copied'); setTimeout(() => setMsg(''), 1500); } catch (_) { /* no clipboard */ } }} style={btn}>Copy link</button>
                     <a href={qrUrl(restaurant, m)} target="_blank" rel="noreferrer" style={{ ...btn, textDecoration: 'none' }}>Open</a>
+                    {m.ownMenu && saved.some((x) => x.id === m.id && x.ownMenu) && (
+                      <button onClick={() => setUploadFor(m)} style={{ ...btn, background: '#7c3aed', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaUpload size={10} /> Upload menu</button>
+                    )}
                   </div>
                 )}
               </div>
@@ -125,23 +167,71 @@ export default function QrMenusPanel({ restaurant }) {
                   {!m.viewOnly && (
                   <label style={lbl}>Orders from this QR are
                     <select value={m.orderType} onChange={(e) => setM(k, { orderType: e.target.value })} style={inp}>
-                      <option value="any">Customer chooses</option><option value="takeaway">Takeaway</option><option value="dine-in">Dine-in</option>
+                      <option value="any">Customer chooses</option><option value="takeaway">Takeaway — token number, no table</option><option value="dine-in">Dine-in</option>
                     </select>
                   </label>
+                  )}
+                </div>
+                <div>
+                  <div style={{ ...lbl, display: 'block', marginBottom: 6 }}>What does this QR show?</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {[[false, 'Dishes from my menu', 'Pick categories or items from your normal menu'], [true, 'Its own separate menu', 'Different dishes, e.g. for an event — upload that menu']].map(([own, t, d]) => {
+                      const on = !!m.ownMenu === own;
+                      // a menu that already has its own dishes stays an own menu (delete those first)
+                      const locked = !own && m.ownMenu && (ownDishes[m.id] || 0) > 0;
+                      return (
+                        <button key={t} type="button" disabled={locked} onClick={() => setM(k, { ownMenu: own, ...(own ? { allItems: false } : {}) })}
+                          title={locked ? 'This QR menu has its own dishes' : ''}
+                          style={{ flex: '1 1 200px', textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.5 : 1, border: `1.5px solid ${on ? '#7c3aed' : '#e5e7eb'}`, background: on ? '#f5f3ff' : '#fff' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: on ? '#6d28d9' : '#111827' }}>{on ? '● ' : '○ '}{t}</div>
+                          <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 2 }}>{d}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {m.ownMenu && (
+                    <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: '#f9fafb', fontSize: 12.5, color: '#4b5563', lineHeight: 1.5 }}>
+                      {m.id && saved.some((x) => x.id === m.id && x.ownMenu)
+                        ? <>This menu has <b>{ownDishes[m.id] || 0}</b> dish{(ownDishes[m.id] || 0) === 1 ? '' : 'es'} of its own. <button type="button" onClick={() => setUploadFor(m)} style={{ border: 'none', background: 'none', padding: 0, color: '#7c3aed', fontWeight: 700, cursor: 'pointer' }}>Upload menu</button> (photo, PDF or Excel) to add dishes.</>
+                        : <>Save this QR menu, then use <b>Upload menu</b> to add its dishes (photo, PDF or Excel).</>}
+                      {' '}To add, edit or remove single dishes: <b>Menu</b> → category <b>“{m.name || 'this menu'}”</b>. These dishes show only on this QR — not on your table QRs — and your staff see them at the POS.
+                    </div>
                   )}
                 </div>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
                   <input type="checkbox" checked={m.viewOnly === true} onChange={(e) => setM(k, { viewOnly: e.target.checked })} style={{ marginTop: 3 }} />
                   <span><b>View only</b> — customers who scan this QR can see the menu and prices but cannot order (no Add / cart). Other QR codes still take orders.</span>
                 </label>
+                {!m.ownMenu && (
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
                   <input type="checkbox" checked={m.allItems === true} onChange={(e) => setM(k, { allItems: e.target.checked })} style={{ marginTop: 3 }} />
                   <span><b>Whole menu</b> — show every item (no need to pick categories). Items set to “Hide from the QR menu” stay hidden.</span>
                 </label>
+                )}
+                <div style={{ padding: '10px 12px', borderRadius: 10, border: `1px solid ${m.allQrs ? '#86efac' : '#e5e7eb'}`, background: m.allQrs ? '#f0fdf4' : '#fff' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151' }}>
+                    <input type="checkbox" checked={m.allQrs === true} onChange={(e) => setM(k, { allQrs: e.target.checked, ...(e.target.checked && !m.allQrsUntil ? { allQrsUntil: todayStr() } : {}) })} style={{ marginTop: 3 }} />
+                    <span><b>Use on all my QR codes</b> — every table and takeaway QR shows this menu (e.g. for an event). No need to print new QR codes. Your normal menu comes back after the last day.</span>
+                  </label>
+                  {m.allQrs && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 8, paddingLeft: 24 }}>
+                      <label style={{ ...lbl, flexDirection: 'row', alignItems: 'center', gap: 8 }}>Last day
+                        <input type="date" value={m.allQrsUntil || ''} min={todayStr()} onChange={(e) => setM(k, { allQrsUntil: e.target.value })} style={{ ...inp, width: 160 }} />
+                      </label>
+                      <span style={{ fontSize: 11.5, color: '#6b7280' }}>{m.allQrsUntil ? `Normal menu again after ${niceDate(m.allQrsUntil)} closing` : 'No last day — until you switch it off'}</span>
+                      {menus.some((x, j) => j !== k && x.allQrs && saved.some((sv) => sv.id === x.id && sv.allQrs)) && (
+                        <span style={{ fontSize: 11.5, color: '#b45309' }}>This replaces “{menus.find((x, j) => j !== k && x.allQrs)?.name}” on all QR codes.</span>
+                      )}
+                    </div>
+                  )}
+                  {m.allQrs && m.orderType === 'takeaway' && !m.viewOnly && (
+                    <div style={{ fontSize: 11.5, color: '#166534', marginTop: 6, paddingLeft: 24 }}>Takeaway: customers order without a table number and get a token (order) number.</div>
+                  )}
+                </div>
                 <label style={lbl}>Note at the top of the menu (optional)<input value={m.note} onChange={(e) => setM(k, { note: e.target.value })} placeholder="e.g. Staff lunch — pay at the counter" style={inp} /></label>
                 {!m.allItems && (<>
                 <div>
-                  <div style={{ ...lbl, display: 'block', marginBottom: 6 }}>Categories on this menu</div>
+                  <div style={{ ...lbl, display: 'block', marginBottom: 6 }}>{m.ownMenu ? <>Also show from your normal menu <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional, e.g. drinks)</span></> : 'Categories on this menu'}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {cats.map((c) => {
                       const on = (m.categories || []).includes(c.id);
@@ -177,12 +267,19 @@ export default function QrMenusPanel({ restaurant }) {
                   <input type="checkbox" checked={m.active !== false} onChange={(e) => setM(k, { active: e.target.checked })} /> On — when off, this QR shows the normal full menu
                 </label>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                  <button type="button" onClick={() => (m.id ? save(k, true) : (setMenus((cur) => cur.filter((_, j) => j !== k)), setOpen(null)))} disabled={saving} style={{ ...btn, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaTrash size={11} /> Delete</button>
+                  <button type="button" onClick={() => (m.id && saved.some((x) => x.id === m.id) ? save(k, true) : (setMenus((cur) => cur.filter((_, j) => j !== k)), setOpen(null)))} disabled={saving} style={{ ...btn, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaTrash size={11} /> Delete</button>
                   <button type="button" onClick={() => save(k)} disabled={saving || !canSave(m)}
                     style={{ ...btn, background: '#7c3aed', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: (saving || !canSave(m)) ? 0.5 : 1 }}>
                     {saving ? <FaSpinner className="animate-spin" size={11} /> : <FaCheck size={11} />} Save
                   </button>
                 </div>
+                {confirmDelete && confirmDelete.k === k && (
+                  <div style={{ padding: '10px 12px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 12.5, color: '#991b1b', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ flex: 1, minWidth: 200 }}>This QR menu has <b>{confirmDelete.count}</b> dish{confirmDelete.count === 1 ? '' : 'es'} of its own. Deleting it deletes those dishes too.</span>
+                    <button type="button" onClick={() => setConfirmDelete(null)} style={btn}>Keep</button>
+                    <button type="button" onClick={() => save(k, true, true)} disabled={saving} style={{ ...btn, background: '#b91c1c', color: '#fff', border: 'none' }}>Delete menu and dishes</button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -193,6 +290,16 @@ export default function QrMenusPanel({ restaurant }) {
         style={{ padding: '12px', borderRadius: '12px', border: '1px dashed #c4b5fd', background: '#faf5ff', color: '#6d28d9', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         <FaPlus size={11} /> New QR menu
       </button>
+      {uploadFor && (
+        <BulkMenuUpload
+          isOpen
+          onClose={() => setUploadFor(null)}
+          restaurantId={restaurant.id}
+          qrMenu={{ id: uploadFor.id, name: uploadFor.name }}
+          onMenuItemsAdded={loadOwnDishes}
+          taxSettings={restaurant?.taxSettings}
+        />
+      )}
       {msg && <div style={{ fontSize: 12.5, fontWeight: 600, color: msg === 'Saved' || msg === 'Link copied' ? '#059669' : '#b91c1c' }}>{msg}</div>}
     </div>
   );

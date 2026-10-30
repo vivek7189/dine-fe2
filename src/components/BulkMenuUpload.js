@@ -37,6 +37,7 @@ const BulkMenuUpload = ({
   orgId = null,
   templateId = null,
   taxSettings = null,
+  qrMenu = null, // { id, name } → the dishes go into that QR menu's own menu
 }) => {
   const { formatCurrency } = useCurrency();
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -133,7 +134,7 @@ const BulkMenuUpload = ({
         const itemsToSave = markTaxInclusive != null
           ? allItems.map(item => ({ ...item, taxInclusive: markTaxInclusive }))
           : allItems;
-        const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, categories);
+        const saveResponse = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, categories, qrMenu?.id);
         savedCount = saveResponse.savedCount || 0;
       }
 
@@ -407,7 +408,7 @@ const BulkMenuUpload = ({
         const itemsToSave = markTaxInclusive != null
           ? selectedItems.map(item => ({ ...item, taxInclusive: markTaxInclusive }))
           : selectedItems;
-        const response = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, extractedCategories);
+        const response = await apiClient.bulkSaveMenuItems(restaurantId, itemsToSave, extractedCategories, qrMenu?.id);
         if (response.success === false) { setError(response.error || 'Save failed'); return; }
         savedCount = response.savedCount || 0;
       }
@@ -598,7 +599,7 @@ const BulkMenuUpload = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <FaUpload size={13} color="rgba(255,255,255,0.9)" />
               <h2 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: 0 }}>
-                AI Menu Upload
+                {qrMenu ? `Upload menu for “${qrMenu.name}”` : 'AI Menu Upload'}
               </h2>
               <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
                 — photos, PDFs, Excel

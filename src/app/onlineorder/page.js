@@ -2634,6 +2634,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         )}
       {showCart && (customerVerified || (customerAppSettings?.pageSettings?.loginMode || 'optional') !== 'required') && (
         <CartModal
+          qrMenuOrderType={qrMenuInfo?.orderType}
           cart={cart}
           addToCart={addToCart}
           removeFromCart={removeFromCart}
@@ -3416,10 +3417,11 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
 };
 
 // Cart Modal Component
-const CartModal = ({ cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '', selectedCountry, setSelectedCountry }) => {
+const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '', selectedCountry, setSelectedCountry }) => {
   // Order types the restaurant offers on its QR (Customer App settings): Takeaway + Dine-in on unless
   // switched off, Delivery only when switched on. Same rule the server checks.
-  const cartOrderTypes = [
+  // A takeaway QR menu (e.g. an event with token numbers) takes takeaway orders only — no table.
+  const cartOrderTypes = qrMenuOrderType === 'takeaway' ? ['takeaway'] : [
     customerAppSettings?.allowTakeaway !== false && 'takeaway',
     customerAppSettings?.allowDineIn !== false && 'table',
     customerAppSettings?.allowDelivery === true && 'delivery',
