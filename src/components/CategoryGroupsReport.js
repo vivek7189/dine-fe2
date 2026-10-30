@@ -19,18 +19,29 @@ export default function CategoryGroupsReport({ restaurantId, startDate, endDate,
   const [cols, setCols] = useState('groups');   // By day columns: groups | categories
   const [setup, setSetup] = useState(false);
   const [reload, setReload] = useState(0);
+  const [pick, setPick] = useState('');          // By day: one category → its dishes as columns
+  const [itemRows, setItemRows] = useState(null); // dishes per day (loaded when needed)
+
+  const qsFor = (extra) => new URLSearchParams({ startDate, endDate, ...(subRestaurantId ? { subRestaurantId } : {}), ...(extra || {}) });
+  const loadItems = async () => {
+    if (itemRows) return itemRows;
+    const r = await apiClient.request(`/api/analytics/${restaurantId}/category-by-day?${qsFor({ items: '1' })}`);
+    setItemRows(r?.items || []);
+    return r?.items || [];
+  };
+  useEffect(() => { setItemRows(null); }, [restaurantId, startDate, endDate, subRestaurantId, reload]);
+  useEffect(() => { if (pick && mode === 'byday' && !itemRows) loadItems().catch((e) => setErr(e?.message || 'Could not load dishes')); }, [pick, mode, itemRows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!restaurantId || !startDate || !endDate) return;
     let alive = true;
     setLoading(true); setErr('');
-    const qs = new URLSearchParams({ startDate, endDate, ...(subRestaurantId ? { subRestaurantId } : {}) });
-    apiClient.request(`/api/analytics/${restaurantId}/category-by-day?${qs}`)
+    apiClient.request(`/api/analytics/${restaurantId}/category-by-day?${qsFor()}`)
       .then((r) => { if (alive) setData(r); })
       .catch((e) => { if (alive) { setData(null); setErr(e?.message || 'Could not load'); } })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [restaurantId, startDate, endDate, subRestaurantId, reload]);
+  }, [restaurantId, startDate, endDate, subRestaurantId, reload]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => {
     const g = (data?.reportGroups || []).map((x) => ({ id: x.id, name: x.name }));
@@ -76,6 +87,24 @@ export default function CategoryGroupsReport({ restaurantId, startDate, endDate,
     ? groups.filter((g) => calc.perGroup[g.id])
     : catsSorted.map((c) => ({ id: c.key, name: c.name }));
 
+  // one category picked: rows = days with sales of it, columns = its dishes
+  const picked = useMemo(() => {
+    if (!pick || !itemRows) return null;
+    const rows = itemRows.filter((r) => r.cat === pick);
+    const per = {}; const byDay = {}; const dayTotal = {}; const dayQty = {};
+    for (const r of rows) {
+      if (!per[r.name]) per[r.name] = { qty: 0, revenue: 0 };
+      per[r.name].qty += r.qty; per[r.name].revenue += r.revenue;
+      byDay[r.day] = byDay[r.day] || {};
+      const c = byDay[r.day][r.name] || { qty: 0, revenue: 0 };
+      byDay[r.day][r.name] = { qty: c.qty + r.qty, revenue: c.revenue + r.revenue };
+      dayTotal[r.day] = (dayTotal[r.day] || 0) + r.revenue; dayQty[r.day] = (dayQty[r.day] || 0) + r.qty;
+    }
+    const dishes = Object.keys(per).sort((a, b) => per[b].revenue - per[a].revenue);
+    const days = (data?.dates || []).filter((d) => dayTotal[d]);
+    return { per, byDay, dayTotal, dayQty, dishes, days, total: Object.values(per).reduce((s, p) => s + p.revenue, 0), qty: Object.values(per).reduce((s, p) => s + p.qty, 0) };
+  }, [pick, itemRows, data]);
+
   const download = async () => {
     const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
@@ -94,6 +123,15 @@ export default function CategoryGroupsReport({ restaurantId, startDate, endDate,
       rows.push(['Total', ...columns.map((c) => r2(cols === 'groups' ? calc.perGroup[c.id]?.revenue : calc.per[c.id]?.revenue)), r2(calc.total)]);
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), cols === 'groups' ? 'by day - groups' : 'by day - categories');
     }
+    // every dish, every day (filter by category / item in Excel)
+    try {
+      const its = await loadItems();
+      const nameOf = (k) => (data.categories || []).find((c) => c.key === k)?.name || k;
+      const sheet = [['Date', 'Category', 'Item', 'Qty', 'Amount'],
+        ...[...its].sort((a, b) => a.day.localeCompare(b.day) || String(nameOf(a.cat)).localeCompare(String(nameOf(b.cat))) || b.revenue - a.revenue)
+          .map((r) => [r.day, nameOf(r.cat), r.name, r.qty, r2(r.revenue)])];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet), 'items by day');
+    } catch (_) { /* the summary sheet still downloads */ }
     XLSX.writeFile(wb, `sales-${mode === 'groups' ? 'groups' : 'by-day'}-${startDate}-to-${endDate}.xlsx`);
   };
 
@@ -107,6 +145,12 @@ export default function CategoryGroupsReport({ restaurantId, startDate, endDate,
     <div>
       <div className="px-4 py-2.5 border-b border-gray-100 flex flex-wrap items-center gap-2">
         {mode === 'byday' && (
+          <select value={pick} onChange={(e) => setPick(e.target.value)} className={`border rounded-lg px-2 py-1.5 text-xs font-semibold ${pick ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-gray-200 text-gray-600'}`}>
+            <option value="">All categories</option>
+            {catsSorted.map((c) => <option key={c.key} value={c.key}>{c.name} — its dishes</option>)}
+          </select>
+        )}
+        {mode === 'byday' && !pick && (
           <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
             {[['groups', 'Groups'], ['categories', 'Categories']].map(([k, t]) => (
               <button key={k} onClick={() => setCols(k)} className={`px-3 py-1.5 ${cols === k ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>{t}</button>
@@ -124,13 +168,47 @@ export default function CategoryGroupsReport({ restaurantId, startDate, endDate,
         </div>
       </div>
 
-      {noGroups && (mode === 'groups' || cols === 'groups') && (
+      {noGroups && (mode === 'groups' || (cols === 'groups' && !pick)) && (
         <div className="mx-4 mt-3 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
           No groups yet. Tap <b>Set up groups</b> to put your categories into groups like <b>Food</b> and <b>Drinks</b> — reports only, your menu stays the same.
         </div>
       )}
 
-      {calc.total === 0 ? (
+      {mode === 'byday' && pick ? (
+        !picked ? <div className="py-12 text-center text-gray-400"><FaSpinner className="animate-spin inline" /></div>
+        : !picked.days.length ? <div className="text-center py-12 text-gray-400">No sales of this category in this period</div> : (
+        <div className="overflow-x-auto">
+          <div className="px-4 pt-3 text-xs text-gray-500">Only days with sales of <b>{catsSorted.find((c) => c.key === pick)?.name}</b> · {picked.days.length} day{picked.days.length === 1 ? '' : 's'}</div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-xs text-gray-500 uppercase">
+                <th className="px-3 py-2.5 font-semibold text-left sticky left-0 bg-gray-50">Date</th>
+                {picked.dishes.map((n) => <th key={n} className="px-3 py-2.5 font-semibold text-right whitespace-nowrap normal-case">{n}</th>)}
+                <th className="px-3 py-2.5 font-semibold text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {picked.days.map((d) => (
+                <tr key={d}>
+                  <td className="px-3 py-2 whitespace-nowrap sticky left-0 bg-white text-gray-700">{fmtDay(d)}</td>
+                  {picked.dishes.map((n) => { const v = picked.byDay[d]?.[n]; return (
+                    <td key={n} className="px-3 py-2 text-right text-gray-700">{v ? <>{formatCurrency(r2(v.revenue))}<div className="text-[11px] text-gray-400">× {v.qty}</div></> : '–'}</td>
+                  ); })}
+                  <td className="px-3 py-2 text-right font-semibold text-gray-900">{formatCurrency(r2(picked.dayTotal[d]))}<div className="text-[11px] text-gray-400 font-normal">× {picked.dayQty[d]}</div></td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                <td className="px-3 py-3 sticky left-0 bg-gray-50 text-gray-800">Total</td>
+                {picked.dishes.map((n) => <td key={n} className="px-3 py-3 text-right text-gray-900">{formatCurrency(r2(picked.per[n].revenue))}<div className="text-[11px] text-gray-500">× {picked.per[n].qty}</div></td>)}
+                <td className="px-3 py-3 text-right text-emerald-700">{formatCurrency(r2(picked.total))}<div className="text-[11px] text-gray-500">× {picked.qty}</div></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        )
+      ) : calc.total === 0 ? (
         <div className="text-center py-12 text-gray-400">No sales in this period</div>
       ) : mode === 'groups' ? (
         <div className="overflow-x-auto">
