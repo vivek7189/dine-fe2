@@ -11,10 +11,11 @@ import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import QRCode from 'qrcode';
 import apiClient from '../lib/api';
-import { FaPlus, FaTrash, FaSpinner, FaCheck, FaChevronDown, FaChevronUp, FaUpload, FaCamera } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaSpinner, FaCheck, FaChevronDown, FaChevronUp, FaUpload } from 'react-icons/fa';
 
 const BulkMenuUpload = dynamic(() => import('./BulkMenuUpload'), { ssr: false });
 const QrMenuFromPhoto = dynamic(() => import('./QrMenuFromPhoto'), { ssr: false });
+import QrMenuDishes from './QrMenuDishes';
 
 const newMenu = () => ({ id: '', name: '', categories: [], itemIds: [], orderType: 'any', note: '', viewOnly: false, allItems: false, ownMenu: false, active: true });
 
@@ -43,12 +44,13 @@ export default function QrMenusPanel({ restaurant }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [qrs, setQrs] = useState({});       // id → data url
-  const [itemSearch, setItemSearch] = useState('');
   const [ownDishes, setOwnDishes] = useState({}); // menu id → how many dishes of its own
   const [uploadFor, setUploadFor] = useState(null); // QR menu the upload window is open for
   const [confirmDelete, setConfirmDelete] = useState(null); // { k, count } — menu with own dishes
   const [photoFor, setPhotoFor] = useState(null); // { k, rows? } — "Fill from a menu photo" / add one new dish
-  const [ownerItems, setOwnerItems] = useState(null); // your menu incl. switched-off dishes (the public menu leaves those out)
+  const [ownerItems, setOwnerItems] = useState(null); // your menu incl. switched-off dishes + QR menus' own dishes (the public menu leaves those out)
+  const [ownerCats, setOwnerCats] = useState([]);
+  const [more, setMore] = useState(false);          // "More options" open in the editor
 
   const loadOwnDishes = () => apiClient.request(`/api/restaurants/${restaurant.id}/qr-menus`)
     .then((r) => setOwnDishes(r?.ownDishes || {})).catch(() => {});
@@ -58,8 +60,12 @@ export default function QrMenusPanel({ restaurant }) {
       setCats(Array.isArray(r?.categories) ? r.categories : []);
       setItems(Array.isArray(r?.menu) ? r.menu : []);
     }).catch(() => {});
-    apiClient.getMenu(restaurant.id).then((r) => setOwnerItems((r?.menuItems || []).filter((i) => i.status !== 'deleted' && !i.qrMenuOnly))).catch(() => {});
+    return apiClient.getMenu(restaurant.id).then((r) => {
+      setOwnerItems((r?.menuItems || []).filter((i) => i.status !== 'deleted'));
+      setOwnerCats(Array.isArray(r?.categories) ? r.categories : []);
+    }).catch(() => {});
   };
+  const reloadAll = () => Promise.all([loadItems(), loadOwnDishes()]);
 
   useEffect(() => {
     if (!restaurant?.id) return;
@@ -92,7 +98,8 @@ export default function QrMenusPanel({ restaurant }) {
   };
   const setM = (k, patch) => setMenus((list) => list.map((m, j) => (j === k ? { ...m, ...patch } : m)));
   // Save ONE menu (k) or delete it: built from the last saved list, so other menus' unsaved edits stay unsaved
-  const save = async (k, remove = false, deleteOwnDishes = false, patch = null) => {
+  // patch: changes saved with it (dish list); keepOpen: stay in the editor (dish changes save straight away)
+  const save = async (k, remove = false, deleteOwnDishes = false, patch = null, keepOpen = false) => {
     const m = patch ? { ...menus[k], ...patch } : menus[k];
     const isSaved = !!(m && m.id && saved.some((x) => x.id === m.id));
     const list = remove
@@ -113,7 +120,12 @@ export default function QrMenusPanel({ restaurant }) {
         const merged = next.map((n) => others.find((o) => o.id === n.id) || n);
         return [...merged, ...others.filter((o) => !o.id)];
       });
-      setOpen(null); setMsg('Saved');
+      if (keepOpen && !remove) {
+        const savedM = isSaved ? next.find((x) => x.id === m.id) : next[next.length - 1];
+        const idx = savedM ? next.findIndex((x) => x.id === savedM.id) : -1;
+        if (idx >= 0) setOpen(idx);
+      } else setOpen(null);
+      setMsg('Saved');
       setTimeout(() => setMsg(''), 2000);
     } catch (e) {
       // deleting a menu that has its own dishes: ask first (the server refuses without deleteOwnDishes)
@@ -122,17 +134,12 @@ export default function QrMenusPanel({ restaurant }) {
     }
     setSaving(false);
   };
-  const filteredItems = useMemo(() => {
-    const t = itemSearch.trim().toLowerCase();
-    return t ? (ownerItems || items).filter((i) => String(i.name || '').toLowerCase().includes(t)).slice(0, 40) : [];
-  }, [items, ownerItems, itemSearch]);
-  const itemById = (id) => (ownerItems || []).find((i) => String(i.id) === id) || items.find((i) => String(i.id) === id);
   // after "Fill from a menu photo": tick those dishes on this QR menu and save it
   const photoDone = (ids, res) => {
     const { k } = photoFor; setPhotoFor(null);
     const m = menus[k];
     if (res.added || res.switchedOn) loadItems();
-    if (ids.length) save(k, false, false, { itemIds: [...new Set([...(m.itemIds || []), ...ids])] });
+    if (ids.length) save(k, false, false, { itemIds: [...new Set([...(m.itemIds || []), ...ids])] }, true);
     if (res.failed?.length) setTimeout(() => setMsg(`Could not save: ${res.failed.join(', ')}`), 2500);
   };
 
@@ -189,6 +196,22 @@ export default function QrMenusPanel({ restaurant }) {
                   </label>
                   )}
                 </div>
+                <QrMenuDishes
+                  restaurant={restaurant}
+                  menu={m}
+                  menuItems={ownerItems || []}
+                  categories={ownerCats}
+                  canAdd={!!m.name.trim() && (!m.ownMenu || saved.some((x) => x.id === m.id && x.ownMenu))}
+                  onPatch={(patch) => save(k, false, false, patch, true)}
+                  onReload={reloadAll}
+                  onPhoto={() => setPhotoFor({ k })}
+                  onUpload={m.id && saved.some((x) => x.id === m.id && x.ownMenu) ? () => setUploadFor(m) : null}
+                />
+                <button type="button" onClick={() => setMore((v) => !v)} style={{ ...btn, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {more ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />} More options <span style={{ fontWeight: 400, color: '#9ca3af' }}>(menu type, view only, all QR codes, note)</span>
+                </button>
+                {more && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', borderRadius: 12, border: '1px solid #f3f4f6', background: '#fff' }}>
                 <div>
                   <div style={{ ...lbl, display: 'block', marginBottom: 6 }}>What does this QR show?</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -246,54 +269,11 @@ export default function QrMenusPanel({ restaurant }) {
                   )}
                 </div>
                 <label style={lbl}>Note at the top of the menu (optional)<input value={m.note} onChange={(e) => setM(k, { note: e.target.value })} placeholder="e.g. Staff lunch — pay at the counter" style={inp} /></label>
-                {!m.allItems && (<>
-                <div>
-                  <div style={{ ...lbl, display: 'block', marginBottom: 6 }}>{m.ownMenu ? <>Also show from your normal menu <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional, e.g. drinks)</span></> : 'Categories on this menu'}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {cats.map((c) => {
-                      const on = (m.categories || []).includes(c.id);
-                      return (
-                        <button key={c.id} type="button" onClick={() => setM(k, { categories: on ? m.categories.filter((x) => x !== c.id) : [...(m.categories || []), c.id] })}
-                          style={{ padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? '#7c3aed' : '#e5e7eb'}`, background: on ? '#f5f3ff' : '#fff', color: on ? '#6d28d9' : '#4b5563' }}>
-                          {on ? '✓ ' : ''}{c.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                    <div style={{ ...lbl, display: 'block', flex: 1 }}>{m.ownMenu ? 'Extra single items' : 'Single items'} <span style={{ fontWeight: 400, color: '#9ca3af' }}>(from other categories)</span></div>
-                    {!m.ownMenu && (
-                      <button type="button" disabled={!m.name.trim()} title={m.name.trim() ? '' : 'Give this QR menu a name first'} onClick={() => setPhotoFor({ k })}
-                        style={{ ...btn, display: 'inline-flex', alignItems: 'center', gap: 6, color: '#6d28d9', borderColor: '#c4b5fd', opacity: m.name.trim() ? 1 : 0.5 }}><FaCamera size={11} /> Fill from a menu photo</button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: 6 }}>
-                    {(m.itemIds || []).map((id) => {
-                      const it = itemById(id);
-                      const off = it && it.isAvailable === false;
-                      return <span key={id} title={off ? 'Switched off in your menu — not shown on the QR' : ''} style={{ padding: '4px 10px', borderRadius: 999, background: off ? '#fef3c7' : '#ede9fe', color: off ? '#92400e' : '#5b21b6', fontSize: 12 }}>{it ? it.name : id}{off ? ' · switched off' : ''} <button type="button" onClick={() => setM(k, { itemIds: m.itemIds.filter((x) => x !== id) })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#7c3aed' }}>×</button></span>;
-                    })}
-                  </div>
-                  <input value={itemSearch} onChange={(e) => setItemSearch(e.target.value)} placeholder="Search an item to add…" style={inp} />
-                  {(filteredItems.length > 0 || (!m.ownMenu && itemSearch.trim().length > 1)) && (
-                    <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, marginTop: 4, maxHeight: 180, overflowY: 'auto', background: '#fff' }}>
-                      {filteredItems.map((i) => (
-                        <button key={i.id} type="button" onClick={() => { setM(k, { itemIds: [...new Set([...(m.itemIds || []), String(i.id)])] }); setItemSearch(''); }}
-                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13 }}>{i.name}{i.isAvailable === false ? <span style={{ color: '#b45309', fontSize: 11.5 }}> · switched off</span> : null}</button>
-                      ))}
-                      {!m.ownMenu && itemSearch.trim().length > 1 && m.name.trim() && (
-                        <button type="button" onClick={() => { setPhotoFor({ k, rows: [{ name: itemSearch.trim() }] }); setItemSearch(''); }}
-                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', borderTop: '1px solid #f3f4f6', background: '#faf5ff', cursor: 'pointer', fontSize: 13, color: '#6d28d9', fontWeight: 600 }}>+ Add “{itemSearch.trim()}” as a new dish</button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                </>)}
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151' }}>
                   <input type="checkbox" checked={m.active !== false} onChange={(e) => setM(k, { active: e.target.checked })} /> On — when off, this QR shows the normal full menu
                 </label>
+                </div>
+                )}
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
                   <button type="button" onClick={() => (m.id && saved.some((x) => x.id === m.id) ? save(k, true) : (setMenus((cur) => cur.filter((_, j) => j !== k)), setOpen(null)))} disabled={saving} style={{ ...btn, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6 }}><FaTrash size={11} /> Delete</button>
                   <button type="button" onClick={() => save(k)} disabled={saving || !canSave(m)}
