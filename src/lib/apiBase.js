@@ -229,8 +229,12 @@ function _readCookie(name) {
 /** Current session override URL, or null (localStorage → domain cookie fallback). */
 export function getBackendOverride() {
   if (typeof window === 'undefined') return null;
-  try { const ls = window.localStorage.getItem(BACKEND_OVERRIDE_KEY); if (ls) return ls; } catch (_) {}
-  return _readCookie(OVERRIDE_COOKIE);
+  let v = null;
+  try { v = window.localStorage.getItem(BACKEND_OVERRIDE_KEY) || null; } catch (_) {}
+  if (!v) v = _readCookie(OVERRIDE_COOKIE);
+  // An override saved before the move off the old GCP forwarder (Local login before 7 Oct stays
+  // until logout) → the same box under its main name, like every other saved address.
+  return v && _hostOf(v) === OLD_GCP_HOST ? norm(followRemoteForSameBox(v)) : v;
 }
 /** Force this session onto a specific backend (pass a full URL). Pass null/'' to clear. */
 export function setBackendOverride(url) {
