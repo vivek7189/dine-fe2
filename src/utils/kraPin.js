@@ -27,7 +27,9 @@ export const kraPinLockReason = (order) => {
   if (e.needsReconciliation) return 'This bill may already be at KRA (waiting for a check on the KRA portal), so the PIN cannot change now.';
   if (e.pendingInvcNo) {
     const lastSend = Math.max(toMs(e.sendingAt), toMs(e.preparedAt), toMs(e.claimAt));
-    const rejected = e.lastError && String(e.lastError.resultCd || '') !== '924' && toMs(e.lastAttemptAt) >= lastSend;
+    // a clear "no" = a real KRA error code (not 924 duplicate, not 'none' / unreadable)
+    const code = String((e.lastError && e.lastError.resultCd) || '');
+    const rejected = /^\d+$/.test(code) && code !== '924' && code !== '000' && toMs(e.lastAttemptAt) >= lastSend;
     if (!rejected) return 'This bill was sent to KRA and the answer is not known yet. Send it to KRA again first; the PIN can be changed only if KRA turns it down.';
   }
   return '';
