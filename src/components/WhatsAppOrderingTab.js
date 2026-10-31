@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   FaWhatsapp, FaCheckCircle, FaExclamationTriangle, FaMotorcycle,
-  FaMoneyBillWave, FaLink, FaStore, FaCommentDots, FaInfoCircle, FaListUl,
+  FaMoneyBillWave, FaLink, FaStore, FaCommentDots, FaInfoCircle, FaListUl, FaClock,
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 
@@ -11,6 +11,8 @@ const WA_GREEN = '#25D366';
 const WA_DARK = '#075E54';
 const WA_TEAL = '#128C7E';
 const CHAT_BG = '#E5DDD5';
+const WEEK_DAYS = [['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun']];
+const emptyWeek = () => Object.fromEntries(WEEK_DAYS.map(([k]) => [k, []]));
 
 /**
  * WhatsApp Ordering — self-serve onboarding + settings, shown as a tab inside the Admin page.
@@ -32,6 +34,11 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [paymentLink, setPaymentLink] = useState('');
   const [orderingMode, setOrderingMode] = useState('chat');
   const [orderTypes, setOrderTypes] = useState([]); // [] = original single type (takeaway / delivery by the address switch)
+  // Order timings (config.orderingHours): outside them the bot replies with the timings instead of
+  // taking the order. Off = takes orders all day (as before).
+  const [hoursOn, setHoursOn] = useState(false);
+  const [hoursDays, setHoursDays] = useState(emptyWeek());
+  const [closedMessage, setClosedMessage] = useState('');
   // New WhatsApp order alert on the POS — restaurant orderSettings.whatsappOrderAlerts:
   // 'sound' (popup + sound, default) | 'silent' (popup only) | 'off' (no popup / sound / phone push).
   // KOT printing is never affected.
@@ -56,6 +63,10 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       setRequireAddress(c.requireAddress !== false);
       setOrderingMode(c.orderingMode || 'chat');
       setOrderTypes(Array.isArray(c.orderTypes) ? c.orderTypes : []);
+      const oh = c.orderingHours || null;
+      setHoursOn(!!oh?.enabled);
+      setHoursDays(oh?.days ? { ...emptyWeek(), ...oh.days } : emptyWeek());
+      setClosedMessage(oh?.closedMessage || '');
       try {
         const r = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
         const a = r && r.id === restaurantId ? r.orderSettings?.whatsappOrderAlerts : null;
@@ -88,6 +99,10 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   }
 
   async function save(nextEnabled) {
+    if (hoursOn && !WEEK_DAYS.some(([k]) => (hoursDays[k] || []).some(x => x.from && x.to && x.to > x.from))) {
+      showToast('Add at least one order time, or switch Order timings off');
+      return;
+    }
     setSaving(true);
     try {
       const body = {
@@ -98,10 +113,12 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
         orderingMode,
         paymentMode,
         paymentLink,
+        orderingHours: { enabled: hoursOn, days: hoursDays, closedMessage },
       };
       const res = await apiClient.post(`/api/whatsapp-ordering/config/${restaurantId}`, body);
       if (res && res.success) {
         if (nextEnabled != null) setEnabled(nextEnabled);
+        if (res.config?.orderingHours?.days) setHoursDays({ ...emptyWeek(), ...res.config.orderingHours.days });
         showToast('Saved ✓');
       } else {
         showToast(res?.error || 'Save failed');
@@ -296,6 +313,65 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
                 <input value={paymentLink} onChange={e => setPaymentLink(e.target.value)} placeholder="https://your-payment-link.com"
                   style={{ ...inputStyle, marginTop: 10 }} />
               )}
+            </div>
+
+            <div style={{ marginBottom: 16 }} data-testid="wa-order-timings">
+              <label style={label}><FaClock style={{ marginRight: 6, verticalAlign: -1 }} />Order timings</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 9, padding: '10px 12px' }}>
+                <span style={{ fontSize: 13.5, color: '#374151' }}>Take WhatsApp orders only at set times</span>
+                <button data-testid="wa-hours-toggle" onClick={() => setHoursOn(v => !v)}
+                  style={{ position: 'relative', width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer', background: hoursOn ? WA_GREEN : '#d1d5db', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', top: 3, left: hoursOn ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+                </button>
+              </div>
+              {hoursOn && (
+                <div style={{ marginTop: 10, border: '1px solid #e5e7eb', borderRadius: 10, padding: '6px 12px' }}>
+                  {WEEK_DAYS.map(([key, dayLabel]) => {
+                    const slots = hoursDays[key] || [];
+                    const setSlots = (next) => setHoursDays(prev => ({ ...prev, [key]: next }));
+                    return (
+                      <div key={key} data-testid={`wa-hours-${key}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: key === 'sun' ? 'none' : '1px solid #f3f4f6', flexWrap: 'wrap' }}>
+                        <div style={{ width: 44, fontWeight: 700, fontSize: 13, color: '#374151', paddingTop: 7 }}>{dayLabel}</div>
+                        <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {slots.length === 0 && <div style={{ fontSize: 12.5, color: '#9ca3af', paddingTop: 7 }}>Closed — no orders</div>}
+                          {slots.map((sl, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <input type="time" value={sl.from} onChange={e => setSlots(slots.map((x, j) => j === i ? { ...x, from: e.target.value } : x))}
+                                style={{ ...inputStyle, width: 120, padding: '6px 8px' }} />
+                              <span style={{ fontSize: 12, color: '#6b7280' }}>to</span>
+                              <input type="time" value={sl.to} onChange={e => setSlots(slots.map((x, j) => j === i ? { ...x, to: e.target.value } : x))}
+                                style={{ ...inputStyle, width: 120, padding: '6px 8px' }} />
+                              <button onClick={() => setSlots(slots.filter((_, j) => j !== i))} aria-label="Remove time"
+                                style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: 2 }}>×</button>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            {slots.length < 4 && (
+                              <button onClick={() => setSlots([...slots, slots.length ? { from: '17:00', to: '22:00' } : { from: '11:00', to: '15:00' }])}
+                                style={{ border: 'none', background: 'none', color: '#047857', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, padding: 0 }}>+ Add time</button>
+                            )}
+                            {key === 'mon' && (
+                              <button data-testid="wa-hours-copy" onClick={() => setHoursDays(prev => Object.fromEntries(WEEK_DAYS.map(([k]) => [k, (prev.mon || []).map(x => ({ ...x }))])))}
+                                style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, padding: 0 }}>Copy Monday to all days</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ padding: '8px 0 6px' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Message when closed (optional)</div>
+                    <textarea value={closedMessage} onChange={e => setClosedMessage(e.target.value)} rows={2} maxLength={500}
+                      placeholder="Leave empty to send: we are not taking orders right now + your timings above"
+                      style={{ ...inputStyle, fontSize: 13, resize: 'vertical' }} />
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                {hoursOn
+                  ? 'Outside these times the bot does not take orders; it replies with your timings. Use two times on a day for a break (e.g. 11 AM–3 PM and 5 PM–8 PM).'
+                  : 'Off: the bot takes orders at any time of the day.'}
+              </div>
             </div>
 
             <button onClick={() => save()} disabled={saving}
