@@ -339,15 +339,6 @@ export default function useBooks() {
     } catch (err) { if (!quiet) setError('Failed to fetch pay slips'); return null; }
   };
 
-  // Supplier payment recording
-  const handleRecordSupplierPayment = async (invoiceId, paymentData) => {
-    try {
-      await apiClient.updateSupplierInvoice(restaurantId, invoiceId, paymentData);
-      setSuccess('Payment recorded');
-      fetchSupplierDues();
-    } catch (err) { setError('Failed to record payment'); }
-  };
-
   // Load overview + custom categories on mount
   useEffect(() => { fetchOverview(); fetchExpenseCategories(); }, [fetchOverview, fetchExpenseCategories]);
 
@@ -456,7 +447,6 @@ export default function useBooks() {
     handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleEditExpense,
     handleSavePayrollConfig, handleDeletePayrollConfig,
     handleGeneratePayrollRun, handleUpdatePayrollRun, handleDeletePayrollRun, handleViewPaySlips, handleSavePaySlipAdjustments, handleSavePaySlipAttendance,
-    handleRecordSupplierPayment,
     fetchOverview, fetchRevenue, fetchExpenses, fetchSupplierDues, fetchPnl, fetchPayroll,
     getModalStyles, getModalContentStyles,
     restaurantId, apiClient,

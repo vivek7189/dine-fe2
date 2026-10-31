@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { FaTruck, FaChevronDown, FaChevronUp, FaFileInvoice, FaExclamationTriangle, FaMoneyBillWave } from 'react-icons/fa';
-import PaymentRecordModal from './PaymentRecordModal';
+import { FaTruck, FaChevronDown, FaChevronUp, FaFileInvoice, FaMoneyBillWave, FaBook } from 'react-icons/fa';
+import SupplierPayModal from '../../../../components/suppliers/SupplierPayModal';
+import SupplierLedgerModal from '../../../../components/suppliers/SupplierLedgerModal';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -30,9 +31,15 @@ function getStatusBadge(status) {
   );
 }
 
-export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues, isMobile, formatCurrency, handleRecordSupplierPayment }) {
+export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues, isMobile, formatCurrency, restaurantId, fetchSupplierDues }) {
   const [expandedSupplier, setExpandedSupplier] = useState(null);
-  const [paymentInvoice, setPaymentInvoice] = useState(null);
+  // { supplier, invoiceId? } — one payment can cover several bills; every payment is kept on the statement
+  const [paying, setPaying] = useState(null);
+  const [ledgerFor, setLedgerFor] = useState(null);
+  const smallBtn = (bg, color, border) => ({
+    padding: '5px 10px', borderRadius: '6px', border: `1px solid ${border}`, backgroundColor: bg, color, fontSize: '11px', fontWeight: 700,
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
+  });
 
   if (loadingSupplierDues && !supplierDuesData) {
     return (
@@ -47,12 +54,12 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
     return <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af', fontSize: '14px' }}>No payables data available.</div>;
   }
 
-  const { totalOwed, overdueAmount, suppliersCount, suppliers } = supplierDuesData;
+  const { totalOwed, overdueAmount, totalAdvance, suppliersCount, suppliers } = supplierDuesData;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : `repeat(${totalAdvance > 0 ? 4 : 3}, 1fr)`, gap: '12px' }}>
         <div style={{ ...cardStyle, padding: '14px 18px' }}>
           <div style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '6px' }}>Total Owed</div>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>{formatCurrency(totalOwed || 0)}</div>
@@ -65,6 +72,12 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
           <div style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '6px' }}>Suppliers with Dues</div>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#111827' }}>{suppliersCount || 0}</div>
         </div>
+        {totalAdvance > 0 && (
+          <div style={{ ...cardStyle, padding: '14px 18px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '6px' }}>Paid in advance</div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#2563eb' }}>{formatCurrency(totalAdvance)}</div>
+          </div>
+        )}
       </div>
 
       {/* Aging Table */}
@@ -118,7 +131,20 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
                     </div>
                   </div>
 
-                  {/* Expanded Invoice List */}
+                  {/* Expanded: pay / statement + invoice list */}
+                  {isExpanded && supplier.supplierId !== 'unknown' && (
+                    <div style={{ padding: '8px 0 0 20px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button data-testid="dues-pay-supplier" onClick={() => setPaying({ supplier })} style={smallBtn('#ecfdf5', '#059669', '#a7f3d0')}>
+                        <FaMoneyBillWave size={10} /> Pay supplier
+                      </button>
+                      <button data-testid="dues-statement" onClick={() => setLedgerFor(supplier)} style={smallBtn('#eff6ff', '#1d4ed8', '#bfdbfe')}>
+                        <FaBook size={10} /> Statement
+                      </button>
+                      {supplier.advance > 0 && (
+                        <span style={{ fontSize: '12px', color: '#2563eb', fontWeight: 600 }}>Advance {formatCurrency(supplier.advance)}</span>
+                      )}
+                    </div>
+                  )}
                   {isExpanded && supplier.invoices?.length > 0 && (
                     <div style={{ padding: '8px 0 8px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {supplier.invoices.map((inv) => (
@@ -147,9 +173,9 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
                               {inv.ageDays}d overdue
                             </span>
                           )}
-                          {inv.paymentStatus !== 'paid' && (
+                          {inv.paymentStatus !== 'paid' && supplier.supplierId !== 'unknown' && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); setPaymentInvoice(inv); }}
+                              onClick={(e) => { e.stopPropagation(); setPaying({ supplier, invoiceId: inv.id }); }}
                               style={{
                                 padding: '5px 10px', borderRadius: '6px', border: '1px solid #a7f3d0',
                                 backgroundColor: '#ecfdf5', color: '#059669', fontSize: '10px', fontWeight: 700,
@@ -177,13 +203,14 @@ export default function SupplierDuesTab({ supplierDuesData, loadingSupplierDues,
           </div>
         </div>
       )}
-      {/* Payment Modal */}
-      <PaymentRecordModal
-        invoice={paymentInvoice}
-        onClose={() => setPaymentInvoice(null)}
-        onSubmit={handleRecordSupplierPayment}
-        formatCurrency={formatCurrency}
-      />
+      {paying && (
+        <SupplierPayModal restaurantId={restaurantId} supplier={paying.supplier} preselectInvoiceId={paying.invoiceId || null}
+          formatCurrency={formatCurrency} onClose={() => setPaying(null)} onDone={() => fetchSupplierDues && fetchSupplierDues()} />
+      )}
+      {ledgerFor && (
+        <SupplierLedgerModal restaurantId={restaurantId} supplier={ledgerFor} formatCurrency={formatCurrency}
+          onClose={() => setLedgerFor(null)} onChanged={() => fetchSupplierDues && fetchSupplierDues()} />
+      )}
     </div>
   );
 }

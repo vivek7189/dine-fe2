@@ -762,8 +762,10 @@ function AddPurchaseOrderModal(props) {
     purchaseOrderFormData, setPurchaseOrderFormData,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency,
-    editingPurchaseOrderId, resetPurchaseOrderForm
+    editingPurchaseOrderId, resetPurchaseOrderForm, addLowStockToPO
   } = props;
+  const [lowStockNote, setLowStockNote] = useState('');
+  useEffect(() => { if (!showAddPurchaseOrderModal) setLowStockNote(''); }, [showAddPurchaseOrderModal]);
 
   const fmtMoney = formatCurrency || (n => `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   const poGrandTotal = (purchaseOrderFormData.items || []).reduce(
@@ -799,8 +801,17 @@ function AddPurchaseOrderModal(props) {
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <label style={{ ...labelStyle, marginBottom: 0 }}>Items *</label>
-          <button style={secondaryBtn} onClick={addPurchaseOrderItem}><FaPlus /> Add Item</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {addLowStockToPO && !isEditingPO && (
+              <button data-testid="po-add-low-stock" style={secondaryBtn} title="Add every item at or below its low-stock level"
+                onClick={() => { const n = addLowStockToPO(); setLowStockNote(n ? `${n} low-stock item${n === 1 ? '' : 's'} added — check the quantities` : (purchaseOrderFormData.supplierId ? 'No other low-stock items for this supplier' : 'No other low-stock items')); }}>
+                <FaExclamationTriangle /> Add low-stock items
+              </button>
+            )}
+            <button style={secondaryBtn} onClick={addPurchaseOrderItem}><FaPlus /> Add Item</button>
+          </div>
         </div>
+        {lowStockNote && <div data-testid="po-low-stock-note" style={{ fontSize: 12, color: '#065f46', background: '#ecfdf5', borderRadius: 8, padding: '6px 10px', marginBottom: 10 }}>{lowStockNote}</div>}
         {purchaseOrderFormData.items.map((item, index) => {
           const selectedInv = inventoryItems.find(i => i.id === item.inventoryItemId);
           // Purchase unit the quantity is entered in (e.g. kg) — makes it clear the

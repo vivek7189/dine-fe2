@@ -3492,6 +3492,24 @@ class ApiClient {
     });
   }
 
+  // Supplier payments + ledger (one payment → several bills, advances, statement)
+  async recordSupplierPayment(restaurantId, payment) {
+    return this.request(`/api/supplier-payments/${restaurantId}`, { method: 'POST', body: JSON.stringify(payment) });
+  }
+
+  async applySupplierAdvance(restaurantId, supplierId) {
+    return this.request(`/api/supplier-payments/${restaurantId}/apply-advance`, { method: 'POST', body: JSON.stringify({ supplierId }) });
+  }
+
+  async voidSupplierPayment(restaurantId, paymentId, reason) {
+    return this.request(`/api/supplier-payments/${restaurantId}/${paymentId}/void`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  async getSupplierLedger(restaurantId, supplierId, params = {}) {
+    const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v))).toString();
+    return this.request(`/api/supplier-ledger/${restaurantId}/${supplierId}${q ? `?${q}` : ''}`);
+  }
+
   // Supplier Performance endpoints
   async getSupplierPerformance(restaurantId, supplierId) {
     return this.request(`/api/suppliers/${restaurantId}/${supplierId}/performance`);

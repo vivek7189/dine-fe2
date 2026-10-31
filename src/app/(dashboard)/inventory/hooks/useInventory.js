@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
+import { convertUnits } from '../utils/unitConversion';
 import { restaurantToday, ymd } from '../../../../lib/restaurantTime';
 
 export default function useInventory() {
@@ -252,7 +253,8 @@ export default function useInventory() {
     if (!currentRestaurant) return;
     try {
       const subTab = activeTab === 'procurement' ? procurementSubTab : null;
-      if (subTab === 'grn') {
+      // Purchase Orders needs the GRNs too, for each PO's "Received" (ordered vs received) view.
+      if (subTab === 'grn' || subTab === 'orders') {
         const grnsData = await apiClient.getGRNs(currentRestaurant.id);
         setGrns(grnsData.grns || []);
       } else if (subTab === 'requisitions') {
@@ -755,6 +757,64 @@ export default function useInventory() {
       console.error('Error saving purchase order:', error);
       setError(error.message || 'Failed to save purchase order');
     } finally { setLoading(false); }
+  };
+
+  // ── Reorder from low stock ──
+  // Items at or below their low-stock level ("Low-stock alert at" = minStock) become PO lines:
+  // quantity tops the item up to its max stock (or 2× the low level when no max is set), in the
+  // item's purchase unit, at its last cost. Only items of the chosen supplier (or with no supplier).
+  const purchaseFactor = (inv) => {
+    const explicit = parseFloat(inv.conversionFactor);
+    if (explicit > 0 && explicit !== 1) return explicit;
+    const pu = inv.purchaseUnit || inv.unit;
+    if (pu && inv.unit && pu !== inv.unit) {
+      const f = convertUnits(1, pu, inv.unit);
+      if (f > 0 && f !== 1) return f;
+    }
+    return 1;
+  };
+  const lowStockPOLines = (supplierId, skipIds = []) => {
+    const sup = suppliers.find(x => x.id === supplierId);
+    const supName = (sup?.name || '').trim().toLowerCase();
+    return inventoryItems
+      .filter(i => Number(i.minStock) > 0 && Number(i.currentStock || 0) <= Number(i.minStock) && !skipIds.includes(i.id))
+      .filter(i => {
+        const tag = String(i.supplier || '').trim();
+        return !supplierId || !tag || tag === supplierId || tag.toLowerCase() === supName;
+      })
+      .map(i => {
+        const min = Number(i.minStock); const max = Number(i.maxStock) || 0;
+        const target = max > min ? max : min * 2;
+        const factor = purchaseFactor(i);
+        const raw = Math.max(0, target - Number(i.currentStock || 0)) / factor;
+        const quantity = raw >= 1 ? Math.ceil(raw) : Math.ceil(raw * 100) / 100;
+        return {
+          inventoryItemId: i.id, inventoryItemName: i.name, quantity: quantity || 1,
+          unitPrice: Math.round((Number(i.costPerUnit) || 0) * factor * 100) / 100,
+        };
+      });
+  };
+  // Inside the PO form: add low-stock items not already on it. Returns how many were added.
+  const addLowStockToPO = () => {
+    const current = purchaseOrderFormData.items.filter(it => it.inventoryItemId);
+    const lines = lowStockPOLines(purchaseOrderFormData.supplierId, current.map(it => it.inventoryItemId));
+    if (lines.length) setPurchaseOrderFormData({ ...purchaseOrderFormData, items: [...current, ...lines] });
+    return lines.length;
+  };
+  // From the low-stock list: open a new PO already filled with every low-stock item. When all of
+  // them are tagged with the same supplier, that supplier is picked too.
+  const openLowStockPO = () => {
+    const lines = lowStockPOLines('');
+    const tags = [...new Set(inventoryItems.filter(i => lines.some(l => l.inventoryItemId === i.id)).map(i => String(i.supplier || '').trim().toLowerCase()))];
+    const only = tags.length === 1 && tags[0] ? suppliers.find(x => x.id === tags[0] || (x.name || '').trim().toLowerCase() === tags[0]) : null;
+    setEditingPurchaseOrderId(null);
+    setPurchaseOrderFormData({
+      supplierId: only?.id || '',
+      items: lines.length ? lines : [{ inventoryItemId: '', inventoryItemName: '', quantity: 1, unitPrice: 0 }],
+      expectedDeliveryDate: '', notes: lines.length ? 'Reorder of low-stock items' : '',
+    });
+    setShowAddPurchaseOrderModal(true);
+    return lines.length;
   };
 
   const addPurchaseOrderItem = () => {
@@ -1557,6 +1617,7 @@ export default function useInventory() {
     handleCreateReturn, handleUpdateReturnStatus, handleDeleteReturn, savingReturn,
     handleCreateTransfer, handleUpdateTransferStatus, handleDeleteTransfer, savingTransfer,
     loadInventoryData, loadSCMData,
+    addLowStockToPO, openLowStockPO, lowStockPOLines,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
 
     // Helpers

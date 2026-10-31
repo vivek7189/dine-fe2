@@ -3,8 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
 import { toJsDate } from '../../../../utils/dateParse';
-import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRight, FaTruck, FaFileInvoice, FaExchangeAlt, FaUndoAlt, FaClipboardCheck, FaBoxes, FaWarehouse, FaIndustry, FaSpinner, FaEdit, FaBook, FaMoneyBillWave } from 'react-icons/fa';
 import { fmtQty } from '../utils/formatQty';
+import SupplierPayModal from '../../../../components/suppliers/SupplierPayModal';
+import SupplierLedgerModal from '../../../../components/suppliers/SupplierLedgerModal';
+import ReceiptVarianceModal, { poReceiptSummary } from './ReceiptVarianceModal';
 
 const BASE_SUB_TABS = [
   { key: 'suppliers', label: 'Suppliers' },
@@ -54,7 +57,7 @@ const emptyState = (msg) => (
 const sectionHeader = (title, buttonLabel, onClick, extra, canAdd = true) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>{title}</h3>
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       {extra}
       {canAdd && <button style={btnPrimary} onClick={onClick}><FaPlus size={12} />{buttonLabel}</button>}
     </div>
@@ -104,6 +107,7 @@ export default function ProcurementTab({
   selectedPOForGRN, setSelectedPOForGRN,
   permissions = { read: true, add: true, update: true, delete: true },
   currentRestaurant = null,
+  reloadProcurement = null, openLowStockPO = null, lowStockCount = 0,
 }) {
   // === Enterprise: Org detection + indent/delivery state ===
   const [orgSettings, setOrgSettings] = useState(null);
@@ -119,6 +123,11 @@ export default function ProcurementTab({
   const [indentSubmitting, setIndentSubmitting] = useState(false);
   const [receiveLoading, setReceiveLoading] = useState({});
   const [toast, setToast] = useState(null);
+  const [payFor, setPayFor] = useState(null);       // supplier being paid
+  const [ledgerFor, setLedgerFor] = useState(null); // supplier statement open
+  const [receiptView, setReceiptView] = useState(null); // { po, grn } ordered-vs-received
+  const findPO = (id) => purchaseOrders.find(p => (p.id || p._id) === id) || null;
+  const supplierNameOf = (id) => suppliers.find(s => (s.id || s._id) === id)?.name || '';
 
   // Detect org membership from currentRestaurant
   useEffect(() => {
@@ -341,11 +350,21 @@ export default function ProcurementTab({
                       ) : <span style={{ color: '#9ca3af', fontSize: 12 }}>N/A</span>}
                     </td>
                     <td style={td}>
-                      {permissions.delete && (
-                        <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplier(s.id || s._id)}>
-                          <FaTimes size={10} /> Delete
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {permissions.update && (
+                          <button data-testid="supplier-pay" style={btnSmall('#d1fae5', '#065f46')} onClick={() => setPayFor({ id: s.id || s._id, name: s.name })}>
+                            <FaMoneyBillWave size={10} /> Pay
+                          </button>
+                        )}
+                        <button data-testid="supplier-statement" style={btnSmall('#dbeafe', '#1e40af')} onClick={() => setLedgerFor({ id: s.id || s._id, name: s.name })}>
+                          <FaBook size={10} /> Statement
                         </button>
-                      )}
+                        {permissions.delete && (
+                          <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplier(s.id || s._id)}>
+                            <FaTimes size={10} /> Delete
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -360,7 +379,12 @@ export default function ProcurementTab({
   const renderPurchaseOrders = () => (
     <div>
       {sectionHeader('Purchase Orders', 'Create PO', () => setShowAddPurchaseOrderModal(true),
-        permissions.add ? (
+        permissions.add ? (<>
+          {openLowStockPO && lowStockCount > 0 && (
+            <button data-testid="po-reorder-low-stock" style={{ ...btnSmall('#fef2f2', '#991b1b'), padding: '8px 14px', fontSize: 13, fontWeight: 600 }} onClick={openLowStockPO}>
+              <FaBoxes size={12} /> Reorder low stock ({lowStockCount})
+            </button>
+          )}
           <button
             style={{ ...btnSmall(isListeningVoice ? '#fef2f2' : '#f0fdf4', isListeningVoice ? '#991b1b' : '#059669'), padding: '8px 14px', fontSize: 13, fontWeight: 600 }}
             onClick={startVoiceListeningPO}
@@ -368,7 +392,7 @@ export default function ProcurementTab({
           >
             {isListeningVoice ? <><FaStop size={12} /> Stop</> : <><FaMicrophone size={12} /> Voice PO</>}
           </button>
-        ) : null,
+        </>) : null,
         permissions.add
       )}
 
@@ -416,6 +440,11 @@ export default function ProcurementTab({
                       {handleEditPurchaseOrder && !['received', 'delivered', 'cancelled'].includes(po.status) && (
                         <button style={btnSmall('#dbeafe', '#1e40af')} onClick={() => handleEditPurchaseOrder(po)} title="Edit order">
                           <FaEdit size={10} /> Edit
+                        </button>
+                      )}
+                      {grns.some(g => g.purchaseOrderId === (po.id || po._id)) && (
+                        <button data-testid="po-received" style={btnSmall('#f0fdf4', '#065f46')} onClick={() => setReceiptView({ po })} title="Ordered vs received">
+                          <FaClipboardCheck size={10} /> Received
                         </button>
                       )}
                       <button style={btnSmall('#ede9fe', '#5b21b6')} onClick={() => handleEmailPurchaseOrder(po)}>
@@ -468,18 +497,31 @@ export default function ProcurementTab({
           <table style={table}>
             <thead><tr>
               <th style={th}>GRN #</th><th style={th}>PO Ref</th><th style={th}>Received Date</th>
-              <th style={th}>Items</th><th style={th}>Status</th>
+              <th style={th}>Items</th><th style={th}>Status</th><th style={th}>Difference (whole PO)</th>
             </tr></thead>
             <tbody>
-              {grns.map(g => (
-                <tr key={g.id || g._id}>
-                  <td style={{ ...td, fontWeight: 600 }}>{g.grnNumber || g.id || g._id}</td>
-                  <td style={td}>{g.poReference || g.purchaseOrderId || '-'}</td>
-                  <td style={td}>{fmtDate(g.receivedDate)}</td>
-                  <td style={td}>{g.items?.length || 0}</td>
-                  <td style={td}>{statusBadge(g.status || 'received', getOrderStatusColor)}</td>
-                </tr>
-              ))}
+              {grns.map(g => {
+                const po = findPO(g.purchaseOrderId);
+                const v = po ? poReceiptSummary(po, grns) : null;
+                return (
+                  <tr key={g.id || g._id} data-testid="grn-row" onClick={() => setReceiptView({ po, grn: g })} style={{ cursor: 'pointer' }} title="See ordered vs received">
+                    <td style={{ ...td, fontWeight: 600, color: '#1d4ed8' }}>{g.grnNumber || g.id || g._id}</td>
+                    <td style={td}>{po?.orderNumber || po?.poNumber || g.poReference || g.purchaseOrderId || '-'}</td>
+                    <td style={td}>{fmtDate(g.receivedAt || g.receivedDate || g.createdAt)}</td>
+                    <td style={td}>{g.items?.length || 0}</td>
+                    <td style={td}>{statusBadge(g.status || 'received', getOrderStatusColor)}</td>
+                    <td style={td}>
+                      {!v ? <span style={{ color: '#9ca3af', fontSize: 12 }}>View</span>
+                        : v.short === 0 && v.extra === 0 && v.rejected === 0 ? <span style={badge('#d1fae5', '#065f46')}>All received</span>
+                        : <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
+                          {v.short > 0 && <span style={badge('#fef2f2', '#991b1b')}>{v.short} short</span>}
+                          {v.extra > 0 && <span style={badge('#dbeafe', '#1d4ed8')}>{v.extra} extra</span>}
+                          {v.rejected > 0 && <span style={badge('#fef3c7', '#92400e')}>{v.rejected} rejected</span>}
+                        </span>}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -963,6 +1005,19 @@ export default function ProcurementTab({
       <div style={{ background: '#fff', borderRadius: 12, padding: isMobile ? 12 : 20, border: '1px solid #e5e7eb' }}>
         {(subTabContent[procurementSubTab] || renderSuppliers)()}
       </div>
+
+      {payFor && (
+        <SupplierPayModal restaurantId={currentRestaurant?.id} supplier={payFor} formatCurrency={formatCurrency}
+          onClose={() => setPayFor(null)} onDone={() => { showToast(`Payment to ${payFor.name} saved`); reloadProcurement && reloadProcurement(); }} />
+      )}
+      {ledgerFor && (
+        <SupplierLedgerModal restaurantId={currentRestaurant?.id} supplier={ledgerFor} formatCurrency={formatCurrency} restaurantName={currentRestaurant?.name || ''}
+          onClose={() => setLedgerFor(null)} onChanged={() => reloadProcurement && reloadProcurement()} />
+      )}
+      {receiptView && (
+        <ReceiptVarianceModal po={receiptView.po} grn={receiptView.grn} grns={grns} formatCurrency={formatCurrency}
+          supplierName={supplierNameOf(receiptView.po?.supplierId || receiptView.grn?.supplierId)} onClose={() => setReceiptView(null)} />
+      )}
     </div>
   );
 }

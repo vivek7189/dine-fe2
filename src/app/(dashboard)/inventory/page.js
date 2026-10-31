@@ -358,6 +358,7 @@ export default function InventoryManagement() {
             setActiveTab={handleTabChange}
             getStatusColor={inventory.getStatusColor}
             onLogWaste={() => waste.setShowQuickWasteModal(true)}
+            onReorderLowStock={inventory.openLowStockPO}
             permissions={permissions}
           />
         )}
@@ -514,6 +515,9 @@ export default function InventoryManagement() {
             setSelectedPOForGRN={inventory.setSelectedPOForGRN}
             permissions={permissions}
             currentRestaurant={inventory.currentRestaurant}
+            reloadProcurement={inventory.loadSCMData}
+            openLowStockPO={inventory.openLowStockPO}
+            lowStockCount={inventory.inventoryItems.filter(i => Number(i.minStock) > 0 && Number(i.currentStock || 0) <= Number(i.minStock)).length}
           />
         )}
 

@@ -12,7 +12,7 @@ export default function DashboardTab({
   inventoryItems, dashboardStats, suppliers, purchaseOrders,
   isMobile, formatCurrency,
   setShowAddModal, setShowQuickStockModal, setActiveTab,
-  getStatusColor, onLogWaste,
+  getStatusColor, onLogWaste, onReorderLowStock,
   permissions = { read: true, add: true, update: true, delete: true },
 }) {
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -198,6 +198,12 @@ export default function DashboardTab({
             }}>
               {lowStockItems.length}
             </span>
+          )}
+          {lowStockItems.length > 0 && onReorderLowStock && permissions.add && (
+            <button data-testid="low-stock-create-po" onClick={onReorderLowStock} style={{
+              marginLeft: 'auto', padding: '6px 12px', borderRadius: 8, border: '1px solid #a7f3d0', background: '#ecfdf5',
+              color: '#065f46', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>Create PO</button>
           )}
         </div>
 
