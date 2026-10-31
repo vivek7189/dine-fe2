@@ -1388,6 +1388,7 @@ export default function DashboardTablesPanel({
                   </div>
                 ) : selectedOrder ? (
                   <OrderSummary
+                    staffPerkSupported
                     restaurant={selectedRestaurant}
                     cart={cart}
                     setCart={setCart}

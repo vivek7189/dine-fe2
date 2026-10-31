@@ -3505,6 +3505,19 @@ class ApiClient {
     return this.request(`/api/supplier-payments/${restaurantId}/${paymentId}/void`, { method: 'POST', body: JSON.stringify({ reason }) });
   }
 
+  // Staff perks: settings (owner / admin save), staff list, and the till's quote for a staff order
+  async getStaffPerks(restaurantId) {
+    return this.request(`/api/staff-perks/${restaurantId}`);
+  }
+
+  async saveStaffPerks(restaurantId, settings) {
+    return this.request(`/api/staff-perks/${restaurantId}`, { method: 'PUT', body: JSON.stringify(settings) });
+  }
+
+  async quoteStaffPerk(restaurantId, { staffId, items, orderId = null }) {
+    return this.request(`/api/staff-perks/${restaurantId}/quote`, { method: 'POST', body: JSON.stringify({ staffId, items, orderId }) });
+  }
+
   async getSupplierLedger(restaurantId, supplierId, params = {}) {
     const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v))).toString();
     return this.request(`/api/supplier-ledger/${restaurantId}/${supplierId}${q ? `?${q}` : ''}`);

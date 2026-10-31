@@ -182,7 +182,7 @@ export default function TableBillingModal({
       compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
       offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
       redeemLoyaltyPoints, loyaltyDiscount,
-      serviceChargeEnabled, manualDiscountType, manualDiscountValue,
+      serviceChargeEnabled, manualDiscountType, manualDiscountValue, staffPerk,
       fullDue,
       couponDiscount, couponCode, couponId,
       walletRedeemAmount, walletCustomerId,
@@ -232,6 +232,7 @@ export default function TableBillingModal({
         manualDiscount: manualDiscount || 0,
         manualDiscountType: manualDiscountType || null,
         manualDiscountValue: manualDiscountValue != null ? manualDiscountValue : null,
+        ...(staffPerk !== undefined ? { staffPerk } : {}), // staff perk: { staffId } / null
         offerDiscount: offerDiscount || 0,
         offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
         selectedOfferName: selectedOfferName || null,
@@ -492,6 +493,7 @@ export default function TableBillingModal({
             minHeight: 0,
           }}>
             <OrderSummary
+              staffPerkSupported
               restaurant={selectedRestaurant}
               cart={modalCart}
               setCart={setModalCart}

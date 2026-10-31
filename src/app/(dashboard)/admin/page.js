@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '../../../lib/api';
+import StaffPerksSettings from '../../../components/staffPerks/StaffPerksSettings';
 import StaffActivityPanel from '../../../components/staff/StaffActivityPanel';
 import CashShortExtra from '../../../components/staff/CashShortExtra';
 import { useStaffSort, SortableTh, StaffSortFilterBar } from '../../../components/staff/StaffSortControls';
@@ -15407,6 +15408,8 @@ const Admin = () => {
           <p style={{ fontSize: '11px', color: '#b0b8c4', marginTop: '12px', maxWidth: '720px', margin: '12px auto 0' }}>
             Enabled features appear in the POS billing sidebar.
           </p>
+
+          <StaffPerksSettings restaurantId={selectedRestaurant?.id} />
         </div>
       )}
 

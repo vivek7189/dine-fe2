@@ -364,7 +364,7 @@ const OrderEditModal = ({
       compItems, voidItems, partialPayAmount, manualDiscount, offerDiscount,
       offerIds, selectedOfferName, totalDiscountAmount, specialInstructions,
       redeemLoyaltyPoints, loyaltyDiscount,
-      serviceChargeEnabled, manualDiscountType, manualDiscountValue,
+      serviceChargeEnabled, manualDiscountType, manualDiscountValue, staffPerk,
       fullDue,
       couponDiscount, couponCode, couponId,
       walletRedeemAmount, walletCustomerId,
@@ -471,6 +471,7 @@ const OrderEditModal = ({
         manualDiscount: manualDiscount || 0,
         manualDiscountType: manualDiscountType || null,
         manualDiscountValue: manualDiscountValue != null ? manualDiscountValue : null,
+        ...(staffPerk !== undefined ? { staffPerk } : {}), // staff perk: { staffId } / null
         offerDiscount: offerDiscount || 0,
         // Mirror the dashboard-billing payload: the backend "POS override" reads
         // the offer discount from `discountAmount`. Without this, an edited bill
@@ -777,6 +778,7 @@ const OrderEditModal = ({
                 </div>
               )}
               <OrderSummary
+                staffPerkSupported
                 cart={modalCart}
                 setCart={setModalCart}
                 orderType={order.orderType || 'dine-in'}
