@@ -132,6 +132,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       publicMenuOnly: false,
       collectName: true,
       collectEmail: false,
+      allowOrderNotes: false, // guests may add a note per item + one for the whole order
     },
     billingSettings: {
       tipsEnabled: false,
@@ -1428,6 +1429,15 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                 pageSettings: { ...prev.pageSettings, collectEmail: v }
               }))}
               label="Collect Customer Email"
+            />
+
+            <Toggle
+              value={settings.pageSettings?.allowOrderNotes === true}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, allowOrderNotes: v }
+              }))}
+              label="Customer notes (per item + whole order, e.g. no onion)"
             />
 
           </div>

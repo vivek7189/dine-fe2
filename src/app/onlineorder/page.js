@@ -8,6 +8,31 @@ import { createPortal } from 'react-dom';
 // Sizes of a menu item (1 Litre / 375 ML / Tot, Half / Full…) and a cart line's key (item + size)
 const sizesOf = (it) => (Array.isArray(it?.variants) ? it.variants.filter(v => v && v.name) : []);
 const lineKeyOf = (ci) => `${ci.id}::${ci.selectedVariant?.name || ''}`;
+// Guest notes (Customer App → "Customer notes", off by default): one per cart line + one for the order
+const notesAllowed = (cas) => cas?.pageSettings?.allowOrderNotes === true;
+const ITEM_NOTE_MAX = 150;
+const ORDER_NOTE_MAX = 300;
+const ItemNoteField = ({ item, setCart }) => {
+  const [open, setOpen] = useState(false);
+  const note = item.note || '';
+  const save = (v) => setCart(prev => prev.map(ci => (lineKeyOf(ci) === lineKeyOf(item) ? { ...ci, note: v.slice(0, ITEM_NOTE_MAX) } : ci)));
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} data-testid="item-note-toggle"
+        style={{ background: 'none', border: 'none', padding: 0, marginTop: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: note ? '#b45309' : 'var(--qr-accent, #ef4444)', textAlign: 'left' }}>
+        {note ? `📝 ${note}` : '+ Add note'}
+      </button>
+    );
+  }
+  return (
+    <input type="text" autoFocus value={note} maxLength={ITEM_NOTE_MAX} data-testid="item-note-input"
+      onChange={(e) => save(e.target.value)}
+      onBlur={() => { save(note.trim()); setOpen(false); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      placeholder="e.g. no onion, less spicy"
+      style={{ width: '100%', marginTop: '6px', padding: '6px 10px', fontSize: '13px', border: '1px solid #fde68a', borderRadius: '8px', outline: 'none', background: '#fffbeb', color: '#1f2937', boxSizing: 'border-box' }} />
+  );
+};
 // "JW Black Label - 1 Litter" on item "JW Black Label" → "1 Litter" (size label without the brand)
 const sizeLabel = (itemName, sizeName) => {
   const n = String(sizeName || ''); const b = String(itemName || '');
@@ -269,6 +294,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     return (o && o.name) || c;
   };
   const [cart, setCart] = useState([]);
+  const [orderNote, setOrderNote] = useState(''); // guest's note for the whole order (when notes are on)
+  useEffect(() => { if (!cart.length) setOrderNote(''); }, [cart.length]);
   const [sizeFor, setSizeFor] = useState(null); // item whose sizes (1 L / Tot / Half…) the customer is choosing
   const [customerInfo, setCustomerInfo] = useState({
     phone: '',
@@ -1350,7 +1377,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         quantity: item.quantity,
         shortCode: item.shortCode,
         ...(item.selectedVariant ? { selectedVariant: { name: item.selectedVariant.name, price: item.selectedVariant.price } } : {}),
+        ...(notesAllowed(customerAppSettings) && (item.note || '').trim() ? { notes: item.note.trim().slice(0, ITEM_NOTE_MAX) } : {}),
       })),
+      ...(notesAllowed(customerAppSettings) && orderNote.trim() ? { specialInstructions: orderNote.trim().slice(0, ORDER_NOTE_MAX) } : {}),
       totalAmount: getCartSubtotal(),
       orderType: (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType),
       notes: orderType === 'room'
@@ -1768,6 +1797,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         getTierProgress={getTierProgress}
         tierInfo={tierInfo}
         setCart={setCart}
+        orderNote={orderNote}
+        setOrderNote={setOrderNote}
         orderHistory={orderHistory}
         orderHistoryLoading={orderHistoryLoading}
         loadOrderHistory={loadOrderHistory}
@@ -3574,6 +3605,7 @@ const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTo
                 <div style={{ flex: 1 }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {sizeLabel(item.name, item.selectedVariant.name)}</span> : null}</h4>
                   <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{cs}{Number(item.price || 0).toFixed(2)} each</p>
+                  {notesAllowed(customerAppSettings) && <ItemNoteField item={item} setCart={setCart} />}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button onClick={() => removeFromCart(item)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}>
@@ -4057,6 +4089,8 @@ const CheckoutView = ({
   getTierProgress,
   tierInfo,
   setCart,
+  orderNote = '',
+  setOrderNote,
   orderHistory,
   orderHistoryLoading,
   loadOrderHistory,
@@ -4822,6 +4856,7 @@ const CheckoutView = ({
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {sizeLabel(item.name, item.selectedVariant.name)}</span> : null}</div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>{cs}{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
+                      {notesAllowed(customerAppSettings) && <ItemNoteField item={item} setCart={setCart} />}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button onClick={() => removeFromCart(item)} style={{ background: '#f1f5f9', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
@@ -5169,6 +5204,19 @@ const CheckoutView = ({
                 marginBottom: '16px'
               }}>
                 {error}
+              </div>
+            )}
+
+            {/* Note for the whole order (Customer App → Customer notes) */}
+            {cart.length > 0 && notesAllowed(customerAppSettings) && (
+              <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '16px 20px', marginBottom: '16px' }}>
+                <label htmlFor="qr-order-note" style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', display: 'block', marginBottom: '8px' }}>
+                  Instructions for the kitchen <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span>
+                </label>
+                <textarea id="qr-order-note" data-testid="order-note" value={orderNote} maxLength={ORDER_NOTE_MAX} rows={2}
+                  onChange={(e) => setOrderNote(e.target.value.slice(0, ORDER_NOTE_MAX))}
+                  placeholder="e.g. serve starters first, less oil in everything"
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #e5e7eb', borderRadius: '10px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', color: '#1f2937', background: '#fff', boxSizing: 'border-box' }} />
               </div>
             )}
 
