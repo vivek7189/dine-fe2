@@ -259,11 +259,20 @@ async function handleApiRequest({ endpoint, method, body, headers }) {
     }
   }
 
-  // 2. Persist active restaurant ID and auto-seed if first time
-  const ridMatch = endpoint.match(/\/api\/(?:orders|menus|tables|floors|staff|customers|inventory|kot|register|saved-carts|waiters|bookings|invoices|menu-theme|analytics|billing|restaurant\/info|admin\/tax|admin\/business|admin\/print-settings|admin\/print-stations)\/([a-zA-Z0-9_-]+)/);
-  if (ridMatch) {
-    const detectedRid = ridMatch[1];
+  // 2. Persist active restaurant ID and auto-seed if first time.
+  // Only a GET names the restaurant: PATCH /api/orders/<orderId>, /api/orders/single/<id>,
+  // /api/kot/render/... carry an ORDER id / a word in that place, which made every bill update
+  // re-seed the whole restaurant under the order id. Paths that also take order / table / customer
+  // ids switch the active restaurant only to one this device already knows.
+  const ridMatch = m === 'GET' ? endpoint.match(/\/api\/(orders|menus|tables|floors|staff|customers|inventory|kot|register|saved-carts|waiters|bookings|invoices|menu-theme|analytics|billing|restaurant\/info|admin\/tax|admin\/business|admin\/print-settings|admin\/print-stations)\/([a-zA-Z0-9_-]+)/) : null;
+  const ambiguousPath = ridMatch && ['orders', 'tables', 'staff', 'customers', 'inventory', 'kot', 'saved-carts', 'bookings', 'invoices'].includes(ridMatch[1]);
+  const notAnId = ridMatch && (ridMatch[2].length < 12 || /^(single|render|status|search|item|items|history|summary|active|current|export|bulk|stats|report|reports)$/i.test(ridMatch[2]));
+  if (ridMatch && !notAnId) {
+    const detectedRid = ridMatch[2];
     try {
+      const knownRestaurant = (() => { try { return !!entityStore.getRestaurant(detectedRid); } catch { return false; } })();
+      const curRow = getLocalDb().prepare("SELECT value FROM sync_meta WHERE key = 'active_restaurant_id'").get();
+      if (ambiguousPath && curRow && curRow.value && curRow.value !== detectedRid && !knownRestaurant) throw new Error('not a restaurant id');
       const db = getLocalDb();
       const prevRow = db.prepare("SELECT value FROM sync_meta WHERE key = 'active_restaurant_id'").get();
       const prevRid = prevRow ? prevRow.value : null;

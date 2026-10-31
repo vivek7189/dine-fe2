@@ -1267,6 +1267,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
         resolvedDeviceName: resolvedDeviceName || null,
         deviceMatched, printerNames, copies: copies || 1,
         printerWidth: printerWidth || 80, stationId: stationId || null,
+        pageHeightMm: Math.round(pageHeightMicrons / 1000), // a long bill must get a page longer than 297 mm
         hint,
       });
       finish();
