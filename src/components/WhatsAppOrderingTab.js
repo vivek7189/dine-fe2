@@ -39,6 +39,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [hoursOn, setHoursOn] = useState(false);
   const [hoursDays, setHoursDays] = useState(emptyWeek());
   const [closedMessage, setClosedMessage] = useState('');
+  const [linkMode, setLinkMode] = useState('block'); // online-order link from the bot: 'block' | 'show'
   // New WhatsApp order alert on the POS — restaurant orderSettings.whatsappOrderAlerts:
   // 'sound' (popup + sound, default) | 'silent' (popup only) | 'off' (no popup / sound / phone push).
   // KOT printing is never affected.
@@ -67,6 +68,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       setHoursOn(!!oh?.enabled);
       setHoursDays(oh?.days ? { ...emptyWeek(), ...oh.days } : emptyWeek());
       setClosedMessage(oh?.closedMessage || '');
+      setLinkMode(oh?.linkMode === 'show' ? 'show' : 'block');
       try {
         const r = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
         const a = r && r.id === restaurantId ? r.orderSettings?.whatsappOrderAlerts : null;
@@ -113,7 +115,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
         orderingMode,
         paymentMode,
         paymentLink,
-        orderingHours: { enabled: hoursOn, days: hoursDays, closedMessage },
+        orderingHours: { enabled: hoursOn, days: hoursDays, closedMessage, linkMode },
       };
       const res = await apiClient.post(`/api/whatsapp-ordering/config/${restaurantId}`, body);
       if (res && res.success) {
@@ -359,6 +361,24 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
                       </div>
                     );
                   })}
+                  <div style={{ padding: '8px 0 4px' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Online order link sent by the bot</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'block', label: 'Show timings + no orders outside them', desc: 'The page says you are closed and does not take the order' },
+                        { id: 'show', label: 'Only show the timings', desc: 'Customers can still order from the page at any time' },
+                      ].map(opt => {
+                        const on = linkMode === opt.id;
+                        return (
+                          <button key={opt.id} data-testid={`wa-link-${opt.id}`} onClick={() => setLinkMode(opt.id)}
+                            style={{ flex: '1 1 180px', textAlign: 'left', padding: '8px 10px', borderRadius: 9, cursor: 'pointer', border: on ? `2px solid ${WA_GREEN}` : '1px solid #d1d5db', background: on ? '#f0fdf4' : '#fff' }}>
+                            <div style={{ fontWeight: 700, fontSize: 12.5, color: on ? '#065f46' : '#374151' }}>{opt.label}</div>
+                            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div style={{ padding: '8px 0 6px' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Message when closed (optional)</div>
                     <textarea value={closedMessage} onChange={e => setClosedMessage(e.target.value)} rows={2} maxLength={500}

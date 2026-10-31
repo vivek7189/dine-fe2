@@ -394,6 +394,21 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const chairParam = searchParams.get('seat') || '';
   // A QR menu (Tables → QR menus): ?menu=<id> shows only that menu's items; its id goes with the order.
   const qrMenuParam = String(searchParams.get('menu') || '').slice(0, 40);
+  // Opened from the WhatsApp ordering bot's link (?src=whatsapp): the owner's WhatsApp order timings
+  // show on the page and — when the owner chose so — no order is taken outside them.
+  const viaWhatsApp = searchParams.get('src') === 'whatsapp';
+  const [waHours, setWaHours] = useState(null); // { enabled, linkMode, open, timings, message }
+  useEffect(() => {
+    if (!viaWhatsApp || !restaurantId || restaurantId === 'default') return;
+    let live = true;
+    const load = () => apiClient.getWhatsAppOrderHours(restaurantId)
+      .then(r => { if (live) setWaHours(r?.hours?.enabled ? r.hours : null); })
+      .catch(() => {});
+    load();
+    const t = setInterval(load, 60000); // opens / closes while the page stays open
+    return () => { live = false; clearInterval(t); };
+  }, [viaWhatsApp, restaurantId]);
+  const waClosed = !!(waHours && waHours.linkMode === 'block' && !waHours.open);
   const menuCacheKey = qrMenuParam ? `menu:${qrMenuParam}` : 'menu';
   const [qrMenuInfo, setQrMenuInfo] = useState(null);
   // Look-only menu: the restaurant's "Public Menu Only" switch, or this QR is a view-only QR menu.
@@ -1391,6 +1406,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       offerIds: selectedOffers.map(o => o.id),
       redeemLoyaltyPoints: firebaseUid ? actualRedeemPoints : 0,
       orderSource: 'online_order',
+      ...(viaWhatsApp ? { channel: 'whatsapp' } : {}),
       tipAmount: tipAmount > 0 ? tipAmount : undefined,
       serviceCharge: getServiceCharge() > 0 ? {
         amount: getServiceCharge(),
@@ -1402,6 +1418,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
   // Place order directly (no UPI) or after UPI confirmation
   const placeOrderDirect = async () => {
+    if (waClosed) { setError(waHours.message); return; }
     try {
       setPlacingOrder(true);
       setError('');
@@ -1581,6 +1598,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   };
 
   const placeOrderWithVerification = async () => {
+    if (waClosed) { setError(waHours.message); return; }
     const loginMode = customerAppSettings?.pageSettings?.loginMode || 'optional';
 
     // Only require OTP verification in 'required' mode
@@ -2375,6 +2393,17 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             fontWeight: '500'
           }}>
             Menu view only. Visit the restaurant to order!
+          </div>
+        </div>
+      )}
+
+      {/* Opened from the WhatsApp bot's link: the order timings (owner's WhatsApp settings) */}
+      {waHours && (
+        <div style={{ maxWidth: '960px', margin: '12px auto 0', padding: '0 16px' }}>
+          <div data-testid="wa-hours-banner" style={{ background: waClosed ? '#fef2f2' : '#f0fdf4', border: `1px solid ${waClosed ? '#fecaca' : '#bbf7d0'}`, borderRadius: '12px', padding: '10px 14px', color: waClosed ? '#991b1b' : '#166534', fontSize: '13px', whiteSpace: 'pre-line' }}>
+            {waClosed
+              ? waHours.message
+              : `${waHours.open ? '🟢 Taking orders now.' : '🕒 Not taking orders right now.'} Order timings:\n${waHours.timings}`}
           </div>
         </div>
       )}

@@ -1643,6 +1643,11 @@ class ApiClient {
     return this.request(`/api/public/menu/${restaurantId}${qrMenuId ? `?menu=${encodeURIComponent(qrMenuId)}` : ''}`);
   }
 
+  // WhatsApp order timings for the online-order page opened from the bot's link (no login)
+  async getWhatsAppOrderHours(restaurantId) {
+    return this.request(`/api/whatsapp-ordering/public-hours/${restaurantId}`);
+  }
+
   async placePublicOrder(restaurantId, orderData) {
     return this.request(`/api/public/orders/${restaurantId}`, {
       method: 'POST',
