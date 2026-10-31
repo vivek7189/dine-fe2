@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import CategoryGroupsReport from '../../../components/CategoryGroupsReport';
+import SalesComparisonReport from '../../../components/SalesComparisonReport';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import {
   FaChartPie,
@@ -246,6 +247,7 @@ export default function SalesSummaryPage() {
   const tabs = [
     { key: 'overview', label: 'Overview', icon: FaChartPie },
     { key: 'category', label: 'Category Sales', icon: FaChartPie },
+    { key: 'compare', label: 'Comparison', icon: FaCalendarAlt },
     { key: 'payment', label: 'Payment Mode', icon: FaCreditCard },
     { key: 'daywise', label: 'Day-wise', icon: FaCalendarAlt },
   ];
@@ -797,6 +799,23 @@ export default function SalesSummaryPage() {
             )}
 
             {/* === PAYMENT MODE TAB === */}
+            {/* === SALES COMPARISON TAB: items / categories / groups per month, week or day === */}
+            {activeTab === 'compare' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <h3 className="text-base font-bold text-gray-800">Sales comparison</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Pick any range above (e.g. Custom → 1 Aug to 31 Oct) — each item&apos;s qty and amount per month, week or day.</p>
+                </div>
+                <SalesComparisonReport
+                  restaurantId={restaurantId}
+                  startDate={summary.dateRange?.start}
+                  endDate={summary.dateRange?.end}
+                  subRestaurantId={selectedSubRestaurant || ''}
+                  formatCurrency={formatCurrency}
+                />
+              </div>
+            )}
+
             {activeTab === 'payment' && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
