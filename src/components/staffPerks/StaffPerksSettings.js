@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FaUserTag, FaSearch, FaCheck } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 
-const EMPTY = { enabled: false, freeItems: [], freePerDay: 1, requireClockIn: false, discountPercent: 0, discountScope: 'all', discountItems: [] };
+const EMPTY = { enabled: false, freeItems: [], freePerDay: 1, requireClockIn: false, discountPercent: 0, discountScope: 'all', discountItems: [], allowOffers: false };
 const sizesOf = (it) => (Array.isArray(it?.variants) ? it.variants.filter(v => v && v.name) : []);
 
 function ItemPicker({ menu, selected, onChange, disabled, testId }) {
@@ -179,6 +179,15 @@ export default function StaffPerksSettings({ restaurantId }) {
               </div>
             )}
             <div style={hint}>0 = no discount. Applies after the free items, e.g. 40% off the second tea.</div>
+          </div>
+
+          <div>
+            <span style={label}>Customer offers</span>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
+              <input type="checkbox" data-testid="staff-perks-allow-offers" checked={s.allowOffers} disabled={off} onChange={e => set({ allowOffers: e.target.checked })} />
+              Customer offers also apply on staff orders
+            </label>
+            <div style={hint}>Off = staff get only the staff perk above; offers and happy-hour deals are not added on their bill.</div>
           </div>
 
           {off ? (

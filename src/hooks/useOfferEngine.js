@@ -417,7 +417,7 @@ const getNextScheduleTransition = (offers) => {
   return minMs;
 };
 
-const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null, customerContext = null, disableAutoApply = false }) => {
+const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = null, taxSettings = null, customerContext = null, disableAutoApply = false, disabled = false }) => {
   const [allOffers, setAllOffers] = useState([]);
   const [offerSettings, setOfferSettings] = useState({
     autoApplyBestOffer: false,
@@ -733,8 +733,9 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
   }, [allOffers, scheduleCheckKey]);
 
   // Compute applicable offers (filtered by schedule, date, minOrder, firstOrder, scope)
+  // disabled = no offers on this bill (a staff order) — the selection then clears itself below.
   const applicableOffers = useMemo(() => {
-    if (!allOffers.length) return [];
+    if (disabled || !allOffers.length) return [];
 
     const hasContext = !!resolvedContext;
 
@@ -783,7 +784,7 @@ const useOfferEngine = ({ restaurantId, cart = [], subtotal = 0, customerInfo = 
       }
     }
     return result;
-  }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey, resolvedContext]);
+  }, [allOffers, subtotal, cart, customerInfo, scheduleCheckKey, resolvedContext, disabled]);
 
   // Split applicable offers into generic (everyone/first-order) and personalized (group/customer-targeted)
   const { genericOffers, personalizedOffers } = useMemo(() => {
