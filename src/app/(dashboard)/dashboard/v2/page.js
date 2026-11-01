@@ -3825,6 +3825,7 @@ function RestaurantPOSContent() {
           // Extra billing fields
           manualDiscountType: mdType || null,
           manualDiscountValue: mdValue != null ? mdValue : null,
+          ...(taxData?.staffPerk !== undefined ? { staffPerk: taxData.staffPerk } : {}), // staff perk: { staffId } / null
           serviceChargeEnabled: scEnabled,
           managerPin: mgrPin || null,
           taxInclusiveMode: taxInclMode || null,
@@ -4090,6 +4091,7 @@ function RestaurantPOSContent() {
         manualDiscount: manualDiscount || 0,
         manualDiscountType: mdType || null,
         manualDiscountValue: mdValue != null ? mdValue : null,
+        ...(taxData?.staffPerk !== undefined ? { staffPerk: taxData.staffPerk } : {}), // staff perk: { staffId } / null
         discountAmount: offerDiscountAmt || 0,
         offerDiscount: offerDiscountAmt || 0,
         totalDiscountAmount: discountTotal || 0,
@@ -4957,6 +4959,7 @@ function RestaurantPOSContent() {
         manualDiscount: manualDiscount || 0,
         manualDiscountType: taxData.manualDiscountType || null,
         manualDiscountValue: taxData.manualDiscountValue != null ? taxData.manualDiscountValue : null,
+        ...(taxData?.staffPerk !== undefined ? { staffPerk: taxData.staffPerk } : {}), // staff perk: { staffId } / null
         offerIds: offerIds || [],
         discountAmount: offerDiscountAmt || 0,
         offerDiscount: offerDiscountAmt || 0,
@@ -5149,6 +5152,7 @@ function RestaurantPOSContent() {
           manualDiscount: manualDiscount || 0,
           manualDiscountType: taxData.manualDiscountType || null,
           manualDiscountValue: taxData.manualDiscountValue != null ? taxData.manualDiscountValue : null,
+          ...(taxData?.staffPerk !== undefined ? { staffPerk: taxData.staffPerk } : {}), // staff perk: { staffId } / null
           offerIds: offerIds || [],
           discountAmount: offerDiscountAmt || 0,
           offerDiscount: offerDiscountAmt || 0,
@@ -5470,6 +5474,7 @@ function RestaurantPOSContent() {
           manualDiscount: manualDiscount || 0,
           manualDiscountType: taxData.manualDiscountType || null,
           manualDiscountValue: taxData.manualDiscountValue != null ? taxData.manualDiscountValue : null,
+          ...(taxData?.staffPerk !== undefined ? { staffPerk: taxData.staffPerk } : {}), // staff perk: { staffId } / null
           discountAmount: offerDiscountAmt || 0,
           offerDiscount: offerDiscountAmt || 0,
           selectedOfferName: offerName || null,
@@ -9030,6 +9035,7 @@ function RestaurantPOSContent() {
           }}>
           {console.log('🖥️ Dashboard: Rendering OrderSummary with cart:', cart)}
           <OrderSummary
+            staffPerkSupported
             restaurant={selectedRestaurant}
             onEtimsError={(res) => setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true })}
             cart={cart}
@@ -9139,6 +9145,7 @@ function RestaurantPOSContent() {
             {isMobile && showMobileCart && viewMode === 'orders' && (
               <div className="v2-order-panel">
                   <OrderSummary
+                    staffPerkSupported
                     restaurant={selectedRestaurant}
                     onEtimsError={(res) => setNotification({ type: 'error', title: 'KRA eTIMS', message: `Fiscalisation failed: ${res.error}.${res.fallbackPrinted ? ' A standard receipt was printed — please re-fiscalise once the VSCU is available.' : ''}`, show: true })}
                     cart={cart}
