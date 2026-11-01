@@ -1766,6 +1766,11 @@ const OrderSummary = ({
     if (!st) { setStaffPerk(null); setStaffPerkQuote(null); setStaffPerkMsg(''); return; }
     setManualDiscountValue(''); setDiscountReason('');
     setStaffPerk({ staffId: st.id, staffName: st.name });
+    // A staff order is not a customer's order: drop any customer typed in (no loyalty/wallet/CRM on it).
+    onCustomerMobileChange?.(''); onCustomerNameChange?.('');
+    setUseWallet(false); setWalletRedeemAmount(''); setRedeemLoyaltyPoints(0); setSliderLocalValue(0);
+    prevCustomerId.current = null;
+    clearCustomer();
   };
 
   // Manual discount as entered (before the OTP gate) — used only for the pending display + approval request.
@@ -3214,7 +3219,7 @@ const OrderSummary = ({
   const customerPromptContinuedRef = useRef(false);
   useEffect(() => { if (cart.length === 0) customerPromptContinuedRef.current = false; }, [cart.length]);
   const customerDetailsOk = () => {
-    if (customerDetailsMode === 'off') return true;
+    if (customerDetailsMode === 'off' || staffPerk) return true; // staff order: no customer to ask for
     const phoneOk = (customerMobile || '').replace(/\D/g, '').length >= getPhoneMinLength(countryCode);
     const found = lookupStatus === 'found';
     const nameOk = !!String(customerName || '').trim();
@@ -6223,8 +6228,25 @@ const OrderSummary = ({
                   gap: isMobile ? '4px' : '6px',
                   alignItems: 'start',
                   }}>
+                    {/* Staff order: the customer boxes are replaced by one line (who it is for + Change). */}
+                    {staffPerk && (
+                      <div data-testid="staff-perk-customer-note" style={{
+                        gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: isMobile ? '6px 10px' : '8px 12px', borderRadius: isMobile ? '6px' : '8px',
+                        border: '1.5px solid #a5b4fc', background: dm ? 'rgba(99,102,241,0.12)' : '#eef2ff',
+                        color: dm ? dm.text : '#3730a3', fontSize: isMobile ? '11px' : '12px',
+                      }}>
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          👤 Staff order for <b>{staffPerk.staffName}</b> · no customer details needed
+                        </span>
+                        <button type="button" onClick={() => setShowStaffPicker(true)} style={{
+                          flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                          color: '#4f46e5', fontWeight: 700, fontSize: 'inherit',
+                        }}>Change</button>
+                      </div>
+                    )}
                     {/* Customer Mobile + Lookup (Phone First) */}
-                    {!posSettings.hideMobile && (
+                    {!posSettings.hideMobile && !staffPerk && (
                     <div style={{ position: 'relative' }}>
                     <input
                       type="tel"
@@ -6363,7 +6385,7 @@ const OrderSummary = ({
                     )}
 
                     {/* Customer Name — always visible, pre-filled when customer found */}
-                    {!posSettings.hideCustomerName && (
+                    {!posSettings.hideCustomerName && !staffPerk && (
                     <div style={{ position: 'relative' }}>
                     <input
                       type="text"
