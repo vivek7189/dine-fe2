@@ -2886,10 +2886,23 @@ const OrderHistory = () => {
       dayRows.push([g.day, g.items.length, g.quantity, r2(g.revenue)]);
       q += g.quantity; rev += g.revenue;
     });
+    // Each item over the whole period (days it sold, qty, revenue), biggest revenue first
+    const itemTot = {};
+    summaryDailyRows.forEach(g => g.items.forEach(i => {
+      const k = `${i.name}\u0000${i.category}`;
+      if (!itemTot[k]) itemTot[k] = { name: i.name, category: i.category, days: 0, quantity: 0, revenue: 0 };
+      itemTot[k].days += 1;
+      itemTot[k].quantity += i.quantity;
+      itemTot[k].revenue += i.revenue;
+    }));
+    const itemRows = [['Item', 'Category', 'Days sold', 'Qty', 'Revenue']];
+    Object.values(itemTot).sort((x, y) => y.revenue - x.revenue)
+      .forEach(t2 => itemRows.push([t2.name, t2.category, t2.days, r2(t2.quantity), r2(t2.revenue)]));
     rows.push(['Total', '', '', q, r2(rev)]);
     dayRows.push(['Total', '', q, r2(rev)]);
+    itemRows.push(['Total', '', '', r2(q), r2(rev)]);
     const suffix = `${summaryPeriod}${summaryCategory ? '-' + summaryCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
-    return { rows, dayRows, suffix };
+    return { rows, dayRows, itemRows, suffix };
   };
 
   const summaryPeriods = [
@@ -6966,12 +6979,18 @@ const OrderHistory = () => {
                           const wb = XLSX.utils.book_new();
                           if (summaryGroupBy === 'date') {
                             if (!summaryDailyRows.length) { alert(summaryDaily.loading ? 'Day-by-day sales are still loading — please try again in a moment.' : (summaryDaily.error || 'No sales to download for this date range.')); return; }
-                            // Date-wise: every day × item, and the day totals
-                            const { rows, dayRows, suffix: sfx } = buildDailySalesExport();
+                            // Date-wise: every day × item (with filters), the day totals and the item totals
+                            const { rows, dayRows, itemRows: dailyItemRows, suffix: sfx } = buildDailySalesExport();
                             const ws = XLSX.utils.aoa_to_sheet(rows);
-                            ws['!cols'] = [{ wch: 12 }, { wch: 36 }, { wch: 20 }, { wch: 8 }, { wch: 14 }];
+                            ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 22 }, { wch: 8 }, { wch: 14 }];
+                            ws['!autofilter'] = { ref: `A1:E${rows.length - 1}` };
                             XLSX.utils.book_append_sheet(wb, ws, 'Date-wise Sales');
-                            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dayRows), 'Day totals');
+                            const wsDays = XLSX.utils.aoa_to_sheet(dayRows);
+                            wsDays['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 14 }];
+                            XLSX.utils.book_append_sheet(wb, wsDays, 'Day totals');
+                            const wsItems = XLSX.utils.aoa_to_sheet(dailyItemRows);
+                            wsItems['!cols'] = [{ wch: 40 }, { wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 14 }];
+                            XLSX.utils.book_append_sheet(wb, wsItems, 'Item totals');
                             XLSX.writeFile(wb, `date-wise-sales-${sfx}.xlsx`);
                             return;
                           }
