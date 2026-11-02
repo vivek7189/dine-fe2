@@ -2820,7 +2820,7 @@ const OrderHistory = () => {
   };
 
   // Item-wise Sales → "Date-wise": the same items day by day (the sales-comparison report, by day,
-  // up to 62 days). Category filter and search apply as in the other two views.
+  // up to one year). Category filter and search apply as in the other two views.
   const [summaryDaily, setSummaryDaily] = useState({ key: '', data: null, loading: false, error: '' });
   const summaryRangeStart = summaryData?.dateRange?.start, summaryRangeEnd = summaryData?.dateRange?.end;
   useEffect(() => {
@@ -2829,12 +2829,12 @@ const OrderHistory = () => {
     if (summaryDaily.key === key && (summaryDaily.data || summaryDaily.error)) return undefined;
     let live = true;
     setSummaryDaily({ key, data: null, loading: true, error: '' });
-    const qs = new URLSearchParams({ by: 'day', startDate: summaryRangeStart, endDate: summaryRangeEnd });
+    const qs = new URLSearchParams({ by: 'day', startDate: summaryRangeStart, endDate: summaryRangeEnd, view: 'rows' });
     apiClient.request(`/api/analytics/${restaurantId}/sales-comparison?${qs}`)
       .then(d => { if (live) setSummaryDaily({ key, data: d, loading: false, error: '' }); })
       .catch(e => {
         if (!live) return;
-        const msg = /62 days/.test(e?.message || '') ? 'Date-wise works for up to 62 days — please pick a shorter date range.' : (e?.message || 'Could not load the day-by-day sales');
+        const msg = /62 days|one year/.test(e?.message || '') ? 'Date-wise works for up to one year — please pick a shorter date range.' : (e?.message || 'Could not load the day-by-day sales');
         setSummaryDaily({ key, data: null, loading: false, error: msg });
       });
     return () => { live = false; };
@@ -6945,6 +6945,7 @@ const OrderHistory = () => {
                     <button
                       onClick={() => {
                         // CSV = what is on screen: items (with Category), category totals, or day × item (Date-wise)
+                        if (summaryGroupBy === 'date' && !summaryDailyRows.length) { alert(summaryDaily.loading ? 'Day-by-day sales are still loading — please try again in a moment.' : (summaryDaily.error || 'No sales to download for this date range.')); return; }
                         const { itemRows, catRows, suffix } = buildItemSalesExport();
                         const rows = summaryGroupBy === 'date' ? buildDailySalesExport().rows : summaryGroupBy === 'category' ? catRows : itemRows;
                         const csv = rows.map(r => r.map(c => typeof c === 'string' && /[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c).join(',')).join('\n');
@@ -6964,6 +6965,7 @@ const OrderHistory = () => {
                           const XLSX = await import('xlsx');
                           const wb = XLSX.utils.book_new();
                           if (summaryGroupBy === 'date') {
+                            if (!summaryDailyRows.length) { alert(summaryDaily.loading ? 'Day-by-day sales are still loading — please try again in a moment.' : (summaryDaily.error || 'No sales to download for this date range.')); return; }
                             // Date-wise: every day × item, and the day totals
                             const { rows, dayRows, suffix: sfx } = buildDailySalesExport();
                             const ws = XLSX.utils.aoa_to_sheet(rows);
