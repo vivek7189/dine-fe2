@@ -4812,6 +4812,8 @@ function RestaurantPOSContent() {
           setCurrentOrder(null);
           setActiveSavedOrderId(null);
           localStorage.removeItem('dine_cart');
+        // Saved from a table → go back to the tables view, like KOT / Bill do
+        if (returnToView === 'tables') handleOrderActionComplete({ keepOrderSuccess: false });
         } catch (offErr) {
           setNotification({ type: 'error', title: t('dashboard.saveFailed'), message: t('dashboard.couldNotSaveBillingLocally'), show: true });
           setTimeout(() => setNotification(null), 4000);
@@ -4842,6 +4844,8 @@ function RestaurantPOSContent() {
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
         localStorage.removeItem('dine_cart');
+        // Saved from a table → go back to the tables view, like KOT / Bill do
+        if (returnToView === 'tables') handleOrderActionComplete({ keepOrderSuccess: false });
 
         fetchSavedOrders();
       }
@@ -4869,6 +4873,8 @@ function RestaurantPOSContent() {
         setCurrentOrder(null);
         setActiveSavedOrderId(null);
         localStorage.removeItem('dine_cart');
+        // Saved from a table → go back to the tables view, like KOT / Bill do
+        if (returnToView === 'tables') handleOrderActionComplete({ keepOrderSuccess: false });
       } catch (qErr) {
         setNotification({
           type: 'error',
