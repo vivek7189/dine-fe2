@@ -20,6 +20,7 @@ export const useDineBot = () => {
 function DineBotNudge({ text, onClick, onDismiss }) {
   return (
     <div
+      className="dine-fab"
       style={{
         position: 'fixed',
         bottom: 90,

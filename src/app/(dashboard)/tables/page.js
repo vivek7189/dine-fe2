@@ -15,7 +15,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
 import TableCard from '../../../components/TableCard';
-import { useTableCardSize, tableGridColumns, TableCardSizeToggle } from '../../../hooks/useTableCardSize';
+import { useTableCardSize, tableGridColumns, tableGridGap, TableCardSizeToggle, useHideFloatingButtons, useTablesFocus } from '../../../hooks/useTableCardSize';
 import ChairCluster from '../../../components/ChairCluster';
 import TableActionsSheet from '../../../components/TableActionsSheet';
 import TableChecksSheet from '../../../components/TableChecksSheet';
@@ -25,7 +25,8 @@ import {
   FaHome, FaEdit, FaEllipsisV, FaCalendarAlt, FaTools, FaTimes, FaPhoneAlt,
   FaUser, FaChevronDown, FaEye, FaChevronLeft, FaChevronRight, FaSearch,
   FaLayerGroup, FaConciergeBell, FaArrowRight, FaSpinner, FaArrowUp, FaArrowDown, FaSortAmountDown, FaQrcode,
-  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge, FaColumns, FaGripVertical
+  FaPrint, FaReceipt, FaExchangeAlt, FaTruck, FaTh, FaThLarge, FaColumns, FaGripVertical,
+  FaBars, FaExpand, FaCompress
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
@@ -670,6 +671,10 @@ const TableManagement = () => {
   // Floor-plan view
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan'
   const [cardSize, setCardSize] = useTableCardSize();
+  // Focus mode: left menu hidden + one thin top bar, so staff only see the tables.
+  const [tablesFocus, setTablesFocus] = useTablesFocus();
+  const focusOn = tablesFocus && !isMobileEmbed;
+  useHideFloatingButtons(!isMobileEmbed);
   // Walk-in waitlist
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [waitlist, setWaitlist] = useState([]);
@@ -2510,9 +2515,9 @@ const TableManagement = () => {
       `}</style>
 
       {/* ─── HEADER ─── */}
-      <div style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9', padding: isMobileEmbed ? '8px 12px' : isMobile ? '12px 16px' : '16px 24px' }}>
-        {/* Row 1: Title + Date + Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobileEmbed ? '6px' : '12px', flexWrap: 'wrap', gap: isMobileEmbed ? '6px' : '12px' }}>
+      <div style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9', padding: isMobileEmbed ? '8px 12px' : focusOn ? '8px 16px' : isMobile ? '12px 16px' : '16px 24px' }}>
+        {/* Row 1: Title + Date + Actions (hidden in Focus mode) */}
+        {!focusOn && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobileEmbed ? '6px' : '12px', flexWrap: 'wrap', gap: isMobileEmbed ? '6px' : '12px' }}>
           {!isMobileEmbed && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: isMobile && !(typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__) ? '48px' : '0' }}>
               <div style={{ width: '42px', height: '42px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }}>
@@ -2549,6 +2554,17 @@ const TableManagement = () => {
                 <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])} style={{ padding: isMobileEmbed ? '3px 8px' : '5px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: isMobileEmbed ? '10px' : '11px', fontWeight: '700', color: 'white', cursor: 'pointer', marginLeft: '4px', marginRight: '4px' }}>{t('tables.today')}</button>
               )}
             </div>
+
+            {/* Focus mode — hides the left menu and this header so staff only see the tables */}
+            {!isMobileEmbed && (
+              <button onClick={() => setTablesFocus(true)} title="Focus on tables (hide menu and header)" style={{
+                height: '36px', padding: '0 12px', borderRadius: '10px', flexShrink: 0, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap',
+                border: '1px solid #e2e8f0', background: 'white', color: '#374151',
+              }}>
+                <FaExpand size={11} /> Focus
+              </button>
+            )}
 
             {/* Action buttons — icon-only on mobile embed */}
             {activeMainTab === 'tables' && (
@@ -2655,10 +2671,19 @@ const TableManagement = () => {
               </div>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* Tab Toggle + Floor Pills + Stats */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '6px' : '8px', marginBottom: isMobileEmbed ? '4px' : '10px', flexWrap: isMobileEmbed ? 'nowrap' : 'wrap', overflowX: isMobileEmbed ? 'auto' : undefined, WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobileEmbed ? '6px' : '8px', marginBottom: isMobileEmbed ? '4px' : focusOn ? 0 : '10px', flexWrap: isMobileEmbed ? 'nowrap' : 'wrap', overflowX: isMobileEmbed ? 'auto' : undefined, WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+          {/* Focus mode: menu button opens the hidden left nav */}
+          {focusOn && (
+            <button onClick={() => window.dispatchEvent(new Event('openNavSidebar'))} title="Menu" aria-label="Open menu" style={{
+              width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#374151',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <FaBars size={13} />
+            </button>
+          )}
           {/* Tab toggle — compact pill */}
           <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: isMobileEmbed ? '8px' : '10px', padding: '3px', flexShrink: 0 }}>
             {[
@@ -2772,6 +2797,18 @@ const TableManagement = () => {
               {loadingTableStatuses && <div style={{ width: '14px', height: '14px', border: '2px solid #f3f4f6', borderTop: '2px solid #ef4444', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />}
             </div>
           )}
+
+          {/* Focus mode: exit button at the end of the thin bar */}
+          {focusOn && (
+            <button onClick={() => setTablesFocus(false)} title="Exit focus mode" style={{
+              height: '32px', padding: '0 12px', borderRadius: '8px', flexShrink: 0, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+              border: 'none', background: '#1f2937', color: 'white',
+              marginLeft: activeMainTab === 'tables' ? undefined : 'auto',
+            }}>
+              <FaCompress size={11} /> Exit focus
+            </button>
+          )}
         </div>
       </div>
 
@@ -2872,8 +2909,8 @@ const TableManagement = () => {
               ) : (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? (cardSize === 'compact' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)') : tableGridColumns(cardSize),
-                  gap: isMobileEmbed ? '8px' : (isMobile || cardSize === 'compact') ? '10px' : '20px',
+                  gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? ((cardSize === 'xs' || cardSize === 'sm') ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)') : tableGridColumns(cardSize),
+                  gap: isMobileEmbed ? '8px' : isMobile ? '10px' : tableGridGap(cardSize),
                 }}>
                   {(() => {
                     // Render a single table's card (used for normal tables AND for

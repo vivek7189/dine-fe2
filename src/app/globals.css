@@ -517,3 +517,7 @@ textarea:focus {
 .hotel-fade { animation: hotelFade .16s ease-out both; }
 .hotel-slide-r { animation: hotelSlideR .22s cubic-bezier(.16,1,.3,1) both; }
 @media (prefers-reduced-motion: reduce) { .hotel-pop,.hotel-fade,.hotel-slide-r { animation: none; } }
+
+/* Tables screens (billing tables view + /tables) hide the floating chatbot / voice buttons
+   so the grid is clear for taking orders. Set via useHideFloatingButtons(). */
+body[data-tables-screen="1"] .dine-fab { display: none !important; }

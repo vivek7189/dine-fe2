@@ -7,7 +7,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableCard from './TableCard';
-import { useTableCardSize, tableGridColumns, TableCardSizeToggle } from '../hooks/useTableCardSize';
+import { useTableCardSize, tableGridColumns, tableGridGap, TableCardSizeToggle, useHideFloatingButtons } from '../hooks/useTableCardSize';
 import ChairCluster from './ChairCluster';
 import TableFloorPlan from './TableFloorPlan';
 import TableBillingModal from './TableBillingModal';
@@ -146,6 +146,7 @@ export default function DashboardTablesPanel({
   const [checksSheet, setChecksSheet] = useState(null); // { table, floorInfo } for the per-party Checks panel
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan' (live floor map, view-only here)
   const [cardSize, setCardSize] = useTableCardSize();
+  useHideFloatingButtons(!isMobileEmbed);
 
   // Mobile grid columns: '2' or '3' (only used on isMobileEmbed)
   const [mobileGridCols, setMobileGridCols] = useState(() => {
@@ -937,7 +938,7 @@ export default function DashboardTablesPanel({
             gridTemplateColumns: isMobileEmbed
               ? `repeat(${mobileGridCols}, 1fr)`
               : tableGridColumns(cardSize),
-            gap: isMobileEmbed ? '8px' : cardSize === 'compact' ? '10px' : '20px',
+            gap: isMobileEmbed ? '8px' : tableGridGap(cardSize),
           }}>
             {(group.tables || []).map((t, tIdx) => {
               // Split sub-tables render inside their parent's compact block (below), and

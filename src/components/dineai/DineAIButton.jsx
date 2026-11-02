@@ -68,6 +68,7 @@ const DineAIButton = () => {
     <>
       {/* Floating Button */}
       <div
+        className="dine-fab"
         style={{
           position: 'fixed',
           bottom: '24px',

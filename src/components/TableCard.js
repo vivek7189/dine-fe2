@@ -72,10 +72,12 @@ export default function TableCard({
   // When provided, the ⋮ button opens a clean centered options modal (owned by the page)
   // instead of the cramped inline dropdown. Falls back to the inline dropdown if absent.
   onOpenActions,
-  // 'normal' | 'compact' — compact = smaller tiles (tap the card to order). Ignored in the mobile WebView.
-  size = 'normal',
+  // 'xs' | 'sm' | 'md' (default) | 'lg' — xs/sm = small tiles (tap the card to order). Ignored in the mobile WebView.
+  size = 'md',
 }) {
-  const compact = size === 'compact' && !isMobileEmbed;
+  const compact = (size === 'xs' || size === 'sm') && !isMobileEmbed;
+  const tiny = size === 'xs' && !isMobileEmbed;
+  const large = size === 'lg' && !isMobileEmbed;
   const hasBookings = tblBookings.length > 0;
   // A base table with an idle main check but a RUNNING sibling party should still read as
   // "occupied" at a glance (yellow badge + tint). We only recolour the status visual — the
@@ -133,7 +135,7 @@ export default function TableCard({
         ? '0 0 0 3px rgba(59,130,246,0.55), 0 1px 3px rgba(0,0,0,0.05)'
         : '0 1px 3px rgba(0,0,0,0.05)',
       padding: '0', position: 'relative', overflow: isMobileEmbed ? 'hidden' : 'visible',
-      minHeight: isMobileEmbed ? 'auto' : compact ? '92px' : '128px', display: 'flex', flexDirection: 'column',
+      minHeight: isMobileEmbed ? 'auto' : tiny ? '74px' : compact ? '92px' : large ? '156px' : '128px', display: 'flex', flexDirection: 'column',
     }} onClick={() => {
          // Tapping the card body is the PRIMARY action (POS-standard): take an order when the
          // table is free, or open the running order when occupied. Management actions live behind
@@ -187,13 +189,13 @@ export default function TableCard({
         </button>
       )}
 
-      <div style={{ padding: isMobileEmbed ? '6px 8px' : compact ? '8px 9px' : '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
+      <div style={{ padding: isMobileEmbed ? '6px 8px' : tiny ? '6px 7px' : compact ? '8px 9px' : large ? '14px' : '12px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
         {/* Header: name + status. Reserve room on the right so the status badge never sits
             under the ⋮ manage button (was clipping "OCCUPIED" → "OCCUPI"). */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobileEmbed ? '2px' : compact ? '4px' : '8px', paddingRight: (showManagementDropdown && isToday && !isMobileEmbed) ? '30px' : 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobileEmbed ? '3px' : '6px' }}>
-              <span style={{ fontSize: isMobileEmbed ? '12px' : compact ? '15px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1, wordBreak: 'break-word' }}>
+              <span style={{ fontSize: isMobileEmbed ? '12px' : tiny ? '14px' : compact ? '15px' : large ? '19px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1, wordBreak: 'break-word' }}>
                 {table.name}
               </span>
               {table.mergePrimary && table.mergedTableNames?.length > 0 && (
@@ -254,7 +256,7 @@ export default function TableCard({
             ) : looksOccupied ? (
               // Orange card already says "occupied" — just show how long it has been open.
               elapsed ? (
-                <span style={{ fontSize: compact ? '11px' : '12px', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1.4, color: (isOccupied && elapsedIsLong) ? '#dc2626' : '#b45309' }}>
+                <span style={{ fontSize: tiny ? '10px' : compact ? '11px' : large ? '13px' : '12px', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1.4, color: (isOccupied && elapsedIsLong) ? '#dc2626' : '#b45309' }}>
                   {elapsed}
                 </span>
               ) : null
@@ -282,8 +284,8 @@ export default function TableCard({
                   </div>}
                   {runningChecksCount > 0 ? (
                     <div style={{
-                      fontSize: isMobileEmbed ? '13px' : compact ? '14px' : '18px', fontWeight: 800, color: '#b45309',
-                      background: isMobileEmbed ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : '#fef3c7', padding: isMobileEmbed ? '2px 6px' : compact ? '2px 7px' : '3px 10px',
+                      fontSize: isMobileEmbed ? '13px' : tiny ? '12px' : compact ? '14px' : large ? '22px' : '18px', fontWeight: 800, color: '#b45309',
+                      background: isMobileEmbed ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : '#fef3c7', padding: isMobileEmbed ? '2px 6px' : tiny ? '1px 5px' : compact ? '2px 7px' : large ? '4px 12px' : '3px 10px',
                       borderRadius: isMobileEmbed ? '5px' : '8px', border: '1px solid #fcd34d', fontVariantNumeric: 'tabular-nums',
                     }}>
                       {formatCurrency(combinedChecksTotal)}
@@ -295,8 +297,8 @@ export default function TableCard({
               ) : isOccupied && (table.currentOrderFinalAmount || table.currentOrderTotal) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobileEmbed ? 'center' : 'flex-start', justifyContent: 'center' }}>
                   <div title={`${t('tables.totalInclTax')} ${table.currentOrderTax ? t('tables.inclTax') : ''}`.trim()} style={{
-                    fontSize: isMobileEmbed ? '13px' : compact ? '14px' : '18px', fontWeight: 800, color: '#b45309',
-                    background: isMobileEmbed ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : '#fef3c7', padding: isMobileEmbed ? '2px 6px' : compact ? '2px 7px' : '3px 10px',
+                    fontSize: isMobileEmbed ? '13px' : tiny ? '12px' : compact ? '14px' : large ? '22px' : '18px', fontWeight: 800, color: '#b45309',
+                    background: isMobileEmbed ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : '#fef3c7', padding: isMobileEmbed ? '2px 6px' : tiny ? '1px 5px' : compact ? '2px 7px' : large ? '4px 12px' : '3px 10px',
                     borderRadius: isMobileEmbed ? '5px' : '8px', border: '1px solid #fcd34d', fontVariantNumeric: 'tabular-nums',
                   }}>
                     {formatCurrency(table.currentOrderFinalAmount || table.currentOrderTotal)}
@@ -421,8 +423,8 @@ export default function TableCard({
               <div style={{ display: 'flex', gap: isMobileEmbed ? '4px' : '5px', position: 'relative' }}>
                 {/* Add items — primary action */}
                 <button className="tbl-action" onClick={(e) => { e.stopPropagation(); onTableAction('view-order', table); }} style={{
-                  flex: 1, padding: isMobileEmbed ? '4px 4px' : compact ? '5px 4px' : '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
-                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
+                  flex: 1, padding: isMobileEmbed ? '4px 4px' : tiny ? '4px 2px' : compact ? '5px 4px' : large ? '9px 10px' : '7px 8px', background: 'white', border: '1px solid #e5e7eb', color: '#374151',
+                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : tiny ? '10px' : large ? '12px' : '11px', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
                 }}>
                   <FaPlus size={isMobileEmbed ? 7 : 9} style={{ color: '#059669' }} /> Add
@@ -431,7 +433,7 @@ export default function TableCard({
                     (opens a fresh order via take-order; the waiter picks the next chair). */}
                 {chairModeOn && (
                   <button className="tbl-action" title="Start a separate order for another chair" onClick={(e) => { e.stopPropagation(); onTableAction('take-order', table); }} style={{
-                    flex: 1, padding: isMobileEmbed ? '4px 4px' : compact ? '5px 4px' : '7px 8px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c',
+                    flex: 1, padding: isMobileEmbed ? '4px 4px' : tiny ? '4px 2px' : compact ? '5px 4px' : large ? '9px 10px' : '7px 8px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c',
                     borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 700, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
                   }}>
@@ -444,8 +446,8 @@ export default function TableCard({
                   e.stopPropagation();
                   onPrintPreBill && onPrintPreBill(table);
                 }} style={{
-                  flex: 1, padding: isMobileEmbed ? '4px 4px' : compact ? '5px 4px' : '7px 8px', background: '#fffbeb', border: '1px solid #fcd34d', color: '#b45309',
-                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
+                  flex: 1, padding: isMobileEmbed ? '4px 4px' : tiny ? '4px 2px' : compact ? '5px 4px' : large ? '9px 10px' : '7px 8px', background: '#fffbeb', border: '1px solid #fcd34d', color: '#b45309',
+                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : tiny ? '10px' : large ? '12px' : '11px', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
                 }}>
                   <FaReceipt size={isMobileEmbed ? 7 : 9} /> Pre-bill
@@ -455,15 +457,15 @@ export default function TableCard({
                   e.stopPropagation();
                   onOpenBilling(table);
                 }} style={{
-                  flex: 1, padding: isMobileEmbed ? '4px 4px' : compact ? '5px 4px' : '7px 8px', background: '#dc2626', border: 'none', color: 'white',
-                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : '11px', fontWeight: 600, cursor: 'pointer',
+                  flex: 1, padding: isMobileEmbed ? '4px 4px' : tiny ? '4px 2px' : compact ? '5px 4px' : large ? '9px 10px' : '7px 8px', background: '#dc2626', border: 'none', color: 'white',
+                  borderRadius: isMobileEmbed ? '6px' : '8px', fontSize: isMobileEmbed ? '9px' : tiny ? '10px' : large ? '12px' : '11px', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', whiteSpace: 'nowrap',
                 }}>
                   <FaReceipt size={isMobileEmbed ? 7 : 9} /> Bill
                 </button>
                 )}
-                {/* Print + Move — combined in one icon menu */}
-                <div style={{ position: 'relative' }}>
+                {/* Print + Move — combined in one icon menu (not on the smallest tiles) */}
+                {!tiny && <div style={{ position: 'relative' }}>
                   <button className="tbl-action" onClick={(e) => { e.stopPropagation(); setPrintDropdownTable(printDropdownTable === table.id ? null : table.id); }} style={{
                     width: isMobileEmbed || compact ? '26px' : '32px', height: isMobileEmbed || compact ? '26px' : '32px', padding: 0,
                     background: printingTables[table.id]
@@ -524,7 +526,7 @@ export default function TableCard({
                       </button>
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
             )}
             {tableStatus === 'reserved' && (

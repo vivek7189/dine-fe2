@@ -92,6 +92,7 @@ const DineBotButton = () => {
 
   return (
     <button
+      className="dine-fab"
       onClick={handleClick}
       style={{
         position: 'fixed',

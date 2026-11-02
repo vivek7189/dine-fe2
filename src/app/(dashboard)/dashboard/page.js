@@ -2404,6 +2404,24 @@ function RestaurantPOSContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep ?view=tables in the URL while the tables view is open (the TABLES button only flips
+  // viewMode), so a page refresh comes back to the tables view. Skips the first render, before
+  // the effect above has read the URL.
+  const viewUrlSyncReady = useRef(false);
+  useEffect(() => {
+    if (!viewUrlSyncReady.current) { viewUrlSyncReady.current = true; return; }
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const inUrl = url.searchParams.get('view') === 'tables';
+    if (viewMode === 'tables' && !inUrl) {
+      url.searchParams.set('view', 'tables');
+      window.history.replaceState(window.history.state, '', url.toString());
+    } else if (viewMode !== 'tables' && inUrl) {
+      url.searchParams.delete('view');
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+  }, [viewMode]);
+
   // Handle logo click to switch from tables to orders view
   useEffect(() => {
     const handleLogoClick = () => {

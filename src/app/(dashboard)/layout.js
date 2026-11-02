@@ -36,6 +36,7 @@ import { canAccessRoute } from '../../lib/pageAccessConfig';
 import { rolesAllowsPath } from '../../lib/rolesRouteMap';
 import ManagerPinPrompt from '../../components/ManagerPinPrompt';
 import { FaCloudUploadAlt, FaArrowRight, FaUtensils, FaSyncAlt } from 'react-icons/fa';
+import { readTablesFocus, TABLES_FOCUS_EVENT } from '../../hooks/useTableCardSize';
 import { DineBotProvider } from '../../components/DineBotProvider';
 
 // One rule shared with Sidebar / Home tiles (lib/pageAccessConfig.canAccessRoute).
@@ -80,6 +81,14 @@ function DashboardLayoutContent({ children }) {
   }, []);
   const [isClient, setIsClient] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // /tables Focus mode: drop the sidebar like the billing screen (menu opens as an overlay).
+  const [tablesFocus, setTablesFocus] = useState(false);
+  useEffect(() => {
+    const sync = () => setTablesFocus(readTablesFocus());
+    sync();
+    window.addEventListener(TABLES_FOCUS_EVENT, sync);
+    return () => window.removeEventListener(TABLES_FOCUS_EVENT, sync);
+  }, []);
   const [accessChecked, setAccessChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -102,7 +111,9 @@ function DashboardLayoutContent({ children }) {
     _navPath.endsWith('/dashboard/bar') ||
     _navPath.endsWith('/dashboard/v2') ||
     // Voice Ticket: full-screen order station — the nav opens as an overlay from its menu button.
-    _navPath.endsWith('/voice');
+    _navPath.endsWith('/voice') ||
+    // Tables page in Focus mode (its ☰ button opens the nav overlay).
+    (tablesFocus && _navPath.endsWith('/tables'));
 
   // ─── Order Notifications (global Pusher listener) ───
   const {
