@@ -7,6 +7,7 @@ import { FaEye, FaReceipt, FaTimes, FaMinus, FaChevronUp, FaWindowMaximize, FaCh
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
 import TableCard from './TableCard';
+import { useTableCardSize, tableGridColumns, TableCardSizeToggle } from '../hooks/useTableCardSize';
 import ChairCluster from './ChairCluster';
 import TableFloorPlan from './TableFloorPlan';
 import TableBillingModal from './TableBillingModal';
@@ -144,6 +145,7 @@ export default function DashboardTablesPanel({
   const [hoveredTableId, setHoveredTableId] = useState(null);
   const [checksSheet, setChecksSheet] = useState(null); // { table, floorInfo } for the per-party Checks panel
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan' (live floor map, view-only here)
+  const [cardSize, setCardSize] = useTableCardSize();
 
   // Mobile grid columns: '2' or '3' (only used on isMobileEmbed)
   const [mobileGridCols, setMobileGridCols] = useState(() => {
@@ -828,7 +830,8 @@ export default function DashboardTablesPanel({
 
       {/* Grid / live Floor-plan view toggle */}
       {grouped.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+          {!isMobileEmbed && viewMode === 'grid' && <TableCardSizeToggle size={cardSize} onChange={setCardSize} />}
           <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
             {[{ k: 'grid', I: FaTh, label: 'Grid' }, { k: 'floorplan', I: FaThLarge, label: 'Floor Map' }].map(v => (
               <button key={v.k} onClick={() => setViewMode(v.k)} title={`${v.label} view`} style={{
@@ -933,8 +936,8 @@ export default function DashboardTablesPanel({
             display: 'grid',
             gridTemplateColumns: isMobileEmbed
               ? `repeat(${mobileGridCols}, 1fr)`
-              : 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: isMobileEmbed ? '8px' : '20px',
+              : tableGridColumns(cardSize),
+            gap: isMobileEmbed ? '8px' : cardSize === 'compact' ? '10px' : '20px',
           }}>
             {(group.tables || []).map((t, tIdx) => {
               // Split sub-tables render inside their parent's compact block (below), and
@@ -1020,6 +1023,7 @@ export default function DashboardTablesPanel({
                   style={{ minWidth: 0 }}
                 >
                   <TableCard
+                    size={cardSize}
                     table={t}
                     isToday={true}
                     isMobile={isMobileEmbed}

@@ -15,6 +15,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
 import TableCard from '../../../components/TableCard';
+import { useTableCardSize, tableGridColumns, TableCardSizeToggle } from '../../../hooks/useTableCardSize';
 import ChairCluster from '../../../components/ChairCluster';
 import TableActionsSheet from '../../../components/TableActionsSheet';
 import TableChecksSheet from '../../../components/TableChecksSheet';
@@ -668,6 +669,7 @@ const TableManagement = () => {
   const [myTablesOnly, setMyTablesOnly] = useState(false);
   // Floor-plan view
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'floorplan'
+  const [cardSize, setCardSize] = useTableCardSize();
   // Walk-in waitlist
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [waitlist, setWaitlist] = useState([]);
@@ -2676,6 +2678,11 @@ const TableManagement = () => {
             ))}
           </div>
 
+          {/* Card size (bigger / compact) — grid view only */}
+          {activeMainTab === 'tables' && viewMode === 'grid' && !isMobileEmbed && (
+            <div style={{ flexShrink: 0 }}><TableCardSizeToggle size={cardSize} onChange={setCardSize} /></div>
+          )}
+
           {/* Grid / Floor-plan view toggle */}
           {activeMainTab === 'tables' && (
             <div style={{ display: 'flex', gap: '2px', backgroundColor: '#f1f5f9', borderRadius: isMobileEmbed ? '8px' : '10px', padding: '3px', flexShrink: 0 }}>
@@ -2865,8 +2872,8 @@ const TableManagement = () => {
               ) : (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(160px, 1fr))',
-                  gap: isMobileEmbed ? '8px' : isMobile ? '12px' : '20px',
+                  gridTemplateColumns: isMobileEmbed ? `repeat(${mobileGridCols}, 1fr)` : isMobile ? (cardSize === 'compact' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)') : tableGridColumns(cardSize),
+                  gap: isMobileEmbed ? '8px' : (isMobile || cardSize === 'compact') ? '10px' : '20px',
                 }}>
                   {(() => {
                     // Render a single table's card (used for normal tables AND for
@@ -2878,6 +2885,7 @@ const TableManagement = () => {
                       return (
                         <TableCard
                           key={table.id}
+                          size={cardSize}
                           table={table}
                           isToday={isToday}
                           isMobile={isMobile}
