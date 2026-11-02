@@ -146,6 +146,10 @@ function createWindow() {
     mainWindow = null;
   });
 
+  // Title bar shows the restaurant name (sent by the page); the web page's own <title> never
+  // replaces it. No name yet (login screen) -> the default 'DineOpen POS'.
+  mainWindow.on('page-title-updated', (e) => e.preventDefault());
+
   // Prevent the OS suspending the app/network on idle — otherwise the machine sleeps its network
   // adapter and the realtime socket dies. Keeps KOT auto-print alive on an idle POS terminal.
   try {
@@ -912,6 +916,16 @@ function probeTcpPort(host, port, timeoutMs = 800) {
 
 // ──── IPC: Kenya KRA eTIMS — VSCU local relay (self-contained; Kenya only) ────
 try { require('./etims/vscuRelay').register(ipcMain); } catch (e) { console.warn('eTIMS relay not registered:', e && e.message); }
+
+// ──── IPC: Window title = restaurant name ────
+const DEFAULT_WINDOW_TITLE = 'DineOpen POS';
+ipcMain.handle('electron:setWindowTitle', async (e, name) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (!win || win.isDestroyed()) return false;
+  const clean = typeof name === 'string' ? name.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+  win.setTitle(clean ? `${clean} — ${DEFAULT_WINDOW_TITLE}` : DEFAULT_WINDOW_TITLE);
+  return true;
+});
 
 // ──── IPC: Host designation ("This device is the restaurant server") ────
 // Additive + always-registered (works in both server and client mode). Reads/writes the

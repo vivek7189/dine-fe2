@@ -6,6 +6,7 @@ import { LoadingProvider } from '../contexts/LoadingContext'
 import PostHogProvider from '../components/PostHogProvider'
 import WebsiteChatbot from '../components/WebsiteChatbot'
 import GoogleTag from '../components/GoogleTag'
+import DesktopWindowTitle from '../components/DesktopWindowTitle'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -80,6 +81,7 @@ export default function RootLayout({ children }) {
         <PostHogProvider>
           <LoadingProvider>
             <TokenExtractor />
+            <DesktopWindowTitle />
             {children}
             <WebsiteChatbot />
           </LoadingProvider>
