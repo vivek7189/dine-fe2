@@ -2007,6 +2007,84 @@ const DRAWER_KICK_CMD = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x19]); // ESC p 0 
 // Some drawers need pin 1 instead — try both if pin 0 doesn't work
 const DRAWER_KICK_CMD_PIN1 = Buffer.from([0x1B, 0x70, 0x01, 0x19, 0x19]); // ESC p 1 25 25
 
+// Windows: send raw bytes to an installed printer as a RAW spooler job (Win32 OpenPrinter /
+// StartDocPrinter "RAW" / WritePrinter — the usual way POS software talks to a USB receipt printer).
+// Works for USB / network / shared printers alike; `copy /b` to "USB001" and `print /D:` do not
+// reach a USB printer. Returns { ok, error }. Never throws.
+const RAW_PRINT_PS1 = `param([string]$Printer, [string]$BinPath)
+$ErrorActionPreference = 'Stop'
+$src = @'
+using System;
+using System.Runtime.InteropServices;
+public static class DineRawPrint {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public class DOCINFOW {
+    [MarshalAs(UnmanagedType.LPWStr)] public string pDocName;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pDataType;
+  }
+  [DllImport("winspool.drv", EntryPoint = "OpenPrinterW", SetLastError = true, CharSet = CharSet.Unicode)]
+  public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+  [DllImport("winspool.drv", EntryPoint = "ClosePrinter", SetLastError = true)]
+  public static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", EntryPoint = "StartDocPrinterW", SetLastError = true, CharSet = CharSet.Unicode)]
+  public static extern bool StartDocPrinter(IntPtr hPrinter, int level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOW di);
+  [DllImport("winspool.drv", EntryPoint = "EndDocPrinter", SetLastError = true)]
+  public static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", EntryPoint = "StartPagePrinter", SetLastError = true)]
+  public static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", EntryPoint = "EndPagePrinter", SetLastError = true)]
+  public static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", EntryPoint = "WritePrinter", SetLastError = true)]
+  public static extern bool WritePrinter(IntPtr hPrinter, byte[] pBytes, int dwCount, out int dwWritten);
+  public static string Send(string printer, byte[] bytes) {
+    IntPtr h;
+    if (!OpenPrinter(printer, out h, IntPtr.Zero)) return "OpenPrinter failed (" + Marshal.GetLastWin32Error() + ")";
+    try {
+      DOCINFOW di = new DOCINFOW();
+      di.pDocName = "DineOpen cash drawer";
+      di.pDataType = "RAW";
+      if (!StartDocPrinter(h, 1, di)) return "StartDocPrinter failed (" + Marshal.GetLastWin32Error() + ")";
+      try {
+        StartPagePrinter(h);
+        int written;
+        bool ok = WritePrinter(h, bytes, bytes.Length, out written);
+        EndPagePrinter(h);
+        if (!ok) return "WritePrinter failed (" + Marshal.GetLastWin32Error() + ")";
+        if (written != bytes.Length) return "WritePrinter wrote " + written + " of " + bytes.Length + " bytes";
+        return "OK";
+      } finally { EndDocPrinter(h); }
+    } finally { ClosePrinter(h); }
+  }
+}
+'@
+Add-Type -TypeDefinition $src
+$r = [DineRawPrint]::Send($Printer, [System.IO.File]::ReadAllBytes($BinPath))
+Write-Output $r
+if ($r -ne 'OK') { exit 2 }
+`;
+function windowsRawPrint(printerName, data) {
+  const fs = require('fs');
+  const { execFileSync } = require('child_process');
+  const stamp = Date.now();
+  const ps1 = path.join(app.getPath('temp'), `dineopen_rawprint_${stamp}.ps1`);
+  const bin = path.join(app.getPath('temp'), `dineopen_rawprint_${stamp}.bin`);
+  try {
+    fs.writeFileSync(ps1, RAW_PRINT_PS1, 'utf8');
+    fs.writeFileSync(bin, data);
+    const out = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ps1, '-Printer', printerName, '-BinPath', bin],
+      { windowsHide: true, timeout: 20000, encoding: 'utf8' });
+    const last = String(out || '').trim().split(/\r?\n/).pop();
+    return last === 'OK' ? { ok: true } : { ok: false, error: last || 'no answer from the print spooler' };
+  } catch (e) {
+    const msg = String((e && (e.stdout || e.stderr || e.message)) || e).trim().split(/\r?\n/).filter(Boolean).pop();
+    return { ok: false, error: msg || 'raw print failed' };
+  } finally {
+    try { fs.unlinkSync(ps1); } catch {}
+    try { fs.unlinkSync(bin); } catch {}
+  }
+}
+
 async function runOpenCashDrawer() {
   const settings = loadSettings();
   const mode = settings.cashDrawerMode || 'printer'; // 'printer' | 'usb'
@@ -2088,9 +2166,22 @@ async function runOpenCashDrawer() {
       let sent = false;
       const errors = [];
 
+      // Try 0: RAW job through the Windows print spooler — reaches USB printers too (the methods
+      // below can't: "USB001" is not a copy target and `print /D:` only knows LPT/COM/shares).
+      {
+        const raw = windowsRawPrint(printerName, bothPins);
+        if (raw.ok) {
+          sent = true;
+          diagnostics.method = 'raw-spooler';
+          console.log('[CashDrawer] Sent as RAW spooler job to', printerName);
+        } else {
+          errors.push(`raw-spooler: ${raw.error}`);
+        }
+      }
+
       // Try 1: Get the printer port from Windows and write directly to it
       // This is the most reliable method — bypasses the spooler entirely
-      try {
+      if (!sent) try {
         const portInfo = execSync(
           `wmic printer where "Name='${printerName.replace(/'/g, "\\'")}"' get PortName /value`,
           { windowsHide: true, timeout: 5000, shell: true, encoding: 'utf8' }
@@ -2128,9 +2219,11 @@ async function runOpenCashDrawer() {
       // Try 3: Print spooler (least reliable for raw bytes)
       if (!sent) {
         try {
-          execSync(`print /D:"${printerName}" "${tmpFile}"`, {
-            windowsHide: true, timeout: 5000, shell: true
-          });
+          const printOut = String(execSync(`print /D:"${printerName}" "${tmpFile}"`, {
+            windowsHide: true, timeout: 5000, shell: true, encoding: 'utf8'
+          }) || '');
+          // `print` exits 0 even when it can't reach the device ("Unable to initialize device …").
+          if (/unable|cannot|error|not found/i.test(printOut)) throw new Error(printOut.trim() || 'print failed');
           sent = true;
           diagnostics.method = 'print-spooler';
           console.log('[CashDrawer] Sent via print spooler');
