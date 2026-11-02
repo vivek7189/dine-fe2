@@ -2819,6 +2819,79 @@ const OrderHistory = () => {
     return { itemRows, catRows, suffix };
   };
 
+  // Item-wise Sales → "Date-wise": the same items day by day (the sales-comparison report, by day,
+  // up to 62 days). Category filter and search apply as in the other two views.
+  const [summaryDaily, setSummaryDaily] = useState({ key: '', data: null, loading: false, error: '' });
+  const summaryRangeStart = summaryData?.dateRange?.start, summaryRangeEnd = summaryData?.dateRange?.end;
+  useEffect(() => {
+    if (summaryGroupBy !== 'date' || !restaurantId || !summaryRangeStart || !summaryRangeEnd) return undefined;
+    const key = `${restaurantId}|${summaryRangeStart}|${summaryRangeEnd}`;
+    if (summaryDaily.key === key && (summaryDaily.data || summaryDaily.error)) return undefined;
+    let live = true;
+    setSummaryDaily({ key, data: null, loading: true, error: '' });
+    const qs = new URLSearchParams({ by: 'day', startDate: summaryRangeStart, endDate: summaryRangeEnd });
+    apiClient.request(`/api/analytics/${restaurantId}/sales-comparison?${qs}`)
+      .then(d => { if (live) setSummaryDaily({ key, data: d, loading: false, error: '' }); })
+      .catch(e => {
+        if (!live) return;
+        const msg = /62 days/.test(e?.message || '') ? 'Date-wise works for up to 62 days — please pick a shorter date range.' : (e?.message || 'Could not load the day-by-day sales');
+        setSummaryDaily({ key, data: null, loading: false, error: msg });
+      });
+    return () => { live = false; };
+  }, [summaryGroupBy, restaurantId, summaryRangeStart, summaryRangeEnd]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // [{ day: 'YYYY-MM-DD', quantity, revenue, items: [{ name, category, quantity, revenue }] }], oldest day first
+  const summaryDailyRows = useMemo(() => {
+    const d = summaryDaily.data;
+    if (!d || !Array.isArray(d.items)) return [];
+    const catName = {};
+    (d.categories || []).forEach(c => { if (c && c.key != null) catName[c.key] = c.name || c.key; });
+    // Same category as the Items view (an item sold under two categories is shown under its main one)
+    const itemCat = {};
+    (summaryData?.items || []).forEach(i => { if (i && i.name) itemCat[String(i.name).toLowerCase()] = summaryCatOf(i); });
+    const term = (summarySearch || '').toLowerCase();
+    const days = {};
+    d.items.forEach(it => {
+      const category = itemCat[String(it.name || '').toLowerCase()] || catName[it.cat] || it.cat || 'Uncategorized';
+      if (summaryCategory && category !== summaryCategory) return;
+      const name = it.size ? `${it.name} · ${it.size}` : it.name;
+      if (term && !String(name).toLowerCase().includes(term) && !category.toLowerCase().includes(term)) return;
+      Object.keys(it.qty || {}).forEach(day => {
+        const quantity = Number(it.qty[day]) || 0, revenue = Number(it.amount && it.amount[day]) || 0;
+        if (!quantity && !revenue) return;
+        if (!days[day]) days[day] = { day, items: [], byKey: {}, quantity: 0, revenue: 0 };
+        const g = days[day], k = `${name}\u0000${category}`;
+        if (!g.byKey[k]) { g.byKey[k] = { name, category, quantity: 0, revenue: 0 }; g.items.push(g.byKey[k]); }
+        g.byKey[k].quantity += quantity;
+        g.byKey[k].revenue += revenue;
+        g.quantity += quantity;
+        g.revenue += revenue;
+      });
+    });
+    return Object.values(days).sort((a, b) => a.day.localeCompare(b.day))
+      .map(({ byKey, ...g }) => ({ ...g, revenue: Math.round(g.revenue * 100) / 100, items: g.items.sort((x, y) => y.revenue - x.revenue) }));
+  }, [summaryDaily.data, summaryData?.items, summaryCategory, summarySearch]);
+  const summaryDayLabel = (day) => {
+    const dt = new Date(`${day}T12:00:00Z`);
+    return Number.isNaN(dt.getTime()) ? day : dt.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  };
+  // Export rows for the Date-wise view: one row per day × item, and the day totals
+  const buildDailySalesExport = () => {
+    const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+    const rows = [['Date', 'Item', 'Category', 'Qty', 'Revenue']];
+    const dayRows = [['Date', 'Items', 'Qty', 'Revenue']];
+    let q = 0, rev = 0;
+    summaryDailyRows.forEach(g => {
+      g.items.forEach(i => rows.push([g.day, i.name, i.category, i.quantity, r2(i.revenue)]));
+      dayRows.push([g.day, g.items.length, g.quantity, r2(g.revenue)]);
+      q += g.quantity; rev += g.revenue;
+    });
+    rows.push(['Total', '', '', q, r2(rev)]);
+    dayRows.push(['Total', '', q, r2(rev)]);
+    const suffix = `${summaryPeriod}${summaryCategory ? '-' + summaryCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
+    return { rows, dayRows, suffix };
+  };
+
   const summaryPeriods = [
     { key: 'today', label: t('orderHistory.summaryToday') },
     { key: 'yesterday', label: t('orderHistory.summaryYesterday') },
@@ -6857,7 +6930,7 @@ const OrderHistory = () => {
                       </select>
                     )}
                     <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
-                      {[['item', 'Items'], ['category', 'Categories']].map(([key, label]) => (
+                      {[['item', 'Items'], ['category', 'Categories'], ['date', 'Date-wise']].map(([key, label]) => (
                         <button
                           key={key}
                           type="button"
@@ -6871,13 +6944,13 @@ const OrderHistory = () => {
                     {/* Download buttons */}
                     <button
                       onClick={() => {
-                        // CSV = what is on screen: items (with Category) or, in Categories view, category totals
+                        // CSV = what is on screen: items (with Category), category totals, or day × item (Date-wise)
                         const { itemRows, catRows, suffix } = buildItemSalesExport();
-                        const rows = summaryGroupBy === 'category' ? catRows : itemRows;
+                        const rows = summaryGroupBy === 'date' ? buildDailySalesExport().rows : summaryGroupBy === 'category' ? catRows : itemRows;
                         const csv = rows.map(r => r.map(c => typeof c === 'string' && /[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c).join(',')).join('\n');
                         const blob = new Blob([csv], { type: 'text/csv' });
                         const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a'); a.href = url; a.download = `${summaryGroupBy === 'category' ? 'category-wise' : 'item-wise'}-sales-${suffix}.csv`;
+                        const a = document.createElement('a'); a.href = url; a.download = `${summaryGroupBy === 'date' ? 'date-wise' : summaryGroupBy === 'category' ? 'category-wise' : 'item-wise'}-sales-${suffix}.csv`;
                         document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
                       }}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
@@ -6889,9 +6962,19 @@ const OrderHistory = () => {
                       onClick={async () => {
                         try {
                           const XLSX = await import('xlsx');
+                          const wb = XLSX.utils.book_new();
+                          if (summaryGroupBy === 'date') {
+                            // Date-wise: every day × item, and the day totals
+                            const { rows, dayRows, suffix: sfx } = buildDailySalesExport();
+                            const ws = XLSX.utils.aoa_to_sheet(rows);
+                            ws['!cols'] = [{ wch: 12 }, { wch: 36 }, { wch: 20 }, { wch: 8 }, { wch: 14 }];
+                            XLSX.utils.book_append_sheet(wb, ws, 'Date-wise Sales');
+                            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dayRows), 'Day totals');
+                            XLSX.writeFile(wb, `date-wise-sales-${sfx}.xlsx`);
+                            return;
+                          }
                           // Two sheets: every item with its Category, and the category totals
                           const { itemRows, catRows, suffix } = buildItemSalesExport();
-                          const wb = XLSX.utils.book_new();
                           XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item-wise Sales');
                           XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Category-wise Sales');
                           XLSX.writeFile(wb, `item-wise-sales-${suffix}.xlsx`);
@@ -6915,6 +6998,60 @@ const OrderHistory = () => {
                     </div>
                   </div>
                 </div>
+                {summaryGroupBy === 'date' && (() => {
+                  if (summaryDaily.loading || (!summaryDaily.data && !summaryDaily.error)) {
+                    return <div className="text-center py-12 text-gray-400 text-sm">Loading day-by-day sales…</div>;
+                  }
+                  if (summaryDaily.error) {
+                    return <div className="text-center py-10 px-4 text-sm text-amber-700" data-testid="summary-datewise-error">{summaryDaily.error}</div>;
+                  }
+                  const groups = summaryDailyRows;
+                  const totalQty = groups.reduce((s2, g) => s2 + g.quantity, 0);
+                  const totalRev = groups.reduce((s2, g) => s2 + g.revenue, 0);
+                  return groups.length > 0 ? (
+                    <div className="overflow-x-auto" data-testid="summary-datewise">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                            <th className="px-4 py-2.5 font-semibold">Item</th>
+                            <th className="px-4 py-2.5 font-semibold">Category</th>
+                            <th className="px-4 py-2.5 font-semibold text-center">{t('orderHistory.qty')}</th>
+                            <th className="px-4 py-2.5 font-semibold text-right">{t('orderHistory.revenue')}</th>
+                          </tr>
+                        </thead>
+                        {groups.map(g => (
+                          <tbody key={g.day} className="divide-y divide-gray-50">
+                            <tr className="bg-rose-50/70 border-t border-rose-100">
+                              <td className="px-4 py-2 font-bold text-gray-800 text-sm" colSpan={2}>
+                                {summaryDayLabel(g.day)}
+                                <span className="ml-2 text-xs font-normal text-gray-500">{g.items.length} item{g.items.length === 1 ? '' : 's'}</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-sm font-bold text-blue-700">{g.quantity}</td>
+                              <td className="px-4 py-2 text-right text-sm font-bold text-gray-800">{formatCurrency(g.revenue)}</td>
+                            </tr>
+                            {g.items.map(i => (
+                              <tr key={`${g.day}|${i.name}|${i.category}`} className="hover:bg-gray-50/60">
+                                <td className="px-4 py-2 pl-8 text-sm text-gray-800">{i.name}</td>
+                                <td className="px-4 py-2"><span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{i.category}</span></td>
+                                <td className="px-4 py-2 text-center text-sm text-gray-700">{i.quantity}</td>
+                                <td className="px-4 py-2 text-right text-sm text-gray-700">{formatCurrency(i.revenue)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        ))}
+                        <tfoot>
+                          <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
+                            <td className="px-4 py-3 text-gray-800" colSpan={2}>{t('orderHistory.total')} · {groups.length} day{groups.length === 1 ? '' : 's'}</td>
+                            <td className="px-4 py-3 text-center text-sm text-blue-800">{totalQty}</td>
+                            <td className="px-4 py-3 text-right text-emerald-700 text-sm">{formatCurrency(totalRev)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-400">{summarySearch ? t('orderHistory.noItemsMatchSearch') : t('orderHistory.noSalesDataPeriod')}</div>
+                  );
+                })()}
                 {summaryGroupBy === 'category' && (() => {
                   const rows = summaryCategoryRows;
                   const totalQty = rows.reduce((s, c) => s + c.quantity, 0);
