@@ -146,6 +146,18 @@ const nextConfig = {
         destination: '/blog/why-qr-code-menus-are-essential-in-2026',
         permanent: true,
       },
+      // Old / mistyped top-level URLs Google had indexed (they used to answer 200 through the
+      // restaurant [slug] route). Send them to the real page instead of a 404.
+      { source: '/contact', destination: '/support', permanent: true },
+      { source: '/restaurant-software-india', destination: '/restaurant-pos-software-india', permanent: true },
+      { source: '/restaurant-perso-software-india', destination: '/restaurant-pos-software-india', permanent: true },
+      { source: '/restaurant-billing-software', destination: '/restaurant-billing-app', permanent: true },
+      { source: '/restaurant-billing-phone', destination: '/restaurant-billing-app', permanent: true },
+      { source: '/open-pos', destination: '/products/pos', permanent: true },
+      { source: '/security-1', destination: '/security', permanent: true },
+      { source: '/best-dineopen-vs-others', destination: '/compare', permanent: true },
+      { source: '/demo', destination: '/support', permanent: true },
+      { source: '/start', destination: '/login', permanent: true },
     ];
   },
   // Rewrites: serve static HTML blog posts at both /blog/slug and /blog/slug.html

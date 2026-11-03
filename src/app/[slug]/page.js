@@ -1,107 +1,38 @@
-'use client';
+import { notFound, redirect } from 'next/navigation';
+import SlugClient from './SlugClient';
+import { RESERVED_PATHS, RESERVED_REDIRECTS } from './slugReserved';
 
-import { useState, useEffect } from 'react';
-import { notFound, useRouter } from 'next/navigation';
-import { FaSpinner } from 'react-icons/fa';
-import OnlineOrderPage from '../onlineorder/page';
+// dineopen.com/<restaurant-slug> → that restaurant's online ordering page.
+// The slug is checked here on the server so unknown URLs get a real 404 status (not a 200 page
+// that only says "not found" after loading). If the lookup can't run (API down / slow), we fall
+// back to the old client-side lookup so a real restaurant's page never 404s because of a hiccup.
+// Only an https API is trusted for this check (a local dev default like http://localhost:3003 could
+// answer 404 for a real restaurant).
+const ENV_API = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+const API = ENV_API.startsWith('https://') ? ENV_API : 'https://api.dineopen.com';
 
-// Reserved paths that should NOT be handled by this dynamic route
-// These paths have their own dedicated pages/folders s
-const RESERVED_PATHS = [
-  'admin', 'api', 'login', 'logout', 'signup', 'register', 'dashboard', 'billing',
-  'menu', 'orders', 'settings', 'profile', 'help', 'support', 'contact', 'about',
-  'privacy', 'terms', 'blog', 'products', 'for', 'tools', 'restaurants', 'onlineorder',
-  'placeorder', 'print-kot', 'setup', 'local-login', 'kot', 'orderhistory', 'customers',
-  'offers', 'customer-app', 'tables', 'hotel', 'inventory', 'automation', 'analytics',
-  'restaurant-pos-software-india', 'dineopenprintupload', 'dineai',
-  'india', 'solutions', 'features', 'loyalty', 'pos', 'resources', 'compare', 'alternatives', 'glossary', 'pricing', 'security', 'refund',
-  'book-space', 'spaces'
-];
-
-// Reserved paths that have a sub-route we should redirect to (e.g. /dineopenprintupload -> /dineopenprintupload/upload)
-const RESERVED_REDIRECTS = {
-  dineopenprintupload: '/dineopenprintupload/upload'
-};
-
-export default function RestaurantSlugPage({ params }) {
-  const router = useRouter();
-  const [restaurantId, setRestaurantId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [notFoundState, setNotFoundState] = useState(false);
-
-  const slug = params.slug;
-
-  useEffect(() => {
-    const fetchRestaurantBySlug = async () => {
-      const slugLower = slug?.toLowerCase();
-      // Redirect reserved paths that have a dedicated sub-URL (avoids 404 and restaurant-by-slug API call)
-      if (slugLower && RESERVED_REDIRECTS[slugLower]) {
-        router.replace(RESERVED_REDIRECTS[slugLower]);
-        return;
-      }
-      // Check if this is a reserved path (no redirect, show 404)
-      if (RESERVED_PATHS.includes(slugLower)) {
-        setNotFoundState(true);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003';
-        const response = await fetch(`${apiUrl}/api/public/restaurant-by-slug/${slug}`);
-
-        if (!response.ok) {
-          setNotFoundState(true);
-          setLoading(false);
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.restaurantId) {
-          setRestaurantId(data.restaurantId);
-        } else {
-          setNotFoundState(true);
-        }
-      } catch (error) {
-        console.error('Error fetching restaurant by slug:', error);
-        setNotFoundState(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (slug) {
-      fetchRestaurantBySlug();
-    }
-  }, [slug]);
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f8fafc'
-      }}>
-        <FaSpinner size={40} color="#ef4444" style={{ animation: 'spin 1s linear infinite' }} />
-        <style jsx global>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
+async function lookup(slug) {
+  try {
+    const res = await fetch(`${API}/api/public/restaurant-by-slug/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.status === 404) return { missing: true };
+    if (!res.ok) return {};
+    const data = await res.json();
+    return data.restaurantId ? { id: data.restaurantId } : { missing: true };
+  } catch {
+    return {};
   }
+}
 
-  // Show 404 if restaurant not found
-  if (notFoundState) {
-    return notFound();
-  }
+export default async function RestaurantSlugPage({ params }) {
+  const { slug } = await params;
+  const s = String(slug || '').toLowerCase();
+  if (RESERVED_REDIRECTS[s]) redirect(RESERVED_REDIRECTS[s]);
+  if (!s || RESERVED_PATHS.includes(s) || s.includes('.')) notFound();
 
-  // Render the OnlineOrderPage with the resolved restaurantId
-  return <OnlineOrderPage restaurantId={restaurantId} />;
+  const { id, missing } = await lookup(s);
+  if (missing) notFound();
+  return <SlugClient slug={slug} initialRestaurantId={id || null} />;
 }
