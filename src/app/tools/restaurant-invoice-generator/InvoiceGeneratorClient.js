@@ -8,6 +8,8 @@ import CommonHeader from '../../../components/CommonHeader';
 import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 import Breadcrumb from '../../../components/Breadcrumb';
+import { BILL_MUST_SHOW, FAQ } from './billFormatContent';
+import { track } from '../../../lib/analytics';
 
 // Lazy-load PDF generation (heavy bundle — only needed on download)
 const PDFDownloadHelper = dynamic(() => import('./PDFDownloadHelper'), { ssr: false });
@@ -405,6 +407,44 @@ export default function InvoiceGeneratorClient() {
                 />
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Bill format: downloads, what a GST bill must show, FAQ */}
+        <section style={{ padding: '56px 16px', background: 'white', borderTop: '1px solid #e5e7eb' }}>
+          <div style={{ maxWidth: '820px', margin: '0 auto', color: '#374151', fontSize: '16px', lineHeight: 1.7 }}>
+            <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#111827', margin: '0 0 12px', letterSpacing: '-0.01em' }}>Restaurant bill format (Word, Excel, PDF)</h2>
+            <p style={{ margin: '0 0 18px' }}>
+              Want a blank format to fill in yourself? Download one below. The Excel file adds up the items and works out 5% GST and the total. The Word file is a clean table you can print and fill by hand. For a PDF, use the generator above.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', margin: '0 0 36px' }}>
+              <a href="/downloads/restaurant-bill-format.xlsx" download onClick={() => track('bill_format_download', { format: 'xlsx' })}
+                style={{ padding: '12px 18px', borderRadius: '8px', background: '#059669', color: 'white', fontWeight: 700, textDecoration: 'none' }}>
+                Download Excel format
+              </a>
+              <a href="/downloads/restaurant-bill-format.docx" download onClick={() => track('bill_format_download', { format: 'docx' })}
+                style={{ padding: '12px 18px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827', fontWeight: 700, textDecoration: 'none' }}>
+                Download Word format
+              </a>
+            </div>
+
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', margin: '0 0 10px' }}>What a GST restaurant bill must show</h2>
+            <ul style={{ margin: '0 0 28px', paddingLeft: '20px' }}>
+              {BILL_MUST_SHOW.map((x) => <li key={x} style={{ marginBottom: '6px' }}>{x}</li>)}
+            </ul>
+
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', margin: '0 0 10px' }}>Hotel bill and food bill: what changes</h2>
+            <p style={{ margin: '0 0 28px' }}>
+              A food bill from a standalone restaurant, café or dhaba carries 5% GST. If the restaurant is inside a hotel where any room costs more than ₹7,500 a night, food is billed at 18%. Room charges go on a separate line with their own GST rate. If you are under the composition scheme, give a bill of supply with no GST on it. Read more in our <Link href="/hi/blog/restaurant-gst-guide-hindi" style={{ color: '#059669' }}>restaurant GST guide (Hindi)</Link>.
+            </p>
+
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', margin: '0 0 14px' }}>Questions owners ask</h2>
+            {FAQ.map(({ q, a }) => (
+              <details key={q} style={{ borderBottom: '1px solid #e5e7eb', padding: '12px 0' }}>
+                <summary style={{ fontWeight: 700, color: '#111827', cursor: 'pointer' }}>{q}</summary>
+                <p style={{ margin: '8px 0 0' }}>{a}</p>
+              </details>
+            ))}
           </div>
         </section>
 

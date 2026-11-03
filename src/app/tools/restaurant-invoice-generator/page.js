@@ -1,3 +1,4 @@
+import { FAQ } from './billFormatContent';
 import InvoiceGeneratorClient from './InvoiceGeneratorClient';
 
 export const dynamic = 'force-static';
@@ -20,5 +21,15 @@ export const metadata = {
 };
 
 export default function InvoiceGeneratorPage() {
-  return <InvoiceGeneratorClient />;
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  };
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <InvoiceGeneratorClient />
+    </>
+  );
 }
