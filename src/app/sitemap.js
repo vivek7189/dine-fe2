@@ -223,6 +223,7 @@ export default function sitemap() {
     changeFrequency: 'weekly',
     priority: 0.8,
   }));
+  toolPages.unshift({ url: `${baseUrl}/tools`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.85 });
 
   // Product pages — hub pages only, no sub-pages (12)
   const productPages = [

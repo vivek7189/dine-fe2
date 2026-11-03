@@ -49,17 +49,17 @@ export default function Footer() {
   ];
 
   const toolLinks = [
-    { name: 'Opening Checklist', href: '/tools/opening-checklist' },
-    { name: 'Restaurant Name AI', href: '/tools/restaurant-name-generator' },
+    { name: 'Restaurant Bill Generator', href: '/tools/restaurant-invoice-generator' },
     { name: 'Swiggy/Zomato Calculator', href: '/tools/swiggy-zomato-calculator' },
-    { name: 'Menu Engineering', href: '/tools/menu-engineering' },
-    { name: 'Recipe Cost Calculator', href: '/tools/recipe-cost-calculator' },
-    { name: 'Table Turnover Calculator', href: '/tools/table-turnover-calculator' },
+    { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
+    { name: 'Profit Calculator', href: '/tools/food-business-profit-calculator' },
+    { name: 'Catering Quotation Maker', href: '/tools/catering-quotation-maker' },
+    { name: 'Salary Slip Generator', href: '/tools/salary-slip-generator' },
+    { name: 'Kitchen Equipment List', href: '/tools/restaurant-kitchen-equipment-list' },
     { name: 'FSSAI Fee Calculator', href: '/tools/fssai-fee-calculator' },
-    { name: 'EMI Calculator', href: '/tools/emi-calculator' },
-    { name: 'Bill Splitter', href: '/tools/bill-splitter' },
-    { name: 'Tip Calculator', href: '/tools/tip-calculator' },
-    { name: 'More Free Tools...', href: '/glossary' },
+    { name: 'Restaurant Name Generator', href: '/tools/restaurant-name-generator' },
+    { name: 'Opening Checklist', href: '/tools/opening-checklist' },
+    { name: 'All Free Tools', href: '/tools' },
   ];
 
   const resourceLinks = [
