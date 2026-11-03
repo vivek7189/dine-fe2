@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { getApiBase } from '@/lib/apiBase';
 import { track } from '@/lib/analytics';
+import { INDIA_PLANS, INDIA_LITE, indiaPlanId, inr, yearlySaving, indiaWaLink } from '@/lib/indiaPlans';
 import LinkPlansSection from '@/components/LinkPlansSection';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -47,7 +48,7 @@ function BillingContent() {
   const [cancelling, setCancelling] = useState(false);
   const [billingHistory, setBillingHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
+  const [billingCycle, setBillingCycle] = useState('yearly'); // 'monthly' or 'yearly' — yearly by default
   // Special prices set for this account in dine-admin (Razorpay / INR only).
   const [customPlans, setCustomPlans] = useState([]);
   // One-time payment-link plans set for this restaurant in dine-admin — when present, the page
@@ -1102,13 +1103,41 @@ function BillingContent() {
 
   const currentPlans = (() => {
     if (currency === 'INR') {
-      const list = indianPlanData.INR[billingCycle] || indianPlanData.INR.monthly;
-      // Hide the retired INR Starter plan (₹299/mo, ₹250/mo yearly) from the UI — display-only,
-      // backend/plan data untouched. USD Starter is unaffected.
-      const standard = list.filter(p => p.name !== 'Starter');
+      const cycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+      const list = indianPlanData.INR[cycle] || indianPlanData.INR.monthly;
+      const trialPlans = list.filter(p => p.price === 0);
+      // Nov 2026 India plans (src/lib/indiaPlans.js) — prices include GST.
+      const newPlans = INDIA_PLANS.map(p => ({
+        id: indiaPlanId(p.key, cycle),
+        name: p.name,
+        price: cycle === 'yearly' ? p.yearly : p.monthly,
+        period: cycle === 'yearly' ? 'year' : 'month',
+        ...(cycle === 'yearly' ? { monthlyEquivalent: Math.round(p.yearly / 12), savings: inr(yearlySaving(p)) } : {}),
+        description: `${p.tagline} · GST included`,
+        popular: !!p.popular,
+        features: p.features,
+      }));
+      // Café Lite is sold over WhatsApp until its 1-device limit is enforced in the app.
+      const lite = {
+        id: indiaPlanId('lite', cycle),
+        name: INDIA_LITE.name,
+        price: cycle === 'yearly' ? INDIA_LITE.yearly : INDIA_LITE.monthly,
+        period: cycle === 'yearly' ? 'year' : 'month',
+        description: 'For tea stalls, juice counters & one-counter cafés · GST included',
+        popular: false,
+        talkToUs: true,
+        features: ['GST billing on 1 device', 'Owner + 1 staff login', 'Up to 100 menu items', 'Daily sales report'],
+      };
+      // Existing customers on the old Growth/Pro plans keep seeing (and can renew) their plan.
+      const subId = (currentSubscription?.planId || '').toLowerCase();
+      const subINR = (currentSubscription?.currency || 'INR').toUpperCase() === 'INR';
+      const legacy = subINR && /^(growth|pro)-(monthly|yearly)$/.test(subId)
+        ? [...indianPlanData.INR.monthly, ...indianPlanData.INR.yearly].find(p => p.id === subId)
+        : null;
+      const legacyCard = legacy ? [{ ...legacy, popular: false, description: 'Your current plan (not offered to new customers)' }] : [];
+      const standard = [...trialPlans, ...legacyCard, ...newPlans, lite];
       // Special prices for this account (dine-admin): shown after the free trial, with the tier's
       // features. "Only these prices" (exclusive) hides the standard paid plans for this customer.
-      const cycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
       const tierFeatures = (tier) => (indianPlanData.INR.monthly.find(p => p.id === `${tier}-monthly`) || {}).features || [];
       const mine = customPlans.filter(cp => cp.period === cycle).map(cp => ({
         id: cp.id,
@@ -1833,7 +1862,7 @@ function BillingContent() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : `repeat(${currentPlans.length}, 1fr)`,
+            gridTemplateColumns: isMobile ? '1fr' : (currentPlans.length > 4 ? 'repeat(auto-fit, minmax(200px, 1fr))' : `repeat(${currentPlans.length}, 1fr)`),
             gap: '16px'
           }}>
             {currentPlans.map((plan) => {
@@ -1850,6 +1879,8 @@ function BillingContent() {
                 buttonText = `Renew — ${currency === 'INR' ? 'Razorpay' : 'Dodo'}`;
               } else if (isCurrentPlan) {
                 buttonText = plan.price === 0 ? 'Currently Active' : 'Your Plan';
+              } else if (plan.talkToUs) {
+                buttonText = 'Ask on WhatsApp';
               } else if (plan.price === 0) {
                 buttonText = 'Start Free Trial';
               } else if (isPaidPlan && plan.price > 0) {
@@ -1965,7 +1996,7 @@ function BillingContent() {
                   </div>
 
                   <button
-                    onClick={() => !isDiscontinued && (!isCurrentPlan || isPaidExpired) && handlePayment(plan)}
+                    onClick={() => { if (plan.talkToUs) { window.open(indiaWaLink(`Hi DineOpen, I want ${plan.name} (${plan.period === 'year' ? 'yearly' : 'monthly'})`), '_blank', 'noopener,noreferrer'); return; } if (!isDiscontinued && (!isCurrentPlan || isPaidExpired)) handlePayment(plan); }}
                     disabled={isDiscontinued || (isCurrentPlan && !isPaidExpired) || paymentProcessing}
                     style={{
                       width: '100%', padding: '10px', borderRadius: '8px',
