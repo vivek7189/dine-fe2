@@ -91,6 +91,7 @@ const tools = [
   { name: 'Food Business Profit Calculator', href: '/tools/food-business-profit-calculator' },
   { name: 'Salary Slip Generator', href: '/tools/salary-slip-generator' },
   { name: 'Catering Quotation Maker', href: '/tools/catering-quotation-maker' },
+  { name: 'Kitchen Equipment List', href: '/tools/restaurant-kitchen-equipment-list' },
   { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
   { name: 'QR Menu Generator', href: '/tools/qr-menu-generator' },
   { name: 'Free QR Menu Maker', href: '/tools/qr-menu-maker' },
