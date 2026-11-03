@@ -101,6 +101,9 @@ export default function CateringCalculatorClient() {
             <p style={{ fontSize: '18px', opacity: 0.95 }}>
               Generate professional catering quotes based on menu, guests, and service style
             </p>
+            <p style={{ fontSize: '15px', marginTop: '12px', opacity: 0.95 }}>
+              Need a quotation to send the client? <Link href="/tools/catering-quotation-maker" style={{ color: 'white', fontWeight: 700, textDecoration: 'underline' }}>Make one with the catering quotation maker →</Link>
+            </p>
           </div>
         </section>
 
