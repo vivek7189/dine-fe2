@@ -88,7 +88,7 @@ export const INDIA_LITE = {
   key: 'lite',
   name: 'Café Lite',
   monthly: 299,
-  yearly: 3500,
+  yearly: 3200,
   headline: 'Running a tea stall, juice counter or one-counter café?',
   description: 'GST billing on 1 device, owner + 1 staff login, up to 100 menu items, daily sales report. No kitchen printer, QR ordering or inventory. Upgrade any time.',
 };
