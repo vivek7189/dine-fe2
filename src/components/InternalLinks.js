@@ -89,6 +89,7 @@ const tools = [
   { name: 'Food Cost Calculator', href: '/tools/food-cost-calculator' },
   { name: 'POS Hardware Kit Builder', href: '/tools/restaurant-pos-hardware' },
   { name: 'Food Business Profit Calculator', href: '/tools/food-business-profit-calculator' },
+  { name: 'Salary Slip Generator', href: '/tools/salary-slip-generator' },
   { name: 'Break-Even Calculator', href: '/tools/break-even-calculator' },
   { name: 'QR Menu Generator', href: '/tools/qr-menu-generator' },
   { name: 'Free QR Menu Maker', href: '/tools/qr-menu-maker' },
