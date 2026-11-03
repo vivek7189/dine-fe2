@@ -129,9 +129,9 @@ export default function InvoiceGeneratorClient() {
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4ade80', display: 'inline-block' }} />
               Free Tool &bull; No Login Required
             </div>
-            <h1 style={{ fontSize: '40px', fontWeight: '800', marginBottom: '16px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>Restaurant Invoice Generator</h1>
+            <h1 style={{ fontSize: '40px', fontWeight: '800', marginBottom: '16px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>Restaurant &amp; Food Bill Generator</h1>
             <p style={{ fontSize: '18px', opacity: 0.92, maxWidth: '550px', margin: '0 auto', lineHeight: 1.6 }}>
-              Create professional, GST-compliant restaurant invoices with your logo. Download PDF or print — no signup needed.
+              Make a restaurant bill with GST and your logo in a minute. Download the PDF or print it. No signup needed.
             </p>
           </div>
         </section>
