@@ -687,6 +687,10 @@
                 padding: 10px 12px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -744,7 +748,7 @@
                 <img src="https://images.unsplash.com/photo-1558857563-b371033873b8?w=800&h=300&fit=crop&q=80" alt="Masala chai being prepared in a traditional Indian kettle with spices" class="section-image">
                 <p>Before you invest, decide which type of chai business suits your budget, location, and ambition. Each model has different investment requirements, revenue potential, and operational complexity.</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Business Type</th>
@@ -785,7 +789,7 @@
                             <td>Events, markets, flexible locations</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Roadside Tapri (Rs 30K - 1 Lakh)</h3>
                 <p>The classic Indian chai tapri — a small cart or stall on a busy footpath, near a bus stop, or outside a factory gate. This is where most chai entrepreneurs begin. You need a gas stove, a kettle, tea supplies, and a few benches. No rent if you operate from a public spot (though you may need a hawker license). This model works best when you find a high-footfall location and build a loyal base of daily customers who come 2-3 times a day.</p>
@@ -859,6 +863,7 @@
                 </ul>
 
                 <h3>Step 2: Essential Equipment</h3>
+<p class="tool-callout" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0 18px;font-size:15px;line-height:1.6"><strong>Free tool:</strong> tick what you need and see the total cost in our <a href="/tools/restaurant-kitchen-equipment-list">kitchen equipment list with price</a>. It has ready lists for a café, QSR, cloud kitchen, bakery and dhaba.</p>
                 <p>You do not need expensive equipment to start. Here is what every tapri needs from day one:</p>
                 <ul>
                     <li><strong>Gas Stove:</strong> A double-burner commercial stove (Rs 3,000-5,000) lets you brew two batches simultaneously during peak hours.</li>
@@ -936,7 +941,7 @@
                 <p>Pricing your chai correctly is crucial — too high and you lose daily customers, too low and you leave money on the table. The key is to tier your pricing so every customer segment finds something affordable.</p>
 
                 <h3>Recommended Pricing (2026)</h3>
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -977,7 +982,7 @@
                             <td>65-75%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Daily and Monthly Revenue Projections</h3>
                 <p>Your revenue depends on location, hours of operation, and cup count. Here is what realistic numbers look like:</p>

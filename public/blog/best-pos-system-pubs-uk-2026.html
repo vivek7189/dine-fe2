@@ -927,6 +927,10 @@
                 padding: 24px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -1185,7 +1189,7 @@
 
                 <p>This table compares all six systems across the features that matter most for UK pub operations. Pay particular attention to the total cost column &mdash; a low monthly fee means nothing if transaction fees add thousands to your annual bill.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1280,7 +1284,7 @@
                             <td>Monthly available</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="info-box">
                     <h3>How to Read This Table</h3>
@@ -1387,7 +1391,7 @@
 
                 <p>The most misleading number in EPOS marketing is the monthly price. A system that costs &pound;0/month but charges 1.75% per transaction will cost a pub processing &pound;300,000 in annual card sales over &pound;5,000 per year. Here is the true annual cost for each system, based on an average UK pub processing &pound;300,000 per year with 70% card payments (&pound;210,000 in card transactions).</p>
 
-                <table class="savings-table">
+                <div class="table-scroll"><table class="savings-table">
                     <thead>
                         <tr>
                             <th>EPOS System</th>
@@ -1441,7 +1445,7 @@
                             <td>&mdash;</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p style="font-size: 14px; color: #6b7280; margin-top: 8px;">*Epos Now transaction fees depend on your chosen payment provider. Estimates based on typical UK card processing rates of 1.0%&ndash;1.5%.</p>
 

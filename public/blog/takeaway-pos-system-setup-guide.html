@@ -923,6 +923,12 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+        /* phones: long formulas/slash lists may wrap instead of widening the page */
+        @media (max-width: 640px) { .content p, .content li, .stat-value { overflow-wrap: anywhere; } .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     </style>
 </head>
 <body>
@@ -1005,7 +1011,7 @@
 
                 <p>A <strong>takeaway POS</strong> revolves around order queues. The workflow is: receive an order (from counter, phone, website, or delivery app), send it to the kitchen, track preparation progress, pack it, and either hand it to the customer for collection or dispatch it via a delivery rider. Features like order queue management, estimated preparation times, delivery tracking, and packing station screens are essential.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1055,7 +1061,7 @@
                             <td>Critical (bag labels, item counts)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The best modern systems &mdash; like <a href="/products/pos">DineOpen</a> &mdash; combine both dine-in and takeaway capabilities in a single platform, so you do not need separate software for each channel. But understanding the takeaway-specific requirements helps you evaluate whether a system truly handles takeaway well or just treats it as an afterthought bolted onto a dine-in system.</p>
 
@@ -1123,7 +1129,7 @@
 
                 <p>We have evaluated the leading takeaway POS systems available in the Indian and UK markets in 2026 across pricing, takeaway-specific features, delivery platform integration, and overall value. Here is how they compare.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>POS System</th>
@@ -1182,7 +1188,7 @@
                             <td>Pop-ups, market stalls</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Now let us look at each system in detail for takeaway operations specifically.</p>
 
@@ -1344,7 +1350,7 @@
 
                 <p>Delivery platform commissions are the biggest cost challenge for takeaway operations. A smart takeaway POS system does not just accept these commissions as a cost of doing business &mdash; it helps you reduce them.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Platform</th>
@@ -1391,7 +1397,7 @@
                             <td>Primary channel &mdash; maximum profit</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The strategy is clear: use delivery platforms for customer acquisition (new customers who discover you on Swiggy, Zomato, Deliveroo, or Just Eat), then use your POS's built-in loyalty and direct ordering features to convert them into direct customers. Include a QR code on every takeaway bag and a flyer offering a 10-15% discount on direct orders. DineOpen's integrated <a href="/products/loyalty">loyalty programme</a> automates this conversion pipeline, turning platform customers into direct-order regulars who order commission-free.</p>
 
@@ -1468,7 +1474,7 @@
 
                 <h3>India: Takeaway POS Cost Breakdown</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -1527,11 +1533,11 @@
                             <td><strong>Rs 14,000 - Rs 30,000</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>UK: Takeaway POS Cost Breakdown</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -1590,7 +1596,7 @@
                             <td><strong>&pound;100 - &pound;1,500 + fees</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Hidden Costs to Watch For</h3>
 

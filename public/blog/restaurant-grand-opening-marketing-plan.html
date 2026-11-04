@@ -881,6 +881,10 @@
                 padding-left: 56px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1088,7 +1092,7 @@
 
                 <p>The opening week is just the beginning. The real test is whether you can sustain momentum through the entire first month. Here is a detailed week-by-week action plan with specific tasks and timelines.</p>
 
-                <table class="timeline-table">
+                <div class="table-scroll"><table class="timeline-table">
                     <thead>
                         <tr>
                             <th>Week</th>
@@ -1123,7 +1127,7 @@
                             <td>80+ Google reviews, menu optimized based on sales data, Month 2 event announced, 200+ WhatsApp broadcast list</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>Week 2 Deep Dive: Launching Your Loyalty Program</h3>
@@ -1153,7 +1157,7 @@
 
                 <p>One of the most common questions from new restaurant owners is: "How much should I spend on my grand opening?" The honest answer depends on your city, restaurant size, and target audience. Here is a realistic breakdown based on what restaurants across India are actually spending in 2026.</p>
 
-                <table class="budget-table">
+                <div class="table-scroll"><table class="budget-table">
                     <thead>
                         <tr>
                             <th>Category</th>
@@ -1208,7 +1212,7 @@
                             <td>Complete grand opening marketing campaign</td>
                         </tr>
                     </tfoot>
-                </table>
+                </table></div>
 
                 <p>For Tier 1 cities (Mumbai, Delhi, Bangalore, Hyderabad, Chennai), budget toward the higher end of each range. For Tier 2 cities (Pune, Ahmedabad, Jaipur, Lucknow, Coimbatore), the lower-to-mid range is appropriate. For small towns and Tier 3 cities, you can execute an effective launch with Rs 25,000-40,000 by focusing on free channels — local Facebook groups, WhatsApp networks, and community relationships.</p>
 

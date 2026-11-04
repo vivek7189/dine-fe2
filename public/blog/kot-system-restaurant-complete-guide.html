@@ -1122,6 +1122,10 @@
                 max-width: 100%;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1168,6 +1172,7 @@
             <!-- Section 1: What is KOT -->
             <div class="section" id="what-is-kot">
                 <h2>What Is a KOT? Kitchen Order Ticket Definition</h2>
+<p class="tool-callout" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0 18px;font-size:15px;line-height:1.6"><strong>Free tool:</strong> print a KOT for a 58 mm or 80 mm printer, or blank KOT book pages, with our <a href="/tools/kot-system">KOT format maker</a>.</p>
 
                 <p>A <strong>KOT (Kitchen Order Ticket)</strong> is a written or digital document that communicates a customer's order from the front-of-house (waiter or cashier) to the kitchen. It is the single most critical communication link in any restaurant operation.</p>
 
@@ -1465,7 +1470,7 @@
 
                 <p>Not all KOT systems are created equal. Here is how the three main types compare across every dimension that matters to restaurant operations.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1566,7 +1571,7 @@
                             <td>High-volume &amp; chains (100+ covers)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The economics are clear. Paper KOTs cost Rs 200-500/month in paper but Rs 15,000-45,000/month in errors, waste, and lost efficiency. Digital KOT systems cost Rs 300-2,000/month and eliminate 70-90% of those losses. AI-powered KOT systems like <a href="/tools/kot-system">DineOpen's</a> go further by predicting kitchen load, optimizing preparation sequences, and flagging potential issues before they happen.</p>
 
@@ -1646,7 +1651,7 @@
 
                 <h3>By Restaurant Size</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1699,7 +1704,7 @@
                             <td>Rs 3,000-10,000</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>5 Questions to Ask Before Choosing a KOT System</h3>
 

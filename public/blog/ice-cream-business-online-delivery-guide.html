@@ -875,6 +875,10 @@
                 padding: 24px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -987,7 +991,7 @@
                 <h3>Packaging Cost Per Order</h3>
                 <p>Here is a realistic breakdown of what each delivery order costs you in packaging materials:</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -1044,7 +1048,7 @@
                             <td>For premium/long-distance</td>
                         </tr>
                     </tfoot>
-                </table>
+                </table></div>
 
                 <p>At Rs 35-60 per order in packaging costs, you need to factor this into your delivery pricing. On a Rs 300 average order, packaging is 12-20% of revenue &mdash; significant, but manageable if your delivery menu is priced correctly. We will cover pricing strategy in detail in Section 5.</p>
             </div>
@@ -1056,7 +1060,7 @@
                 <p>The biggest question every ice cream shop owner asks: "How far can I deliver without the ice cream melting?" The answer depends on your packaging quality, the weather, and your delivery model. Here is a practical framework.</p>
 
                 <h3>Delivery Radius Guidelines</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Packaging Level</th>
@@ -1091,7 +1095,7 @@
                             <td>Catering, bulk orders</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p><strong>Our recommendation:</strong> Start with a 3 km radius using standard packaging. This covers most of your immediate neighbourhood and keeps delivery times under 20 minutes. Once you have 50+ successful deliveries and have dialled in your packaging, expand to 5 km. Only go beyond 5 km when you have dry ice or insulated delivery infrastructure in place.</p>
 
@@ -1153,7 +1157,7 @@
                 <h3>Model 3: Hybrid (Recommended)</h3>
                 <p>The hybrid model uses aggregators for customer acquisition and your own channel for retention. This is the model used by the most successful ice cream delivery businesses in India, and it is the model we recommend.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Parameter</th>
@@ -1212,7 +1216,7 @@
                             <td class="check">Flexible scaling</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>The Hybrid Playbook</h3>
                 <ol>
@@ -1242,7 +1246,7 @@
                 <h3>The Cost Structure of a Delivery Order</h3>
                 <p>Let us break down a typical delivery order to understand the real costs:</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -1297,7 +1301,7 @@
                             <td><strong>Rs 120 (40%)</strong></td>
                         </tr>
                     </tfoot>
-                </table>
+                </table></div>
 
                 <p>The numbers are clear. At dine-in prices, aggregator delivery is barely profitable &mdash; and often unprofitable when you factor in operational overhead. You <em>must</em> adjust your delivery pricing.</p>
 
@@ -1383,7 +1387,7 @@
 
                 <p>Here is a transparent, itemised cost breakdown for setting up ice cream delivery. We have separated one-time setup costs from recurring monthly costs so you can plan your budget accurately.</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Category</th>
@@ -1457,7 +1461,7 @@
                             <td><strong>Rs 8,300 - 17,800</strong></td>
                         </tr>
                     </tfoot>
-                </table>
+                </table></div>
 
                 <h3>Break-Even Analysis</h3>
                 <p>With an average delivery order value of Rs 300 and a gross margin of 40% on own-channel orders (Rs 120 per order), you need approximately <strong>200-315 own-channel orders per month</strong> to cover the monthly costs with your own rider. That is 7-10 orders per day &mdash; very achievable for an ice cream shop in a decent location during summer, and realistic year-round with good marketing.</p>
@@ -1603,7 +1607,7 @@
 
                 <p>Ice cream delivery demand varies dramatically by season. Your packaging, radius, menu, and marketing should all adapt accordingly.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Parameter</th>
@@ -1656,7 +1660,7 @@
                             <td>1 rider (or aggregator only)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The key insight: do not shut down delivery in winter. Demand is lower, but your costs are also lower (less packaging, easier logistics). Winter delivery is actually more profitable per order because you spend less on cold chain. Position ice cream as a year-round indulgence, not a seasonal treat, and your delivery revenue stays steady across all 12 months.</p>
             </div>

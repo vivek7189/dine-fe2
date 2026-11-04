@@ -976,6 +976,10 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1099,7 +1103,7 @@
 
                 <p>Not all QR menu solutions are created equal. Some are genuinely free with useful features. Others are free in name only &mdash; limited trials, heavy watermarking, or stripped-down functionality that forces you to upgrade. Here is an honest comparison of the options available to UK restaurants in 2026.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Tool</th>
@@ -1167,7 +1171,7 @@
                             <td>Simple view-only menus</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Let us look at each option in detail so you can make an informed choice for your restaurant.</p>
 
@@ -1340,7 +1344,7 @@
 
                 <p>The financial case for switching from paper menus to a QR code menu is overwhelming. Let us break down the real costs, using figures from actual UK restaurants.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Category</th>
@@ -1390,7 +1394,7 @@
                             <td><strong>&pound;15-&pound;40</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The annual saving ranges from &pound;2,260 to &pound;5,560. For a restaurant operating on typical UK margins of 5-10%, that saving is equivalent to generating &pound;22,600 to &pound;55,600 in additional revenue. And this does not even account for the revenue increase from higher average order values driven by food photos and easy upselling through the digital menu.</p>
 

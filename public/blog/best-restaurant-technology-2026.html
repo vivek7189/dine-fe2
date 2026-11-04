@@ -885,6 +885,10 @@
                 font-size: 13px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1047,7 +1051,7 @@
                 <h2>3. Tech Stack by Restaurant Size: What You Actually Need</h2>
                 <p>One of the most common mistakes restaurant owners make is buying enterprise technology for a startup-size business, or staying on a basic setup for too long as they scale. Here is a realistic comparison of what each restaurant size actually needs versus what is optional — and what you can skip entirely.</p>
 
-                <table class="size-table">
+                <div class="table-scroll"><table class="size-table">
                     <thead>
                         <tr>
                             <th>Technology Layer</th>
@@ -1136,7 +1140,7 @@
                             <td class="essential">Essential — Core requirement</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>The Key Insight: Integrated Beats Standalone Every Time</h3>
@@ -1224,7 +1228,7 @@
                 <h2>5. The Real Cost of a Restaurant Technology Stack in 2026</h2>
                 <p>Understanding the actual cost of restaurant technology is critical for budgeting and for making the right build-vs-buy decisions. The table below compares three cost tiers — budget, mid-range, and premium — and shows what you get at each level.</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Technology Component</th>
@@ -1295,7 +1299,7 @@
                             <td class="highlight-cell">DineOpen multi-outlet plans — Rs 2,500/month</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>All-in-One vs Separate Tools: The True Cost Comparison</h3>

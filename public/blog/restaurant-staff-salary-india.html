@@ -202,6 +202,8 @@
         .badge { display: inline-block; background: rgba(239,68,68,0.15); color: #ef4444; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid rgba(239,68,68,0.3); }
         @media (max-width: 968px) { .main-container { grid-template-columns: 1fr; gap: 40px; } .sidebar { position: relative; top: 0; } .content { padding: 0; } .comparison-table { font-size: 14px; } }
         @media (max-width: 640px) { .header { padding: 24px 16px; } .main-container { padding: 24px 16px; } .intro { font-size: 18px; padding: 24px; } .highlight-box { padding: 24px; } .cta-box { padding: 32px 24px; } }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
     </style>
 
 </head>
@@ -339,6 +341,7 @@
             <!-- CTA Box -->
             <div class="cta-box">
                 <h3>Attendance and payroll without the register</h3>
+<p class="tool-callout" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0 18px;font-size:15px;line-height:1.6"><strong>Free tool:</strong> make a monthly pay slip for each staff member with our <a href="/tools/salary-slip-generator">salary slip generator</a>. It works out PF, ESI, leave and advances for you.</p>
                 <p>DineOpen tracks staff attendance and works out monthly pay from it, with roles that control what each person can see. It runs on the phone, tablet or computer you already have.</p>
                 <a href="/login?utm_source=blog&amp;utm_medium=cta&amp;utm_campaign=restaurant-staff-salary-india" class="cta-button">Start 7-day free trial</a>
             </div>

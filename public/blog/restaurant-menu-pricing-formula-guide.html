@@ -918,6 +918,10 @@
                 padding: 24px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1052,7 +1056,7 @@
 
                 <h3>Factor Quick Reference Table</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Target Food Cost %</th>
@@ -1093,7 +1097,7 @@
                             <td>Fine dining, premium</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="example-box">
                     <h4>Worked Example: Quick-Price an Entire South Indian Menu</h4>
@@ -1262,7 +1266,7 @@
 
                 <p>Below is a complete <strong>restaurant food price calculator</strong> breakdown for 10 popular dishes at a mid-range casual dining restaurant in a Tier 2 Indian city (2026 ingredient prices). This table uses the Food Cost Percentage Method with dish-specific targets.</p>
 
-                <table class="calc-table">
+                <div class="table-scroll"><table class="calc-table">
                     <thead>
                         <tr>
                             <th>Dish</th>
@@ -1366,7 +1370,7 @@
                             <td>Rs 71</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>Key Observations From This Pricing Table</h3>
@@ -1388,7 +1392,7 @@
 
                 <p>Each of the 5 formulas has strengths and weaknesses. Most successful restaurants use a combination. Here is a side-by-side comparison to help you choose the right <strong>menu pricing calculator</strong> approach for your restaurant type.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Method</th>
@@ -1435,7 +1439,7 @@
                             <td>Very High</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Recommended Combination by Restaurant Type</h3>
 
@@ -1578,7 +1582,7 @@
 
                 <p>Menu pricing is not a one-time exercise. Ingredient costs in India fluctuate wildly &mdash; tomato prices can swing from Rs 20/kg to Rs 120/kg within a single quarter. Here is a practical pricing review calendar for Indian restaurants.</p>
 
-                <table class="calc-table">
+                <div class="table-scroll"><table class="calc-table">
                     <thead>
                         <tr>
                             <th>Review Frequency</th>
@@ -1618,7 +1622,7 @@
                             <td>Increase price, reduce portion, substitute ingredient, or temporarily remove dish</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The best restaurants treat pricing as a living, breathing process &mdash; not a fixed decision made when the menu was printed. With DineOpen's real-time cost tracking and <a href="/products/menu">digital menu system</a>, price changes take effect instantly without reprinting physical menus.</p>
             </div>

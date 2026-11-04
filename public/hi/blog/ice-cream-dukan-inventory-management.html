@@ -702,6 +702,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -762,7 +766,7 @@
 
                 <p>बहुत से ice cream shop owners अभी भी manual तरीक़े से inventory manage करते हैं — notebook में लिखना, हर रात stock count करना, और supplier को phone करके order देना। चलिए compare करते हैं manual और digital inventory management को:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -817,7 +821,7 @@
                             <td>₹899/month — saves lakhs yearly</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>जैसा कि आप देख सकते हैं, manual inventory "free" लगता है लेकिन असल में यह सबसे expensive तरीक़ा है। Hidden losses — pilferage (चोरी), over-ordering, expired stock, और missed sales — यह सब मिलाकर हर महीने Rs 15,000-25,000 का नुक़सान करते हैं। Digital system की monthly cost इसके मुक़ाबले negligible है।</p>
 

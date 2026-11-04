@@ -883,6 +883,10 @@
                 font-size: 15px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -1236,7 +1240,7 @@
                 <p>Here is a quick-reference comparison of all 7 options across the features that matter most to Indian restaurant owners.</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>Software</th>
@@ -1329,7 +1333,7 @@
                                 <td>Concept testing</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
                 <p><em>Note: "Partial" indicates the feature exists but with significant limitations. Prices are approximate and may vary by plan and region.</em></p>
             </div>

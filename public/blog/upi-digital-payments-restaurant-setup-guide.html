@@ -711,6 +711,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -778,7 +782,7 @@
 <h2>2. Understanding Payment Options for Restaurants</h2>
                 <p>Before jumping into setup, you need to understand what's available. Not all payment methods are equal &mdash; they differ in cost, setup effort, customer experience, and how much reconciliation headache they give you.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Payment Method</th>
@@ -832,7 +836,7 @@
                             <td>Great for repeat customers</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p><strong>Here's the practical advice:</strong> most restaurants start with a static QR code because it's free and takes 10 minutes. That's fine for your first week. But if you're doing 50+ transactions a day, you need to upgrade to dynamic QR with POS integration &mdash; otherwise you'll spend 1-2 hours every night matching UPI payments to bills.</p>
 
@@ -865,7 +869,7 @@
                     <li><strong>Best for:</strong> Restaurants, cafes, bars, bakeries &mdash; any place with multi-item billing</li>
                 </ul>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Scenario</th>
@@ -900,7 +904,7 @@
                             <td>15-minute POS training &mdash; then it's easier for everyone</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p><strong>My honest recommendation:</strong> if you do more than 30 bills a day, switch to dynamic QR. The time you save on reconciliation alone pays for it. If you're a small takeaway doing 10-15 transactions, static QR is perfectly fine for now.</p>
             </div>
@@ -949,7 +953,7 @@
                 <h2>5. Payment Gateway Options for Restaurants in India</h2>
                 <p>If you're going the POS-integrated route (and you should), you'll need a payment gateway. Here's how the major players compare for restaurant use:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Gateway</th>
@@ -996,7 +1000,7 @@
                             <td>UPI-only setup</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>What to Look For When Choosing a Gateway</h3>
                 <ul>
@@ -1078,6 +1082,7 @@
             <!-- Section 8: End-of-Day Reconciliation -->
             <div class="section">
                 <h2>8. End-of-Day Reconciliation Made Easy</h2>
+<p class="tool-callout" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0 18px;font-size:15px;line-height:1.6"><strong>Free tool:</strong> close the day in five minutes with our <a href="/tools/daily-sales-report">daily sales report format</a>. Cash, UPI, card and app sales, cash check, then Excel or WhatsApp.</p>
                 <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=300&fit=crop&q=80" alt="Digital dashboard showing payment reconciliation and financial reports for restaurant" class="section-image">
                 <p>This is where restaurant owners lose the most time and money. Let's fix it.</p>
 

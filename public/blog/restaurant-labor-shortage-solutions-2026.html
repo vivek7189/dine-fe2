@@ -905,6 +905,10 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -961,7 +965,7 @@
 
                 <h3>Which Roles Are Hardest to Fill?</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Role</th>
@@ -1008,7 +1012,7 @@
                             <td>Entry-level, but competition from retail and gig economy</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The hardest truth: the labor shortage is not temporary. Demographics are working against the industry. The working-age population growth has slowed, immigration policy remains restrictive, and younger workers have more options than ever &mdash; from gig economy platforms to remote work to the booming warehouse and logistics sector. Restaurants must compete for workers in a way they never had to before 2020.</p>
             </div>
@@ -1076,7 +1080,7 @@
 
                 <p>You cannot solve the labor shortage without addressing pay. Full stop. The restaurants that are fully staffed in 2026 are the ones paying market rates or above &mdash; and backing it up with benefits that workers at Amazon, Costco, and Target already receive. Here is what competitive compensation looks like by role.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Role</th>
@@ -1129,7 +1133,7 @@
                             <td>Health + dental, PTO, performance bonus, 401(k)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Benefits That Move the Needle</h3>
 
@@ -1188,7 +1192,7 @@
 
                 <p>You cannot hire people who do not exist. When the labor pool is structurally smaller than the industry's demand, the only sustainable answer is technology that allows your restaurant to operate at the same level of service with fewer people. This is not about replacing humans with robots &mdash; it is about eliminating low-value tasks so your remaining staff can focus on what humans do best: hospitality, creativity, and connection.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Technology</th>
@@ -1242,7 +1246,7 @@
                             <td>1&ndash;3 months</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The total potential labor savings from implementing all of these technologies is $143,000&ndash;$211,000 per year for a typical full-service restaurant. Even adopting just QR ordering and a kitchen display system &mdash; both included in DineOpen plans from $20/month &mdash; saves $68,000&ndash;$95,000 annually. That is not a theoretical number. That is the actual cost of 2&ndash;3 full-time employees at $15&ndash;$18/hr.</p>
 

@@ -767,6 +767,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -829,7 +833,7 @@
                 <h3>Cost Components of a Single Scoop</h3>
                 <p>Here is the full cost breakdown for serving a single scoop in a regular cone at a mid-range ice cream shop in India in 2026:</p>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -888,7 +892,7 @@
                             <td class="profit"><strong>62-68%</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Notice that the ice cream cost is only about 50-60% of the total cost. The remaining 40-50% comes from packaging, labor, and overhead. Many shop owners calculate their selling price based only on the ice cream cost, which means their actual margin is 15-20% lower than they think.</p>
 
@@ -916,7 +920,7 @@
                 <h3>The Golden Rule: Decreasing Marginal Price</h3>
                 <p>Your double scoop should cost less than 2x your single scoop, and your triple should cost less than 3x your single. This is called decreasing marginal pricing, and it serves two purposes: it encourages customers to buy more scoops (increasing average order value), and it makes customers feel they are getting a deal on the larger size.</p>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Scoop Size</th>
@@ -949,7 +953,7 @@
                             <td>2.2-2.4x single (highest margin)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Here is the math that makes this work. If your single scoop costs you Rs 25 (all-in) and you sell it at Rs 60, your margin is Rs 35 (58%). Your double scoop adds another Rs 12-14 of ice cream cost (only the ice cream, since cone/labor/overhead are already covered), so your total cost is Rs 37-39. If you sell the double at Rs 100, your margin is Rs 61-63 (61-63%). The customer feels they are getting a deal ("two scoops for Rs 100 instead of Rs 120"), and you make Rs 26-28 more profit per transaction.</p>
 
@@ -972,7 +976,7 @@
 
                 <p>Most ice cream shops in India offer cones for free or treat them as a fixed cost. This is a massive missed opportunity. Cone upgrades are one of the highest-margin upsells available to you, and customers are willing to pay for them — you just need to offer the option.</p>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Cone Type</th>
@@ -1019,7 +1023,7 @@
                             <td class="profit">64-72%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The beauty of cone pricing is that it adds pure margin to every transaction. The customer was already buying a scoop — the cone upgrade is incremental revenue with very high margins. If 30% of your customers upgrade to a waffle cone at Rs 30 extra, and you serve 200 customers per day, that is an additional Rs 1,800/day or Rs 54,000/month in nearly pure profit.</p>
 
@@ -1045,7 +1049,7 @@
 
                 <h3>Cost Breakdown: Building a Sundae</h3>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Sundae Component</th>
@@ -1100,7 +1104,7 @@
                             <td class="profit"><strong>68-71%</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Creating a Sundae Menu That Sells</h3>
                 <p>Your sundae menu should follow the "Good-Better-Best" framework. This is a well-established pricing psychology principle that works exceptionally well for ice cream sundaes:</p>
@@ -1128,7 +1132,7 @@
 
                 <h3>Cost Breakdown: Shakes & Smoothies</h3>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -1175,7 +1179,7 @@
                             <td class="profit">74-77%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The key insight here is that milk is cheap. A 300ml milkshake uses about 200ml of milk (Rs 10-12) and one scoop of ice cream (Rs 12-18). The rest is sugar, flavoring, and the cup. Yet customers perceive shakes as premium, filling, and worth paying Rs 120-200 for — especially when served in a tall, frosted glass with a garnish on top.</p>
 
@@ -1197,7 +1201,7 @@
 
                 <h3>Topping Cost vs. Price Chart</h3>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Topping</th>
@@ -1268,7 +1272,7 @@
                             <td class="profit">75-80%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Smart Topping Strategies</h3>
                 <ul>
@@ -1343,7 +1347,7 @@
 
                 <h3>Revenue Impact of Upselling</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Upsell Type</th>
@@ -1384,7 +1388,7 @@
                             <td>Rs 57,600-86,400</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Combined, effective upselling can increase your monthly revenue by Rs 1.5-3 lakh — that is 30-50% more revenue from the same number of customers. The key is training your staff with specific scripts and using your <a href="/blog/best-pos-system-ice-cream-shop.html">ice cream POS software</a> to prompt upsells during the ordering process.</p>
 
@@ -1459,7 +1463,7 @@
 
                 <p>Here is a complete reference table showing the recommended pricing structure for an Indian ice cream shop at three different positioning levels. Use this as a starting point and adjust based on your specific costs, location, and competitive landscape.</p>
 
-                <table class="pricing-table">
+                <div class="table-scroll"><table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Menu Item</th>
@@ -1560,7 +1564,7 @@
                             <td class="profit">60-65%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Remember, these are guidelines, not rules. Your specific costs, market conditions, and customer base should determine your final pricing. The important thing is to use data — not instinct — and to review and adjust regularly. An ice cream shop management software like DineOpen gives you the data you need to make confident pricing decisions.</p>
             </div>

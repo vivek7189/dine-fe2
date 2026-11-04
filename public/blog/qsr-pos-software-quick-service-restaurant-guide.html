@@ -883,6 +883,10 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -999,7 +1003,7 @@
 
                 <p>We have evaluated the leading QSR POS systems across speed performance, combo management, kitchen display capabilities, mobile ordering, drive-thru support, pricing, and global availability. Here is how they stack up for quick service restaurant operations.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>QSR POS System</th>
@@ -1076,7 +1080,7 @@
                             <td>Indian QSR and fast food</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Now let us examine each QSR POS system in detail with honest assessments of what works and what does not for quick service operations.</p>
 
@@ -1220,7 +1224,7 @@
                 <p>Cloud kitchens have no customer-facing counter, no dine-in area, and no walk-in traffic. Every order comes through a digital channel: Swiggy, Zomato, DoorDash, Uber Eats, the kitchen's own website, or phone orders. The QSR POS for a cloud kitchen must excel at three things: aggregating orders from all platforms into a single kitchen display, optimising preparation sequence for delivery timing (orders due sooner are prioritised), and managing inventory across multiple virtual brands that share the same kitchen.</p>
                 <p>Many cloud kitchens operate 2-5 virtual brands from one kitchen &mdash; a biryani brand, a burger brand, and a dessert brand might share the same physical space. The POS must keep these brands separate in terms of menus, pricing, and platform listings, while consolidating kitchen operations. DineOpen's multi-brand support lets you manage unlimited virtual brands from a single dashboard, with separate Swiggy/Zomato listings for each brand but unified kitchen display and inventory tracking.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>QSR Format</th>
@@ -1273,7 +1277,7 @@
                             <td>Quick modifiers + loyalty integration</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 6: Cost Comparison -->
@@ -1282,7 +1286,7 @@
 
                 <p>QSR operators are cost-conscious by nature &mdash; margins are tight (typically 6-12% net profit) and every rupee or dollar counts. Here is a transparent comparison of the true cost of ownership for each QSR POS system, including software, hardware, transaction fees, and add-on costs that vendors do not always advertise prominently.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -1383,7 +1387,7 @@
                             <td><strong>Rs 12,000-30,000 + hardware</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Several important notes on the pricing comparison:</p>
 

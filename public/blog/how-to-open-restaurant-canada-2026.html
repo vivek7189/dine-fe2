@@ -877,6 +877,12 @@
                 padding: 24px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+        /* phones: long formulas/slash lists may wrap instead of widening the page */
+        @media (max-width: 640px) { .content p, .content li, .stat-value { overflow-wrap: anywhere; } .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     </style>
 </head>
 <body>
@@ -929,7 +935,7 @@
                 <p>Before you sign a single lease or order your first piece of equipment, you need the full financial picture. Restaurant costs in Canada vary dramatically based on your concept, province, and location. A fast-casual poke bowl counter in Calgary looks nothing like a fine dining establishment in downtown Toronto. Here is the complete cost breakdown by restaurant type.</p>
 
                 <h3>Cost by Restaurant Type</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -964,10 +970,10 @@
                             <td>4-8 months</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Detailed Cost Breakdown (Full Service Restaurant)</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Expense Category</th>
@@ -1044,7 +1050,7 @@
                             <td>Average: $275K-$425K</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>These numbers are in Canadian dollars and reflect 2026 market conditions. Toronto and Vancouver sit at the high end of every range, while cities like Calgary, Edmonton, Halifax, and Winnipeg tend to fall at the lower to mid-range. Keep in mind that these are startup costs only &mdash; you will need ongoing monthly operating expenses of $20,000-$80,000+ depending on your concept, location, and staff size.</p>
 
@@ -1061,7 +1067,7 @@
 <h2>2. Licenses &amp; Permits by Province</h2>
                 <p>Canada does not have a single national restaurant license. Every province &mdash; and often every municipality within a province &mdash; has its own licensing requirements. This is where most newcomers get blindsided. You need anywhere from 8 to 15 separate permits and approvals before you can legally open your doors. Here is the province-by-province breakdown for the four most popular provinces for new restaurants.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Requirement</th>
@@ -1115,7 +1121,7 @@
                             <td>Bill 96 French signage, Web-SRM fiscal module</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Ontario: The Full List</h3>
                 <p>Ontario is the most popular province for new restaurants and also one of the most bureaucratic. Here is every license and approval you need:</p>
@@ -1162,7 +1168,7 @@
                 <h2>3. Food Handler Certification Requirements</h2>
                 <p>Every province in Canada requires at least one certified food handler to be on-site during all hours of food service operations. This is non-negotiable &mdash; operating without a certified food handler can result in fines, closure orders, or both. Here is exactly what each province requires, what it costs, and where to get certified.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Province</th>
@@ -1216,7 +1222,7 @@
                             <td>Every 5 years</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>In Ontario, food handler certification is available through local public health units and approved online providers. The course covers food safety fundamentals including safe food temperatures, cross-contamination prevention, personal hygiene, cleaning and sanitizing procedures, and pest control basics. It concludes with a written exam that you must pass to receive your certificate.</p>
 
@@ -1292,7 +1298,7 @@
                 <p>Your lease will be one of your largest ongoing expenses and one of the most consequential contracts you sign. Restaurant leases are fundamentally different from residential leases, and commercial landlords know that most first-time restaurateurs do not understand the fine print. Getting your lease wrong can add $50,000-$100,000 in unexpected costs over a five-year term. Here is what you need to know.</p>
 
                 <h3>Average Rent by City (2026)</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>City</th>
@@ -1351,7 +1357,7 @@
                             <td>Lowest rents among major cities</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Triple Net vs. Gross Lease</h3>
                 <p>This is the single most important lease concept that first-time restaurant owners misunderstand. In a <strong>gross lease</strong>, your monthly rent payment covers everything &mdash; base rent, property taxes, building insurance, and maintenance. What you see is what you pay. In a <strong>triple-net (NNN) lease</strong>, you pay the base rent plus your proportional share of property taxes, building insurance, and common area maintenance (CAM) charges. A NNN lease that quotes $25/sqft might actually cost $35-$40/sqft after all the additional charges are included. Always ask for the "all-in" monthly cost including NNN charges before signing any commercial lease.</p>
@@ -1378,7 +1384,7 @@
                 <p>Labour is the second-largest expense for most Canadian restaurants, typically consuming 25-35% of revenue. Understanding minimum wages, mandatory employer contributions, and the rules around hiring foreign workers is critical to building a sustainable payroll budget.</p>
 
                 <h3>Minimum Wage by Province (2026)</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Province</th>
@@ -1425,7 +1431,7 @@
                             <td>Increasing annually per legislation</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Mandatory Employer Contributions</h3>
                 <p>Beyond wages, Canadian employers must make significant payroll contributions that many first-time restaurant owners fail to budget for:</p>
@@ -1463,7 +1469,7 @@
                 <h2>7. Insurance Requirements</h2>
                 <p>Operating a restaurant without adequate insurance is both illegal (for certain coverage types) and financially reckless. A single slip-and-fall lawsuit, a kitchen fire, or a food-borne illness outbreak can destroy an uninsured business overnight. Most commercial landlords require proof of insurance before they will execute your lease. Here is the complete insurance checklist for Canadian restaurants.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Insurance Type</th>
@@ -1510,7 +1516,7 @@
                             <td>Mechanical/electrical failure of kitchen equipment</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Workers' Compensation by Province</h3>
                 <ul>
@@ -1532,7 +1538,7 @@
                 <h3>POS System Comparison for Canada</h3>
                 <p>Your Point of Sale system is the central nervous system of your restaurant. It handles orders, payments, tax calculations (GST, HST, PST, QST), inventory, reporting, and increasingly, delivery platform integration. Here is how the top Canadian options compare in 2026:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1607,7 +1613,7 @@
                             <td>30 days</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p><strong>Why transaction fees matter:</strong> On $30,000/month in card sales (typical for a small full-service restaurant), a 2.6% transaction fee costs you $780/month or $9,360/year. With <a href="/products/pos">DineOpen at 0% transaction fees</a>, that $9,360 stays in your pocket. Over a five-year lease term, that is $46,800 in savings from a single technology decision. For a new restaurant operating on thin margins, this is the difference between profitability and struggling to break even.</p>
 

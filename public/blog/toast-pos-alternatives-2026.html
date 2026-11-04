@@ -997,6 +997,10 @@
                 gap: 12px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1341,7 +1345,7 @@
 
                 <p>Here is a side-by-side comparison of all 7 alternatives against Toast across the features that matter most to restaurant operators. This table helps you quickly identify which system matches your specific needs.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1500,7 +1504,7 @@
                             <td>Enterprise/franchise</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The table makes one thing clear: <strong>DineOpen offers the most features at the lowest total cost</strong>. It is the only alternative that combines a free plan, zero transaction fees (BYO processor), AI-powered analytics, AI voice ordering, and no long-term contracts. For restaurants leaving Toast due to cost concerns, DineOpen delivers the biggest savings without sacrificing functionality.</p>
             </div>
@@ -1723,7 +1727,7 @@
 
                 <p>Different restaurant formats have different priorities. Here is our recommendation based on your specific situation.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1788,7 +1792,7 @@
                             <td>$0</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Final CTA -->

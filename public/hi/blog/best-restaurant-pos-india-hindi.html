@@ -736,6 +736,10 @@
                 padding: 10px 8px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -824,7 +828,7 @@
                 <p>हमने India के 7 सबसे popular restaurant POS systems को test किया — features, pricing, ease of use, customer support, और real restaurant owner reviews के basis पर। नीचे detailed comparison table है:</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>POS System</th>
@@ -925,7 +929,7 @@
                                 <td>Small dhabas</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
 
                 <p>ऊपर की table से clear है कि <strong>DineOpen</strong> price-to-feature ratio में सबसे best है — AI features, QR menu, KDS, inventory, online orders, offline mode, और Hindi support — सब कुछ सिर्फ़ ₹899/month में।</p>
@@ -996,7 +1000,7 @@
                 <p>हर restaurant अलग होता है — QSR की needs fine dining से बिल्कुल different हैं। यहां type-wise recommendation है:</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>Restaurant Type</th>
@@ -1043,7 +1047,7 @@
                                 <td>₹899 / Free+txn</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
 
                 <p>जैसा कि table से clear है — <strong>DineOpen हर type के restaurant के लिए best value</strong> देता है। चाहे छोटा dhaba हो या बड़ा fine dining restaurant — features सब same मिलते हैं, बस pricing आपके usage के हिसाब से adjust होती है।</p>
@@ -1066,7 +1070,7 @@
                 <p>Monthly pricing देखने से पूरी picture नहीं बनती। चलिए calculate करते हैं कि 1 साल में कौन सा POS कितना cost करेगा (software only, hardware excluded):</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>POS System</th>
@@ -1127,7 +1131,7 @@
                                 <td>—</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
 
                 <p>Numbers खुद बोलते हैं — <strong>DineOpen ₹899/month में</strong> industry average से काफ़ी सस्ता पड़ता है। और इसमें सारे features included हैं — कोई add-on charges नहीं।</p>

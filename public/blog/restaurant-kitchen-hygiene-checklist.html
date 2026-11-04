@@ -859,6 +859,10 @@
                 content: "[ ]";
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -930,7 +934,7 @@
                 <h3>Before Opening (Pre-Service Checklist)</h3>
                 <p>These tasks must be completed before the first customer order is placed or any food preparation begins.</p>
 
-                <table class="checklist-table">
+                <div class="table-scroll"><table class="checklist-table">
                     <thead>
                         <tr>
                             <th class="checkbox-col">Done</th>
@@ -1001,12 +1005,12 @@
                             <td><span class="badge badge-important">Important</span></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>During Service (Every 30 Minutes)</h3>
                 <p>During a busy service, hygiene standards can slip quickly. These tasks must be done consistently throughout service, ideally on a 30-minute rotation.</p>
 
-                <table class="checklist-table">
+                <div class="table-scroll"><table class="checklist-table">
                     <thead>
                         <tr>
                             <th class="checkbox-col">Done</th>
@@ -1059,12 +1063,12 @@
                             <td><span class="badge badge-important">Important</span></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>After Closing (Post-Service Checklist)</h3>
                 <p>The end-of-day clean is the most thorough daily cleaning routine. No staff member should leave until every item on this checklist is completed and signed off by the supervisor.</p>
 
-                <table class="checklist-table">
+                <div class="table-scroll"><table class="checklist-table">
                     <thead>
                         <tr>
                             <th class="checkbox-col">Done</th>
@@ -1135,7 +1139,7 @@
                             <td><span class="badge badge-critical">Critical</span></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 3: Weekly Cleaning Tasks -->
@@ -1144,7 +1148,7 @@
 
                 <p>Weekly cleaning goes deeper than daily routines, targeting equipment, areas, and systems that accumulate grease, scale, and contamination over time. Assign specific days of the week to each task and rotate responsibility across kitchen staff so that no single person is burdened with all weekly tasks. Typically, weekly tasks are done on Monday (when traffic is lightest) or on the restaurant's weekly off day.</p>
 
-                <table class="checklist-table">
+                <div class="table-scroll"><table class="checklist-table">
                     <thead>
                         <tr>
                             <th class="checkbox-col">Done</th>
@@ -1215,7 +1219,7 @@
                             <td><span class="badge badge-important">Important</span></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>Fire Safety Note: Grease Build-Up</h3>
@@ -1230,7 +1234,7 @@
 
                 <p>Monthly deep cleaning addresses the parts of the kitchen that cannot be reached or treated during daily and weekly routines. Many of these tasks require specialized contractors or equipment. Budget adequate time -- a thorough monthly deep clean for a medium-sized restaurant typically takes 6 to 8 hours with a team of 4 to 5 people.</p>
 
-                <table class="checklist-table">
+                <div class="table-scroll"><table class="checklist-table">
                     <thead>
                         <tr>
                             <th class="checkbox-col">Done</th>
@@ -1301,7 +1305,7 @@
                             <td><span class="badge badge-important">Important</span></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 5: Personal Hygiene Standards for Staff -->
@@ -1360,7 +1364,7 @@
 
                 <p>Temperature control is arguably the single most important food safety principle. Bacteria double in number every 20 minutes when food is held in the danger zone (4&deg;C to 60&deg;C). Maintaining correct temperatures throughout the food chain -- from delivery to service -- prevents the majority of foodborne illness incidents.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Storage Zone</th>
@@ -1407,7 +1411,7 @@
                             <td>Always verify with a calibrated probe thermometer inserted into the thickest part of the food. Never rely on visual cues alone -- pink-to-white colour change is not a reliable indicator of safety.</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box blue">
                     <h3>Temperature Logging Best Practice</h3>
@@ -1517,7 +1521,7 @@
 
                 <p>Being aware of the most frequently cited violations during FSSAI inspections helps you prioritise your hygiene efforts. The following violations account for more than 70 percent of all corrective action orders issued by FSSAI to restaurants in India.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Violation</th>
@@ -1588,7 +1592,7 @@
                             <td>Weekly filter cleaning, monthly hood wipe-down</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 10: How DineOpen Helps -->

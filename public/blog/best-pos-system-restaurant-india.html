@@ -684,6 +684,10 @@
                 padding: 10px 8px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -705,10 +709,10 @@
             <div class="section">
                 <h2>1. Quick Comparison Table</h2>
                 <div class="comparison-table-wrapper">
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead><tr><th>POS</th><th>Best for</th><th>Published price</th><th>How to start</th></tr></thead>
                     <tbody><tr><td><strong>DineOpen</strong></td><td>Small and mid-size restaurants, cafés, cloud kitchens that want one low monthly price</td><td>₹899/month (Growth) · ₹8,988/year</td><td>7-day free trial, self-serve</td></tr><tr><td><strong>Petpooja</strong></td><td>Restaurants that need Swiggy/Zomato sync and in-person setup</td><td>Base plan ₹12,000 + GST; Operations Manager ₹20,000–30,000; Marketing Manager ₹20,000–40,000, each including Base (+ taxes; billing period not stated on its page)</td><td>Demo-first (book a demo)</td></tr><tr><td><strong>Restroworks (formerly Posist)</strong></td><td>Multi-outlet chains and enterprise brands</td><td>Not published — quote on request</td><td>Demo / estimate</td></tr><tr><td><strong>Gofrugal</strong></td><td>Restaurants that also want strong accounting/ERP-style back office</td><td>Not currently published (pricing page under maintenance)</td><td>30-day free trial</td></tr><tr><td><strong>PosBytz</strong></td><td>Single outlets that want a long trial before deciding</td><td>Not published — estimate on request</td><td>14-day free trial, no card</td></tr><tr><td><strong>LimeTray</strong></td><td>Restaurants focused on online ordering and marketing</td><td>Not published — demo required</td><td>Free demo</td></tr><tr><td><strong>DotPe</strong></td><td>QR ordering and payments-led setups</td><td>Not published — demo / callback</td><td>Demo / callback</td></tr></tbody>
-                </table>
+                </table></div>
                 </div>
             </div>
 
@@ -776,14 +780,14 @@
                 <h2>4. Cost Example: One Dine-In Restaurant</h2>
                 <p>A restaurant that wants billing, inventory, captain app, kitchen display and QR ordering, at published prices (hardware not included). Petpooja's page doesn't state its billing period, so ask before you compare totals:</p>
                 <div class="cost-table-wrapper">
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead><tr><th>System</th><th>What you'd buy</th><th>Listed software cost</th></tr></thead>
                     <tbody>
                         <tr><td>DineOpen</td><td>Growth plan, paid yearly</td><td class="lowest-cost">&#8377;8,988 (or &#8377;899/month)</td></tr>
                         <tr><td>Petpooja</td><td>Operations Manager Growth plan (includes Base)</td><td>&#8377;20,000 + taxes (period not stated)</td></tr>
                         <tr><td>Others</td><td>Quote on request</td><td>Ask for a written yearly quote incl. renewal</td></tr>
                     </tbody>
-                </table>
+                </table></div>
                 </div>
                 <p>See our <a href="/blog/petpooja-pricing-plans-2026.html">Petpooja pricing breakdown</a> for what each Petpooja plan includes.</p>
             </div>

@@ -995,6 +995,10 @@
                 grid-template-columns: 1fr;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -1369,7 +1373,7 @@
                 <p>Use this table to compare all 7 apps across the features that matter most for a restaurant billing app in India. Check marks indicate the feature is included in the standard plan at the stated price.</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>App</th>
@@ -1478,7 +1482,7 @@
                                 <td>Legacy users</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
                 <p><em>Table notes: "Yes" indicates feature included in standard plan at stated price. "Add-on" indicates feature available at extra cost. "Paid only" indicates feature locked behind paid upgrade from free tier. "Trial" indicates free trial period available before paid subscription begins.</em></p>
             </div>

@@ -899,6 +899,10 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1022,7 +1026,7 @@
 
                 <p>We have evaluated the leading restaurant POS systems available in the UK market in 2026 across pricing, features, UK-specific compliance, integration capabilities, and value for money. Here is how they compare.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>EPOS System</th>
@@ -1108,7 +1112,7 @@
                             <td>Market stalls, pop-ups</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Now let us look at each system in detail, with honest assessments of strengths and weaknesses for UK restaurant operators.</p>
 
@@ -1317,7 +1321,7 @@
 
                 <p>Monthly subscription prices are just one part of the total cost. Let us look at the true cost of ownership for each system, including hardware, transaction fees, add-ons, and hidden costs that vendors do not always make obvious.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -1402,7 +1406,7 @@
                             <td><strong>£1,278-£4,500+</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>A few important notes on the pricing comparison above:</p>
 
@@ -1431,7 +1435,7 @@
 
                 <p>Different types of UK restaurants have different priorities. Here is our recommendation for each common restaurant format in the British market.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1490,7 +1494,7 @@
                             <td>£0 (+ fees)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 9: How DineOpen Works for UK Restaurants -->
@@ -1573,7 +1577,7 @@
 
                 <h3>The Commission Reality</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Platform</th>
@@ -1608,7 +1612,7 @@
                             <td>Native</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The smart strategy is to use delivery apps for customer acquisition (getting discovered by new customers) while using your POS's built-in direct ordering to retain those customers commission-free. DineOpen's built-in online ordering and loyalty make this practical: a customer who first finds you on Deliveroo can be incentivised through your loyalty programme to order directly next time &mdash; saving you 25-35% commission on every subsequent order.</p>
 

@@ -979,6 +979,10 @@
                 padding: 12px 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1311,7 +1315,7 @@
 
                 <h3>Sample Temperature Log</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Date/Time</th>
@@ -1372,7 +1376,7 @@
                             <td>KS</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Digital vs. Analog Logging</h3>
                 <p>Paper logs are acceptable but have significant disadvantages: they can be lost, damaged, or fabricated. Digital temperature logging through a POS system or dedicated food safety app provides timestamped, tamper-proof records that inspectors trust more. Wireless temperature sensors connected to your POS can automatically log temperatures every 15 minutes and send alerts when a unit goes out of range &mdash; catching a failing compressor at 2 AM before $3,000 in food spoils.</p>
@@ -1456,7 +1460,7 @@
                 </ol>
 
                 <h3>Labeling Best Practices</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Label Element</th>
@@ -1486,7 +1490,7 @@
                             <td>Accountability &mdash; who prepared or stored this item?</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Mid-article CTA -->
@@ -1502,7 +1506,7 @@
 
                 <p>The following table lists the 15 most frequently cited health inspection violations in US restaurants, based on FDA Food Code inspection data and state health department reports. Understanding these common failures helps you prioritize your compliance efforts where they matter most.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -1619,7 +1623,7 @@
                             <td>Track certification dates. Schedule renewals 30 days before expiry.</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="pain-card">
                     <h4>Critical vs. Non-Critical: Why It Matters</h4>
@@ -1634,7 +1638,7 @@
                 <p>A documented cleaning schedule is the backbone of your sanitation program. Inspectors look for a written schedule posted in each area with sign-off columns that prove tasks are being completed. Below are the minimum cleaning frequencies for key tasks, organized by timeframe.</p>
 
                 <h3>Daily Cleaning Tasks</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Task</th>
@@ -1693,10 +1697,10 @@
                             <td>Dishwasher</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Weekly Cleaning Tasks</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Task</th>
@@ -1741,10 +1745,10 @@
                             <td>Sunday</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Monthly &amp; Quarterly Cleaning Tasks</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Task</th>
@@ -1789,7 +1793,7 @@
                             <td>Retain all service reports and invoices</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 9: Digital Record-Keeping with POS -->
@@ -1834,7 +1838,7 @@
                 </ul>
 
                 <h3>Fines by State (Selected Examples)</h3>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>State</th>
@@ -1893,7 +1897,7 @@
                             <td>Court-ordered closure for repeat</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>How to Appeal</h3>
                 <p>If you believe an inspection was conducted unfairly or a violation was cited incorrectly, most jurisdictions offer an appeals process:</p>

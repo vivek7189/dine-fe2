@@ -211,6 +211,10 @@
         .faq-open .faq-arrow { transform: rotate(180deg); }
         @media (max-width: 968px) { .main-container { grid-template-columns: 1fr; gap: 40px; } .sidebar { position: relative; top: 0; } }
         @media (max-width: 768px) { .header { padding: 30px 16px; } .main-container { padding: 20px 16px; } .hero-image { height: 250px; } .intro { padding: 24px 20px; font-size: 18px; } }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -376,7 +380,7 @@
 
                 <p>Below is the most comprehensive comparison table you'll find anywhere online. We've compared all five platforms across 18 parameters that actually matter to Indian restaurant owners. We've been honest about where competitors have an edge — because an informed decision is always better than a biased one.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -533,7 +537,7 @@
                             <td>Very small/casual setups</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>A few things stand out in this comparison. First, neither DineOpen nor Petpooja lists a per-transaction fee, while Toast and Square earn on card processing. Second, DineOpen bundles a broad AI feature suite into its regular plans — not just basic analytics, but AI that works across menu creation, inventory, kitchen operations, and demand prediction. Third, DineOpen is month to month, so if it doesn't work for you, you can leave.</p>
 
@@ -665,7 +669,7 @@
 
                 <h3>Setup 1: Dine-in restaurant that wants billing, captain app, KDS and QR ordering</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>What you need</th>
@@ -690,11 +694,11 @@
                             <td><strong>₹899/month or ₹8,988/year</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Setup 2: Cloud kitchen that also wants loyalty and WhatsApp marketing</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>What you need</th>
@@ -724,9 +728,9 @@
                             <td><strong>₹899/month or ₹8,988/year</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
-                <p>A cloud kitchen that lives on Swiggy and Zomato gets real value from Petpooja's direct sync. A dine-in restaurant that mostly needs billing, KOT, captain app and KDS will usually pay less with DineOpen. For chains, Restroworks prices on request, so get quotes from each vendor for your outlet count.</table>
+                <p>A cloud kitchen that lives on Swiggy and Zomato gets real value from Petpooja's direct sync. A dine-in restaurant that mostly needs billing, KOT, captain app and KDS will usually pay less with DineOpen. For chains, Restroworks prices on request, so get quotes from each vendor for your outlet count.</p>
 
                 
             </div>

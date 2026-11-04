@@ -866,6 +866,10 @@
                 padding: 24px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -1198,7 +1202,7 @@
                 <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=300&fit=crop&q=80" alt="POS system comparison for Australian restaurants" class="section-image">
                 <p>Here is a side-by-side comparison of all 7 POS systems across the features that matter most for Australian restaurants and cafes. Green indicates a clear advantage; red indicates a weakness.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1323,7 +1327,7 @@
                             <td>Large chains</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 10: Australian Compliance -->
@@ -1346,7 +1350,7 @@
                 <h3>Fair Work Award Wages</h3>
                 <p>Understanding award wages is critical for staff rostering and cost management. Here are the key rates under the Restaurant Industry Award 2020:</p>
 
-                <table class="savings-table">
+                <div class="table-scroll"><table class="savings-table">
                     <thead>
                         <tr>
                             <th>Employment Type</th>
@@ -1379,7 +1383,7 @@
                             <td>225%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="warning-box">
                     <h3>Fair Work Non-Compliance Is Costly</h3>
@@ -1392,7 +1396,7 @@
                 <h2>11. EFTPOS Integration: Your Options Compared</h2>
                 <p>EFTPOS is the backbone of Australian payments. Choosing the right EFTPOS provider and ensuring it works with your POS system is one of the most important decisions you will make. Here is how the major EFTPOS providers compare.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Provider</th>
@@ -1427,7 +1431,7 @@
                             <td>Bank rates</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The key difference between POS systems is EFTPOS flexibility. Square locks you into Square's own payment processing at 1.6% per tap — you cannot use a cheaper bank terminal. Lightspeed pushes you toward Lightspeed Payments at 1.6%. DineOpen works with any EFTPOS terminal, meaning you can shop around for the best rates from Tyro, your bank, or any other provider. If you find a provider offering 0.8% instead of 1.6%, that halves your payment processing costs immediately.</p>
 
@@ -1442,7 +1446,7 @@
                 <h2>12. Annual Cost Comparison: Restaurant Processing AUD 600,000/Year</h2>
                 <p>Monthly subscription prices only tell part of the story. Here is what a typical Australian restaurant or cafe processing AUD 600,000/year in card transactions would actually pay with each POS system, including all fees.</p>
 
-                <table class="savings-table">
+                <div class="table-scroll"><table class="savings-table">
                     <thead>
                         <tr>
                             <th>POS System</th>
@@ -1471,7 +1475,7 @@
                             <td>AUD 10,548</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>The Numbers Speak for Themselves</h3>

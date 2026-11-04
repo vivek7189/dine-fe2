@@ -708,6 +708,10 @@
                 padding: 16px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -817,7 +821,7 @@
                 <p>We evaluated the most popular restaurant billing software available in India in 2026 across price, features, ease of use, and suitability for small restaurants. Here is the detailed comparison.</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>Software</th>
@@ -918,7 +922,7 @@
                                 <td class="check">Yes</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
                 <p style="font-size: 14px; color: #6b7280;">*Petpooja price as listed on petpooja.com/pricing, checked 21 October 2026; the page does not state the billing period. Posist (now Restroworks) does not publish prices.</p>
 

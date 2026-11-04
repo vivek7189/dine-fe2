@@ -804,6 +804,10 @@
                 gap: 12px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -892,7 +896,7 @@
 
                 <p style="font-size: 14px; color: #6b7280;">Petpooja prices from petpooja.com/pricing, checked 21 October 2026. Where a feature is not listed there, we say "Ask Petpooja".</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -988,7 +992,7 @@
                             <td>Rs 6,000-24,000/yr</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>For a detailed head-to-head breakdown, read our full <a href="/vs/dineopen-vs-petpooja" style="color: #ef4444;">DineOpen vs Petpooja comparison</a>. The short version: DineOpen has scoop-based billing and flavor tracking built in and starts at Rs 899/month. Petpooja is a large, established company and connects directly to Swiggy and Zomato, which DineOpen does not. If most of your orders come through delivery apps, weigh that.</p>
 

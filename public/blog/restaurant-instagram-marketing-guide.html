@@ -891,6 +891,10 @@
                 padding: 10px 12px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1210,7 +1214,7 @@
 
                 <h3>Best Times to Post for Indian Restaurant Accounts</h3>
 
-                <table class="schedule-table">
+                <div class="table-scroll"><table class="schedule-table">
                     <thead>
                         <tr>
                             <th>Time Slot</th>
@@ -1240,11 +1244,11 @@
                             <td>Behind-the-scenes kitchen prep, breakfast specials, chef arrival content</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Weekly Content Calendar Template</h3>
 
-                <table class="schedule-table">
+                <div class="table-scroll"><table class="schedule-table">
                     <thead>
                         <tr>
                             <th>Day</th>
@@ -1297,7 +1301,7 @@
                             <td>Weekly recap, "What was your favourite this week?" poll, upcoming week preview</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 6: Hashtag Strategy -->

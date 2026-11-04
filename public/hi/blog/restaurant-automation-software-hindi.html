@@ -851,6 +851,10 @@
                 padding-left: 32px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -989,7 +993,7 @@
 
                 <p>बहुत से restaurant owners सोचते हैं कि automation महंगी है। लेकिन reality यह है कि अलग-अलग tools use करना <strong>कई गुना ज़्यादा महंगा</strong> है। यह comparison table देखें:</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Feature / Tool</th>
@@ -1047,7 +1051,7 @@
                             <td class="highlight-cell" style="text-align: center;"><strong>₹10,788</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>यानी DineOpen use करने से आप <strong>सालाना ₹1,00,000 - 2,00,000+ बचा सकते हैं</strong> — और साथ में बेहतर integration, कम headache, और single support point मिलता है।</p>
 

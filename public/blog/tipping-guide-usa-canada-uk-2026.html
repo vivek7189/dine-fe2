@@ -837,6 +837,10 @@
                 padding: 24px 20px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -929,7 +933,7 @@
 
                 <p>Seven states have eliminated tip credit entirely, requiring employers to pay tipped employees the full state minimum wage before any tips are considered. These states represent the most employee-friendly tipping environments in the country:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>State</th>
@@ -1000,7 +1004,7 @@
                             <td>$15.00/hr + tips</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The difference is staggering. A server in California earns at least $16.50 per hour before a single tip. A server in Texas earns $2.13 per hour before tips. Both may receive similar tips from customers who have no idea their server&rsquo;s base pay varies by over $14 per hour depending on the state.</p>
 
@@ -1071,7 +1075,7 @@
 
                 <p>Unlike the United States, Canada does not have a federal tip credit system. Every province requires employers to pay at least the provincial minimum wage, with tips treated as additional income. However, minimum wages vary significantly by province:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Province</th>
@@ -1112,7 +1116,7 @@
                             <td>Employer cannot take tips</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>CRA Tip Reporting</h3>
 
@@ -1179,7 +1183,7 @@
 
                 <p>To make the differences clear, here is a side-by-side comparison of the key tipping rules, practices, and legal requirements across all three countries:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1256,7 +1260,7 @@
                             <td>Yes (12.5% discretionary)</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 6: Tip Pooling vs Tip Sharing -->

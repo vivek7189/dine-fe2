@@ -854,6 +854,10 @@
                 font-size: 24px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -994,7 +998,7 @@
 
                 <p>Use this table as a reference when building your own menu costing sheet. Every restaurant's recipe is different, so your exact numbers will vary. The key is the food cost percentage column -- make sure each dish falls within the ideal range for your restaurant type.</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Dish</th>
@@ -1076,7 +1080,7 @@
                             <td>&#8377;78</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>Key Takeaways from This Table</h3>
@@ -1106,7 +1110,7 @@
                 <h2>4. Ideal Food Cost Percentage by Restaurant Type</h2>
                 <p>There is no single "correct" food cost percentage. It varies significantly based on your restaurant type, cuisine, location, and service model. Here is a detailed breakdown to help you benchmark your own numbers.</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1156,7 +1160,7 @@
                             <td>Flour, sugar, dairy are core costs; premium items have lower food cost</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The most important thing to understand is that food cost percentage does not exist in isolation. A fine dining restaurant with 35% food cost but Rs 2,500 average order value generates far more gross profit per customer than a QSR with 25% food cost and Rs 200 average order value. What matters is the <strong>absolute gross profit per cover</strong> combined with your <strong>volume</strong>.</p>
 

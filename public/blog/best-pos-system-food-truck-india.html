@@ -741,6 +741,10 @@
                 padding: 10px 8px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -805,7 +809,7 @@
                 <p>We tested and compared the five POS systems most commonly used by food truck operators in India. Here is the honest breakdown &mdash; no sugarcoating, just what actually works on a truck.</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>Feature</th>
@@ -890,7 +894,7 @@
                                 <td>2-3 days</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
 
                 <h3>DineOpen &mdash; Best Overall for Indian Food Trucks</h3>
@@ -1083,7 +1087,7 @@
                 <p>Let us look at the real numbers. Most food truck owners focus only on the monthly software fee and ignore hardware costs, transaction fees, and the hidden cost of time. Here is the complete Year 1 comparison:</p>
 
                 <div class="comparison-table-wrapper">
-                    <table class="comparison-table">
+                    <div class="table-scroll"><table class="comparison-table">
                         <thead>
                             <tr>
                                 <th>Cost Item</th>
@@ -1137,7 +1141,7 @@
                                 <td>Ask for a written quote</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
 
                 <h3>The Hidden Cost of No POS</h3>

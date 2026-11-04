@@ -707,6 +707,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -765,7 +769,7 @@
 
                 <p>Chai business कई तरीक़ों से शुरू किया जा सकता है। आपके budget, location, और ambition के हिसाब से सही model choose करें:</p>
 
-                <table class="info-table">
+                <div class="table-scroll"><table class="info-table">
                     <thead>
                         <tr>
                             <th>Business Type</th>
@@ -806,7 +810,7 @@
                             <td>Events, offices, flexible location</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p><strong>हमारी recommendation:</strong> अगर आप पहली बार business शुरू कर रहे हैं, तो <strong>Roadside Tapri</strong> या <strong>Mobile Cart</strong> से शुरू करें। Risk कम है, investment कम है, और जल्दी profit आता है। Success मिलने पर Premium Tapri या Cafe model पर upgrade करें।</p>
 
@@ -951,7 +955,7 @@
 
                 <p>अब सबसे exciting part — chai tapri से कितना profit होता है? चलिए realistic numbers देखते हैं:</p>
 
-                <table class="info-table">
+                <div class="table-scroll"><table class="info-table">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -998,7 +1002,7 @@
                             <td>50-60%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Daily Revenue Scenarios</h3>
                 <ul>

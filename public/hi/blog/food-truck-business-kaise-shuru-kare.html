@@ -632,6 +632,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -685,7 +689,7 @@
 
                 <p>सबसे पहला सवाल जो हर aspiring food truck owner के मन में आता है: <strong>"कितना पैसा लगेगा?"</strong> यह depend करता है कि आप कितने बड़े scale पर शुरू करना चाहते हैं। नीचे एक detailed breakdown है:</p>
 
-                <table class="cost-table">
+                <div class="table-scroll"><table class="cost-table">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -740,7 +744,7 @@
                             <td><strong>Rs 12,00,000</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>ध्यान रखें कि पहले 2-3 months का <strong>working capital</strong> भी अलग से रखें — approximately Rs 50,000-1,00,000। इसमें daily raw material purchase, fuel, staff salary (अगर है), और unexpected expenses cover होंगे। अपने exact costs calculate करने के लिए DineOpen का <a href="/tools/food-cost-calculator" style="color: #ef4444; font-weight: 600;">Food Cost Calculator</a> use करें।</p>
 

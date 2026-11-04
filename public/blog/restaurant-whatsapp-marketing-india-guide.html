@@ -759,6 +759,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -819,7 +823,7 @@
 
                 <h3>WhatsApp vs Other Marketing Channels for Restaurants</h3>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Channel</th>
@@ -872,7 +876,7 @@
                             <td>High</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>The Numbers Do Not Lie</h3>
@@ -909,7 +913,7 @@
                     <li><strong>Best for:</strong> multi-location restaurants, delivery-heavy businesses, chains</li>
                 </ul>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -954,7 +958,7 @@
                             <td>1-3 days</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>Our Recommendation</h3>
@@ -1326,7 +1330,7 @@ Order now: [link/reply/phone]</div>
 
                 <p>Strategy without a schedule is just a wish. Here is a week-by-week plan you can follow every month. Print this out and stick it next to your cash counter.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Week</th>
@@ -1361,7 +1365,7 @@ Order now: [link/reply/phone]</div>
                             <td>2-3 Status posts + 1 broadcast</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>The Golden Rule: Maximum 2-3 Broadcast Messages Per Week</h3>
@@ -1399,7 +1403,7 @@ Order now: [link/reply/phone]</div>
 
                 <p>WhatsApp should not be your only marketing channel — but it should be your primary one. Here is how it fits into the bigger picture:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Channel</th>
@@ -1452,7 +1456,7 @@ Order now: [link/reply/phone]</div>
                             <td>High</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p><strong>The ideal marketing stack for an Indian restaurant in 2026:</strong></p>
                 <ul>

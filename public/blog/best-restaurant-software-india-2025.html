@@ -558,6 +558,10 @@
                 overflow-x: auto;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* wide comparison tables scroll inside their own box at every screen size (never widen the page) */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -761,7 +765,7 @@
             
             <div class="section">
                 <h2>Complete Feature Comparison Table</h2>
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -936,7 +940,7 @@
                             <td>Zomato Dependent</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
             
             <div class="section">

@@ -892,6 +892,10 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -979,7 +983,7 @@
                 <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=300&fit=crop&q=80" alt="Various types of restaurants in India showing different dining formats" class="section-image">
                 <p>Different restaurant formats have fundamentally different cost structures, which is why their profit margins vary so widely. Here is a detailed breakdown of what each type typically earns in India today.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1044,7 +1048,7 @@
                             <td>Minimal Fixed Costs</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Fine Dining (Net Margin: 12-18%)</h3>
                 <p>Fine dining restaurants in India charge the highest prices, yet their margins are far thinner than the menu prices suggest. The reasons are straightforward: prime real estate in upscale neighbourhoods (Bandra, Khan Market, Koregaon Park), large trained staff including sommeliers and floor managers, premium imported ingredients, expensive crockery and decor, and high marketing spend to maintain brand prestige. A fine dining restaurant in South Mumbai spending Rs 4-6 lakh per month on rent alone faces an enormous fixed cost hurdle before earning a single rupee of profit.</p>
@@ -1083,7 +1087,7 @@
                 <h2>3. Restaurant Cost Breakdown: Where Your Revenue Goes</h2>
                 <p>Understanding the cost structure of a restaurant is essential to improving margins. Every rupee of revenue gets divided among several cost buckets. Here is what a well-managed Indian restaurant's cost structure should look like, expressed as a percentage of revenue.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Category</th>
@@ -1148,7 +1152,7 @@
                             <td>Depends on restaurant type</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>The Prime Cost Ratio: Labour + Food Cost</h3>
                 <p>In the restaurant industry, "Prime Cost" refers to the combined total of food cost and labour cost. These are the two biggest and most controllable costs in any restaurant. Industry wisdom says that if your prime cost is above 65% of revenue, you are in trouble. The best-run Indian restaurants keep their prime cost at 55-60%, leaving enough room to absorb rent, utilities, and other overheads while still being profitable.</p>
@@ -1216,7 +1220,7 @@
                 <h2>5. City-Wise Rent Impact on Profit Margins</h2>
                 <p>Rent is the single biggest differentiator in restaurant profitability across India. The same restaurant concept that earns a healthy margin in Jaipur might struggle to break even in Mumbai. Here is a realistic comparison across major Indian cities.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>City / Area</th>
@@ -1287,13 +1291,13 @@
                             <td>Outstanding</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
                 <p style="font-size:14px; color:#6b7280; margin-top:-16px; margin-bottom:32px;">*Revenue assumption based on typical restaurant of that type in that location. Actual percentages vary with revenue performance.</p>
 
                 <h3>The Mumbai vs Jaipur Profit Comparison</h3>
                 <p>Consider two identical casual dining restaurants, both generating Rs 10,00,000 in monthly revenue and both running a food cost of 32% and labour cost of 28%. The only difference is location.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Item</th>
@@ -1333,7 +1337,7 @@
                             <td><strong style="color:#22c55e">Rs 2,60,000 (26%)</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>This example illustrates why location selection is arguably the most important business decision a restaurant owner makes. The Mumbai restaurant is technically operational but dangerously close to loss. The Jaipur restaurant is thriving. This does not mean avoid Mumbai &mdash; it means that in expensive locations, you must achieve a proportionally higher revenue per square foot to compensate for the rent burden.</p>
 

@@ -908,6 +908,10 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1064,7 +1068,7 @@
 
                 <p>Here is a side-by-side comparison of the features that matter most for US restaurants, across all five systems. Pay close attention to what is included in each free or entry plan versus what requires an upgrade.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1189,7 +1193,7 @@
                             <td class="check">No</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="highlight-box">
                     <h3>Key Takeaway From the Comparison</h3>
@@ -1250,7 +1254,7 @@
                 <h3>True Annual Cost Comparison</h3>
                 <p>Here is what each &ldquo;free&rdquo; POS actually costs a typical US restaurant processing $25,000/month in card payments, with the features a real restaurant needs:</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Category</th>
@@ -1304,7 +1308,7 @@
                             <td><strong>$2,280&ndash;$5,040</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <div class="solution-card">
                     <h4>The DineOpen Difference</h4>
@@ -1353,7 +1357,7 @@
                     <p>Bars need tab management, quick item entry, pre-authorization for open tabs, and fast payment processing under pressure. DineOpen's entry plan handles tab management and split billing. SpotOn's $25/month plan includes a particularly strong bar mode with pre-auth and rapid-fire item entry. Toast's bar features are excellent but require the $69/month Essentials plan. For a neighborhood bar processing $15,000&ndash;$30,000/month, DineOpen's $20/month plan with zero processing markup is the clear cost winner.</p>
                 </div>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1406,7 +1410,7 @@
                             <td>Multi-location at lowest price point</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
             </div>
 
             <!-- Section 7: How to Switch POS Without Downtime -->

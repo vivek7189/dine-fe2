@@ -92,6 +92,8 @@
       .toc a { display:block; padding:4px 0; text-decoration:none; color:#374151; font-weight:600; font-size:15px; }
       footer { background:#0b3d2e; color:#a7f3d0; text-align:center; padding:28px 20px; font-size:14px; }
       footer a { color:#fff; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -189,14 +191,14 @@
         <div class="section" id="number">
             <h2>4. Your Own Number vs a Rented Number</h2>
             <p>You have two ways to get on WhatsApp Business API — and the best restaurant platforms support both.</p>
-            <table>
+            <div class="table-scroll"><table>
                 <tr><th>&nbsp;</th><th>Your own number</th><th>Rented (managed) number</th></tr>
                 <tr><td><strong>Best for</strong></td><td>Established brands with an existing WhatsApp presence</td><td>New outlets, quick launches, owners who want zero setup</td></tr>
                 <tr><td><strong>Setup time</strong></td><td>A day or two (verification)</td><td>Minutes</td></tr>
                 <tr><td><strong>Meta paperwork</strong></td><td>Handled for you by your vendor</td><td>None — vendor runs it</td></tr>
                 <tr><td><strong>Templates</strong></td><td>Submitted for your number</td><td>Pre-approved, ready to use</td></tr>
                 <tr><td><strong>Brand identity</strong></td><td>Your existing number &amp; chat history</td><td>A fresh dedicated number</td></tr>
-            </table>
+            </table></div>
             <p>Most small and new restaurants pick the <strong>rented number</strong> to be live the same day. Larger brands connect their own. Either way, the experience for your customers — and the features you get — are identical.</p>
         </div>
 
@@ -235,13 +237,13 @@
 
         <div class="section" id="compare">
             <h2>8. WhatsApp vs SMS vs Email vs Aggregators</h2>
-            <table>
+            <div class="table-scroll"><table>
                 <tr><th>Channel</th><th>Open rate</th><th>Two-way</th><th>Commission</th><th>Best use</th></tr>
                 <tr><td><strong>WhatsApp</strong></td><td>90%+</td><td>Yes</td><td>None (direct)</td><td>Orders, updates, marketing, support</td></tr>
                 <tr><td>SMS</td><td>~20%</td><td>Limited</td><td>None</td><td>OTPs, basic alerts</td></tr>
                 <tr><td>Email</td><td>~20%</td><td>No</td><td>None</td><td>Long-form, receipts</td></tr>
                 <tr><td>Aggregators</td><td>n/a</td><td>No</td><td>20–30%</td><td>Discovery / new customers</td></tr>
-            </table>
+            </table></div>
             <p>Aggregators are great for discovery, but expensive to rely on. WhatsApp is where you convert those customers into <em>direct, repeat, commission-free</em> regulars.</p>
         </div>
 

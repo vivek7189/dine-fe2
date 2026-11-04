@@ -1257,6 +1257,10 @@
                 font-size: 12px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -1543,7 +1547,7 @@
                 <h2>Technology Adoption by Restaurant Type in 2026</h2>
                 <p>Not all restaurant segments are adopting technology at the same rate or in the same way. This comparison shows the current state of adoption across India's five major restaurant categories — revealing both the leaders and the significant opportunities that remain in segments like dhabas and street food.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Restaurant Type</th>
@@ -1596,7 +1600,7 @@
                             <td class="no">10%</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The most interesting story in this table is the dhaba and street food segment. With only 38% POS adoption and 12% AI feature adoption, this is where the largest untapped opportunity lies — and also where the competitive advantage of early adoption will be most pronounced. A dhaba that starts using a cloud POS, QR menu, and basic loyalty program today is operating at a level that 62% of its competition is not even close to matching.</p>
 

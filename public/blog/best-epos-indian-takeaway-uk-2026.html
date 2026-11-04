@@ -883,6 +883,10 @@
                 font-size: 28px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -987,7 +991,7 @@
 
                 <p>We have evaluated the leading EPOS systems available in the UK market specifically through the lens of Indian takeaway operations. Here is how the top five compare on the features that matter most to Indian takeaway owners.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>EPOS System</th>
@@ -1040,7 +1044,7 @@
                             <td>iPad-based full restaurant POS</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>Now let us look at each system in detail, with honest assessments of how well they handle the specific demands of an Indian takeaway operation.</p>
 
@@ -1139,7 +1143,7 @@
 
                 <p>Here is a detailed, feature-by-feature comparison of all five EPOS systems evaluated specifically for Indian takeaway operations in the UK.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Feature</th>
@@ -1296,7 +1300,7 @@
                             <td>Annual typical</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <p>The comparison makes clear that DineOpen offers the most comprehensive feature set at the lowest price point for Indian takeaways. The only area where competitors match DineOpen is basic payment processing &mdash; and even there, DineOpen's bring-your-own-acquirer model means you can negotiate lower card processing rates than Square's or Zettle's locked 1.75%.</p>
             </div>
@@ -1408,7 +1412,7 @@
 
                 <p>Let us be completely transparent about what an EPOS system actually costs for an Indian takeaway in the UK. Monthly subscription prices are just the starting point &mdash; you need to factor in hardware, transaction fees, add-ons, and the savings you can expect.</p>
 
-                <table class="comparison-table">
+                <div class="table-scroll"><table class="comparison-table">
                     <thead>
                         <tr>
                             <th>Cost Component</th>
@@ -1501,7 +1505,7 @@
                             <td><strong>£1,908-£5,700+</strong></td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>The Hidden Cost of "Free" Systems</h3>
                 <p>Square and Zettle appear free, but the 1.75% transaction fee is a significant ongoing cost. Let us calculate what a typical Indian takeaway actually pays:</p>

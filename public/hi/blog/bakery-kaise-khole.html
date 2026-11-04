@@ -708,6 +708,10 @@
                 font-size: 14px;
             }
         }
+            /* let wide tables scroll inside their box instead of widening the page on phones */
+        .main-container > * { min-width: 0; }
+            /* phones/tablets: wide tables scroll inside this box, the page itself stays phone-width */
+        @media (max-width: 1024px) { .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     </style>
 </head>
 <body>
@@ -765,7 +769,7 @@
 
                 <p>Bakery business शुरू करने से पहले यह decide करना ज़रूरी है कि आप किस type की bakery खोलना चाहते हैं। हर model का investment, risk, और profit potential अलग है:</p>
 
-                <table class="info-table">
+                <div class="table-scroll"><table class="info-table">
                     <thead>
                         <tr>
                             <th>Bakery Type</th>
@@ -812,7 +816,7 @@
                             <td>₹1L-4L/month</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Home Bakery — सबसे कम Risk, सबसे Easy Start</h3>
                 <p>अगर आप first-time entrepreneur हैं या baking सीख रहे हैं, तो home bakery सबसे अच्छा starting point है। अपने kitchen में OTG या convection microwave से शुरू करें। Instagram पर portfolio बनाएं, WhatsApp से orders लें, और Swiggy/Zomato पर list करें। Rent और staff का ख़र्चा zero। जब monthly orders 50+ हो जाएं, तब commercial setup की planning करें।</p>
@@ -874,6 +878,7 @@
             <!-- Section 4: Equipment Guide -->
             <div class="section">
                 <h2>Equipment Guide — कौन सा Equipment खरीदें?</h2>
+<p class="tool-callout" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0 18px;font-size:15px;line-height:1.6"><strong>Free tool:</strong> अपनी list बनाएं और कुल खर्च देखें: <a href="/tools/restaurant-kitchen-equipment-list">kitchen equipment list with price</a>. Café, QSR, cloud kitchen, bakery और dhaba की ready list मिलती है।</p>
 
                 <p>Bakery business में equipment सबसे important investment है। ग़लत equipment = ग़लत product = ग़लत business। आइए detail में समझते हैं:</p>
 
@@ -1033,7 +1038,7 @@
 
                 <p>Bakery business की सबसे अच्छी बात — high profit margins। लेकिन margins category-wise काफ़ी अलग होते हैं:</p>
 
-                <table class="info-table">
+                <div class="table-scroll"><table class="info-table">
                     <thead>
                         <tr>
                             <th>Product Category</th>
@@ -1073,7 +1078,7 @@
                             <td>Cost ₹3,000, Sell ₹12,000</td>
                         </tr>
                     </tbody>
-                </table>
+                </table></div>
 
                 <h3>Break-Even Timeline</h3>
                 <ul>
