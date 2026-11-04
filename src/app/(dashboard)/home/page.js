@@ -661,7 +661,8 @@ export default function HomePage() {
                 {recentOrders.map((order, i) => {
                   const orderNum = orderDisplayNumber(order);
                   const status = statusColors[order.status] || statusColors.pending;
-                  const total = order.grandTotal || order.totalAmount || order.total || 0;
+                  // finalAmount = the bill incl. tax (what Order History shows); totalAmount is before tax
+                  const total = Number(order.finalAmount) > 0 ? Number(order.finalAmount) : (order.grandTotal || order.totalAmount || order.total || 0);
                   const rawType = (order.orderType?.replace('-', ' ') || 'dine in').toLowerCase();
                   const typeConf = typeIcons[rawType] || typeIcons['dine in'];
                   const TypeIcon = typeConf.icon;

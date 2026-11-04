@@ -4021,8 +4021,9 @@ const OrderHistory = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-green-700">Net Sales</div>
-                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
-                  <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}</div>
+                  {/* Bill amounts incl. tax, so the card matches the UPI/Cash split below, Home and the Sales Summary tab */}
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenueWithTax || stats.totalRevenue || 0) - (stats.refundedTotal || 0))}</div>
+                  <div className="text-[10.5px] text-gray-700 mt-0.5">{stats.completedCount} billed{stats.refundedCount > 0 ? ` · −${formatCurrency(stats.refundedTotal)} refunds` : ''}{stats.totalRevenueWithTax > stats.totalRevenue && stats.totalRevenue > 0 ? ` · ${formatCurrency(stats.totalRevenue)} before tax` : ''}</div>
                   {((stats.paymentBreakdown && Object.keys(stats.paymentBreakdown).length > 0) || stats.dueTotal > 0) && (
                     <div className="mt-2 pt-2 border-t border-green-200/70 flex flex-wrap gap-1">
                       {Object.entries(stats.paymentBreakdown || {}).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => (
@@ -4034,7 +4035,7 @@ const OrderHistory = () => {
                 </div>
                 <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-3 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-blue-700">Total Sales</div>
-                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
+                  <div className="text-lg sm:text-2xl font-extrabold text-gray-900 leading-tight mt-0.5">{formatCurrency((stats.totalRevenueWithTax || stats.totalRevenue || 0) + (stats.openTotal || 0))}</div>
                   <div className="text-[10.5px] text-gray-700 mt-0.5">billed + unbilled</div>
                 </div>
                 <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-3 shadow-sm">
