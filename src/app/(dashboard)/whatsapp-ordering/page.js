@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import WhatsAppPauseCard from '../../../components/WhatsAppPauseCard';
 import {
   FaWhatsapp,
   FaCheck,
@@ -354,6 +355,10 @@ export default function WhatsAppOrderingPage() {
 
         {/* Tab Content */}
         <div className="mt-6">
+          {configExists && config?.enabled && (
+            <WhatsAppPauseCard restaurantId={restaurantId} orderingPaused={config.orderingPaused || null} botOn
+              onChange={(p) => setConfig((c) => (c ? { ...c, orderingPaused: p } : c))} />
+          )}
           {activeTab === 'overview' && (
             <OverviewTab configExists={configExists} config={config} form={form} setActiveTab={setActiveTab} />
           )}

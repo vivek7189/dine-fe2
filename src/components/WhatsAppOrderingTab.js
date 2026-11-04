@@ -6,6 +6,7 @@ import {
   FaMoneyBillWave, FaLink, FaStore, FaCommentDots, FaInfoCircle, FaListUl, FaClock,
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
+import WhatsAppPauseCard from './WhatsAppPauseCard';
 
 const WA_GREEN = '#25D366';
 const WA_DARK = '#075E54';
@@ -28,6 +29,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [connected, setConnected] = useState(false);
   const [connectedNumber, setConnectedNumber] = useState('');
   const [enabled, setEnabled] = useState(false);
+  const [orderingPaused, setOrderingPaused] = useState(null); // owner/admin pause (WhatsAppPauseCard)
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [requireAddress, setRequireAddress] = useState(true);
   const [paymentMode, setPaymentMode] = useState('pay_at_counter');
@@ -60,6 +62,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       setConnectedNumber(statusRes?.settings?.phoneNumber || statusRes?.settings?.phoneNumberId || '');
       const c = (cfgRes && cfgRes.config) || {};
       setEnabled(!!c.enabled);
+      setOrderingPaused(c.orderingPaused || null);
       setWelcomeMessage(c.welcomeMessage || `Welcome to *${restaurantName}*! 🍽️\n\nI can help you place an order.\nType *menu* to see our menu.`);
       setRequireAddress(c.requireAddress !== false);
       setOrderingMode(c.orderingMode || 'chat');
@@ -154,6 +157,10 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
           <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>Let customers place orders by chatting with your WhatsApp number. Orders drop straight into your POS &amp; kitchen.</p>
         </div>
       </div>
+
+      {enabled && !loading && (
+        <WhatsAppPauseCard restaurantId={restaurantId} orderingPaused={orderingPaused} botOn={enabled} onChange={setOrderingPaused} />
+      )}
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* LEFT: setup + settings */}
