@@ -12,6 +12,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const [saving, setSaving] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [selectedConvo, setSelectedConvo] = useState(null);
+  const selectedConvoRef = useRef(null); // the open chat, read by the 15 s refresh
+  useEffect(() => { selectedConvoRef.current = selectedConvo; }, [selectedConvo]);
   const [convoMessages, setConvoMessages] = useState([]);
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
@@ -366,8 +368,22 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     if (subTab === 'messages' && restaurantId && !messagesDenied) {
       pollRef.current = setInterval(() => {
         apiClient.getWhatsAppMessages(restaurantId, { limit: 200 }).then(res => {
-          if (res?.conversations) setConversations(res.conversations);
+          if (res?.conversations) {
+            setConversations(res.conversations);
+            // Keep the open chat's header (24 h reply window) in step with the list.
+            const open = selectedConvoRef.current;
+            const key = (p) => String(p || '').replace(/\D/g, '').slice(-9);
+            const fresh = open && res.conversations.find(c => key(c.phone) === key(open.phone));
+            if (fresh) setSelectedConvo(prev => (prev && key(prev.phone) === key(fresh.phone) ? { ...prev, sessionActive: fresh.sessionActive, unreadCount: fresh.unreadCount } : prev));
+          }
         }).catch(() => {});
+        // New messages / ticks in the open chat show without reopening it.
+        const open = selectedConvoRef.current;
+        if (open && open.phone) {
+          apiClient.getWhatsAppMessages(restaurantId, { phone: open.phone, limit: 100 }).then(res => {
+            if (res?.messages && selectedConvoRef.current && selectedConvoRef.current.phone === open.phone) setConvoMessages([...res.messages].reverse());
+          }).catch(() => {});
+        }
       }, 15000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -1007,6 +1023,9 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                             </span>
                           )}
                         </div>
+                        {isOutgoing && msg.status === 'failed' && msg.error && (
+                          <div style={{ fontSize: '10.5px', color: '#b91c1c', marginTop: '2px', textAlign: 'right' }}>Not delivered: {String(msg.error)}</div>
+                        )}
                       </div>
                     </div>
                   );
