@@ -1,6 +1,6 @@
 // India plans (Nov 2026). Prices include GST, per outlet. One source for the website pricing
 // sections and the in-app Billing page; the backend has the same ids/amounts in payment.js.
-// Café Lite is sold via WhatsApp for now (self-serve once the 1-device limit is enforced).
+// Café Lite is self-serve on Razorpay too (lite-monthly / lite-yearly).
 
 export const INDIA_WHATSAPP = '919004459951'; // same sales number the pricing page used
 export const indiaWaLink = (msg = 'Hi DineOpen, I want to know about your plans') => `https://wa.me/${INDIA_WHATSAPP}?text=${encodeURIComponent(msg)}`;

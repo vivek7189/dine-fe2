@@ -1112,12 +1112,14 @@ function BillingContent() {
         name: p.name,
         price: cycle === 'yearly' ? p.yearly : p.monthly,
         period: cycle === 'yearly' ? 'year' : 'month',
-        ...(cycle === 'yearly' ? { monthlyEquivalent: Math.round(p.yearly / 12), savings: inr(yearlySaving(p)) } : {}),
+        // Yearly: the final yearly price, with 12 × the monthly price struck through (a real saving —
+        // monthly billing is on offer) and the amount saved.
+        ...(cycle === 'yearly' ? { strikePrice: p.monthly * 12, savings: inr(yearlySaving(p)) } : {}),
         description: `${p.tagline} · GST included`,
         popular: !!p.popular,
         features: p.features,
       }));
-      // Café Lite is sold over WhatsApp until its 1-device limit is enforced in the app.
+      // Café Lite: self-serve on Razorpay (live plans lite-monthly / lite-yearly in payment.js).
       const lite = {
         id: indiaPlanId('lite', cycle),
         name: INDIA_LITE.name,
@@ -1125,7 +1127,7 @@ function BillingContent() {
         period: cycle === 'yearly' ? 'year' : 'month',
         description: 'For tea stalls, juice counters & one-counter cafés · GST included',
         popular: false,
-        talkToUs: true,
+        ...(cycle === 'yearly' ? { strikePrice: INDIA_LITE.monthly * 12, savings: inr(yearlySaving(INDIA_LITE)) } : {}),
         features: ['GST billing on 1 device', 'Owner + 1 staff login', 'Up to 100 menu items', 'Daily sales report'],
       };
       // Existing customers on the old Growth/Pro plans keep seeing (and can renew) their plan.
@@ -1963,7 +1965,17 @@ function BillingContent() {
                       </div>
                     ) : (
                       <div>
-                        {plan.monthlyEquivalent ? (
+                        {plan.strikePrice ? (
+                          <>
+                            <div style={{ fontSize: '14px', color: '#9ca3af', textDecoration: 'line-through', lineHeight: 1.2 }}>
+                              {formatCurrency(plan.strikePrice)}
+                            </div>
+                            <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937' }}>
+                              {formatCurrency(plan.price)}
+                            </span>
+                            <span style={{ fontSize: '14px', color: '#6b7280' }}>/{plan.period}</span>
+                          </>
+                        ) : plan.monthlyEquivalent ? (
                           <>
                             <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937' }}>
                               {formatCurrency(plan.monthlyEquivalent)}
