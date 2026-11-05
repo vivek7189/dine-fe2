@@ -90,7 +90,7 @@ export default function PaymentGatewaysPanel({ restaurantId, notify }) {
   const btn = (bg, color = 'white') => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 20px', background: bg, color, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' });
 
   return (
-    <div data-testid="payment-gateways" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #f1f5f9' }}>
+    <div data-testid="payment-gateways" style={{ marginBottom: 28, paddingBottom: 24, borderBottom: '1px solid #f1f5f9' }}>
       <h3 style={{ fontSize: 17, fontWeight: 700, color: '#111827', margin: 0 }}>Online payment gateways</h3>
       <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0 16px' }}>
         Connect your own account. Customers pay online on your QR / online ordering page; the money goes straight to you.

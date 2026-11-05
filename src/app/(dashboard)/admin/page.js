@@ -1468,6 +1468,9 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
         </select>
       </div>
 
+      {/* Razorpay / Paytm (and future gateways) — connect in one place, above the UPI section */}
+      <PaymentGatewaysPanel restaurantId={selectedRestaurant?.id} notify={(m) => showSuccess(m)} />
+
       {!selectedRestaurant ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
           Please select a restaurant to manage payment settings
@@ -1636,8 +1639,6 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
           {/* Toast replaced with useNotification */}
         </div>
       )}
-      {/* Razorpay / Paytm (and future gateways) — connect in one place */}
-      <PaymentGatewaysPanel restaurantId={selectedRestaurant?.id} notify={(m) => showSuccess(m)} />
     </div>
   );
 };
