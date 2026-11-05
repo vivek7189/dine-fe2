@@ -31,6 +31,7 @@ function StaffIdBadges({ summary }) {
   );
 }
 import WhatsAppOrderingTab from '../../../components/WhatsAppOrderingTab';
+import PaymentGatewaysPanel from '../../../components/PaymentGatewaysPanel';
 import { t, getCurrentLanguage, setLanguage, getAvailableLanguages } from '../../../lib/i18n';
 import NativePrinterSettings from '../../../components/NativePrinterSettings';
 import TerminalNumberSetting from '../../../components/TerminalNumberSetting';
@@ -1635,6 +1636,8 @@ const PaymentSettings = ({ restaurants, selectedRestaurant, setSelectedRestauran
           {/* Toast replaced with useNotification */}
         </div>
       )}
+      {/* Razorpay / Paytm (and future gateways) — connect in one place */}
+      <PaymentGatewaysPanel restaurantId={selectedRestaurant?.id} notify={(m) => showSuccess(m)} />
     </div>
   );
 };
