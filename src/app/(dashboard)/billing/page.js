@@ -4,6 +4,10 @@ import { useState, useEffect, Suspense } from 'react';
 import { getApiBase } from '@/lib/apiBase';
 import { track } from '@/lib/analytics';
 import { INDIA_PLANS, INDIA_LITE, indiaPlanId, inr, yearlySaving, indiaWaLink } from '@/lib/indiaPlans';
+// Festive banner on the India plans: hidden after this time (31 Dec 2026 end of day, IST). The % is the
+// real yearly saving vs paying monthly, taken from the plan prices.
+const FESTIVE_BANNER_UNTIL = Date.parse('2027-01-01T00:00:00+05:30');
+const FESTIVE_MAX_OFF = Math.max(...[...INDIA_PLANS, INDIA_LITE].map(p => Math.round((yearlySaving(p) / (p.monthly * 12)) * 100)));
 import LinkPlansSection from '@/components/LinkPlansSection';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -1855,6 +1859,27 @@ function BillingContent() {
           backgroundColor: 'white', borderRadius: '12px', padding: '20px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'visible'
         }}>
+          {/* Festive season banner (India). No deadline is shown — the yearly saving is real (vs paying
+              monthly) and stays; the banner just stops showing after FESTIVE_BANNER_UNTIL. */}
+          {currency === 'INR' && Date.now() < FESTIVE_BANNER_UNTIL && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap',
+              margin: '0 auto 18px', padding: '12px 18px', maxWidth: '760px', borderRadius: '14px',
+              background: 'linear-gradient(135deg, #fff7ed, #fef3c7)', border: '1px solid #fdba74',
+            }}>
+              <span style={{ fontSize: '22px' }}>🪔</span>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#9a3412' }}>Festive season offer</span>
+              <span style={{ fontSize: '14px', color: '#7c2d12' }}>
+                up to <b style={{ color: '#dc2626' }}>{FESTIVE_MAX_OFF}% OFF</b> on yearly plans · GST included
+              </span>
+              {billingCycle !== 'yearly' && (
+                <button type="button" onClick={() => setBillingCycle('yearly')} style={{
+                  border: 'none', borderRadius: '999px', padding: '7px 14px', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #f97316, #ef4444)', color: 'white', fontWeight: 700, fontSize: '13px',
+                }}>See yearly prices</button>
+              )}
+            </div>
+          )}
           <h2 style={{
             fontSize: '18px', fontWeight: '600', color: '#1f2937',
             textAlign: 'center', marginBottom: '20px'
@@ -1967,10 +1992,16 @@ function BillingContent() {
                       <div>
                         {plan.strikePrice ? (
                           <>
-                            <div style={{ fontSize: '14px', color: '#9ca3af', textDecoration: 'line-through', lineHeight: 1.2 }}>
-                              {formatCurrency(plan.strikePrice)}
+                            {/* Old price (12 × monthly) with a clear red strike + the % off */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '2px' }}>
+                              <span style={{ fontSize: '17px', fontWeight: 600, color: '#6b7280', textDecoration: 'line-through', textDecorationColor: '#ef4444', textDecorationThickness: '2px' }}>
+                                {formatCurrency(plan.strikePrice)}
+                              </span>
+                              <span style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)', color: 'white', fontSize: '12px', fontWeight: 800, padding: '3px 9px', borderRadius: '999px', letterSpacing: '0.02em', boxShadow: '0 2px 6px rgba(239,68,68,0.3)' }}>
+                                {Math.round((1 - plan.price / plan.strikePrice) * 100)}% OFF
+                              </span>
                             </div>
-                            <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937' }}>
+                            <span style={{ fontSize: '30px', fontWeight: 800, color: '#111827' }}>
                               {formatCurrency(plan.price)}
                             </span>
                             <span style={{ fontSize: '14px', color: '#6b7280' }}>/{plan.period}</span>
@@ -1993,7 +2024,11 @@ function BillingContent() {
                             <span style={{ fontSize: '14px', color: '#6b7280' }}>/{plan.period}</span>
                           </>
                         )}
-                        {plan.savings && (
+                        {plan.savings && (plan.strikePrice ? (
+                          <div style={{ marginTop: '6px', color: '#15803d', fontSize: '13px', fontWeight: 700 }}>
+                            🎉 You save {plan.savings}
+                          </div>
+                        ) : (
                           <div style={{
                             marginTop: '4px', backgroundColor: '#dcfce7', color: '#166534',
                             padding: '2px 8px', borderRadius: '10px', fontSize: '11px',
@@ -2001,7 +2036,7 @@ function BillingContent() {
                           }}>
                             Save {plan.savings}
                           </div>
-                        )}
+                        ))}
                       </div>
                     )}
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '8px 0 0 0' }}>{plan.description}</p>
