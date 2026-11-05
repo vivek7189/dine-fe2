@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import WhatsAppPauseCard from './WhatsAppPauseCard';
+import WhatsAppBotSettingsCard from './WhatsAppBotSettingsCard';
 
 const WA_GREEN = '#25D366';
 const WA_DARK = '#075E54';
@@ -30,6 +31,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
   const [connectedNumber, setConnectedNumber] = useState('');
   const [enabled, setEnabled] = useState(false);
   const [orderingPaused, setOrderingPaused] = useState(null); // owner/admin pause (WhatsAppPauseCard)
+  const [botCfg, setBotCfg] = useState(null); // owner/admin bot settings (WhatsAppBotSettingsCard)
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [requireAddress, setRequireAddress] = useState(true);
   const [paymentMode, setPaymentMode] = useState('pay_at_counter');
@@ -63,6 +65,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       const c = (cfgRes && cfgRes.config) || {};
       setEnabled(!!c.enabled);
       setOrderingPaused(c.orderingPaused || null);
+      setBotCfg(c);
       setWelcomeMessage(c.welcomeMessage || `Welcome to *${restaurantName}*! 🍽️\n\nI can help you place an order.\nType *menu* to see our menu.`);
       setRequireAddress(c.requireAddress !== false);
       setOrderingMode(c.orderingMode || 'chat');
@@ -160,6 +163,10 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
 
       {enabled && !loading && (
         <WhatsAppPauseCard restaurantId={restaurantId} orderingPaused={orderingPaused} botOn={enabled} onChange={setOrderingPaused} />
+      )}
+      {enabled && !loading && botCfg && (
+        <WhatsAppBotSettingsCard restaurantId={restaurantId} config={botCfg} currencySymbol={currencySymbol}
+          onSaved={(st) => setBotCfg(prev => ({ ...(prev || {}), ...st }))} />
       )}
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
