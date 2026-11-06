@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import apiClient from '../lib/api';
 import { FACEBOOK_APP_ID, EMBEDDED_SIGNUP_CONFIG_ID, isPhoneBrowser, startPhoneConnect } from '../utils/whatsappConnect';
 import { FaPhone, FaCheckCircle, FaTimesCircle, FaSpinner, FaPaperPlane, FaWhatsapp, FaArrowLeft, FaSearch, FaPlug, FaToggleOn, FaToggleOff, FaCopy, FaCheck, FaFacebook, FaImage, FaFileAlt, FaMapMarkerAlt, FaVolumeUp, FaVideo, FaChevronDown } from 'react-icons/fa';
@@ -15,6 +15,13 @@ export default function WhatsAppTab({ selectedRestaurant }) {
   const selectedConvoRef = useRef(null); // the open chat, read by the 15 s refresh
   useEffect(() => { selectedConvoRef.current = selectedConvo; }, [selectedConvo]);
   const [convoMessages, setConvoMessages] = useState([]);
+  // "Load older": pages fetched before the latest 200 messages (chat list) / 100 (open chat). Kept
+  // apart from the latest page so the 15 s refresh doesn't drop them.
+  const [olderConvos, setOlderConvos] = useState([]);
+  const [convoPage, setConvoPage] = useState({ hasMore: false, oldest: null, loadedOlder: false });
+  const [olderMsgs, setOlderMsgs] = useState([]);
+  const [threadPage, setThreadPage] = useState({ hasMore: false, oldest: null, loadedOlder: false });
+  const [loadingOlder, setLoadingOlder] = useState('');
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -146,6 +153,8 @@ export default function WhatsAppTab({ selectedRestaurant }) {
       const res = await apiClient.getWhatsAppMessages(restaurantId, { limit: 200 });
       if (res?.conversations) {
         setConversations(res.conversations);
+        setOlderConvos([]);
+        setConvoPage({ hasMore: !!res.hasMore, oldest: res.oldestTimestamp || null, loadedOlder: false });
       }
     } catch (err) {
       if (err?.status === 403) setMessagesDenied(true);
@@ -163,11 +172,14 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
   // Load single conversation messages
   const openConversation = async (convo) => {
+    const sameChat = selectedConvoRef.current && selectedConvoRef.current.phone === convo.phone;
     setSelectedConvo(convo);
+    if (!sameChat) { setOlderMsgs([]); setThreadPage({ hasMore: false, oldest: null, loadedOlder: false }); }
     try {
       const res = await apiClient.getWhatsAppMessages(restaurantId, { phone: convo.phone, limit: 100 });
       if (res?.messages) {
         setConvoMessages(res.messages.reverse()); // oldest first
+        setThreadPage(prev => (prev.loadedOlder && sameChat ? prev : { hasMore: !!res.hasMore, oldest: res.oldestTimestamp || null, loadedOlder: false }));
       }
       // Mark as read
       await apiClient.markWhatsAppRead(restaurantId, convo.phone).catch(() => {});
@@ -370,6 +382,7 @@ export default function WhatsAppTab({ selectedRestaurant }) {
         apiClient.getWhatsAppMessages(restaurantId, { limit: 200 }).then(res => {
           if (res?.conversations) {
             setConversations(res.conversations);
+            setConvoPage(prev => (prev.loadedOlder ? prev : { hasMore: !!res.hasMore, oldest: res.oldestTimestamp || null, loadedOlder: false }));
             // Keep the open chat's header (24 h reply window) in step with the list.
             const open = selectedConvoRef.current;
             const key = (p) => String(p || '').replace(/\D/g, '').slice(-9);
@@ -389,10 +402,61 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [subTab, restaurantId, messagesDenied]);
 
-  // Scroll to bottom when messages change
+  // Scroll to the bottom when a new latest message arrives (not on every 15 s refresh, and not when
+  // older messages are added at the top).
+  const lastMsgKey = convoMessages.length ? (convoMessages[convoMessages.length - 1].id || convoMessages.length) : '';
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [convoMessages]);
+  }, [lastMsgKey, selectedConvo?.phone]);
+
+  const loadOlderConvos = async () => {
+    if (!convoPage.hasMore || !convoPage.oldest || loadingOlder) return;
+    setLoadingOlder('convos');
+    try {
+      const res = await apiClient.getWhatsAppMessages(restaurantId, { limit: 200, before: convoPage.oldest });
+      if (res?.conversations) {
+        setOlderConvos(prev => [...prev, ...res.conversations]);
+        setConvoPage({ hasMore: !!res.hasMore, oldest: res.oldestTimestamp || null, loadedOlder: true });
+      }
+    } catch (err) {
+      console.error('Load older chats error:', err);
+    } finally {
+      setLoadingOlder('');
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    const open = selectedConvoRef.current;
+    if (!open || !threadPage.hasMore || !threadPage.oldest || loadingOlder) return;
+    setLoadingOlder('msgs');
+    try {
+      const res = await apiClient.getWhatsAppMessages(restaurantId, { phone: open.phone, limit: 100, before: threadPage.oldest });
+      if (res?.messages && selectedConvoRef.current && selectedConvoRef.current.phone === open.phone) {
+        setOlderMsgs(prev => [...[...res.messages].reverse(), ...prev]);
+        setThreadPage({ hasMore: !!res.hasMore, oldest: res.oldestTimestamp || null, loadedOlder: true });
+      }
+    } catch (err) {
+      console.error('Load older messages error:', err);
+    } finally {
+      setLoadingOlder('');
+    }
+  };
+
+  // Latest page + loaded older pages: a chat already in a newer page keeps its newer row.
+  const allConversations = useMemo(() => {
+    const key = (p) => String(p || '').replace(/\D/g, '').slice(-9) || String(p || '');
+    const seen = new Set(conversations.map(c => key(c.phone)));
+    const older = [];
+    for (const c of olderConvos) {
+      const k = key(c.phone);
+      if (!seen.has(k)) { seen.add(k); older.push(c); }
+    }
+    return [...conversations, ...older];
+  }, [conversations, olderConvos]);
+  const threadMessages = useMemo(() => {
+    const ids = new Set(convoMessages.map(m => m.id).filter(Boolean));
+    return [...olderMsgs.filter(m => !m.id || !ids.has(m.id)), ...convoMessages];
+  }, [olderMsgs, convoMessages]);
 
   // Filtered conversations based on search
   // Connected through DineOpen's shared number (not the restaurant's own WhatsApp)
@@ -402,14 +466,14 @@ export default function WhatsAppTab({ selectedRestaurant }) {
     apiClient.getWhatsAppTestTarget(restaurantId).then(r => setTestTarget(r || { available: false })).catch(() => setTestTarget({ available: false }));
   }, [sharedNumber, restaurantId]);
   const filteredConversations = searchQuery.trim()
-    ? conversations.filter(c =>
+    ? allConversations.filter(c =>
         (c.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.phone || '').includes(searchQuery)
       )
-    : conversations;
+    : allConversations;
 
   // Total unread count for badge
-  const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+  const totalUnread = allConversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
   // Get media URL for proxy (includes auth token as query param for img src usage)
   const getMediaUrl = (mediaId) => {
@@ -871,6 +935,12 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                   </div>
                 ))
               )}
+              {!messagesLoading && convoPage.hasMore && !searchQuery.trim() && (
+                <button type="button" onClick={loadOlderConvos} disabled={!!loadingOlder}
+                  style={{ display: 'block', width: '100%', padding: '12px', border: 'none', borderTop: '1px solid #f3f4f6', background: '#fafafa', color: '#16a34a', fontSize: '13px', fontWeight: 600, cursor: loadingOlder ? 'wait' : 'pointer' }}>
+                  {loadingOlder === 'convos' ? 'Loading…' : 'Load older chats'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -910,7 +980,15 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
               {/* Messages area */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-                {convoMessages.map((msg, idx) => {
+                {threadPage.hasMore && (
+                  <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                    <button type="button" onClick={loadOlderMessages} disabled={!!loadingOlder}
+                      style={{ padding: '6px 14px', borderRadius: '999px', border: '1px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: '12px', fontWeight: 600, cursor: loadingOlder ? 'wait' : 'pointer' }}>
+                      {loadingOlder === 'msgs' ? 'Loading…' : 'Load older messages'}
+                    </button>
+                  </div>
+                )}
+                {threadMessages.map((msg, idx) => {
                   const isOutgoing = msg.direction === 'outgoing' || msg.type === 'test_message' || msg.type === 'bill_sent' || msg.type === 'reply';
                   const isMedia = ['image', 'video', 'audio', 'document', 'sticker', 'location'].includes(msg.messageType);
 
@@ -958,30 +1036,43 @@ export default function WhatsAppTab({ selectedRestaurant }) {
 
                         {/* Video message */}
                         {msg.messageType === 'video' && msg.mediaId && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
-                            <FaVideo size={16} color="#6b7280" />
-                            <span style={{ fontSize: '12px', color: '#374151' }}>Video message</span>
+                          <div style={{ marginBottom: '4px' }}>
+                            <video controls preload="none" src={getMediaUrl(msg.mediaId)}
+                              style={{ width: '100%', maxWidth: '280px', maxHeight: '280px', borderRadius: '8px', display: 'block', backgroundColor: '#000' }}
+                              onError={e => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex'; }} />
+                            <div style={{ display: 'none', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px' }}>
+                              <FaVideo size={16} color="#6b7280" />
+                              <span style={{ fontSize: '12px', color: '#374151' }}>Video no longer available</span>
+                            </div>
                           </div>
                         )}
 
                         {/* Audio message */}
                         {msg.messageType === 'audio' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
-                            <FaVolumeUp size={16} color="#25D366" />
-                            <div style={{ flex: 1, height: '4px', backgroundColor: '#d1d5db', borderRadius: '2px' }}>
-                              <div style={{ width: '30%', height: '100%', backgroundColor: '#25D366', borderRadius: '2px' }} />
-                            </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
+                            <FaVolumeUp size={16} color="#25D366" style={{ flexShrink: 0 }} />
+                            {msg.mediaId ? (
+                              <>
+                                <audio controls preload="none" src={getMediaUrl(msg.mediaId)} style={{ height: '36px', width: '220px', maxWidth: '100%' }}
+                                  onError={e => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline'; }} />
+                                <span style={{ display: 'none', fontSize: '12px', color: '#374151' }}>Voice note no longer available</span>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: '#374151' }}>Voice note</span>
+                            )}
                           </div>
                         )}
 
                         {/* Document message */}
                         {msg.messageType === 'document' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px' }}>
-                            <FaFileAlt size={16} color="#6b7280" />
+                          <a href={msg.mediaId ? getMediaUrl(msg.mediaId) : undefined} target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: isOutgoing ? '#c8f0b4' : '#f3f4f6', borderRadius: '8px', marginBottom: '4px', textDecoration: 'none', cursor: msg.mediaId ? 'pointer' : 'default' }}>
+                            <FaFileAlt size={16} color="#6b7280" style={{ flexShrink: 0 }} />
                             <span style={{ fontSize: '12px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {msg.filename || 'Document'}
                             </span>
-                          </div>
+                            {msg.mediaId && <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, marginLeft: 'auto', flexShrink: 0 }}>Open</span>}
+                          </a>
                         )}
 
                         {/* Location message */}
@@ -996,10 +1087,11 @@ export default function WhatsAppTab({ selectedRestaurant }) {
                           </a>
                         )}
 
-                        {/* Text content (skip for image-only messages) */}
-                        {!(msg.messageType === 'image' && msg.mediaId && !msg.caption) && (
+                        {/* Text content (skip for image-only messages, and the "[Audio message]" / "[Video]" stand-in once a player shows) */}
+                        {!(msg.messageType === 'image' && msg.mediaId && !msg.caption)
+                          && !(['audio', 'video', 'document'].includes(msg.messageType) && msg.mediaId && !msg.caption && /^\[[^\]]*\]$/.test(String(msg.message || '').trim())) && (
                           <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                            {msg.messageType === 'image' ? msg.caption : msg.message}
+                            {msg.messageType === 'image' || ((msg.messageType === 'audio' || msg.messageType === 'video' || msg.messageType === 'document') && msg.caption) ? msg.caption : msg.message}
                           </div>
                         )}
 

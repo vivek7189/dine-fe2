@@ -4392,11 +4392,13 @@ class ApiClient {
     });
   }
 
-  async getWhatsAppMessages(restaurantId, { page, limit, phone } = {}) {
+  // before = ISO time of the oldest message already shown → the next older page ("Load older").
+  async getWhatsAppMessages(restaurantId, { page, limit, phone, before } = {}) {
     const params = new URLSearchParams();
     if (page) params.set('page', page);
     if (limit) params.set('limit', limit);
     if (phone) params.set('phone', phone);
+    if (before) params.set('before', before);
     return this.request(`/api/automation/${restaurantId}/whatsapp/messages?${params.toString()}`);
   }
 
