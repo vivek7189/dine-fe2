@@ -126,6 +126,8 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
       const response = await apiClient.getGoogleReviewSettings(restaurantId);
       if (response.success && response.settings) {
         setSettings(prev => ({ ...prev, ...response.settings }));
+        // Reply box starts with the owner's saved tone
+        if (response.settings.defaultReplyTone) setReplyTone(response.settings.defaultReplyTone);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -233,6 +235,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
     try {
       setSettingsLoading(true);
       await apiClient.updateGoogleReviewSettings(restaurantId, settings);
+      if (settings.defaultReplyTone) setReplyTone(settings.defaultReplyTone);
       setSettingsSaved(true);
       setTimeout(() => setSettingsSaved(false), 2000);
       if (settings.googleReviewUrl && !settings.qrCodeUrl) {
@@ -955,7 +958,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                         display: 'flex', flexWrap: 'wrap', gap: '8px',
                         alignItems: 'center', marginBottom: '12px'
                       }}>
-                        <button
+                        {settings.aiEnabled !== false && (<button
                           onClick={() => generateAIReply(review)}
                           disabled={generatingReply}
                           style={{
@@ -972,7 +975,7 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                           ) : (
                             <><FaRobot size={12} /> AI Suggest Reply</>
                           )}
-                        </button>
+                        </button>)}
                         <select
                           value={replyTone}
                           onChange={(e) => setReplyTone(e.target.value)}
@@ -1366,10 +1369,10 @@ export default function GoogleReviews({ restaurantId, restaurant }) {
                 onChange={(e) => setSettings(prev => ({ ...prev, aiEnabled: e.target.checked }))}
                 style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#8b5cf6' }}
               />
-              Enable AI Review Generation
+              AI reply suggestions
             </label>
             <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px', marginLeft: '32px' }}>
-              AI will generate review content for customers and reply suggestions for you
+              Shows an &quot;AI Suggest Reply&quot; button on each review. You check the text, then send or copy it. Customers always write their own reviews.
             </p>
           </div>
 
