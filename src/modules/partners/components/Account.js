@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { KeyRound, LogOut } from 'lucide-react';
 import partnerApi, { partnerToken } from '../api';
 import { date } from '../format';
+import { Alert, Button, Card, Field, PageHeader, inputCls } from './ui';
 
 export default function Account({ partner }) {
   const [cur, setCur] = useState('');
@@ -25,32 +27,40 @@ export default function Account({ partner }) {
     try { await partnerApi.logoutEverywhere(); } catch (_) { /* token already dead */ }
     partnerToken.clear(); window.location.href = '/partner/login';
   }
-  const input = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm';
+  const rows = [['Name', partner.name], ['Company', partner.company], ['Partner code', partner.code], ['E-mail', partner.email || '—'], ['Phone', partner.phone || '—'], ['Last login', date(partner.lastLoginAt)]].filter(([, v]) => v);
+
   return (
-    <div className="space-y-4 max-w-xl">
-      <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm">
-        <div className="font-bold text-gray-900 mb-2">Your details</div>
-        <dl className="grid grid-cols-2 gap-y-1">
-          <dt className="text-gray-500">Name</dt><dd className="font-semibold">{partner.name}</dd>
-          {partner.company && <><dt className="text-gray-500">Company</dt><dd className="font-semibold">{partner.company}</dd></>}
-          <dt className="text-gray-500">Partner code</dt><dd className="font-semibold">{partner.code}</dd>
-          <dt className="text-gray-500">E-mail</dt><dd className="font-semibold">{partner.email || '—'}</dd>
-          <dt className="text-gray-500">Phone</dt><dd className="font-semibold">{partner.phone || '—'}</dd>
-          <dt className="text-gray-500">Last login</dt><dd className="font-semibold">{date(partner.lastLoginAt)}</dd>
-        </dl>
-        <p className="text-xs text-gray-500 mt-2">To change your name, e-mail or phone, contact DineOpen.</p>
+    <div className="max-w-3xl">
+      <PageHeader title="Account" subtitle="Your partner profile and sign-in." />
+      <div className="space-y-6">
+        <Card className="p-6">
+          <h2 className="font-semibold text-slate-900">Your details</h2>
+          <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-4 mt-5 text-sm">
+            {rows.map(([k, v]) => <div key={k}><dt className="text-xs text-slate-500">{k}</dt><dd className="font-medium text-slate-800 mt-0.5 break-words">{v}</dd></div>)}
+          </dl>
+          <p className="text-xs text-slate-500 mt-5 pt-4 border-t border-slate-100">To change your name, e-mail or phone, write to <a className="font-medium text-slate-700 hover:underline" href="mailto:info@dineopen.com">info@dineopen.com</a>.</p>
+        </Card>
+
+        {partner.email && (
+          <Card className="p-6">
+            <form onSubmit={changePw} className="space-y-4">
+              <div className="flex items-center gap-2"><KeyRound className="w-4 h-4 text-slate-400" /><h2 className="font-semibold text-slate-900">{partner.hasPassword ? 'Change password' : 'Set a password'}</h2></div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {partner.hasPassword && <Field label="Current password"><input className={inputCls} type="password" autoComplete="current-password" value={cur} onChange={e => setCur(e.target.value)} required /></Field>}
+                <Field label="New password" hint="10+ characters, letters and numbers."><input className={inputCls} type="password" autoComplete="new-password" value={next} onChange={e => setNext(e.target.value)} required minLength={10} /></Field>
+              </div>
+              {msg.ok && <Alert tone="success">{msg.ok}</Alert>}
+              {msg.err && <Alert tone="error">{msg.err}</Alert>}
+              <Button busy={busy}>{busy ? 'Saving…' : 'Save password'}</Button>
+            </form>
+          </Card>
+        )}
+
+        <Card className="p-6 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1"><div className="font-semibold text-slate-900">Sign out everywhere</div><div className="text-sm text-slate-500 mt-0.5">Logs out every device, including this one.</div></div>
+          <Button variant="secondary" icon={LogOut} onClick={logoutAll} className="text-red-600">Log out on all devices</Button>
+        </Card>
       </div>
-      {partner.email && (
-        <form onSubmit={changePw} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="font-bold text-gray-900">{partner.hasPassword ? 'Change password' : 'Set a password'}</div>
-          {partner.hasPassword && <input className={input} type="password" autoComplete="current-password" placeholder="Current password" value={cur} onChange={e => setCur(e.target.value)} required />}
-          <input className={input} type="password" autoComplete="new-password" placeholder="New password (10+ characters, letters and numbers)" value={next} onChange={e => setNext(e.target.value)} required minLength={10} />
-          <button disabled={busy} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold disabled:opacity-60">{busy ? 'Saving…' : 'Save password'}</button>
-          {msg.ok && <div className="text-sm text-green-700">{msg.ok}</div>}
-          {msg.err && <div role="alert" className="text-sm text-red-700">{msg.err}</div>}
-        </form>
-      )}
-      <button type="button" onClick={logoutAll} className="text-sm text-red-600 underline">Log out on all devices</button>
     </div>
   );
 }
