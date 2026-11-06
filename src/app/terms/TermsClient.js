@@ -324,13 +324,8 @@ export default function TermsOfService() {
               borderRadius: '8px',
               border: '1px solid #d1d5db'
             }}>
-              <p style={{ margin: '0 0 8px 0' }}>
+              <p style={{ margin: 0 }}>
                 <strong>Email:</strong> legal@dineopen.com
-              </p>
-              <p style={{ margin: '0 0 8px 0' }}>
-                <strong>Address:</strong> DineOpen Legal Team<br />
-                123 Tech Street, Digital City<br />
-                India 110001
               </p>
             </div>
           </section>

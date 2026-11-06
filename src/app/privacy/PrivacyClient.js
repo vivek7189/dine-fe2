@@ -103,7 +103,7 @@ export default function PrivacyPolicy() {
           marginBottom: '32px',
           fontSize: '14px'
         }}>
-          Last updated: December 2024
+          Last updated: November 2026
         </p>
 
         <div style={{ lineHeight: '1.8', color: '#374151' }}>
@@ -240,6 +240,32 @@ export default function PrivacyPolicy() {
               color: '#1f2937',
               marginBottom: '16px'
             }}>
+              Google Business Profile Data
+            </h2>
+            <p style={{ marginBottom: '16px' }}>
+              A restaurant owner can choose to connect their Google Business Profile to DineOpen from Admin → Google Reviews. When they do, Google asks them to allow DineOpen to manage their Business Profile (the &quot;business.manage&quot; permission), plus their email address so we can show which Google account is connected.
+            </p>
+            <p style={{ marginBottom: '8px' }}>With this permission we:</p>
+            <ul style={{ paddingLeft: '20px', marginBottom: '16px' }}>
+              <li style={{ marginBottom: '8px' }}>Read the list of business locations the owner manages, so they can pick their restaurant</li>
+              <li style={{ marginBottom: '8px' }}>Read the reviews on that location (reviewer name, rating, review text and date) and show them in the owner&apos;s DineOpen dashboard</li>
+              <li style={{ marginBottom: '8px' }}>Post or update a reply to a review, only when the owner (or a rule the owner switched on) sends it</li>
+            </ul>
+            <p style={{ marginBottom: '16px' }}>
+              We store the connection tokens Google gives us and a short-lived copy of the reviews (refreshed about every 15 minutes) so the dashboard loads quickly. If the owner turns on AI reply suggestions, the text of a review is sent to our AI provider (OpenAI) only to draft a suggested reply; it is not used to train AI models. We do not sell Google data, use it for advertising, or share it with anyone else, and we use it only to provide the review features the owner asked for.
+            </p>
+            <p style={{ marginBottom: '16px' }}>
+              The owner can disconnect at any time from Admin → Google Reviews, which deletes the stored tokens and cached reviews, or remove DineOpen&apos;s access from their Google Account at myaccount.google.com/permissions. DineOpen&apos;s use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.
+            </p>
+          </section>
+
+          <section style={{ marginBottom: '32px' }}>
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              marginBottom: '16px'
+            }}>
               Your Rights
             </h2>
             <p style={{ marginBottom: '16px' }}>
@@ -300,13 +326,8 @@ export default function PrivacyPolicy() {
               borderRadius: '8px',
               border: '1px solid #d1d5db'
             }}>
-              <p style={{ margin: '0 0 8px 0' }}>
+              <p style={{ margin: 0 }}>
                 <strong>Email:</strong> privacy@dineopen.com
-              </p>
-              <p style={{ margin: '0 0 8px 0' }}>
-                <strong>Address:</strong> DineOpen Privacy Team<br />
-                123 Tech Street, Digital City<br />
-                India 110001
               </p>
             </div>
           </section>
