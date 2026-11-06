@@ -5,6 +5,7 @@ import { getApiBase } from '@/lib/apiBase';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import WhatsAppPauseCard from '../../../components/WhatsAppPauseCard';
+import WhatsAppNumberIdWarning from '../../../components/WhatsAppNumberIdWarning';
 import WhatsAppBotSettingsCard from '../../../components/WhatsAppBotSettingsCard';
 import {
   FaWhatsapp,
@@ -356,6 +357,7 @@ export default function WhatsAppOrderingPage() {
 
         {/* Tab Content */}
         <div className="mt-6">
+          {configExists && <WhatsAppNumberIdWarning config={config} />}
           {configExists && config?.enabled && (
             <WhatsAppPauseCard restaurantId={restaurantId} orderingPaused={config.orderingPaused || null} botOn
               onChange={(p) => setConfig((c) => (c ? { ...c, orderingPaused: p } : c))} />

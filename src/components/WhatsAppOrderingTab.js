@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import WhatsAppPauseCard from './WhatsAppPauseCard';
+import WhatsAppNumberIdWarning from './WhatsAppNumberIdWarning';
 import WhatsAppBotSettingsCard from './WhatsAppBotSettingsCard';
 
 const WA_GREEN = '#25D366';
@@ -161,6 +162,7 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
         </div>
       </div>
 
+      {!loading && botCfg && <WhatsAppNumberIdWarning config={{ ...botCfg, enabled }} />}
       {enabled && !loading && (
         <WhatsAppPauseCard restaurantId={restaurantId} orderingPaused={orderingPaused} botOn={enabled} onChange={setOrderingPaused} />
       )}
