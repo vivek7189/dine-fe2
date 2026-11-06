@@ -5758,6 +5758,20 @@ class ApiClient {
     return this.request(`/api/delivery/${restaurantId}/settings`);
   }
 
+  // Auto-assign settings (owner / admin): { autoAssign, requireAccept, acceptTimeoutMin, maxPerRider }
+  async saveDeliveryAssignSettings(restaurantId, settings) {
+    return this.request(`/api/delivery/${restaurantId}/settings`, { method: 'PUT', body: settings });
+  }
+
+  async unassignDelivery(restaurantId, orderId) {
+    return this.request(`/api/delivery/${restaurantId}/unassign`, { method: 'POST', body: { orderId } });
+  }
+
+  // Counter marks the order delivered for the boy (frees him; completes the bill when it is paid).
+  async markDeliveredByCounter(restaurantId, orderId, { paymentCollected = false, paymentMethod } = {}) {
+    return this.request(`/api/delivery/${restaurantId}/mark-delivered`, { method: 'POST', body: { orderId, asManager: true, paymentCollected, paymentMethod } });
+  }
+
   async getDeliveryTracking(restaurantId, orderId) {
     return this.request(`/api/delivery/${restaurantId}/tracking/${orderId}`);
   }

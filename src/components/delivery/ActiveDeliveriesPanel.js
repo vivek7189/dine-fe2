@@ -44,6 +44,7 @@ export default function ActiveDeliveriesPanel({ restaurantId, apiClient, realtim
   };
 
   const statusColors = {
+    queued: 'bg-orange-100 text-orange-700',
     assigned: 'bg-amber-100 text-amber-700',
     accepted: 'bg-blue-100 text-blue-700',
     picked_up: 'bg-purple-100 text-purple-700',
@@ -106,11 +107,11 @@ export default function ActiveDeliveriesPanel({ restaurantId, apiClient, realtim
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
                     statusColors[delivery.deliveryStatus] || 'bg-gray-100 text-gray-600'
                   }`}>
-                    {delivery.deliveryStatus?.replace('_', ' ')}
+                    {delivery.deliveryStatus === 'queued' ? 'waiting for rider' : delivery.deliveryStatus?.replace('_', ' ')}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 truncate mt-0.5">
-                  {delivery.assignedStaff?.name} • {addressText}
+                  {delivery.assignedStaff?.name || 'No rider yet'} • {addressText}
                 </p>
               </div>
               <div className="text-right">
