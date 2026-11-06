@@ -10,6 +10,7 @@ import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
+import DeliveryRiderChip from '../../../components/delivery/DeliveryRiderChip';
 import StatementModal from '../../../components/customers/StatementModal';
 import { fmtTime, fmtDate, fmtDateTime, restaurantDateKey } from '../../../lib/restaurantTime';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
@@ -4523,9 +4524,12 @@ const OrderHistory = () => {
                             {/* Table/Room */}
                             <td className="px-3 py-2.5">
                               {isDeliveryOrder(order) ? (
-                                <div className="flex items-center gap-1.5 text-xs text-gray-600 max-w-[220px]" title={deliveryAddressText(order) || 'No address'}>
-                                  <FaTruck size={10} className="text-gray-400 flex-shrink-0" />
-                                  <span className="truncate">{deliveryAddressText(order) || 'No address'}</span>
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-600 max-w-[220px]" title={deliveryAddressText(order) || 'No address'}>
+                                    <FaTruck size={10} className="text-gray-400 flex-shrink-0" />
+                                    <span className="truncate">{deliveryAddressText(order) || 'No address'}</span>
+                                  </div>
+                                  <DeliveryRiderChip order={order} restaurantId={restaurantId} apiClient={apiClient} onChanged={() => fetchOrders(false)} compact />
                                 </div>
                               ) : (
                               <div className="flex items-center gap-1.5 text-xs text-gray-600">
@@ -5059,6 +5063,11 @@ const OrderHistory = () => {
                             <span className={`${isMobile ? 'text-[10px] px-1.5' : 'text-xs px-2'} font-semibold text-white bg-amber-500 py-0.5 rounded-full`}>{t('orderHistory.partial')}</span>
                             <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-amber-600 font-semibold`}>{t('orderHistory.paid')} {formatCurrency(order.paidAmount)}</span>
                           </div>
+                        )}
+
+                        {/* Delivery boy: who has it / where it is + assign / change rider */}
+                        {isDeliveryOrder(order) && (
+                          <div className="mb-1.5"><DeliveryRiderChip order={order} restaurantId={restaurantId} apiClient={apiClient} onChanged={() => fetchOrders(false)} compact={isMobile} /></div>
                         )}
 
                         {/* Customer / Table / Type — compact inline on mobile, grid on desktop */}

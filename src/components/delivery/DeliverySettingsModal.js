@@ -40,6 +40,7 @@ export default function DeliverySettingsModal({ isOpen, onClose, restaurantId, a
     setF({
       autoAssign: !!initial?.autoAssign, requireAccept: !!initial?.requireAccept,
       acceptTimeoutMin: Number(initial?.acceptTimeoutMin) || 2, maxPerRider: Number(initial?.maxPerRider) || 1,
+      whenAllBusy: initial?.whenAllBusy === 'wait' ? 'wait' : 'assign',
       channel: initial?.channel || 'app',
       whatsapp: { askPayment: true, customerPhone: true, items: true, dutyCommands: true, tellOnRemove: true, ...(initial?.whatsapp || {}) },
     });
@@ -121,6 +122,16 @@ export default function DeliverySettingsModal({ isOpen, onClose, restaurantId, a
               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
+          <div className={row}>
+            <span className="flex-1">
+              <span className="block text-sm font-semibold text-gray-900">When every delivery boy is busy</span>
+              <span className="block text-xs text-gray-500">{f.whenAllBusy === 'wait' ? 'The order waits and goes to the first boy who becomes free.' : 'The order still goes out — to the boy with the fewest orders, taking turns.'}</span>
+            </span>
+            <select value={f.whenAllBusy} onChange={(e) => setF({ ...f, whenAllBusy: e.target.value })} className={input}>
+              <option value="assign">Give it anyway (take turns)</option>
+              <option value="wait">Wait for a free boy</option>
+            </select>
+          </div>
 
           <div className={h}>How delivery boys get their orders</div>
           <div className="flex gap-2">
@@ -141,9 +152,9 @@ export default function DeliverySettingsModal({ isOpen, onClose, restaurantId, a
                 <div className="text-xs text-red-700">WhatsApp is not connected — connect it in Admin → WhatsApp first.</div>
               ) : (
                 <div className="text-xs text-gray-700 space-y-1">
-                  <div>Order message template: <b>{TPL_LABEL[wa.templates?.assigned] || wa.templates?.assigned}</b>{f.requireAccept ? <> · Accept template: <b>{TPL_LABEL[wa.templates?.offer] || wa.templates?.offer}</b></> : null}</div>
+                  <div>Order message template: <b>{TPL_LABEL[wa.templates?.assigned] || wa.templates?.assigned}</b>{f.requireAccept ? <> · Accept template: <b>{TPL_LABEL[wa.templates?.offer] || wa.templates?.offer}</b></> : null}{f.whatsapp.tellOnRemove && wa.templates?.cancelled ? <> · &quot;No longer yours&quot; template: <b>{TPL_LABEL[wa.templates.cancelled] || wa.templates.cancelled}</b></> : null}</div>
                   {wa.shared && <div className="text-gray-500">Sent from DineOpen&apos;s WhatsApp number (your own number shows your shop name).</div>}
-                  {!wa.shared && (wa.templates?.assigned === 'MISSING' || (f.requireAccept && wa.templates?.offer === 'MISSING')) && (
+                  {!wa.shared && (wa.templates?.assigned === 'MISSING' || (f.requireAccept && wa.templates?.offer === 'MISSING') || (f.whatsapp.tellOnRemove && wa.templates?.cancelled === 'MISSING')) && (
                     <button type="button" onClick={submitTemplates} disabled={!!busy} className="mt-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-60">
                       {busy === 'tpl' ? 'Submitting…' : 'Submit templates to Meta'}
                     </button>
