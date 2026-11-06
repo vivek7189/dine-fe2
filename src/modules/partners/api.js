@@ -41,7 +41,11 @@ const partnerApi = {
   clients: () => request('/clients'),
   commissions: () => request('/commissions'),
   payouts: () => request('/payouts'),
-  leads: () => request('/leads'),
+  // params: { page, pageSize, q, status, sort } — server-side paging; no params = all leads (max 500).
+  leads: (params) => {
+    const qs = params ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')).toString() : '';
+    return request(`/leads${qs ? `?${qs}` : ''}`);
+  },
   createLead: (d) => request('/leads', { method: 'POST', body: d }),
   updateLead: (id, d) => request(`/leads/${encodeURIComponent(id)}`, { method: 'PATCH', body: d }),
   deleteLead: (id) => request(`/leads/${encodeURIComponent(id)}`, { method: 'DELETE' }),

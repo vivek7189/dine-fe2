@@ -107,6 +107,30 @@ export function Modal({ open, title, onClose, children, wide = false }) {
   );
 }
 
+// Right-hand slide-over panel (full screen on phones).
+export function Drawer({ open, title, onClose, children, footer }) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const k = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [open, onClose]);
+  return (
+    <div className={cx('fixed inset-0 z-40 transition-[visibility] duration-200', open ? 'visible' : 'invisible pointer-events-none')} aria-hidden={!open}>
+      <div className={cx('absolute inset-0 bg-slate-900/30 transition-opacity duration-200', open ? 'opacity-100' : 'opacity-0')} onClick={onClose} />
+      <aside role="dialog" aria-modal="true" aria-label={title}
+        className={cx('absolute right-0 inset-y-0 w-full sm:w-[440px] bg-white shadow-2xl flex flex-col transition-transform duration-200 ease-out', open ? 'translate-x-0' : 'translate-x-full')}>
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-100 shrink-0">
+          <div className="font-semibold text-slate-900 flex-1 truncate">{title}</div>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100" aria-label="Close"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">{open && children}</div>
+        {open && footer && <div className="shrink-0 border-t border-slate-100 px-5 py-4">{footer}</div>}
+      </aside>
+    </div>
+  );
+}
+
 export function Segmented({ value, onChange, options, className = '' }) {
   return (
     <div className={cx('inline-flex bg-slate-100 rounded-xl p-1 gap-1', className)} role="tablist">

@@ -34,7 +34,8 @@ export default function Overview({ data, go }) {
   const [copied, setCopied] = useState(false);
   const [leads, setLeads] = useState(null);
   const { counts, balances, terms, referralLink, productName, partner } = data;
-  useEffect(() => { partnerApi.leads().then(r => setLeads(r.leads)).catch(() => setLeads([])); }, []);
+  // Only the per-status counts are needed here (1-row page); older servers return all leads instead.
+  useEffect(() => { partnerApi.leads({ page: 1, pageSize: 1 }).then(r => setLeads(r.counts || Object.fromEntries(PIPE.map(([k]) => [k, (r.leads || []).filter(l => l.status === k).length])))).catch(() => setLeads({})); }, []);
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(referralLink); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch (_) { /* no clipboard */ }
@@ -46,8 +47,8 @@ export default function Overview({ data, go }) {
   const b = balances[0];
   const earnedTotal = b ? b.pendingMinor + b.payableMinor + (b.scheduledMinor || 0) + b.paidMinor : 0;
 
-  const leadCounts = Object.fromEntries(PIPE.map(([k]) => [k, (leads || []).filter(l => l.status === k).length]));
-  const leadTotal = (leads || []).length;
+  const leadCounts = Object.fromEntries(PIPE.map(([k]) => [k, (leads && leads[k]) || 0]));
+  const leadTotal = PIPE.reduce((n, [k]) => n + leadCounts[k], 0);
 
   return (
     <div className="space-y-6">
