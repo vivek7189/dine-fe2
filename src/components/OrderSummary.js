@@ -454,6 +454,8 @@ const OrderSummary = ({
   // WhatsApp bill sending state
   const [waSending, setWaSending] = useState(false);
   const [waSent, setWaSent] = useState(false);
+  // Bills already go out on WhatsApp by themselves when the bill is completed (billingSettings.whatsappBillingEnabled)
+  // and there is a customer phone — then the button is only for re-sending, and says so.
 
   // Special Instructions State
   const [specialInstructions, setSpecialInstructions] = useState('');
@@ -1647,6 +1649,7 @@ const OrderSummary = ({
   }, [showInvoicePermanently, invoice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Send bill on WhatsApp (via API)
+  const autoWhatsAppBill = !!billingSettings?.whatsappBillingEnabled && !!(invoice?.customerPhone || invoice?.customerMobile || customerMobile);
   const handleSendBillWhatsApp = async () => {
     if (!restaurantId || !invoice) return;
     const phone = invoice?.customerPhone || invoice?.customerMobile || customerMobile;
@@ -4820,6 +4823,7 @@ const OrderSummary = ({
                     <div style={{ marginTop: '8px', fontSize: '11px', borderTop: '2px dashed #22c55e', paddingTop: '6px' }}>{bLabels.footer}</div>
                   </div>
                   {shouldShowManualPrint() && (
+                  <>
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
                   <button
                     onClick={() => {
@@ -4895,10 +4899,16 @@ const OrderSummary = ({
                       }}
                     >
                       <FaWhatsapp size={14} />
-                      {waSent ? t('invoice.sentOnWhatsApp') : waSending ? t('invoice.sending') : t('invoice.sendOnWhatsApp')}
+                      {waSent ? t('invoice.sentOnWhatsApp') : waSending ? t('invoice.sending') : (autoWhatsAppBill ? t('invoice.sendAgainOnWhatsApp') : t('invoice.sendOnWhatsApp'))}
                     </button>
                   )}
                 </div>
+                  {whatsappConnected && autoWhatsAppBill && !waSent && (
+                    <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 10px', margin: '-8px auto 16px', textAlign: 'center', maxWidth: '420px' }}>
+                      ✓ {t('invoice.autoWhatsAppNote')}
+                    </div>
+                  )}
+                  </>
                   )}
                 </>
               )}

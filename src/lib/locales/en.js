@@ -175,6 +175,8 @@ const en = {
       sentOnWhatsApp: 'Sent on WhatsApp!',
       sending: 'Sending...',
       sendOnWhatsApp: 'Send on WhatsApp',
+      sendAgainOnWhatsApp: 'Send again on WhatsApp',
+      autoWhatsAppNote: 'The bill goes to the customer on WhatsApp automatically. Use this button only if they did not get it.',
       tel: 'Tel',
       poweredBy: 'Powered by DineOpen',
       walkInCustomer: 'Walk-in Customer',
