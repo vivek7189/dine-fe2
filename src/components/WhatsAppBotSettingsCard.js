@@ -26,6 +26,7 @@ const fromConfig = (c) => {
     welcome: q.welcome || '',
     unitWord: q.unitWord || 'Pack',
     minOrder: Number(q.minOrder) || 0,
+    listPrices: q.listPrices !== false, // item list shows pack sizes + prices (off = names only)
   };
 };
 
@@ -101,6 +102,11 @@ export default function WhatsAppBotSettingsCard({ restaurantId, config, currency
         <div><div style={label}>Pack word</div>
           <input style={input} value={f.unitWord} maxLength={12} disabled={dis} onChange={(e) => set('unitWord', e.target.value)} placeholder="Pack" /></div>
       </div>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 13.5, color: '#374151', cursor: canEdit ? 'pointer' : 'default' }}>
+        <input type="checkbox" checked={f.listPrices} disabled={dis} onChange={(e) => set('listPrices', e.target.checked)} />
+        Show weight &amp; price in the item list <span style={{ color: '#9ca3af', fontSize: 12 }}>(off = item names only)</span>
+      </label>
 
       <div style={label}>Welcome message (optional)</div>
       <textarea style={{ ...input, resize: 'vertical' }} rows={2} maxLength={500} value={f.welcome} disabled={dis} onChange={(e) => set('welcome', e.target.value)} placeholder="Welcome to our shop! Fresh meat delivered to your door." />
