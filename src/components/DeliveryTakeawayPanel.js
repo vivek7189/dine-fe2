@@ -545,6 +545,17 @@ export default function DeliveryTakeawayPanel({ restaurantId, isMobile, refreshS
                     </span>
                   )}
 
+                  {/* The boy's WhatsApp message could not be sent (e.g. template not approved yet) */}
+                  {order.orderType === 'delivery' && order.deliveryNotify?.whatsapp === 'failed' && order.deliveryNotify?.riderId === order.assignedStaff?.id && ['assigned', 'accepted', 'picked_up'].includes(order.deliveryStatus) && (
+                    <span title={order.deliveryNotify.error || ''} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '600',
+                      backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca',
+                    }}>
+                      ⚠ WhatsApp not sent — call {order.assignedStaff?.name || 'the rider'}
+                    </span>
+                  )}
+
                   {/* Advance Status */}
                   {nextLabel && (
                     <button

@@ -5763,6 +5763,24 @@ class ApiClient {
     return this.request(`/api/delivery/${restaurantId}/settings`, { method: 'PUT', body: settings });
   }
 
+  // Delivery boys: list with load, quick-add (name + WhatsApp number), change channel / duty / remove.
+  async getDeliveryRiders(restaurantId) {
+    return this.request(`/api/delivery/${restaurantId}/riders`);
+  }
+  async addDeliveryRider(restaurantId, { name, phone, channel }) {
+    return this.request(`/api/delivery/${restaurantId}/riders`, { method: 'POST', body: { name, phone, channel } });
+  }
+  async updateDeliveryRider(restaurantId, staffId, patch) {
+    return this.request(`/api/delivery/${restaurantId}/riders/${encodeURIComponent(staffId)}`, { method: 'PATCH', body: patch });
+  }
+  // WhatsApp for delivery boys: connected + template status; submit the templates (owner / admin).
+  async getDeliveryWhatsApp(restaurantId) {
+    return this.request(`/api/delivery/${restaurantId}/whatsapp`);
+  }
+  async submitDeliveryTemplates(restaurantId) {
+    return this.request(`/api/delivery/${restaurantId}/whatsapp/templates`, { method: 'POST', body: {} });
+  }
+
   async unassignDelivery(restaurantId, orderId) {
     return this.request(`/api/delivery/${restaurantId}/unassign`, { method: 'POST', body: { orderId } });
   }
