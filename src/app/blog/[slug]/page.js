@@ -77,6 +77,7 @@ const englishToHindiMap = {
   'petpooja-vs-slickpos-vs-dineopen-small-restaurant': 'petpooja-vs-slickpos-vs-dineopen-hindi',
   'best-restaurant-billing-app-india-2026': 'best-billing-app-restaurant-hindi',
   'cloud-kitchen-pos-petpooja-vs-urbanpiper-vs-dineopen': 'cloud-kitchen-pos-comparison-hindi',
+  'indian-restaurants-worlds-50-best-2026': 'duniya-ke-best-restaurants-mein-bharat-2026',
 };
 
 // Generate metadata for each blog post

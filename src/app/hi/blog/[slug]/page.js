@@ -56,6 +56,7 @@ const hindiToEnglishMap = {
   'food-cost-percentage-kaise-nikale': 'how-to-calculate-food-cost-percentage',
   'restaurant-break-even-kaise-calculate-kare': 'restaurant-break-even-analysis-guide',
   'qr-menu-future-trend-hindi-2026': 'qr-code-menus-future-trend-2026',
+  'duniya-ke-best-restaurants-mein-bharat-2026': 'indian-restaurants-worlds-50-best-2026',
 };
 
 export async function generateMetadata({ params }) {

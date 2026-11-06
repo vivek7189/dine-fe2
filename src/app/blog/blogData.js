@@ -3,6 +3,17 @@
 
 export const blogPosts = [
   {
+    slug: 'indian-restaurants-worlds-50-best-2026',
+    title: "Masque and Naar Make the World's 50 Best Restaurants 2026: 6 Lessons for Every Restaurant Owner",
+    excerpt: "Masque (Mumbai, No. 26) and Naar (Kasauli, No. 49) made the 2026 list, and Naar won the Sustainable Restaurant Award. What happened, and 6 things any restaurant, café or cloud kitchen can copy.",
+    date: '2026-11-06',
+    category: 'Industry News',
+    categoryColor: '#ef4444',
+    readTime: '8 min read',
+    isStatic: true,
+    staticPath: '/blog/indian-restaurants-worlds-50-best-2026'
+  },
+  {
     slug: 'restaurant-staff-salary-india',
     title: 'How Much to Pay Restaurant Staff in India (2026): Salary by Role and City',
     excerpt: 'Monthly pay for chefs, cooks, tandoor chefs, waiters, captains, cashiers, managers, cleaners and delivery staff in metros and tier-2 cities, plus PF, ESI, food and stay. Every number sourced.',
