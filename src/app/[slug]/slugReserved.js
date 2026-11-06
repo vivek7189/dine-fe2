@@ -2,7 +2,7 @@
 // Reserved paths that should NOT be handled by this dynamic route
 // These paths have their own dedicated pages/folders s
 export const RESERVED_PATHS = [
-  'admin', 'api', 'login', 'logout', 'signup', 'register', 'dashboard', 'billing',
+  'admin', 'api', 'login', 'partner', 'logout', 'signup', 'register', 'dashboard', 'billing',
   'menu', 'orders', 'settings', 'profile', 'help', 'support', 'contact', 'about',
   'privacy', 'terms', 'blog', 'products', 'for', 'tools', 'restaurants', 'onlineorder',
   'placeorder', 'print-kot', 'setup', 'local-login', 'kot', 'orderhistory', 'customers',

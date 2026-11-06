@@ -1,6 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import TokenExtractor from '../components/TokenExtractor'
+import ReferralCapture from '../modules/partners/components/ReferralCapture'
 import { Analytics } from "@vercel/analytics/next"
 import { LoadingProvider } from '../contexts/LoadingContext'
 import PostHogProvider from '../components/PostHogProvider'
@@ -81,6 +82,7 @@ export default function RootLayout({ children }) {
         <PostHogProvider>
           <LoadingProvider>
             <TokenExtractor />
+            <ReferralCapture />
             <DesktopWindowTitle />
             {children}
             <WebsiteChatbot />

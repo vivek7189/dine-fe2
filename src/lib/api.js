@@ -886,6 +886,8 @@ class ApiClient {
     }
     if (typeof window !== 'undefined') {
       localStorage.setItem('authToken', token);
+      // Partner sign-up link (?partner=CODE) remembered earlier → link this new account (once).
+      import('../modules/partners/referral').then(m => m.attributeAfterLogin(token)).catch(() => {});
     }
   }
 
