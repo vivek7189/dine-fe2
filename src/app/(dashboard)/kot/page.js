@@ -1329,7 +1329,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
 
                         {kot.tableNumber && (
                           <span style={{
-                            fontSize: '15px', fontWeight: '800', color: 'white',
+                            fontSize: '15px', fontWeight: '800', color: 'white', whiteSpace: 'nowrap',
                             backgroundColor: '#1f2937', padding: '3px 10px', borderRadius: '8px', lineHeight: 1.2
                           }}>
                             {t('kot.table')} {kot.tableNumber}{kotChair(kot) ? ` · ${kotChair(kot)}` : ''}

@@ -555,9 +555,17 @@ export default function TableBillingModal({
               whatsappConnected={whatsappConnected}
               posSettings={selectedRestaurant?.posSettings || {}}
               userRole={(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'; } catch { return 'waiter'; } })()}
-              // Same "Complete bill" permission as the POS screen — a login without it saw Complete
-              // Billing here and the server then refused the bill.
-              canCompleteBill={(() => { try { const u = JSON.parse(localStorage.getItem('user') || '{}'); return canPerform(u, getEffectivePageAccess(u), 'orders', 'completeBill'); } catch { return true; } })()}
+              // "Complete bill" switched OFF for this login → no Complete Billing here (the server refused
+              // it anyway). Nothing saved either way → as before (the server decides by role default).
+              canCompleteBill={(() => {
+                try {
+                  const u = JSON.parse(localStorage.getItem('user') || '{}');
+                  const pa = getEffectivePageAccess(u) || {};
+                  const nested = pa.orders && typeof pa.orders === 'object' ? pa.orders.completeBill : undefined;
+                  if (pa.completeBill === undefined && nested === undefined) return true;
+                  return canPerform(u, pa, 'orders', 'completeBill');
+                } catch { return true; }
+              })()}
             />
           </div>
         ) : (

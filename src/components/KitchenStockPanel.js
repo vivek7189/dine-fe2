@@ -34,7 +34,7 @@ export default function KitchenStockPanel({ onClose }) {
   const list = useMemo(() => {
     const items = data?.items || [];
     const s = q.trim().toLowerCase();
-    return items.filter(it => (!lowOnly || it.status === 'low') && (!s || it.name.toLowerCase().includes(s) || (it.category || '').toLowerCase().includes(s)));
+    return items.filter(it => (!lowOnly || it.status === 'low') && (!s || String(it.name || '').toLowerCase().includes(s) || String(it.category || '').toLowerCase().includes(s)));
   }, [data, q, lowOnly]);
 
   const openRow = (id) => { setOpenId(openId === id ? null : id); setQty(''); setKind('used'); setNote(''); setMsg(null); };
@@ -47,7 +47,7 @@ export default function KitchenStockPanel({ onClose }) {
       const r = await apiClient.request(`/api/kitchen-display/stock/${encodeURIComponent(it.id)}/use`, {
         method: 'POST', body: JSON.stringify({ quantity: n, kind, note: note.trim() || undefined }),
       });
-      if (!r || !r.success) throw new Error((r && r.error) || 'Could not update stock');
+      if (!r || !r.success || !r.item) throw new Error((r && r.error) || 'Could not update stock');
       setData(d => ({ ...d, items: d.items.map(x => (x.id === it.id ? { ...x, ...r.item } : x)) }));
       setMsg({ ok: true, text: `${kind === 'wasted' ? 'Wasted' : 'Used'} ${fmt(n)} ${it.unit} of ${it.name} — ${fmt(r.item.currentStock)} ${it.unit} left` });
       setOpenId(null);
