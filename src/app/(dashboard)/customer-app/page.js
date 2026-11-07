@@ -27,6 +27,7 @@ import {
   FaCreditCard,
   FaExternalLinkAlt,
   FaUnlink,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import PaytmConnectSection from '../../../components/PaytmConnectSection';
@@ -74,6 +75,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
   const [logoPreview, setLogoPreview] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastError, setToastError] = useState(false); // red toast for failures
   const [loyaltyErrors, setLoyaltyErrors] = useState({
     earnPerAmount: '',
     pointsEarned: '',
@@ -222,6 +224,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
     const razorpayStatus = searchParams.get('razorpay');
     if (razorpayStatus === 'connected') {
       setToastMessage('Razorpay account connected successfully!');
+      setToastError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
       // Clean URL
@@ -231,8 +234,9 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
     } else if (razorpayStatus === 'error') {
       const msg = searchParams.get('message') || 'Failed to connect Razorpay';
       setToastMessage(`Razorpay: ${msg}`);
+      setToastError(true);
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 5000);
+      setTimeout(() => setShowToast(false), 8000);
       router.replace('/customer-app', undefined, { shallow: true });
     }
   }, [searchParams]);
@@ -382,8 +386,9 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
   // Toast notification helper
   const showNotification = (message, isError = false) => {
     setToastMessage(message);
+    setToastError(!!isError);
     setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    setTimeout(() => setShowToast(false), isError ? 6000 : 3000);
   };
 
   // Handle loyalty input change with validation (only numbers allowed)
@@ -412,9 +417,10 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       }
     } catch (error) {
       console.error('Razorpay connect error:', error);
-      setToastMessage('Failed to initiate Razorpay connection');
+      setToastMessage((error && error.message) || 'Failed to initiate Razorpay connection');
+      setToastError(true);
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 4000);
+      setTimeout(() => setShowToast(false), 6000);
       setConnectingRazorpay(false);
     }
   };
@@ -434,11 +440,13 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
         }
       }));
       setToastMessage('Razorpay account disconnected');
+      setToastError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
     } catch (error) {
       console.error('Razorpay disconnect error:', error);
       setToastMessage('Failed to disconnect Razorpay');
+      setToastError(true);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
     } finally {
@@ -710,11 +718,12 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           position: 'fixed',
           top: '20px',
           right: '20px',
-          backgroundColor: '#10b981',
+          backgroundColor: toastError ? '#dc2626' : '#10b981',
           color: 'white',
           padding: '16px 24px',
           borderRadius: '12px',
-          boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)',
+          maxWidth: 'calc(100vw - 40px)',
+          boxShadow: toastError ? '0 4px 20px rgba(220, 38, 38, 0.4)' : '0 4px 20px rgba(16, 185, 129, 0.4)',
           zIndex: 10002,
           display: 'flex',
           alignItems: 'center',
@@ -722,8 +731,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           animation: 'slideIn 0.3s ease-out',
           fontWeight: '500'
         }}>
-          <FaCheck size={16} />
-          {toastMessage}
+          {toastError ? <FaExclamationTriangle size={16} style={{ flexShrink: 0 }} /> : <FaCheck size={16} style={{ flexShrink: 0 }} />}
+          <span role={toastError ? 'alert' : 'status'}>{toastMessage}</span>
         </div>
       )}
       <style>{`
@@ -2018,7 +2027,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           razorpayEnabled={!!settings.paymentSettings?.razorpayEnabled}
           Toggle={Toggle}
           onChange={(patch) => setSettings(prev => ({ ...prev, paymentSettings: { ...prev.paymentSettings, ...patch } }))}
-          notify={(m) => { setToastMessage(m); setShowToast(true); setTimeout(() => setShowToast(false), 4000); }}
+          notify={(m) => { setToastMessage(m); setToastError(false); setShowToast(true); setTimeout(() => setShowToast(false), 4000); }}
         />
 
         {/* Billing Settings Section */}
