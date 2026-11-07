@@ -178,8 +178,7 @@ export default function PaymentGatewaysPanel({ restaurantId, notify }) {
         <div style={{ marginTop: 16 }}>
           <OnlinePayRules
             gatewayName={ps.paytmEnabled ? 'Paytm' : 'Razorpay'}
-            mode={ps.onlinePayMode}
-            orderTypes={ps.onlinePayOrderTypes}
+            ps={ps}
             onChange={(p) => { patch(p); setDirty((d) => ({ ...d, ...p })); }}
           />
         </div>

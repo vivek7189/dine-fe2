@@ -297,6 +297,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [orderNote, setOrderNote] = useState(''); // guest's note for the whole order (when notes are on)
   // 'online' | 'later' — only asked when online payment is optional for this order
   const [payChoice, setPayChoice] = useState('online');
+  const payChoiceSet = useRef(false); // the restaurant's default is applied once; then the customer's tap wins
 
   useEffect(() => { if (!cart.length) setOrderNote(''); }, [cart.length]);
   const [sizeFor, setSizeFor] = useState(null); // item whose sizes (1 L / Tot / Half…) the customer is choosing
@@ -932,15 +933,29 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Online payment for this order (same rules as the server, utils/onlinePayRules.js):
   // gateway = Paytm / Razorpay when switched on + connected; offered for the chosen order types;
   // required = pay first, otherwise the customer may choose to pay at the counter / on delivery.
+  // Per order type: 'off' | 'optional' | 'required' (paymentSettings.onlinePay), plus "pay first above ₹X".
   const getOnlinePay = () => {
     const ps = customerAppSettings?.paymentSettings || {};
     const gateway = ps.paytmEnabled ? 'paytm' : (ps.razorpayEnabled && ps.razorpayConnected !== false) ? 'razorpay' : null;
-    if (!gateway) return { gateway: null, offered: false, required: false };
+    if (!gateway) return { gateway: null, offered: false, required: false, overLimit: false, defaultChoice: 'online' };
     const t = getServerOrderType() === 'pickup' ? 'takeaway' : getServerOrderType();
-    const types = Array.isArray(ps.onlinePayOrderTypes) && ps.onlinePayOrderTypes.length ? ps.onlinePayOrderTypes : ['dine_in', 'takeaway', 'delivery'];
-    const offered = types.includes(t);
-    return { gateway, offered, required: offered && ps.onlinePayMode !== 'optional' };
+    let rule;
+    if (ps.onlinePay && typeof ps.onlinePay === 'object') rule = ps.onlinePay[t] || 'off';
+    else { // older settings: mode + types
+      const types = Array.isArray(ps.onlinePayOrderTypes) && ps.onlinePayOrderTypes.length ? ps.onlinePayOrderTypes : ['dine_in', 'takeaway', 'delivery'];
+      rule = types.includes(t) ? (ps.onlinePayMode === 'optional' ? 'optional' : 'required') : 'off';
+    }
+    const limit = Number(ps.onlinePay?.requireAbove) || 0;
+    let total = 0; try { total = getFinalTotal(); } catch (_) { total = 0; }
+    const overLimit = rule === 'optional' && limit > 0 && total >= limit;
+    return { gateway, offered: rule !== 'off', required: rule === 'required' || overLimit, overLimit, limit, defaultChoice: ps.onlinePay?.defaultChoice === 'later' ? 'later' : 'online' };
   };
+  // Pre-select the restaurant's default (pay online / pay later) once the settings arrive.
+  useEffect(() => {
+    if (payChoiceSet.current || !customerAppSettings) return;
+    payChoiceSet.current = true;
+    setPayChoice(customerAppSettings?.paymentSettings?.onlinePay?.defaultChoice === 'later' ? 'later' : 'online');
+  }, [customerAppSettings]);
 
   // Calculate tax based on pre-tax total (after discounts)
   const getTaxBreakdown = () => {
@@ -1464,6 +1479,17 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       setSuccess(successMsg);
       return response;
     } catch (err) {
+      // The restaurant now wants online payment for this order (settings changed while this page was
+      // open, or the bill is over its "pay first" amount): open the payment instead of failing.
+      if (err && err.code === 'ONLINE_PAYMENT_REQUIRED' && (err.data?.gateway === 'razorpay' || err.data?.gateway === 'paytm')) {
+        const g = err.data.gateway;
+        setCustomerAppSettings(prev => prev ? ({ ...prev, paymentSettings: { ...(prev.paymentSettings || {}), ...(g === 'razorpay' ? { razorpayEnabled: true, razorpayConnected: true } : { paytmEnabled: true }) } }) : prev);
+        setPayChoice('online');
+        setPlacingOrder(false);
+        setError('');
+        if (g === 'paytm') await handlePaytmPayment(); else await handleRazorpayPayment();
+        return;
+      }
       console.error('Error placing order:', err);
       setError(err.message || 'Failed to place order. Please try again.');
       throw err;
@@ -5272,6 +5298,13 @@ const CheckoutView = ({
                   onChange={(e) => setOrderNote(e.target.value.slice(0, ORDER_NOTE_MAX))}
                   placeholder="e.g. serve starters first, less oil in everything"
                   style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #e5e7eb', borderRadius: '10px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', color: '#1f2937', background: '#fff', boxSizing: 'border-box' }} />
+              </div>
+            )}
+
+            {/* Over the restaurant's "pay first above" amount — say why there is no choice */}
+            {cart.length > 0 && getOnlinePay().overLimit && (
+              <div data-testid="pay-over-limit" style={{ backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>
+                Orders of {cs}{getOnlinePay().limit} or more are paid online before they are placed.
               </div>
             )}
 

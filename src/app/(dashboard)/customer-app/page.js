@@ -2036,8 +2036,8 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           <div style={{ backgroundColor: 'white', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '16px' : '24px', marginTop: isMobile ? '12px' : '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb' }}>
             <OnlinePayRules
               gatewayName={settings.paymentSettings?.paytmEnabled ? 'Paytm' : 'Razorpay'}
-              mode={settings.paymentSettings?.onlinePayMode}
-              orderTypes={settings.paymentSettings?.onlinePayOrderTypes}
+              ps={settings.paymentSettings}
+              currency={getCurrencySymbol()}
               onChange={(p) => setSettings(prev => ({ ...prev, paymentSettings: { ...prev.paymentSettings, ...p } }))}
             />
           </div>
