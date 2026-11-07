@@ -8,11 +8,12 @@
 // screen's endpoints (backend utils/kitchenDisplay.js).
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaSignOutAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaBoxes } from 'react-icons/fa';
 import apiClient from '../../lib/api';
 import { performLogout } from '../../lib/logout';
 import { CurrencyProvider } from '../../contexts/CurrencyContext';
 import KitchenOrderTicket from '../(dashboard)/kot/page';
+import KitchenStockPanel from '../../components/KitchenStockPanel';
 
 const STATION_LABEL = { all: 'All items', bar: 'Bar', kitchen: 'Kitchen' };
 
@@ -20,6 +21,7 @@ export default function KitchenDisplayPage() {
   const router = useRouter();
   const [me, setMe] = useState(null);
   const [now, setNow] = useState(null);
+  const [showStock, setShowStock] = useState(false);
 
   useEffect(() => {
     let user = null;
@@ -69,11 +71,18 @@ export default function KitchenDisplayPage() {
             </div>
           </div>
           {now && <div style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
+          {(s.stock === 'view' || s.stock === 'deduct') && (
+            <button onClick={() => setShowStock(true)} title="Stock"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, border: 'none', background: '#ea580c', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              <FaBoxes size={13} /> Stock
+            </button>
+          )}
           <button onClick={logout} title="Log out"
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, border: '1px solid #374151', background: 'transparent', color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             <FaSignOutAlt size={13} /> Log out
           </button>
         </header>
+        {showStock && (s.stock === 'view' || s.stock === 'deduct') && <KitchenStockPanel onClose={() => setShowStock(false)} />}
         <main style={{ flex: 1, minHeight: 0 }}>
           <KitchenOrderTicket kdsMode={{ canUpdateStatus: s.canUpdateStatus !== false, station: s.station || 'choose' }} />
         </main>

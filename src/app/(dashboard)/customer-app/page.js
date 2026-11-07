@@ -136,6 +136,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       collectName: true,
       collectEmail: false,
       allowOrderNotes: false, // guests may add a note per item + one for the whole order
+      separateBillsPerGuest: false, // another guest scanning a busy table gets their own bill (party "5-B")
     },
     billingSettings: {
       tipsEnabled: false,
@@ -1449,6 +1450,18 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               }))}
               label="Customer notes (per item + whole order, e.g. no onion)"
             />
+
+            <Toggle
+              value={settings.pageSettings?.separateBillsPerGuest === true}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, separateBillsPerGuest: v }
+              }))}
+              label="Separate bill for each guest on a table (QR)"
+            />
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '-4px 0 0' }}>
+              Off: a second QR order on a busy table is added to the running bill. On: the same guest (same phone) keeps adding to their own bill; another guest gets their own bill on the same table (shown as e.g. 5-B on Tables, KOT and bills).
+            </p>
 
           </div>
 

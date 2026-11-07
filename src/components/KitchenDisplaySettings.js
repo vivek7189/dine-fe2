@@ -4,6 +4,12 @@
 // role is picked. Saved on the staff member as `kitchenDisplay` (backend utils/kitchenDisplay.js):
 //   canUpdateStatus  — the screen can mark Start cooking / Ready / Done (Done never closes the bill)
 //   station          — 'choose' (pick Bar / Kitchen / All on each screen) or fixed 'all' | 'bar' | 'kitchen'
+//   stock            — 'off' | 'view' (Stock button: items + quantities) | 'deduct' (also Used / Wasted)
+const STOCK = [
+  ['off', 'Off'],
+  ['view', 'See stock'],
+  ['deduct', 'See + use / waste'],
+];
 const STATIONS = [
   ['choose', 'Pick on each screen'],
   ['all', 'All items'],
@@ -12,7 +18,7 @@ const STATIONS = [
 ];
 
 export default function KitchenDisplaySettings({ value, onChange }) {
-  const v = { canUpdateStatus: value?.canUpdateStatus !== false, station: value?.station || 'choose' };
+  const v = { canUpdateStatus: value?.canUpdateStatus !== false, station: value?.station || 'choose', stock: ['view', 'deduct'].includes(value?.stock) ? value.stock : 'off' };
   const set = (patch) => onChange({ ...v, ...patch });
   return (
     <div style={{ marginTop: 12, padding: 14, borderRadius: 12, border: '1px solid #fed7aa', background: '#fff7ed' }}>
@@ -46,6 +52,21 @@ export default function KitchenDisplaySettings({ value, onChange }) {
       </div>
       <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 6 }}>
         Bar / Kitchen use the bar categories set on the KOT screen (Bar / Kitchen button, owner only).
+      </div>
+
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2937', margin: '14px 0 6px' }}>Stock on this screen</div>
+      <div role="radiogroup" aria-label="Stock" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {STOCK.map(([k, label]) => (
+          <button key={k} type="button" role="radio" aria-checked={v.stock === k} onClick={() => set({ stock: k })}
+            style={{ padding: '7px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+              border: v.stock === k ? '1px solid #ea580c' : '1px solid #e5e7eb',
+              background: v.stock === k ? '#ea580c' : 'white', color: v.stock === k ? 'white' : '#374151' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 6 }}>
+        {v.stock === 'off' ? 'No stock on this screen.' : v.stock === 'view' ? 'A Stock button shows every item and how much is left.' : 'The kitchen can also take stock out (used / wasted). It is logged in Inventory as from this screen.'}
       </div>
     </div>
   );

@@ -76,6 +76,7 @@ import QrTodaySpecial from '../../components/QrTodaySpecial';
 import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
 import { openPaytmCheckout } from '../../utils/paytmCheckout';
+import MyOrdersSheet, { readMyOrders, rememberMyOrder, guestDeviceKey } from '../../components/qr/MyOrders';
 
 // Order the public menu's category tabs by the SAME saved order as the dashboard/menu page.
 // IMPORTANT: the sidebar entries must stay equal to the ACTUAL item.category values (that's what
@@ -390,6 +391,11 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const [sessionRestored, setSessionRestored] = useState(false); // Track if we've checked session
 
   const restaurantId = restaurantIdProp || searchParams.get('restaurant') || 'default';
+  // "My orders": orders placed from this phone (ids kept in this browser) → header button + sheet.
+  const [myOrders, setMyOrders] = useState([]);
+  const [showMyOrders, setShowMyOrders] = useState(false);
+  useEffect(() => { setMyOrders(readMyOrders(restaurantId)); }, [restaurantId]);
+  const noteMyOrder = (orderId) => { if (orderId) setMyOrders(rememberMyOrder(restaurantId, orderId)); };
   // Table/seat from the scanned QR. The per-table QR encodes the table as ?table=N; the optional
   // per-seat sub-QR adds &seat=M. Read the table from the URL OR the passed prop — so an empty
   // ?seat= can NEVER wipe the scanned table (that param mismatch is what made every table's QR
@@ -1414,6 +1420,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       roomNumber: orderType === 'room' ? (customerInfo.roomNumber.trim() || null) : null,
       tableNumber: orderType === 'table' ? (customerInfo.seatNumber.trim() || null) : null,
       chairNumber: (orderType === 'table' && chairParam) ? String(chairParam).trim() : null, // optional per-seat sub-QR
+      guestKey: orderType === 'table' ? guestDeviceKey() : null, // this phone's random key (separate bill per guest)
       ...(qrMenuParam ? { qrMenuId: qrMenuParam } : {}), // ordered from a QR menu — the server checks its items
       items: cart.map(item => ({
         menuItemId: item.id,
@@ -1455,6 +1462,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
       const orderData = buildOrderData();
       const response = await apiClient.placePublicOrder(restaurantId, orderData);
+      noteMyOrder(response?.order?.id);
 
       let successMsg = 'Order placed successfully!';
       if (response.awaitingApproval) {
@@ -1502,6 +1510,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   const handleUpiConfirm = async () => {
     const orderData = buildOrderData();
     const response = await apiClient.placePublicOrder(restaurantId, orderData);
+    noteMyOrder(response?.order?.id);
 
     setCart([]);
     setSelectedOffers([]);
@@ -1524,6 +1533,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       const orderData = { ...buildOrderData(), paymentMethod: 'paytm' };
       const response = await apiClient.placePublicOrder(restaurantId, orderData);
       if (!response?.paytm?.actionUrl) throw new Error(response?.error || 'Paytm payment could not be started');
+      noteMyOrder(response?.order?.id);
       setCart([]);
       setSelectedOffers([]);
       setRedeemLoyaltyPoints(0);
@@ -1582,6 +1592,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             orderData.razorpaySignature = response.razorpay_signature;
 
             const result = await apiClient.placePublicOrder(restaurantId, orderData);
+            noteMyOrder(result?.order?.id);
 
             let successMsg = 'Payment successful! Order placed.';
             if (result.awaitingApproval) {
@@ -2156,6 +2167,30 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                     <FaUser size={16} color={['gradient', 'solid'].includes(headerStyle) ? textColor : '#6b7280'} />
                   </button>
                 )}
+                {myOrders.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMyOrders(true)}
+                    aria-label="My orders"
+                    style={{
+                      background: ['gradient', 'solid'].includes(headerStyle) ? `${textColor}33` : '#f3f4f6',
+                      color: ['gradient', 'solid'].includes(headerStyle) ? textColor : '#374151',
+                      border: 'none',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      backdropFilter: ['gradient', 'solid'].includes(headerStyle) ? 'blur(10px)' : 'none'
+                    }}
+                  >
+                    <FaHistory size={14} /> <span>My orders</span>
+                  </button>
+                )}
                 {!viewOnlyMenu && (
                 <button
                   onClick={handleCartClick}
@@ -2465,6 +2500,16 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           </div>
         </div>
       ) : null}
+
+      {showMyOrders && (
+        <MyOrdersSheet
+          restaurantId={restaurantId}
+          orders={myOrders}
+          onClose={() => setShowMyOrders(false)}
+          brandColor={customerAppSettings?.branding?.primaryColor || '#ef4444'}
+          cs={cs}
+        />
+      )}
 
       {/* Theme Menu - Renders theme component instead of default menu grid */}
       {themeId !== 'default' && themeComponents[themeId] && (() => {

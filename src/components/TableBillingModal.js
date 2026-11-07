@@ -6,6 +6,8 @@ import { createPortal } from 'react-dom';
 import { FaReceipt, FaTimes, FaSpinner, FaBed } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import OrderSummary from './OrderSummary';
+import { canPerform } from '../lib/permissions';
+import { getEffectivePageAccess } from '../lib/pageAccessConfig';
 import { getCartSubtotal } from '../utils/billingPrice';
 import { lineTaxFlags, savedLineBasePrice } from '../utils/taxEngine';
 import dynamic from 'next/dynamic';
@@ -553,6 +555,9 @@ export default function TableBillingModal({
               whatsappConnected={whatsappConnected}
               posSettings={selectedRestaurant?.posSettings || {}}
               userRole={(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || 'waiter'; } catch { return 'waiter'; } })()}
+              // Same "Complete bill" permission as the POS screen — a login without it saw Complete
+              // Billing here and the server then refused the bill.
+              canCompleteBill={(() => { try { const u = JSON.parse(localStorage.getItem('user') || '{}'); return canPerform(u, getEffectivePageAccess(u), 'orders', 'completeBill'); } catch { return true; } })()}
             />
           </div>
         ) : (

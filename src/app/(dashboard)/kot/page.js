@@ -144,6 +144,14 @@ async function mergeOfflineKotOrders(existingOrders, restaurantId) {
   }
 }
 
+// Guest name for a ticket: the order's customer, never the POS placeholders ("Walk-in", "Guest").
+const PLACEHOLDER_NAMES = ['walk-in', 'walk in', 'walk-in customer', 'walkin', 'guest', 'customer', 'n/a', '-'];
+function kotCustomerName(kot) {
+  const n = String(kot?.customerInfo?.name || kot?.customerName || '').trim();
+  return n && !PLACEHOLDER_NAMES.includes(n.toLowerCase()) ? n : '';
+}
+const kotChair = (kot) => String(kot?.chairNumber ?? kot?.customerInfo?.chairNumber ?? '').trim();
+
 // kdsMode (kitchen display login, /kitchen-display): { canUpdateStatus, station } from the login's
 // settings. Absent on the normal /kot page → everything below behaves exactly as before.
 const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
@@ -1321,10 +1329,10 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
 
                         {kot.tableNumber && (
                           <span style={{
-                            fontSize: '11px', fontWeight: '600', color: '#374151',
-                            backgroundColor: 'rgba(0,0,0,0.06)', padding: '2px 8px', borderRadius: '6px'
+                            fontSize: '15px', fontWeight: '800', color: 'white',
+                            backgroundColor: '#1f2937', padding: '3px 10px', borderRadius: '8px', lineHeight: 1.2
                           }}>
-                            T{kot.tableNumber}
+                            {t('kot.table')} {kot.tableNumber}{kotChair(kot) ? ` · ${kotChair(kot)}` : ''}
                           </span>
                         )}
 
@@ -1406,6 +1414,17 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Guest name (QR / POS orders that have one) */}
+                    {kotCustomerName(kot) && (
+                      <div style={{
+                        padding: '6px 16px 0', fontSize: '14px', fontWeight: '700', color: '#111827',
+                        display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'
+                      }} title={kotCustomerName(kot)}>
+                        <span style={{ fontSize: '10px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('kot.customer')}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{kotCustomerName(kot)}</span>
+                      </div>
+                    )}
 
                     {/* Items */}
                     <div style={{ padding: '4px 16px 12px', flex: 1 }}>
@@ -1932,7 +1951,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                   { label: t('kot.orderTime'), value: formatTime(selectedKot.orderTime) },
                   { label: t('kot.kotTime'), value: formatTime(selectedKot.kotTime) },
                   { label: t('kot.elapsed'), value: `${getTimeElapsed(selectedKot.kotTime)}m` },
-                  { label: t('kot.customer'), value: selectedKot.customerName || '—' }
+                  { label: t('kot.customer'), value: kotCustomerName(selectedKot) || selectedKot.customerName || '—' }
                 ].map((info, i) => (
                   <div key={i} style={{
                     padding: '10px 12px', backgroundColor: '#f9fafb',
