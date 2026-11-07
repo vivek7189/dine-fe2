@@ -30,6 +30,7 @@ import {
   FaExclamationTriangle,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
+import OnlinePayRules from '../../../components/OnlinePayRules';
 import PaytmConnectSection from '../../../components/PaytmConnectSection';
 import TodaySpecialEditor from '../../../components/TodaySpecialEditor';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -1961,7 +1962,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                   padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe',
                 }}>
                   <p style={{ margin: 0, fontSize: '12px', color: '#1e40af' }}>
-                    Customers will see a &quot;Pay Now&quot; option when placing orders. Payment is verified before the order is created.
+                    Payments go straight to your Razorpay account. A paid order is created only after Razorpay confirms the payment.
                   </p>
                 </div>
               )}
@@ -2029,6 +2030,18 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
           onChange={(patch) => setSettings(prev => ({ ...prev, paymentSettings: { ...prev.paymentSettings, ...patch } }))}
           notify={(m) => { setToastMessage(m); setToastError(false); setShowToast(true); setTimeout(() => setShowToast(false), 4000); }}
         />
+
+        {/* When customers pay online (applies to whichever gateway is on) */}
+        {((settings.paymentSettings?.razorpayEnabled && settings.paymentSettings?.razorpayConnected) || (settings.paymentSettings?.paytmEnabled && settings.paymentSettings?.paytmConnected)) && (
+          <div style={{ backgroundColor: 'white', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '16px' : '24px', marginTop: isMobile ? '12px' : '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb' }}>
+            <OnlinePayRules
+              gatewayName={settings.paymentSettings?.paytmEnabled ? 'Paytm' : 'Razorpay'}
+              mode={settings.paymentSettings?.onlinePayMode}
+              orderTypes={settings.paymentSettings?.onlinePayOrderTypes}
+              onChange={(p) => setSettings(prev => ({ ...prev, paymentSettings: { ...prev.paymentSettings, ...p } }))}
+            />
+          </div>
+        )}
 
         {/* Billing Settings Section */}
         <div style={{

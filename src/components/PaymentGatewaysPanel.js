@@ -10,6 +10,7 @@ import { SiRazorpay, SiPaytm } from 'react-icons/si';
 import { FaCheck, FaExternalLinkAlt, FaSpinner, FaUnlink, FaPlus } from 'react-icons/fa';
 import apiClient from '../lib/api';
 import PaytmConnectSection from './PaytmConnectSection';
+import OnlinePayRules from './OnlinePayRules';
 
 const GATEWAYS = [
   { key: 'razorpay', name: 'Razorpay', Icon: SiRazorpay, color: '#0c2451', bg: '#eef2ff', blurb: 'UPI, cards, netbanking & wallets', connectedKey: 'razorpayConnected', enabledKey: 'razorpayEnabled' },
@@ -168,6 +169,18 @@ export default function PaymentGatewaysPanel({ restaurantId, notify }) {
               else if (p.paytmConnected === false) setDirty((d) => { const n = { ...d }; delete n.paytmEnabled; return n; });
             }}
             notify={say}
+          />
+        </div>
+      )}
+
+      {/* When customers pay online — shown once a gateway is on (saved with the switches below) */}
+      {((ps.razorpayEnabled && ps.razorpayConnected) || (ps.paytmEnabled && ps.paytmConnected)) && (
+        <div style={{ marginTop: 16 }}>
+          <OnlinePayRules
+            gatewayName={ps.paytmEnabled ? 'Paytm' : 'Razorpay'}
+            mode={ps.onlinePayMode}
+            orderTypes={ps.onlinePayOrderTypes}
+            onChange={(p) => { patch(p); setDirty((d) => ({ ...d, ...p })); }}
           />
         </div>
       )}

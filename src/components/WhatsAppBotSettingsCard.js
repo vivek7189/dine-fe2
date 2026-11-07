@@ -8,7 +8,7 @@ import apiClient from '../lib/api';
 
 const EDIT_ROLES = ['owner', 'co-owner', 'admin', 'super_admin'];
 const LANGS = [['en', 'English'], ['te', 'తెలుగు (Telugu)']];
-const PAYS = [['cod', '💵 Cash on delivery / at counter'], ['upi', '📱 UPI on delivery'], ['online', '💳 Pay online (link or UPI ID)']];
+const PAYS = [['cod', '💵 Cash on delivery / at counter'], ['upi', '📱 UPI on delivery'], ['online', '💳 Pay online (link or UPI ID)'], ['razorpay', '✅ Pay first with Razorpay']];
 const TYPES = [['delivery', '🛵 Home delivery'], ['takeaway', '🏪 Pickup'], ['dine-in', '🍽️ Dine-in']];
 
 function myRole() {
@@ -83,6 +83,13 @@ export default function WhatsAppBotSettingsCard({ restaurantId, config, currency
 
       <div style={label}>Payment options</div>
       {PAYS.map(([k, t]) => <button key={k} type="button" disabled={dis} onClick={() => toggle('payments', k)} style={chip(f.payments.includes(k))}>{f.payments.includes(k) ? '✓ ' : ''}{t}</button>)}
+      {f.payments.includes('razorpay') && (
+        <div style={{ fontSize: 12, color: '#1e40af', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 10px', margin: '4px 0 8px' }}>
+          The customer gets a Razorpay payment link for the exact total. The order reaches your kitchen only after Razorpay confirms the payment
+          (if it can&apos;t be placed, the payment is refunded). Needs your Razorpay account connected in Customer App settings — until then this button is hidden.
+          {f.payments.length === 1 ? ' Only this option is on, so every WhatsApp order is paid first.' : ''}
+        </div>
+      )}
       {f.payments.includes('online') && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
           <div><div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Payment link</div>

@@ -295,6 +295,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   };
   const [cart, setCart] = useState([]);
   const [orderNote, setOrderNote] = useState(''); // guest's note for the whole order (when notes are on)
+  // 'online' | 'later' — only asked when online payment is optional for this order
+  const [payChoice, setPayChoice] = useState('online');
+
   useEffect(() => { if (!cart.length) setOrderNote(''); }, [cart.length]);
   const [sizeFor, setSizeFor] = useState(null); // item whose sizes (1 L / Tot / Half…) the customer is choosing
   const [customerInfo, setCustomerInfo] = useState({
@@ -926,6 +929,18 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
   // The order type exactly as sent to the server (tax.orderTypes / charge scope match on it).
   const getServerOrderType = () => (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType);
+  // Online payment for this order (same rules as the server, utils/onlinePayRules.js):
+  // gateway = Paytm / Razorpay when switched on + connected; offered for the chosen order types;
+  // required = pay first, otherwise the customer may choose to pay at the counter / on delivery.
+  const getOnlinePay = () => {
+    const ps = customerAppSettings?.paymentSettings || {};
+    const gateway = ps.paytmEnabled ? 'paytm' : (ps.razorpayEnabled && ps.razorpayConnected !== false) ? 'razorpay' : null;
+    if (!gateway) return { gateway: null, offered: false, required: false };
+    const t = getServerOrderType() === 'pickup' ? 'takeaway' : getServerOrderType();
+    const types = Array.isArray(ps.onlinePayOrderTypes) && ps.onlinePayOrderTypes.length ? ps.onlinePayOrderTypes : ['dine_in', 'takeaway', 'delivery'];
+    const offered = types.includes(t);
+    return { gateway, offered, required: offered && ps.onlinePayMode !== 'optional' };
+  };
 
   // Calculate tax based on pre-tax total (after discounts)
   const getTaxBreakdown = () => {
@@ -1617,16 +1632,19 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
       return;
     }
 
-    const razorpayEnabled = customerAppSettings?.paymentSettings?.razorpayEnabled;
-    const paytmEnabled = customerAppSettings?.paymentSettings?.paytmEnabled;
+    const op = getOnlinePay();
+    const payOnline = op.offered && (op.required || payChoice === 'online');
     const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
 
-    if (paytmEnabled) {
+    if (payOnline && op.gateway === 'paytm') {
       // Paytm payment — order placed only after Paytm confirms
       await handlePaytmPayment();
-    } else if (razorpayEnabled) {
+    } else if (payOnline && op.gateway === 'razorpay') {
       // Razorpay payment — verified before order creation
       await handleRazorpayPayment();
+    } else if (op.offered && !payOnline) {
+      // Customer chose to pay at the counter / on delivery
+      await placeOrderDirect();
     } else if (upiEnabled && customerAppSettings?.paymentSettings?.upiId) {
       // Show UPI modal FIRST - order will be placed via onConfirmPayment callback
       setUpiOrderAmount(getFinalTotal());
@@ -1778,6 +1796,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   if (canAccessCheckout && currentView !== 'menu') {
     return (
       <CheckoutView
+        getOnlinePay={getOnlinePay}
+        getServerOrderType={getServerOrderType}
+        payChoice={payChoice}
+        setPayChoice={setPayChoice}
         currentView={currentView}
         setCurrentView={setCurrentView}
         onBack={() => { setCurrentView('menu'); setShowCart(true); }}
@@ -4081,6 +4103,10 @@ const OtpModal = ({ customerPhone, otp, setOtp, sendingOtp, error, onCancel, onV
 
 // Checkout View Component - Full page experience after OTP verification
 const CheckoutView = ({
+  getOnlinePay = () => ({ gateway: null, offered: false, required: false }),
+  getServerOrderType = () => 'dine_in',
+  payChoice = 'online',
+  setPayChoice = () => {},
   currentView,
   setCurrentView,
   onBack,
@@ -5249,6 +5275,26 @@ const CheckoutView = ({
               </div>
             )}
 
+            {/* Pay now or later — only when the restaurant made online payment optional for this order type */}
+            {cart.length > 0 && (() => { const op = getOnlinePay(); return op.offered && !op.required; })() && (
+              <div role="radiogroup" aria-label="How would you like to pay?" data-testid="pay-choice" style={{ backgroundColor: 'white', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', marginBottom: '10px' }}>How would you like to pay?</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {[
+                    ['online', 'Pay online now', 'UPI, card, netbanking'],
+                    ['later', getServerOrderType() === 'delivery' ? 'Cash on delivery' : 'Pay at counter', getServerOrderType() === 'delivery' ? 'Pay when it arrives' : 'Pay after your meal'],
+                  ].map(([k, t, sub]) => (
+                    <button key={k} type="button" role="radio" aria-checked={payChoice === k} onClick={() => setPayChoice(k)}
+                      style={{ textAlign: 'left', padding: '12px', borderRadius: '12px', cursor: 'pointer', background: payChoice === k ? '#fef2f2' : '#fff',
+                        border: payChoice === k ? '2px solid var(--qr-accent, #ef4444)' : '1px solid #e5e7eb' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{t}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Place Order Button */}
             {cart.length > 0 && (
               <button
@@ -5276,12 +5322,12 @@ const CheckoutView = ({
                 {placingOrder ? (
                   <>
                     <FaSpinner size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                    {customerAppSettings?.paymentSettings?.paytmEnabled ? 'Opening Paytm...' : 'Placing Order...'}
+                    {(() => { const op = getOnlinePay(); const on = op.offered && (op.required || payChoice === 'online'); return on && op.gateway === 'paytm' ? 'Opening Paytm...' : on ? 'Opening payment...' : 'Placing Order...'; })()}
                   </>
-                ) : customerAppSettings?.paymentSettings?.paytmEnabled ? (
+                ) : (() => { const op = getOnlinePay(); return op.offered && (op.required || payChoice === 'online'); })() ? (
                   <>
                     <FaUtensils size={18} />
-                    Pay with Paytm - {cs}{getFinalTotal().toFixed(2)}
+                    {getOnlinePay().gateway === 'paytm' ? 'Pay with Paytm' : 'Pay & place order'} - {cs}{getFinalTotal().toFixed(2)}
                   </>
                 ) : (
                   <>
