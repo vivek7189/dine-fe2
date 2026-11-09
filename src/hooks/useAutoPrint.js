@@ -312,6 +312,9 @@ export function useAutoPrint(restaurantId, printSettings) {
   // ── Shared handlers used by both Pusher and LAN hub ──
   const handleKotCreated = useCallback(async (data) => {
     if (!printSettings?.autoPrintOnKOT) return;
+    // A scheduled order (e.g. a WhatsApp bulk / party order for a later day) prints when it is sent to
+    // the kitchen — that sends its own kot-print-request — never when it is booked.
+    if (data && (data.status === 'scheduled' || (data.isScheduled === true && data.status !== 'confirmed'))) return;
     const orderId = data.orderId || data.id;
     // Multi-terminal role: skip if this terminal is set NOT to print kitchen tickets.
     if (!shouldPrintHere(data)) {

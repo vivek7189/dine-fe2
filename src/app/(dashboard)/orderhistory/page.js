@@ -12,6 +12,7 @@ import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
 import DeliveryRiderChip from '../../../components/delivery/DeliveryRiderChip';
 import PaidOnlineNote from '../../../components/PaidOnlineNote';
+import ScheduledOrderActions from '../../../components/ScheduledOrderActions';
 import StatementModal from '../../../components/customers/StatementModal';
 import { fmtTime, fmtDate, fmtDateTime, restaurantDateKey } from '../../../lib/restaurantTime';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
@@ -2540,9 +2541,12 @@ const OrderHistory = () => {
   }, [orders, filterSubRestaurant, selectedOrderType, kraUnfiledOnly]);
 
   // Fetch scheduled orders
-  const fetchScheduledOrders = useCallback(async () => {
+  // opts.silent: refresh in place (no loading spinner over the list) — after an action on a card, so its
+  // result message stays on screen.
+  const fetchScheduledOrders = useCallback(async (opts) => {
     if (!restaurantId) return;
-    setScheduledLoading(true);
+    const silent = !!(opts && opts.silent === true);
+    if (!silent) setScheduledLoading(true);
     try {
       const filters = {
         page: 1,
@@ -2561,7 +2565,7 @@ const OrderHistory = () => {
     } catch (err) {
       console.error('Failed to fetch scheduled orders:', err);
     } finally {
-      setScheduledLoading(false);
+      if (!silent) setScheduledLoading(false);
     }
   }, [restaurantId]);
 
@@ -7393,6 +7397,8 @@ const OrderHistory = () => {
                               <div className="text-[10px] text-gray-400">{itemCount} item{itemCount !== 1 ? 's' : ''} · {paymentDisplayLabel(order, 'cash')}</div>
                             </div>
                           </div>
+                          {/* WhatsApp bulk order: confirm / decline; any scheduled order: send to kitchen now */}
+                          <ScheduledOrderActions order={order} onChanged={() => fetchScheduledOrders({ silent: true })} />
                           {/* Items preview + actions */}
                           <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
                             <div className="text-xs text-gray-500 min-w-0 truncate">

@@ -9,6 +9,7 @@ import apiClient from '../lib/api';
 import WhatsAppPauseCard from './WhatsAppPauseCard';
 import WhatsAppNumberIdWarning from './WhatsAppNumberIdWarning';
 import WhatsAppBotSettingsCard from './WhatsAppBotSettingsCard';
+import WhatsAppBulkOrderCard from './WhatsAppBulkOrderCard';
 
 const WA_GREEN = '#25D366';
 const WA_DARK = '#075E54';
@@ -168,6 +169,10 @@ export default function WhatsAppOrderingTab({ restaurantId, restaurantName = 'Yo
       )}
       {enabled && !loading && botCfg && (
         <WhatsAppBotSettingsCard restaurantId={restaurantId} config={botCfg} currencySymbol={currencySymbol}
+          onSaved={(st) => setBotCfg(prev => ({ ...(prev || {}), ...st }))} />
+      )}
+      {enabled && !loading && botCfg && (
+        <WhatsAppBulkOrderCard restaurantId={restaurantId} config={botCfg} currencySymbol={currencySymbol}
           onSaved={(st) => setBotCfg(prev => ({ ...(prev || {}), ...st }))} />
       )}
 

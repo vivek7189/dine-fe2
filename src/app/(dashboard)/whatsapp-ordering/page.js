@@ -7,6 +7,7 @@ import apiClient from '../../../lib/api';
 import WhatsAppPauseCard from '../../../components/WhatsAppPauseCard';
 import WhatsAppNumberIdWarning from '../../../components/WhatsAppNumberIdWarning';
 import WhatsAppBotSettingsCard from '../../../components/WhatsAppBotSettingsCard';
+import WhatsAppBulkOrderCard from '../../../components/WhatsAppBulkOrderCard';
 import {
   FaWhatsapp,
   FaCheck,
@@ -364,6 +365,10 @@ export default function WhatsAppOrderingPage() {
           )}
           {configExists && config?.enabled && (
             <WhatsAppBotSettingsCard restaurantId={restaurantId} config={config}
+              onSaved={(st) => setConfig((c) => (c ? { ...c, ...st } : c))} />
+          )}
+          {configExists && config?.enabled && (
+            <WhatsAppBulkOrderCard restaurantId={restaurantId} config={config}
               onSaved={(st) => setConfig((c) => (c ? { ...c, ...st } : c))} />
           )}
           {activeTab === 'overview' && (
