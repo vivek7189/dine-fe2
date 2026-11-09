@@ -11,6 +11,7 @@ import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
 import DeliveryRiderChip from '../../../components/delivery/DeliveryRiderChip';
+import PaidOnlineNote from '../../../components/PaidOnlineNote';
 import StatementModal from '../../../components/customers/StatementModal';
 import { fmtTime, fmtDate, fmtDateTime, restaurantDateKey } from '../../../lib/restaurantTime';
 import { t, getCurrentLanguage } from '../../../lib/i18n';
@@ -4530,11 +4531,15 @@ const OrderHistory = () => {
                                     <span className="truncate">{deliveryAddressText(order) || 'No address'}</span>
                                   </div>
                                   <DeliveryRiderChip order={order} restaurantId={restaurantId} apiClient={apiClient} onChanged={() => fetchOrders(false)} compact />
+                                  <PaidOnlineNote order={order} formatCurrency={formatCurrency} />
                                 </div>
                               ) : (
-                              <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                                {isRoom ? <FaBed size={10} className="text-gray-400" /> : <FaTable size={10} className="text-gray-400" />}
-                                <span>{tableOrRoom}</span>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                                  {isRoom ? <FaBed size={10} className="text-gray-400" /> : <FaTable size={10} className="text-gray-400" />}
+                                  <span>{tableOrRoom}</span>
+                                </div>
+                                <PaidOnlineNote order={order} formatCurrency={formatCurrency} />
                               </div>
                               )}
                             </td>
@@ -5069,6 +5074,9 @@ const OrderHistory = () => {
                         {isDeliveryOrder(order) && (
                           <div className="mb-1.5"><DeliveryRiderChip order={order} restaurantId={restaurantId} apiClient={apiClient} onChanged={() => fetchOrders(false)} compact={isMobile} /></div>
                         )}
+
+                        {/* Guest paid online at the QR: paid part + what is still to collect */}
+                        <PaidOnlineNote order={order} formatCurrency={formatCurrency} />
 
                         {/* Customer / Table / Type — compact inline on mobile, grid on desktop */}
                         {isMobile ? (
