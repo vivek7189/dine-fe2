@@ -749,6 +749,10 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
   const [stationDone, setStationDone] = useState([]);       // keys of tickets cleared on this screen
   const [stationSetup, setStationSetup] = useState(null);   // draft list while the setup panel is open
   const [stationSaving, setStationSaving] = useState(false);
+  // Item ticks (kdsStations.itemTicks): 'off' (default) | 'on' (tick items as made) | 'required'
+  // (Done / Bar done / Kitchen done only once every item on the ticket is ticked). Ticks are saved
+  // on the order line (kdsReady) so every screen shows them.
+  const [ticksDraft, setTicksDraft] = useState(null);
   const stationRid = rtdbRestaurantId || currentRestaurant?.id || null;
   const normCat = (c) => String(c || '').trim().toLowerCase();
 
@@ -798,10 +802,11 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
     return barSet.has(normCat(cat));
   };
   const stationKey = (o) => `${activeStation}:${o.id}:${(o.items || []).map(i => `${i.menuItemId || i.id || i.name}x${i.quantity}`).join(',')}`;
+  const withLineIdx = (o) => ({ ...o, items: (Array.isArray(o.items) ? o.items : []).map((i, idx) => ({ ...i, _idx: idx })) });
   const stationOrders = activeStation === 'all'
-    ? kotOrders
-    : kotOrders
-      .map(o => ({ ...o, items: (Array.isArray(o.items) ? o.items : []).filter(i => (activeStation === 'bar' ? isBarItem(i) : !isBarItem(i))) }))
+    ? kotOrders.map(withLineIdx)
+    : kotOrders.map(withLineIdx)
+      .map(o => ({ ...o, items: o.items.filter(i => (activeStation === 'bar' ? isBarItem(i) : !isBarItem(i))) }))
       .filter(o => o.items.length > 0 && !stationDone.includes(stationKey(o)));
 
   const pickStation = (s) => {
@@ -813,6 +818,29 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
     setStationDone(next);
     try { localStorage.setItem(`kds_station_done:${stationRid}`, JSON.stringify(next)); } catch (_) { /* ignore */ }
   };
+  const itemTicks = ['on', 'required'].includes(stationCfg?.itemTicks) ? stationCfg.itemTicks : 'off';
+  const canTick = itemTicks !== 'off' && !(kdsMode && kdsMode.canUpdateStatus === false);
+  const [tickBusy, setTickBusy] = useState(null); // `${orderId}:${idx}` while saving
+  const toggleItemReady = async (kot, item) => {
+    if (!canTick || kot._isOffline || item._idx == null) return;
+    const key = `${kot.id}:${item._idx}`;
+    if (tickBusy === key) return;
+    const ready = !item.kdsReady;
+    const setLine = (val) => setKotOrders(list => list.map(o => (o.id !== kot.id ? o : {
+      ...o, items: (o.items || []).map((it, i) => (i === item._idx ? { ...it, kdsReady: val || undefined } : it)),
+    })));
+    setLine(ready); // show it at once
+    setTickBusy(key);
+    try {
+      await apiClient.request(`/api/kot/${encodeURIComponent(kot.id)}/item-ready`, {
+        method: 'PATCH', body: JSON.stringify({ index: item._idx, menuItemId: item.menuItemId || item.id || '', name: item.name || '', ready, restaurantId: kot.restaurantId }),
+      });
+    } catch (e) {
+      setLine(!ready);
+      setNotification({ show: true, type: 'error', message: e?.message || 'Could not tick the item' });
+    }
+    setTickBusy(null);
+  };
   const [canSetStations, setCanSetStations] = useState(false);
   useEffect(() => {
     try { setCanSetStations(['owner'].includes(String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase())); } catch (_) { /* ignore */ }
@@ -820,11 +848,12 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
   const saveStations = async () => {
     setStationSaving(true);
     try {
-      const next = { ...(stationCfg || {}), barCategories: stationSetup || [] };
+      const next = { ...(stationCfg || {}), barCategories: stationSetup || [], itemTicks: ticksDraft || stationCfg?.itemTicks || 'off' };
       await apiClient.updateRestaurant(stationRid, { posSettingsPatch: { kdsStations: next } });
       apiClient.invalidateCache && apiClient.invalidateCache(`/api/restaurants/${stationRid}`);
       setStationCfg(next);
       setStationSetup(null);
+      setTicksDraft(null);
       setNotification({ show: true, type: 'success', message: next.barCategories.length ? 'Bar categories saved. Pick Bar or Kitchen on each screen.' : 'Bar / Kitchen screens turned off.' });
     } catch (e) {
       setNotification({ show: true, type: 'error', message: e?.message || 'Could not save' });
@@ -1215,6 +1244,12 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                 // View-only kitchen display: no buttons that change the order (clearing a ticket from a
                 // Bar / Kitchen screen only hides it on this screen, so it stays).
                 if (kdsMode && !kdsMode.canUpdateStatus && actionButton && !actionButton.screenOnly) actionButton = null;
+                // Item ticks 'required': the final step (Done here / Bar done / Kitchen done) only once every
+                // item on this ticket is ticked.
+                if (actionButton && itemTicks === 'required' && !kot._isOffline && (actionButton.screenOnly || kot.status === 'ready')) {
+                  const left = (Array.isArray(kot.items) ? kot.items : []).filter(i => !i.kdsReady).length;
+                  if (left > 0) actionButton = { ...actionButton, locked: true, label: `Tick all items (${left} left)`, color: '#9ca3af', shadow: 'transparent', onClick: () => {} };
+                }
 
                 const isTransitioning = !!transitioning[kot.id];
                 const transitionInfo = transitioning[kot.id];
@@ -1457,14 +1492,26 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                             const isDeltaPositive = item.quantityDelta > 0;
                             const isDeltaNegative = item.quantityDelta < 0;
 
+                            const tickable = itemTicks !== 'off' && !isRemovedItem && !kot._isOffline && item._idx != null;
+                            const ticked = tickable && !!item.kdsReady;
                             return (
                               <div key={index} style={{
                                 display: 'flex', alignItems: 'flex-start', gap: '10px',
                                 padding: '7px 0',
                                 borderBottom: index < totalCount - 1 ? '1px solid #f3f4f6' : 'none',
-                                opacity: isRemovedItem ? 0.7 : 1,
-                                textDecoration: isRemovedItem ? 'line-through' : 'none'
+                                opacity: isRemovedItem ? 0.7 : ticked ? 0.5 : 1,
+                                textDecoration: (isRemovedItem || ticked) ? 'line-through' : 'none'
                               }}>
+                                {tickable && (
+                                  <button type="button" onClick={() => toggleItemReady(kot, item)} disabled={!canTick}
+                                    aria-label={ticked ? `Untick ${item.name}` : `Tick ${item.name} as made`}
+                                    style={{ width: '24px', height: '24px', flexShrink: 0, borderRadius: '6px', marginTop: '-2px',
+                                      border: ticked ? '2px solid #16a34a' : '2px solid #d1d5db', background: ticked ? '#16a34a' : 'white',
+                                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      cursor: canTick ? 'pointer' : 'default', padding: 0 }}>
+                                    {ticked && <FaCheck size={12} />}
+                                  </button>
+                                )}
                                 <span style={{
                                   fontSize: '14px', fontWeight: '700',
                                   color: isRemovedItem ? '#ef4444' : isDeltaNegative ? '#f59e0b' : '#374151',
@@ -1613,7 +1660,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                       {actionButton ? (
                           <button
                             onClick={actionButton.onClick}
-                            disabled={isUpdating}
+                            disabled={isUpdating || actionButton.locked}
                             style={{
                               flex: 1,
                               backgroundColor: actionButton.color,
@@ -1623,7 +1670,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                               fontWeight: '700',
                               fontSize: '13px',
                               border: 'none',
-                              cursor: isUpdating ? 'not-allowed' : 'pointer',
+                              cursor: (isUpdating || actionButton.locked) ? 'not-allowed' : 'pointer',
                               transition: 'all 0.2s',
                               display: 'flex',
                               alignItems: 'center',
@@ -1823,10 +1870,25 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                   );
                 })}
               </div>
+              <div style={{ padding: '12px 20px 4px', borderTop: '1px solid #f3f4f6' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Tick items as they are made</div>
+                <div style={{ fontSize: 12, color: '#6b7280', margin: '3px 0 8px', lineHeight: 1.4 }}>A tick box on each item on every kitchen / bar screen.{' '}<b>Required</b>: Done / Bar done / Kitchen done only once every item on the ticket is ticked.</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[['off', 'Off'], ['on', 'On'], ['required', 'Required before Done']].map(([k, label]) => {
+                    const cur = ticksDraft || stationCfg?.itemTicks || 'off';
+                    return (
+                      <button key={k} type="button" onClick={() => setTicksDraft(k)}
+                        style={{ padding: '7px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: cur === k ? '2px solid #16a34a' : '1px solid #d1d5db', background: cur === k ? '#f0fdf4' : 'white', color: cur === k ? '#166534' : '#374151' }}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div style={{ padding: '14px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 12, color: '#6b7280' }}>{stationSetup.length} bar categor{stationSetup.length === 1 ? 'y' : 'ies'}</span>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => setStationSetup(null)} disabled={stationSaving} style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+                  <button onClick={() => { setStationSetup(null); setTicksDraft(null); }} disabled={stationSaving} style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
                   <button onClick={saveStations} disabled={stationSaving} style={{ padding: '9px 16px', borderRadius: 9, border: 'none', background: '#111827', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: stationSaving ? 0.7 : 1 }}>{stationSaving ? 'Saving…' : 'Save'}</button>
                 </div>
               </div>
