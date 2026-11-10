@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { orderDisplayNumber } from '../utils/orderNumber';
 import { useRouter } from 'next/navigation';
-import { FaShoppingBag, FaUtensils, FaTruck, FaStore, FaTimes, FaWhatsapp } from 'react-icons/fa';
+import { FaShoppingBag, FaUtensils, FaTruck, FaStore, FaTimes, FaWhatsapp, FaExclamationTriangle } from 'react-icons/fa';
 
 const orderTypeConfig = {
   'dine-in': { icon: FaUtensils, label: 'Dine-in', color: '#3b82f6', bg: '#eff6ff' },
@@ -13,10 +13,20 @@ const orderTypeConfig = {
   'whatsapp': { icon: FaWhatsapp, label: 'WhatsApp', color: '#16a34a', bg: '#f0fdf4' },
 };
 
+// Paid online but the order could not be placed → what happened to the money.
+export function paymentIssueLine(pi) {
+  const amt = Number(pi?.amount) || 0;
+  const money = amt ? amt.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '';
+  if (pi?.refundStatus === 'refunded') return `${money} refunded to the guest`;
+  if (pi?.refundStatus === 'refund_pending') return `${money} refund in progress`;
+  return `REFUND NEEDED ${money} — refund it from Razorpay`;
+}
+
 function ToastItem({ notification, onDismiss, index }) {
   const [visible, setVisible] = useState(false);
   const router = useRouter();
-  const config = orderTypeConfig[notification.orderType] || orderTypeConfig['online'];
+  const pi = notification.paymentIssue || null;
+  const config = pi ? { icon: FaExclamationTriangle, label: 'Online', color: '#dc2626', bg: '#fef2f2' } : (orderTypeConfig[notification.orderType] || orderTypeConfig['online']);
   const Icon = config.icon;
 
   useEffect(() => {
@@ -67,6 +77,19 @@ function ToastItem({ notification, onDismiss, index }) {
           <Icon size={16} color={config.color} />
         </div>
 
+        {pi ? (
+          <div style={{ flex: 1, minWidth: 0 }} data-testid="payment-issue-toast">
+            <div style={{ fontSize: '13px', fontWeight: '700', color: '#b91c1c', marginBottom: '2px' }}>
+              Paid online — order NOT placed
+            </div>
+            <div style={{ fontSize: '11px', color: '#374151' }}>
+              {notification.customerName && `${notification.customerName} • `}
+              {notification.tableNumber && `Table ${notification.tableNumber} • `}
+              {paymentIssueLine(pi)}
+            </div>
+            {pi.reason ? <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{pi.reason}</div> : null}
+          </div>
+        ) : (
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: '13px', fontWeight: '700', color: '#111', marginBottom: '2px' }}>
             {notification.needsApproval ? 'Approve' : notification.isAddition ? 'More items:' : 'New'} {config.label} Order #{orderDisplayNumber(notification)}
@@ -80,6 +103,7 @@ function ToastItem({ notification, onDismiss, index }) {
             {notification.tableNumber && ` • Table ${notification.tableNumber}`}
           </div>
         </div>
+        )}
 
         <button
           onClick={handleClose}

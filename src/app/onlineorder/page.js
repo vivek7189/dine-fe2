@@ -1576,7 +1576,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     while (Date.now() < until) {
       const r = await apiClient.recoverRazorpayOrder(restaurantId, razorpayOrderId).catch(() => null);
       if (r?.status === 'placed' && r.order?.id) { goToOrderPage(r); return true; }
-      if (r?.status === 'failed' || (r?.status === 'unknown' && !r.error)) break;
+      // Paid but it can never be placed → refunded; the order page says so.
+      if (r?.status === 'not_placed' && r.order?.id) { goToOrderPage(r); return false; }
+      if (r?.status === 'failed' || r?.status === 'not_placed' || (r?.status === 'unknown' && !r.error)) break;
       await new Promise(res => setTimeout(res, 3000));
     }
     setPayScreen(null);
@@ -1596,8 +1598,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     rzpRecovering.current = true;
     try {
       const r = await apiClient.recoverRazorpayOrder(restaurantId, pending.razorpayOrderId);
-      if (r?.status === 'placed' && r.order?.id) {
-        goToOrderPage(r);
+      if ((r?.status === 'placed' || r?.status === 'not_placed') && r.order?.id) {
+        goToOrderPage(r); // not_placed: the order page shows "could not be placed — being refunded"
       } else if (r?.status === 'placing') {
         await confirmPaidCheckout(pending.razorpayOrderId);
       } else if (r?.status === 'failed') {

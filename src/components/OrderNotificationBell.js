@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { orderDisplayNumber } from '../utils/orderNumber';
 import { useRouter } from 'next/navigation';
+import { paymentIssueLine } from './OrderNotificationToast';
 import { FaBell, FaVolumeUp, FaVolumeMute, FaCheck, FaTrash, FaShoppingBag, FaUtensils, FaTruck, FaStore, FaWhatsapp } from 'react-icons/fa';
 
 const orderTypeConfig = {
@@ -73,6 +74,7 @@ export default function OrderNotificationBell({
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       {/* Bell Button */}
       <button
+        data-testid="order-bell"
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'relative',
@@ -224,6 +226,16 @@ export default function OrderNotificationBell({
                       <Icon size={14} color={config.color} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
+                      {notif.paymentIssue ? (
+                        <>
+                          <div style={{ fontSize: '13px', fontWeight: notif.read ? '500' : '600', color: '#b91c1c' }}>Paid online — order NOT placed</div>
+                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                            {notif.customerName && `${notif.customerName} • `}
+                            {notif.tableNumber && `Table ${notif.tableNumber} • `}
+                            {paymentIssueLine(notif.paymentIssue)}
+                          </div>
+                        </>
+                      ) : (<>
                       <div style={{ fontSize: '13px', fontWeight: notif.read ? '500' : '600', color: '#111' }}>
                         Order #{orderDisplayNumber(notif)}
                         <span style={{
@@ -239,6 +251,7 @@ export default function OrderNotificationBell({
                         {notif.itemsCount > 0 && `${notif.itemsCount} items${notif.isAddition ? ' added' : ''}`}
                         {notif.tableNumber && ` • Table ${notif.tableNumber}`}
                       </div>
+                      </>)}
                     </div>
                     <div style={{ fontSize: '10px', color: '#9ca3af', whiteSpace: 'nowrap' }}>
                       {timeAgo(notif.timestamp)}

@@ -142,6 +142,33 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     }
   }, [notificationOrderTypes, whatsappAlerts]);
 
+  // A guest paid online on the QR page but the order could not be placed (it was refunded, or needs a
+  // refund). Always shown — it is about money — and its toast stays until closed.
+  const addPaymentIssue = useCallback((data) => {
+    const pi = data.paymentIssue || {};
+    const notification = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      orderId: data.orderId || null,
+      dailyOrderId: null,
+      orderNumberDisplay: null,
+      orderType: 'online',
+      customerName: pi.customerName || '',
+      itemsCount: Number(pi.itemsCount) || 0,
+      tableNumber: data.tableNumber || '',
+      totalAmount: Number(pi.amount) || Number(data.totalAmount) || 0,
+      paymentIssue: { amount: Number(pi.amount) || 0, refundStatus: pi.refundStatus || 'refund_needed', reason: pi.reason || '' },
+      timestamp: Date.now(),
+      read: false,
+    };
+    setNotifications(prev => {
+      const updated = [notification, ...prev].slice(0, MAX_NOTIFICATIONS);
+      saveNotifications(updated);
+      return updated;
+    });
+    setToasts(prev => [notification, ...prev].slice(0, 3));
+    if (soundEnabledRef.current) playOrderSound();
+  }, []);
+
   const markAsRead = useCallback((notificationId) => {
     setNotifications(prev => {
       const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n);
@@ -176,11 +203,15 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     });
   }, []);
 
-  // Auto-dismiss toasts after 8 seconds
+  // Auto-dismiss toasts after 8 seconds (oldest first). Payment-issue toasts stay until closed.
   useEffect(() => {
-    if (toasts.length === 0) return;
+    if (!toasts.some(t => !t.paymentIssue)) return;
     const timer = setTimeout(() => {
-      setToasts(prev => prev.slice(0, -1)); // Remove oldest
+      setToasts(prev => {
+        let idx = -1;
+        for (let i = prev.length - 1; i >= 0; i--) { if (!prev[i].paymentIssue) { idx = i; break; } }
+        return idx === -1 ? prev : prev.filter((_, k) => k !== idx);
+      });
     }, 8000);
     return () => clearTimeout(timer);
   }, [toasts]);
@@ -193,6 +224,12 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
     console.log(`🔔 OrderNotifications: Subscribed to ${restaurantId}/orders`);
 
     const processEvent = (data) => {
+      // Paid online but not placed (backend qrPayRescue) — a cancelled-order event carrying paymentIssue.
+      if (data && data.type === 'order-status-updated' && data.paymentIssue) {
+        if (data.ts && Date.now() - data.ts > 10 * 60 * 1000) return;
+        addPaymentIssue(data);
+        return;
+      }
       // A QR customer adding items to their running order arrives as an order UPDATE (same order);
       // it alerts like a new order. Every other update stays silent, as before.
       const isQrAddition = !!data && data.type === 'order-updated' && data.merged === true && data.approvedReplay !== true;
@@ -218,7 +255,7 @@ export function useOrderNotifications(restaurantId, notificationOrderTypes = nul
       console.log(`🔔 OrderNotifications: Unsubscribing`);
       unsub();
     };
-  }, [restaurantId, addNotification]);
+  }, [restaurantId, addNotification, addPaymentIssue]);
 
   // ─── FCM Web Push (background notifications) ───
   useEffect(() => {

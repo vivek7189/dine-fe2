@@ -106,7 +106,7 @@ export default function OrderStatusPage() {
   const isPayPending = status === 'pending_payment';
   const payFailed = isPayPending && pay?.lastStatus === 'TXN_FAILURE';
   const isUnpaidCancel = isCancelled && pay && ['expired', 'failed'].includes(pay.state);
-  const isPaidNotPlaced = isCancelled && pay?.state === 'paid_not_placed';
+  const isPaidNotPlaced = isCancelled && data?.payment?.state === 'paid_not_placed'; // Paytm or Razorpay
   // Paid online (Paytm or Razorpay) — shown under the token.
   const paidOnline = data?.payment && ['paid', 'partial'].includes(data.payment.paymentStatus) ? data.payment : null;
   const stepIdx = currentStepIndex(status);
@@ -148,8 +148,12 @@ export default function OrderStatusPage() {
 
             {/* Token card */}
             <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '22px 18px', textAlign: 'center', marginBottom: 18 }}>
-              <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase' }}>Your token</div>
-              <div style={{ fontSize: 46, fontWeight: 800, lineHeight: 1.1, margin: '4px 0 8px' }}>#{data.token}</div>
+              {!(isPaidNotPlaced && data?.payment?.method === 'razorpay') ? (
+                <>
+                  <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase' }}>Your token</div>
+                  <div style={{ fontSize: 46, fontWeight: 800, lineHeight: 1.1, margin: '4px 0 8px' }}>#{data.token}</div>
+                </>
+              ) : null}
               {isPayPending ? (
                 <div>
                   {payFailed ? (
