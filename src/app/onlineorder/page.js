@@ -1547,24 +1547,42 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }
   };
 
-  // A paid Razorpay order is placed (by the page right after paying, or recovered later) → same screen.
-  const showPaidOrderPlaced = (result, firstLine) => {
-    noteMyOrder(result?.order?.id);
-    let successMsg = firstLine;
-    if (result?.awaitingApproval) {
-      successMsg = 'Payment received. Your order has been sent to the restaurant for confirmation.';
-      setTrackOrderId(result.order?.id || null);
-    } else {
-      setTrackOrderId(null);
-    }
-    if (result?.order?.loyaltyPointsEarned > 0) {
-      successMsg += ` You earned ${result.order.loyaltyPointsEarned} loyalty points!`;
-    }
+  // ── Razorpay (QR / online payment) ──
+  // Paid → the guest goes to the order page (/order-status/<id>: token, live progress, "Paid online").
+  // Paid but the order not confirmed yet → "Payment received — confirming your order…" while the page
+  // asks the server (which also places paid orders itself, utils/qrPayRescue). Failed / closed → back
+  // to checkout with the cart kept and a plain message. Never "order failed" for money that was taken.
+  const [payScreen, setPayScreen] = useState(null); // null | 'confirming' | 'opening'
+  const goToOrderPage = (result) => {
+    const id = result?.order?.id;
+    noteMyOrder(id);
+    clearPendingRzp(restaurantId);
     setCart([]);
     setSelectedOffers([]);
     setRedeemLoyaltyPoints(0);
     setError('');
-    setSuccess(successMsg);
+    if (!id) { setPayScreen(null); setSuccess('Payment received — your order is placed.'); return; }
+    setPayScreen('opening');
+    let back = '';
+    try { back = `${window.location.pathname}${window.location.search}`; } catch { back = ''; }
+    window.location.assign(`/order-status/${encodeURIComponent(id)}?paid=1${back ? `&back=${encodeURIComponent(back)}` : ''}`);
+  };
+
+  // Ask the server about a paid checkout until it is an order (up to a minute).
+  const confirmPaidCheckout = async (razorpayOrderId, paymentRef) => {
+    setPayScreen('confirming');
+    setError('');
+    const until = Date.now() + 60 * 1000;
+    while (Date.now() < until) {
+      const r = await apiClient.recoverRazorpayOrder(restaurantId, razorpayOrderId).catch(() => null);
+      if (r?.status === 'placed' && r.order?.id) { goToOrderPage(r); return true; }
+      if (r?.status === 'failed' || (r?.status === 'unknown' && !r.error)) break;
+      await new Promise(res => setTimeout(res, 3000));
+    }
+    setPayScreen(null);
+    setPlacingOrder(false);
+    setError(`We received your payment but could not confirm your order yet. Please don't pay again — show this message to the staff. Payment ref: ${paymentRef || razorpayOrderId}`);
+    return false;
   };
 
   // Paid in the UPI app but this page was lost / never told (iPhone Safari): ask the server when the
@@ -1579,13 +1597,12 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     try {
       const r = await apiClient.recoverRazorpayOrder(restaurantId, pending.razorpayOrderId);
       if (r?.status === 'placed' && r.order?.id) {
-        clearPendingRzp(restaurantId);
-        showPaidOrderPlaced(r, 'Payment received — your order is placed.');
-        setPlacingOrder(false);
-        if (firebaseUid) lookupCustomer().catch(() => {});
+        goToOrderPage(r);
+      } else if (r?.status === 'placing') {
+        await confirmPaidCheckout(pending.razorpayOrderId);
       } else if (r?.status === 'failed') {
         clearPendingRzp(restaurantId);
-        setError(`Your payment was received but the order could not be placed (${r.error || 'please ask the staff'}). Please show this to the staff. Ref: ${pending.razorpayOrderId}`);
+        setError(`We received your payment but could not place the order. Please don't pay again — show this message to the staff. Payment ref: ${pending.razorpayOrderId}`);
       } else if ((r?.status === 'unknown' && !r.error) || (r?.status === 'not_paid' && Date.now() - pending.at > 30 * 60 * 1000)) {
         clearPendingRzp(restaurantId); // nothing to recover (the server still checks late payments itself)
       }
@@ -1636,12 +1653,13 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           const script = document.createElement('script');
           script.src = 'https://checkout.razorpay.com/v1/checkout.js';
           script.onload = resolve;
-          script.onerror = () => reject(new Error('Failed to load payment gateway'));
+          script.onerror = () => reject(new Error('Could not open the payment page. Please check your internet and try again.'));
           document.body.appendChild(script);
         });
       }
 
       // 3. Open Razorpay checkout
+      let lastFailure = null; // Razorpay's reason for the last failed try (the guest can retry in its window)
       const options = {
         key: rzpOrder.keyId,
         amount: rzpOrder.amount,
@@ -1650,8 +1668,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         description: `Order payment`,
         order_id: rzpOrder.orderId,
         handler: async (response) => {
-          // Payment successful — place order with payment details
+          // Payment successful — place the order with the payment details
           rzpHandlerBusy.current = true;
+          setPayScreen('confirming');
           try {
             const orderData = {
               ...orderRequest,
@@ -1660,28 +1679,21 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
               razorpayOrderId: response.razorpay_order_id,
               razorpaySignature: response.razorpay_signature,
             };
-
-            let result;
+            let result = null;
             try {
               result = await apiClient.placePublicOrder(restaurantId, orderData);
             } catch (placeErr) {
-              // The server may be placing this same paid order already (it checks payments too) — ask it.
-              const r = await apiClient.recoverRazorpayOrder(restaurantId, response.razorpay_order_id).catch(() => null);
-              if (!(r?.status === 'placed' && r.order?.id)) throw placeErr;
-              result = r;
+              console.error('Order placement after payment error:', placeErr);
             }
-            clearPendingRzp(restaurantId);
-            showPaidOrderPlaced(result, 'Payment successful! Order placed.');
-
-            if (firebaseUid) {
-              await lookupCustomer();
+            if (result?.order?.id) {
+              if (firebaseUid) lookupCustomer().catch(() => {});
+              goToOrderPage(result);
+            } else {
+              // Paid, but no order back (network / server busy / the server is placing it) → keep asking.
+              await confirmPaidCheckout(response.razorpay_order_id, response.razorpay_payment_id);
             }
-          } catch (err) {
-            console.error('Order placement after payment error:', err);
-            setError(`Payment received (ID: ${response.razorpay_payment_id}) but order failed. Please contact the restaurant with your payment ID.`);
           } finally {
             rzpHandlerBusy.current = false;
-            setPlacingOrder(false);
           }
         },
         prefill: {
@@ -1695,19 +1707,24 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         modal: {
           ondismiss: () => {
             setPlacingOrder(false);
+            if (lastFailure) {
+              setError(`Payment didn't go through — no money was taken${lastFailure ? ` (${lastFailure})` : ''}. Please try again.`);
+            }
+            // Closed while a UPI payment was finishing in another app → it may be paid: check once.
+            setTimeout(() => recoverPendingRzpRef.current(), 2500);
           },
         },
       };
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (response) => {
-        setError(response.error?.description || 'Payment failed. Please try again.');
-        setPlacingOrder(false);
+        // Razorpay keeps its window open so the guest can try again; the message shows if they close it.
+        lastFailure = String(response?.error?.description || 'payment failed').slice(0, 120);
       });
       rzp.open();
     } catch (err) {
       console.error('Razorpay payment error:', err);
-      setError(err.message || 'Failed to initiate payment. Please try again.');
+      setError(err.message || 'Could not start the payment. Please try again.');
       setPlacingOrder(false);
     }
   };
@@ -1884,6 +1901,24 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           >
             Go to Home
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Paid: confirming the order / opening the order page — nothing else to tap meanwhile.
+  if (payScreen) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#f8fafc' }}>
+        <div style={{ maxWidth: 360, width: '100%', textAlign: 'center', background: '#fff', borderRadius: 20, padding: '32px 24px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }} data-testid="pay-screen">
+          <div style={{ width: 44, height: 44, margin: '0 auto 18px', border: '4px solid #dcfce7', borderTopColor: '#16a34a', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#166534', marginBottom: 8 }}>
+            {payScreen === 'opening' ? 'Payment received' : 'Payment received — confirming your order…'}
+          </div>
+          <div style={{ fontSize: 14, color: '#6b7280' }}>
+            {payScreen === 'opening' ? 'Opening your order…' : "This takes a few seconds. Please don't close this page or pay again."}
+          </div>
         </div>
       </div>
     );

@@ -32,6 +32,18 @@ export default function OrderStatusPage() {
   const prevReadyRef = useRef(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
+  // Opened right after paying on the QR / online page (?paid=1&back=<menu path>): a "payment
+  // successful" line, and "Order more" back to that menu. Only a same-site path is accepted.
+  const [justPaid, setJustPaid] = useState(false);
+  const [backTo, setBackTo] = useState('');
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      setJustPaid(q.get('paid') === '1');
+      const b = q.get('back') || '';
+      if (/^\/(?!\/)[^\s]*$/.test(b) && b.length < 600) setBackTo(b);
+    } catch { /* no query */ }
+  }, []);
 
   const load = useCallback(async () => {
     if (!orderId || !API_BASE_URL) return;
@@ -95,6 +107,8 @@ export default function OrderStatusPage() {
   const payFailed = isPayPending && pay?.lastStatus === 'TXN_FAILURE';
   const isUnpaidCancel = isCancelled && pay && ['expired', 'failed'].includes(pay.state);
   const isPaidNotPlaced = isCancelled && pay?.state === 'paid_not_placed';
+  // Paid online (Paytm or Razorpay) — shown under the token.
+  const paidOnline = data?.payment && ['paid', 'partial'].includes(data.payment.paymentStatus) ? data.payment : null;
   const stepIdx = currentStepIndex(status);
 
   return (
@@ -125,6 +139,12 @@ export default function OrderStatusPage() {
               ) : null}
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--muted)' }}>{data.restaurant?.name || ''}</div>
             </div>
+
+            {justPaid && !isCancelled && !isPayPending ? (
+              <div data-testid="paid-banner" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 14, padding: '12px 14px', textAlign: 'center', fontWeight: 700, fontSize: 15, marginBottom: 14 }}>
+                ✅ Payment successful — your order is placed
+              </div>
+            ) : null}
 
             {/* Token card */}
             <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '22px 18px', textAlign: 'center', marginBottom: 18 }}>
@@ -200,10 +220,10 @@ export default function OrderStatusPage() {
               )}
             </div>
 
-            {pay && !isPayPending && !isCancelled && (pay.paymentStatus === 'paid' || pay.paymentStatus === 'partial') ? (
+            {paidOnline && !isPayPending && !isCancelled ? (
               <div style={{ textAlign: 'center', marginTop: -8, marginBottom: 14 }}>
-                <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '4px 12px', borderRadius: 999 }}>
-                  ✓ Paid with Paytm{pay.paymentStatus === 'partial' ? ' (part — pay the rest at the counter)' : ''}
+                <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '4px 12px', borderRadius: 999 }} data-testid="paid-badge">
+                  ✓ {paidOnline.method === 'paytm' ? 'Paid with Paytm' : 'Paid online'}{paidOnline.paymentStatus === 'partial' ? ' (part — pay the rest at the counter)' : ''}
                 </span>
               </div>
             ) : null}
@@ -235,8 +255,14 @@ export default function OrderStatusPage() {
             {/* Order meta */}
             <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', color: 'var(--muted)', fontSize: 14 }}>
               <span>{data.itemCount} item{data.itemCount !== 1 ? 's' : ''} · {(data.orderType || 'dine-in').replace('_', ' ')}</span>
-              {data.total ? <span style={{ fontWeight: 700, color: 'var(--fg)' }}>{Number(data.total).toLocaleString()}</span> : null}
+              {data.total ? <span style={{ fontWeight: 700, color: 'var(--fg)' }}>{data.restaurant?.currencySymbol || ''}{Number(data.total).toLocaleString()}</span> : null}
             </div>
+
+            {backTo ? (
+              <a href={backTo} data-testid="order-more" style={{ display: 'block', marginTop: 16, textAlign: 'center', padding: '12px 16px', borderRadius: 12, border: '2px solid var(--accent)', color: 'var(--accent)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+                Order more
+              </a>
+            ) : null}
 
             <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 11, marginTop: 18 }}>
               This page updates automatically.
