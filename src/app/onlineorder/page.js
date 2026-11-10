@@ -77,6 +77,7 @@ import { DEFAULT_COUNTRY, getCountryByCode } from '../../lib/countries';
 import { detectCountry } from '../../lib/detectCountry';
 import { openPaytmCheckout } from '../../utils/paytmCheckout';
 import MyOrdersSheet, { readMyOrders, rememberMyOrder, guestDeviceKey } from '../../components/qr/MyOrders';
+import { readPendingRzp, writePendingRzp, clearPendingRzp } from '../../components/qr/rzpPending';
 
 // Order the public menu's category tabs by the SAME saved order as the dashboard/menu page.
 // IMPORTANT: the sidebar entries must stay equal to the ACTUAL item.category values (that's what
@@ -1546,6 +1547,67 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }
   };
 
+  // A paid Razorpay order is placed (by the page right after paying, or recovered later) → same screen.
+  const showPaidOrderPlaced = (result, firstLine) => {
+    noteMyOrder(result?.order?.id);
+    let successMsg = firstLine;
+    if (result?.awaitingApproval) {
+      successMsg = 'Payment received. Your order has been sent to the restaurant for confirmation.';
+      setTrackOrderId(result.order?.id || null);
+    } else {
+      setTrackOrderId(null);
+    }
+    if (result?.order?.loyaltyPointsEarned > 0) {
+      successMsg += ` You earned ${result.order.loyaltyPointsEarned} loyalty points!`;
+    }
+    setCart([]);
+    setSelectedOffers([]);
+    setRedeemLoyaltyPoints(0);
+    setError('');
+    setSuccess(successMsg);
+  };
+
+  // Paid in the UPI app but this page was lost / never told (iPhone Safari): ask the server when the
+  // page loads or is shown again — paid → the order is placed now (only once, the server makes sure).
+  const rzpHandlerBusy = useRef(false);
+  const rzpRecovering = useRef(false);
+  const recoverPendingRzp = async () => {
+    if (!restaurantId || restaurantId === 'default' || rzpHandlerBusy.current || rzpRecovering.current) return;
+    const pending = readPendingRzp(restaurantId);
+    if (!pending) return;
+    rzpRecovering.current = true;
+    try {
+      const r = await apiClient.recoverRazorpayOrder(restaurantId, pending.razorpayOrderId);
+      if (r?.status === 'placed' && r.order?.id) {
+        clearPendingRzp(restaurantId);
+        showPaidOrderPlaced(r, 'Payment received — your order is placed.');
+        setPlacingOrder(false);
+        if (firebaseUid) lookupCustomer().catch(() => {});
+      } else if (r?.status === 'failed') {
+        clearPendingRzp(restaurantId);
+        setError(`Your payment was received but the order could not be placed (${r.error || 'please ask the staff'}). Please show this to the staff. Ref: ${pending.razorpayOrderId}`);
+      } else if ((r?.status === 'unknown' && !r.error) || (r?.status === 'not_paid' && Date.now() - pending.at > 30 * 60 * 1000)) {
+        clearPendingRzp(restaurantId); // nothing to recover (the server still checks late payments itself)
+      }
+    } catch { /* offline — try again next time */ } finally {
+      rzpRecovering.current = false;
+    }
+  };
+  const recoverPendingRzpRef = useRef(recoverPendingRzp);
+  recoverPendingRzpRef.current = recoverPendingRzp;
+  useEffect(() => {
+    if (!restaurantId || restaurantId === 'default') return undefined;
+    recoverPendingRzpRef.current();
+    let t = null;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      clearTimeout(t);
+      t = setTimeout(() => recoverPendingRzpRef.current(), 4000); // let Razorpay's own success callback go first
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVisible); };
+  }, [restaurantId]);
+
   // Razorpay checkout flow
   const handleRazorpayPayment = async () => {
     try {
@@ -1554,6 +1616,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
 
       const finalTotal = getFinalTotal();
       const amountInPaise = Math.round(finalTotal * 100);
+      // The order as it is now — kept with the checkout on the server, so it is still placed if this
+      // page is lost after paying. The same order is sent when Razorpay says the payment went through.
+      const orderRequest = buildOrderData();
 
       // 1. Create Razorpay order on server
       const rzpOrder = await apiClient.createRazorpayOrder(restaurantId, {
@@ -1561,7 +1626,9 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         currency: 'INR',
         receipt: `online_${Date.now()}`,
         notes: { customerPhone: recordPhone(), orderType: (pricingOrderType === 'dine-in' ? 'dine_in' : pricingOrderType) },
+        orderRequest,
       });
+      if (rzpOrder?.orderId) writePendingRzp(restaurantId, rzpOrder.orderId);
 
       // 2. Load Razorpay script if not loaded
       if (!window.Razorpay) {
@@ -1584,40 +1651,36 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         order_id: rzpOrder.orderId,
         handler: async (response) => {
           // Payment successful — place order with payment details
+          rzpHandlerBusy.current = true;
           try {
-            const orderData = buildOrderData();
-            orderData.paymentMethod = 'razorpay';
-            orderData.razorpayPaymentId = response.razorpay_payment_id;
-            orderData.razorpayOrderId = response.razorpay_order_id;
-            orderData.razorpaySignature = response.razorpay_signature;
+            const orderData = {
+              ...orderRequest,
+              paymentMethod: 'razorpay',
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+            };
 
-            const result = await apiClient.placePublicOrder(restaurantId, orderData);
-            noteMyOrder(result?.order?.id);
-
-            let successMsg = 'Payment successful! Order placed.';
-            if (result.awaitingApproval) {
-              successMsg = 'Payment received. Your order has been sent to the restaurant for confirmation.';
-              setTrackOrderId(result.order?.id || null);
-            } else {
-              setTrackOrderId(null);
+            let result;
+            try {
+              result = await apiClient.placePublicOrder(restaurantId, orderData);
+            } catch (placeErr) {
+              // The server may be placing this same paid order already (it checks payments too) — ask it.
+              const r = await apiClient.recoverRazorpayOrder(restaurantId, response.razorpay_order_id).catch(() => null);
+              if (!(r?.status === 'placed' && r.order?.id)) throw placeErr;
+              result = r;
             }
-            if (result.order?.loyaltyPointsEarned > 0) {
-              successMsg += ` You earned ${result.order.loyaltyPointsEarned} loyalty points!`;
-            }
-
-            setCart([]);
-            setSelectedOffers([]);
-            setRedeemLoyaltyPoints(0);
+            clearPendingRzp(restaurantId);
+            showPaidOrderPlaced(result, 'Payment successful! Order placed.');
 
             if (firebaseUid) {
               await lookupCustomer();
             }
-
-            setSuccess(successMsg);
           } catch (err) {
             console.error('Order placement after payment error:', err);
             setError(`Payment received (ID: ${response.razorpay_payment_id}) but order failed. Please contact the restaurant with your payment ID.`);
           } finally {
+            rzpHandlerBusy.current = false;
             setPlacingOrder(false);
           }
         },

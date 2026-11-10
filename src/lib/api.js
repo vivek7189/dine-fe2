@@ -1665,6 +1665,14 @@ class ApiClient {
     });
   }
 
+  // Paid on Razorpay but the page was lost before the order was sent → { status: placed|not_paid|placing|failed|unknown, order? }
+  async recoverRazorpayOrder(restaurantId, razorpayOrderId) {
+    return this.request(`/api/public/razorpay/recover/${restaurantId}`, {
+      method: 'POST',
+      body: { razorpayOrderId },
+    });
+  }
+
   // Menu Theme APIs
   async getMenuTheme(restaurantId) {
     return this.request(`/api/menu-theme/${restaurantId}`);
