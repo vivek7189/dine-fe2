@@ -1460,7 +1460,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               label="Separate bill for each guest on a table (QR)"
             />
             <p style={{ fontSize: '12px', color: '#6b7280', margin: '-4px 0 0' }}>
-              Off: a second QR order on a busy table is added to the running bill. On: the same guest (same phone) keeps adding to their own bill; another guest gets their own bill on the same table (shown as e.g. 5-B on Tables, KOT and bills).
+              Off: a second QR order on a busy table is added to the running bill. On: the same guest (same phone) keeps adding to their own bill; another guest gets their own bill on the same table (shown as e.g. 5-B on Tables, KOT and bills). Seat QRs: another guest on the same seat gets their own order. A billed order is never added to — the next order starts a new bill.
             </p>
 
           </div>
