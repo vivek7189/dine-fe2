@@ -17,7 +17,7 @@ import {
   FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaPlus, FaChevronLeft,
   FaChevronRight, FaSave, FaTrash, FaEdit, FaUserClock, FaMapMarkerAlt
 } from 'react-icons/fa';
-import { fmtTime, fmtDate, restaurantToday, ymd } from '../../../lib/restaurantTime';
+import { fmtTime, fmtDate, restaurantToday, ymd, restaurantTimeZone } from '../../../lib/restaurantTime';
 
 // Leaflet doesn't support SSR — dynamic import
 const StaffTrackingMap = dynamic(() => import('../../../components/StaffTrackingMap'), { ssr: false });
@@ -208,6 +208,7 @@ export default function AttendancePage() {
   const [sessionEdit, setSessionEdit] = useState(null); // record being edited in the session editor
   const [attentionOnly, setAttentionOnly] = useState(false);
   const [listFilter, setListFilter] = useState(null);
+  const [onShiftAt, setOnShiftAt] = useState(''); // Today: "who is working at" a time — '' = right now (today) / not picked (past day)
   const [tableSort, setTableSort] = useState({ key: null, dir: 'asc' }); // Today table + lists: tap a column header to sort (MFC)   // Today: show only present | absent | late | leave (summary boxes)
   const [staffSort, setStaffSort] = useState('asc'); // manual-entry staff list order
   const [reviewRows, setReviewRows] = useState(null);
@@ -997,7 +998,42 @@ export default function AttendancePage() {
     const isLeaveRow = (a) => ['leave', 'on-leave', 'on_leave', 'paid_leave'].includes(String(a.status || '').toLowerCase());
     const isLateRow = (a) => a.status === 'late' || Number(a.lateBy) > 0;
     const isPresentRow = (a) => !!a.clockIn && !isLeaveRow(a) && a.status !== 'absent';
-    const byFilter = { present: isPresentRow, late: isLateRow, leave: isLeaveRow, absent: (a) => a.status === 'absent' };
+    // Who is working at a time of the day (MFC: "how many staff are in the current shift").
+    // Today with no time picked = right now (each row's own state); else a time on the shown day,
+    // read from the day's sessions and breaks. A missed punch-out has no end, so it is not counted.
+    const shiftDate = reviewDate || todayKey;
+    const shiftNow = !pastReview && !onShiftAt;
+    const shiftAtMs = (() => {
+      if (shiftNow || !/^\d{2}:\d{2}$/.test(onShiftAt)) return null;
+      const [y, m, d] = shiftDate.split('-').map(Number);
+      const [h, mi] = onShiftAt.split(':').map(Number);
+      let dayStart = 0;
+      try { dayStart = Number(apiClient.getBusinessDayStartHour ? apiClient.getBusinessDayStartHour() : 0) || 0; } catch { dayStart = 0; }
+      const dd = dayStart > 0 && dayStart < 24 && h < dayStart ? d + 1 : d; // before the business day starts = after midnight
+      const guess = Date.UTC(y, m - 1, dd, h, mi);
+      const tz = restaurantTimeZone();
+      if (!tz) return new Date(y, m - 1, dd, h, mi).getTime();
+      try {
+        const pt = {};
+        for (const x of new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess))) pt[x.type] = x.value;
+        return guess - (Date.UTC(+pt.year, +pt.month - 1, +pt.day, (+pt.hour) % 24, +pt.minute) - guess);
+      } catch { return new Date(y, m - 1, dd, h, mi).getTime(); }
+    })();
+    const shiftState = (a) => {
+      if (!a || !a.clockIn) return null;
+      const v = dayView(a);
+      if (shiftNow) return v.state === 'working' ? 'working' : v.state === 'on_break' ? 'on_break' : null;
+      if (shiftAtMs == null) return null;
+      const t = shiftAtMs, nowMs = Date.now();
+      const endOf = (end, open) => (end ? new Date(end).getTime() : (open && !pastReview ? nowMs : null));
+      if (v.breaks.some(b => b.start && new Date(b.start).getTime() <= t && (endOf(b.end, b.open) ?? -1) > t)) return 'on_break';
+      if (v.sessions.some(s => s.in && !s.missingOut && new Date(s.in).getTime() <= t && (endOf(s.out, !s.out) ?? -1) > t)) return 'working';
+      return null;
+    };
+    const onShiftWorking = attendance.filter(a => shiftState(a) === 'working').length;
+    const onShiftBreak = attendance.filter(a => shiftState(a) === 'on_break').length;
+    const shiftLabel = shiftNow ? 'right now' : onShiftAt ? `at ${fmtTime(shiftAtMs, 'en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }, onShiftAt)}` : '';
+    const byFilter = { present: isPresentRow, late: isLateRow, leave: isLeaveRow, absent: (a) => a.status === 'absent', onshift: (a) => !!shiftState(a) };
     let shown = attentionOnly ? attendance.filter(needsAttention) : attendance;
     if (listFilter && byFilter[listFilter]) shown = shown.filter(byFilter[listFilter]);
     // Absentees: active staff with no clock-in / leave today (from the server, same as the count)
@@ -1095,6 +1131,35 @@ export default function AttendancePage() {
           </div>
         </div>
 
+        {/* On shift at a time */}
+        {isAdmin && (
+          <div style={{ ...cardStyle, padding: '12px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', border: listFilter === 'onshift' ? '2px solid #16a34a' : cardStyle.border }}>
+            <span style={{ fontWeight: 700, color: '#111827', fontSize: '14px' }}>🕒 On shift</span>
+            {!pastReview && (
+              <button type="button" onClick={() => setOnShiftAt('')}
+                style={{ ...btnSecondary, padding: '5px 12px', fontSize: '12px', ...(shiftNow ? { background: '#dcfce7', color: '#166534', borderColor: '#86efac', fontWeight: 700 } : {}) }}>Now</button>
+            )}
+            <input type="time" value={onShiftAt} aria-label="Working at this time" title="See who was working at this time"
+              onChange={e => setOnShiftAt(e.target.value)}
+              style={{ padding: '5px 8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px' }} />
+            {shiftNow || shiftAtMs != null ? (
+              <>
+                <span style={{ fontSize: '14px', color: '#374151' }}>
+                  <b style={{ color: '#16a34a', fontSize: '18px' }}>{onShiftWorking}</b> working{onShiftBreak > 0 && <> · <b style={{ color: '#ca8a04' }}>{onShiftBreak}</b> on break</>} {shiftLabel}
+                </span>
+                {onShiftWorking + onShiftBreak > 0 && (
+                  <button type="button" onClick={() => { setAttentionOnly(false); setListFilter(listFilter === 'onshift' ? null : 'onshift'); }}
+                    style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0 }}>
+                    {listFilter === 'onshift' ? 'showing ✓' : 'view list'}
+                  </button>
+                )}
+              </>
+            ) : (
+              <span style={{ fontSize: '13px', color: '#9ca3af' }}>pick a time to see who was working</span>
+            )}
+          </div>
+        )}
+
         {/* Action button */}
         {isAdmin && (
           <div style={{ marginBottom: '16px' }}>
@@ -1163,7 +1228,7 @@ export default function AttendancePage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', margin: '0 0 16px 0' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>
               Staff Attendance{pastReview ? ` · ${fmtDate(reviewDate + 'T12:00:00', 'en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
-              {listFilter && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: '#b91c1c' }}>· {({ present: 'Present', absent: 'Absent', late: 'Late', leave: 'On leave', off: 'Day off' })[listFilter]} only <button onClick={() => setListFilter(null)} style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>show everyone</button></span>}
+              {listFilter && <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: '#b91c1c' }}>· {listFilter === 'onshift' ? `On shift ${shiftLabel}` : ({ present: 'Present', absent: 'Absent', late: 'Late', leave: 'On leave', off: 'Day off' })[listFilter]} only <button onClick={() => setListFilter(null)} style={{ border: 'none', background: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>show everyone</button></span>}
             </h3>
             {isAdmin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
