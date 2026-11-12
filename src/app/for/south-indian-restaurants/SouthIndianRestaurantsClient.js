@@ -87,7 +87,7 @@ export default function SouthIndianRestaurantsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve South Indian Excellence?"
-      ctaDescription="Join hundreds of South Indian restaurants using DineOpen for faster service and happier customers."
+      ctaDescription="Join South Indian restaurants using DineOpen for faster service and happier customers."
       relatedIndustries={relatedIndustries}
     />
   );

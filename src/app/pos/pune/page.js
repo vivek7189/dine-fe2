@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Pune | Billing System | DineOpen',
-  description: 'Restaurant POS software in Pune. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 400+ Pune restaurants. Start free trial.',
+  description: 'Restaurant POS software in Pune. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Built for Pune restaurants. Start free trial.',
   keywords: 'restaurant POS Pune, billing software Pune, restaurant software Maharashtra, GST billing Pune, cloud POS Pune, QR menu Pune, cafe POS Pune, restaurant management Pune',
   openGraph: {
     title: 'Best Restaurant POS Software in Pune | DineOpen',

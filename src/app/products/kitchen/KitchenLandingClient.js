@@ -253,7 +253,7 @@ export default function KitchenLandingClient() {
               Ready to Upgrade Your Kitchen?
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '18px', marginBottom: '32px' }}>
-              Join thousands of restaurants running their kitchen on DineOpen. Start your free trial today.
+              Join restaurants running their kitchen on DineOpen. Start your free trial today.
             </p>
             <Link href="/login?ref=kitchen" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#dc2626', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial

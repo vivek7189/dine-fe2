@@ -89,7 +89,7 @@ export default function SmallBusinessClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Start Free — No Credit Card Needed"
-      ctaDescription="Join thousands of small business owners using DineOpen. Free plan forever, paid plans from $20/month."
+      ctaDescription="Join small business owners using DineOpen. Free plan forever, paid plans from $20/month."
       relatedIndustries={relatedIndustries}
     />
   );

@@ -305,7 +305,7 @@ export default function Footer() {
             alignItems: 'center'
           }}>
             <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-              Trusted by 50,000+ restaurants worldwide
+              Built for restaurants, cafes and cloud kitchens
             </span>
           </div>
         </div>

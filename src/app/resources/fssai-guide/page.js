@@ -4,12 +4,12 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'FSSAI License for Restaurants 2024 | Complete Registration Guide | DineOpen',
-  description: 'Complete guide to FSSAI license for restaurants in India. Registration process, documents required, fees, renewal, types of licenses. Step-by-step instructions.',
+  title: 'FSSAI License for Restaurants 2026: New Limits, Fees, Process | DineOpen',
+  description: 'FSSAI licence for restaurants in 2026: registration now covers turnover up to ₹1.5 crore (₹100/year), State up to ₹50 crore, and licences no longer expire. Documents, fees and the FoSCoS steps.',
   keywords: 'FSSAI license restaurant, FSSAI registration India, food license apply, FSSAI documents, restaurant food license, FSSAI renewal, food safety license',
   openGraph: {
     title: 'FSSAI License for Restaurants | Complete Guide | DineOpen',
-    description: 'Complete FSSAI registration guide for restaurants. Documents, fees, process, and renewal.',
+    description: 'FSSAI for restaurants with the 1 April 2026 limits: documents, fees and process.',
     url: 'https://www.dineopen.com/resources/fssai-guide',
     siteName: 'DineOpen',
     type: 'website',

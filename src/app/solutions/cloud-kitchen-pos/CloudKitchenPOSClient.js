@@ -305,7 +305,7 @@ export default function CloudKitchenPOSClient() {
           >
             Start Free Trial - No Credit Card
           </Link>
-          <p className="text-gray-500 mt-4 text-sm">Join cloud kitchen operators in 30+ countries using DineOpen</p>
+          <p className="text-gray-500 mt-4 text-sm">Join cloud kitchen operators already using DineOpen</p>
         </div>
       </section>
 

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Chennai | Billing System | DineOpen',
-  description: 'Restaurant POS software in Chennai. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 500+ Chennai restaurants. Start free trial.',
+  description: 'Restaurant POS software in Chennai. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Built for Chennai restaurants. Start free trial.',
   keywords: 'restaurant POS Chennai, billing software Chennai, restaurant software Tamil Nadu, GST billing Chennai, cloud POS Chennai, QR menu Chennai, restaurant management Chennai, cafe POS Chennai',
   openGraph: {
     title: 'Best Restaurant POS Software in Chennai | DineOpen',

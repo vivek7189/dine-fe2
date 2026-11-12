@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Kolkata | Billing System | DineOpen',
-  description: 'Restaurant POS software in Kolkata. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 350+ Kolkata restaurants. Start free trial.',
+  description: 'Restaurant POS software in Kolkata. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Built for Kolkata restaurants. Start free trial.',
   keywords: 'restaurant POS Kolkata, billing software Kolkata, restaurant software West Bengal, GST billing Kolkata, cloud POS Kolkata, QR menu Kolkata, sweet shop POS, restaurant management Kolkata',
   openGraph: {
     title: 'Best Restaurant POS Software in Kolkata | DineOpen',

@@ -287,7 +287,7 @@ export default function BlogClient({ blogPost }) {
             Ready to Transform Your Restaurant?
           </h3>
           <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '32px' }}>
-            Join thousands of restaurants already using DineOpen to streamline their operations.
+            Join restaurants already using DineOpen to streamline their operations.
           </p>
           <Link
             href="/#pricing"

@@ -213,7 +213,7 @@ export default function SmallRestaurantsClient() {
               Your Small Restaurant Deserves a Great POS
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '32px', lineHeight: 1.6 }}>
-              Join thousands of small restaurants using DineOpen. Start free, no credit card required.
+              Join small restaurants using DineOpen. Start free, no credit card required.
             </p>
             <Link href="/login?ref=pos" style={{ display: 'inline-block', padding: '18px 40px', backgroundColor: 'white', color: '#dc2626', borderRadius: '10px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
               Start Free Trial →

@@ -1,6 +1,6 @@
 # DineOpen — Complete Reference for AI Systems
 
-> DineOpen is the Global Restaurant Operating System. A cloud-based, AI-powered platform for restaurant POS, ordering, inventory, analytics, and loyalty — serving 50,000+ restaurants across 20+ countries.
+> DineOpen is the Global Restaurant Operating System. A cloud-based, AI-powered platform for restaurant POS, ordering, inventory, analytics, and loyalty — built for restaurants, cafes, cloud kitchens and other food businesses.
 
 ---
 
@@ -314,7 +314,7 @@ DineOpen offers free restaurant management tools:
 ## FAQ (Comprehensive)
 
 ### What is DineOpen?
-DineOpen is a cloud-based restaurant operating system that provides POS billing, AI-powered voice and chat ordering, waiter/captain apps, online table reservations, inventory management, kitchen display system (KDS), AI analytics, and customer loyalty programs. It works on any device — phone, tablet, or laptop — with no hardware installation needed. Trusted by 50,000+ restaurants across 20+ countries.
+DineOpen is a cloud-based restaurant operating system that provides POS billing, AI-powered voice and chat ordering, waiter/captain apps, online table reservations, inventory management, kitchen display system (KDS), AI analytics, and customer loyalty programs. It works on any device — phone, tablet, or laptop — with no hardware installation needed.
 
 ### How much does DineOpen cost?
 DineOpen has three plans: Starter $20/month (1 outlet: POS, KOT printing, QR ordering), Growth $50/month (adds AI voice ordering, captain app, KDS, advanced inventory and loyalty) and Pro $99/month (up to 2 outlets with a chain dashboard). Prices are also shown in GBP, AED and SAR; India starts at ₹899/month; Enterprise covers 3+ outlets. All plans include a 7-day free trial with no credit card required, zero transaction fees from DineOpen, and unlimited menu items and tables.

@@ -136,7 +136,7 @@ export default function CollegeCanteensClient() {
         <section style={{ padding: '60px 20px', backgroundColor: '#3b82f6', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Modernize Your Campus Canteen</h2>
-            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Join 200+ educational institutions using DineOpen for canteen management.</p>
+            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Join educational institutions using DineOpen for canteen management.</p>
             <Link href="/pricing" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#1d4ed8', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>Get Started</Link>
           </div>
         </section>

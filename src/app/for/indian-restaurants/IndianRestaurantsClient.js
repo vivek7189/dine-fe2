@@ -87,7 +87,7 @@ export default function IndianRestaurantsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve Better?"
-      ctaDescription="Join thousands of Indian restaurants using DineOpen for smoother operations and happier guests."
+      ctaDescription="Join Indian restaurants using DineOpen for smoother operations and happier guests."
       relatedIndustries={relatedIndustries}
     />
   );

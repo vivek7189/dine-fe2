@@ -15,37 +15,37 @@ export default function FSSAIFeeCalculatorClient() {
 
   const getLicenseType = () => {
     const t = getTurnoverValue();
-    if (t <= 12) return 'basic';
-    if (t <= 2000) return 'state';
+    // FSSAI turnover limits from 1 April 2026 (FSSAI Order 13.03.2026), turnover entered in lakh
+    if (t <= 150) return 'basic';
+    if (t <= 5000) return 'state';
     return 'central';
   };
 
   const licenseDetails = {
     basic: {
       name: 'Basic Registration',
-      turnoverRange: 'Up to ₹12 Lakh/year',
+      turnoverRange: 'Up to ₹1.5 Crore/year',
       feePerYear: 100,
       processingTime: '7-15 days',
-      validity: '1-5 years',
-      description: 'For small food businesses, petty retailers, and street vendors',
+      validity: 'Does not expire (pay the yearly fee)',
+      description: 'For most restaurants, cafes, cloud kitchens, tiffin services and stalls',
       color: '#059669',
     },
     state: {
       name: 'State License',
-      turnoverRange: '₹12 Lakh - ₹20 Crore/year',
+      turnoverRange: '₹1.5 Crore - ₹50 Crore/year',
       feePerYear: 2000,
-      lateFeeMultiplier: 5000, // for turnover > 20L
       processingTime: '30-60 days',
-      validity: '1-5 years',
+      validity: 'Does not expire (pay the yearly fee, file the annual return)',
       description: 'For medium-sized food businesses operating within one state',
       color: '#0891b2',
     },
     central: {
       name: 'Central License',
-      turnoverRange: 'Above ₹20 Crore/year',
+      turnoverRange: 'Above ₹50 Crore/year',
       feePerYear: 7500,
       processingTime: '30-60 days',
-      validity: '1-5 years',
+      validity: 'Does not expire (pay the yearly fee, file the annual return)',
       description: 'For large businesses, importers, and multi-state operations',
       color: '#7c3aed',
     },
@@ -56,11 +56,8 @@ export default function FSSAIFeeCalculatorClient() {
     const license = licenseDetails[licenseType];
     let baseFee = license.feePerYear;
 
-    // State license has variable fee based on turnover
-    if (licenseType === 'state') {
-      const t = getTurnoverValue();
-      if (t > 20) baseFee = 5000; // Above 20L
-    }
+    // State licence: ₹2,000/year for most food service; manufacturers usually pay up to ₹5,000 (check FoSCoS for your activity)
+    if (licenseType === 'state' && businessType === 'manufacturer') baseFee = 5000;
 
     const totalFee = baseFee * years;
     const consultantFee = licenseType === 'basic' ? 1500 : licenseType === 'state' ? 3500 : 7500;
@@ -86,7 +83,10 @@ export default function FSSAIFeeCalculatorClient() {
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h1 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>FSSAI License Fee Calculator</h1>
             <p style={{ fontSize: '18px', opacity: 0.95 }}>
-              Calculate the exact FSSAI license fee for your food business based on annual turnover.
+              Find out which FSSAI registration or licence you need and what it costs, using the new turnover limits.
+            </p>
+            <p style={{ fontSize: '14px', marginTop: '14px', background: 'rgba(255,255,255,.15)', display: 'inline-block', padding: '8px 14px', borderRadius: '8px' }}>
+              Updated for 1 April 2026: Basic registration now covers turnover up to ₹1.5 crore, and licences no longer need renewal.
             </p>
           </div>
         </section>
@@ -115,8 +115,9 @@ export default function FSSAIFeeCalculatorClient() {
 
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                    License Duration (Years)
+                    Pay the yearly fee for
                   </label>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '-4px 0 8px' }}>Licences issued from 1 April 2026 don&apos;t expire. You can pay the yearly fee for several years at once.</p>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {[1, 2, 3, 5].map(y => (
                       <button
@@ -172,7 +173,7 @@ export default function FSSAIFeeCalculatorClient() {
                     <span style={{ fontWeight: '600' }}>₹{result.totalFee.toLocaleString()}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Consultant Fee (approx)</span>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Agent fee if you use one (optional, approx)</span>
                     <span style={{ fontWeight: '600' }}>₹{result.consultantFee.toLocaleString()}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>

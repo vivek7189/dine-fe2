@@ -95,7 +95,7 @@ export default function StatePOSClient({ stateData }) {
                 <Link key={idx} href={city.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', textDecoration: 'none', border: '1px solid #e5e7eb' }}>
                   <div>
                     <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>{city.name}</div>
-                    <div style={{ fontSize: '13px', color: '#ef4444' }}>{city.restaurants}</div>
+                    <div style={{ fontSize: '13px', color: '#ef4444' }}>Restaurant POS &amp; billing</div>
                   </div>
                   <FaArrowRight style={{ color: '#9ca3af' }} />
                 </Link>
@@ -194,7 +194,7 @@ export default function StatePOSClient({ stateData }) {
               Ready to Transform Your {state} Restaurant?
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.9, marginBottom: '32px' }}>
-              Join thousands of restaurants in {state} using DineOpen. Free 7-day trial.
+              Run your {state} restaurant on DineOpen. Free 7-day trial.
             </p>
             <Link
               href="https://dineopen.com/login"

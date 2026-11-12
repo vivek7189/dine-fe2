@@ -5,7 +5,7 @@ export const hindiBlogPosts = [
   { slug: 'food-cost-kaise-kam-kare', title: 'फूड कॉस्ट कैसे कम करें — 10 आसान और Proven तरीके', excerpt: 'अपने रेस्टोरेंट की food cost 30-35% तक कैसे लाएं। Inventory management, recipe costing, और waste reduction tips।', date: '2026-03-03', category: 'ऑपरेशन्स', categoryColor: '#f59e0b' },
   { slug: 'pos-system-kya-hai', title: 'POS सिस्टम क्या है? रेस्टोरेंट को क्यों चाहिए? [2026 गाइड]', excerpt: 'POS system की पूरी जानकारी हिंदी में। Cloud POS vs Traditional POS, features, pricing और DineOpen कैसे मदद करता है।', date: '2026-03-04', category: 'टेक्नोलॉजी', categoryColor: '#3b82f6' },
   { slug: 'restaurant-gst-billing-software', title: 'रेस्टोरेंट GST बिलिंग सॉफ्टवेयर — सही चुनाव कैसे करें', excerpt: 'GST compliant billing, GSTR filing, HSN codes, और tax calculation — रेस्टोरेंट owners के लिए complete GST billing guide।', date: '2026-03-05', category: 'GST & टैक्स', categoryColor: '#8b5cf6' },
-  { slug: 'menu-card-kaise-banaye', title: 'मेनू कार्ड कैसे बनाएं — Digital और Print दोनों [Free Tools]', excerpt: 'अपने रेस्टोरेंट का attractive menu card कैसे design करें। QR menu, digital menu, pricing strategy और menu engineering tips।', date: '2026-03-06', category: 'मेनू डिज़ाइन', categoryColor: '#ec4899' },
+  { slug: 'menu-card-kaise-banaye', title: 'Menu Card Kaise Banaye 2026: मेनू कार्ड Design, Price और Free Maker', excerpt: 'Menu card kaise banaye: categories, सही price, कौन सी dish ऊपर रखें, print और QR menu, 5 steps में। Free Menu Card Maker से अपना मेनू कार्ड बनाकर PDF download करें।', date: '2026-03-06', category: 'मेनू डिज़ाइन', categoryColor: '#ec4899' },
   { slug: 'restaurant-inventory-management-hindi', title: 'रेस्टोरेंट इन्वेंटरी मैनेजमेंट — Stock कभी खत्म नहीं होगा', excerpt: 'Inventory tracking, purchase orders, supplier management, और waste reduction — सब कुछ हिंदी में सीखें।', date: '2026-03-07', category: 'इन्वेंटरी', categoryColor: '#10b981' },
   { slug: 'online-order-kaise-le', title: 'ऑनलाइन ऑर्डर कैसे लें — Swiggy, Zomato और Direct Orders', excerpt: 'अपने रेस्टोरेंट में online ordering कैसे शुरू करें। Aggregator vs direct orders, QR ordering, और WhatsApp orders।', date: '2026-03-08', category: 'ऑनलाइन ऑर्डर', categoryColor: '#3b82f6' },
   { slug: 'restaurant-profit-kaise-badhaye', title: 'रेस्टोरेंट का प्रॉफिट कैसे बढ़ाएं — 15 Proven Tips', excerpt: 'Revenue बढ़ाने और cost कम करने के practical तरीके। Menu engineering, upselling, loyalty programs और technology का use।', date: '2026-03-09', category: 'प्रॉफिट', categoryColor: '#f59e0b' },
@@ -14,7 +14,7 @@ export const hindiBlogPosts = [
   { slug: 'mithai-dukan-kaise-khole', title: 'मिठाई की दुकान कैसे खोलें — पूरी Guide (Investment, License, Setup)', excerpt: 'Sweet shop business शुरू करने की A to Z जानकारी — investment, FSSAI license, kitchen setup, billing, और marketing strategies।', date: '2026-03-10', category: 'स्टार्टअप गाइड', categoryColor: '#10b981', isStatic: true, staticPath: '/hi/blog/mithai-dukan-kaise-khole.html' },
   { slug: 'dhaba-business-kaise-shuru-kare', title: 'ढाबा बिज़नेस कैसे शुरू करें — Investment, Profit और Setup Guide', excerpt: 'Dhaba business शुरू करने की पूरी जानकारी — location, investment breakdown, licenses, kitchen setup, और daily operations।', date: '2026-03-10', category: 'स्टार्टअप गाइड', categoryColor: '#10b981', isStatic: true, staticPath: '/hi/blog/dhaba-business-kaise-shuru-kare.html' },
   { slug: 'food-truck-business-kaise-shuru-kare', title: 'Food Truck Business कैसे शुरू करें — Cost, License और Guide', excerpt: 'India में food truck business शुरू करने की step-by-step guide — ₹7.5 लाख से शुरू, licenses, menu planning, और marketing tips।', date: '2026-03-10', category: 'स्टार्टअप गाइड', categoryColor: '#10b981', isStatic: true, staticPath: '/hi/blog/food-truck-business-kaise-shuru-kare.html' },
-  { slug: 'fssai-license-kaise-banaye', title: 'FSSAI License कैसे बनाएं — Restaurant के लिए पूरी Registration Guide (2026)', excerpt: 'Restaurant का FSSAI food license कैसे बनवाएं — types, documents, online application process, fees, और renewal की पूरी जानकारी।', date: '2026-03-10', category: 'कंप्लायंस', categoryColor: '#8b5cf6', isStatic: true, staticPath: '/hi/blog/fssai-license-kaise-banaye.html' },
+  { slug: 'fssai-license-kaise-banaye', title: 'FSSAI License कैसे बनाएं — Restaurant के लिए पूरी Registration Guide (2026)', excerpt: 'Restaurant का FSSAI food license कैसे बनवाएं — types, documents, online process, fees और 1 अप्रैल 2026 के नए नियम (₹1.5 करोड़ limit, renewal नहीं)।', date: '2026-03-10', category: 'कंप्लायंस', categoryColor: '#8b5cf6', isStatic: true, staticPath: '/hi/blog/fssai-license-kaise-banaye.html' },
   { slug: 'restaurant-gst-guide-hindi', title: 'Restaurant पर GST कितना लगता है — Complete Tax Guide Hindi में', excerpt: 'Restaurant GST की पूरी जानकारी — current rates, registration, Input Tax Credit, composition scheme, और compliance tips।', date: '2026-03-10', category: 'कंप्लायंस', categoryColor: '#8b5cf6', isStatic: true, staticPath: '/hi/blog/restaurant-gst-guide-hindi.html' },
   { slug: 'zomato-swiggy-par-restaurant-kaise-register-kare', title: 'Zomato और Swiggy पर Restaurant कैसे Register करें — Complete Guide', excerpt: 'Zomato और Swiggy पर अपना restaurant list करने की step-by-step guide — registration, documents, commission structure, और optimization tips।', date: '2026-03-10', category: 'ऑनलाइन ऑर्डर', categoryColor: '#3b82f6', isStatic: true, staticPath: '/hi/blog/zomato-swiggy-par-restaurant-kaise-register-kare.html' },
   { slug: 'tiffin-service-kaise-shuru-kare', title: 'टिफिन सर्विस कैसे शुरू करें — घर से Business शुरू करने की Guide', excerpt: 'घर से tiffin/dabba service शुरू करने की complete guide — कम investment, menu planning, pricing, delivery, और scaling tips।', date: '2026-03-10', category: 'स्टार्टअप गाइड', categoryColor: '#10b981', isStatic: true, staticPath: '/hi/blog/tiffin-service-kaise-shuru-kare.html' },
@@ -45,6 +45,9 @@ export const hindiBlogPosts = [
   { slug: 'restaurant-break-even-kaise-calculate-kare', title: 'Restaurant Break-Even Analysis — कब होगा Profit? Calculate करें (2026)', excerpt: 'Restaurant break-even point कैसे calculate करें — fixed costs, variable costs, formula, और profitability जल्दी achieve करने की strategies।', date: '2026-03-12', category: 'फाइनेंस', categoryColor: '#f59e0b', isStatic: true, staticPath: '/hi/blog/restaurant-break-even-kaise-calculate-kare.html' },
   { slug: 'qr-menu-future-trend-hindi-2026', title: 'QR Code Menu: Future Trend या हमेशा के लिए? 2026 Reality Check', excerpt: 'QR menu सिर्फ़ COVID trend था या permanent shift? Data-driven analysis — 340% adoption growth, AI ordering, AR menus, और India-specific trends।', date: '2026-03-12', category: 'टेक्नोलॉजी', categoryColor: '#3b82f6', isStatic: true, staticPath: '/hi/blog/qr-menu-future-trend-hindi-2026.html' },
 ];
+
+// Look posts up by slug, never by array position (inserting a new post must not shift titles)
+const postBySlug = (slug) => hindiBlogPosts.find((p) => p.slug === slug) || {};
 
 export const hindiBlogPostContent = {
   // ==================== BLOG 1 ====================
@@ -146,7 +149,7 @@ export const hindiBlogPostContent = {
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 DineOpen Free Trial शुरू करें</h3>
-  <p style="color: #9ca3af; margin: 0 0 20px 0;">30 दिन फ्री — कोई credit card नहीं</p>
+  <p style="color: #9ca3af; margin: 0 0 20px 0;">7 दिन फ्री trial — कोई credit card नहीं</p>
   <a href="/#pricing" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: bold; text-decoration: none;">अभी शुरू करें →</a>
 </div>
 
@@ -272,7 +275,7 @@ export const hindiBlogPostContent = {
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 DineOpen Free Trial शुरू करें</h3>
-  <p style="color: #9ca3af; margin: 0 0 20px 0;">30 दिन फ्री — कोई credit card नहीं</p>
+  <p style="color: #9ca3af; margin: 0 0 20px 0;">7 दिन फ्री trial — कोई credit card नहीं</p>
   <a href="/#pricing" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: bold; text-decoration: none;">अभी शुरू करें →</a>
 </div>
 
@@ -286,7 +289,7 @@ export const hindiBlogPostContent = {
     tags: ['restaurant kaise khole', 'FSSAI license', 'restaurant business plan', 'startup cost', 'restaurant setup'],
     faqs: [
       { question: 'रेस्टोरेंट खोलने में कितना पैसा लगता है?', answer: 'छोटे शहर (Patna, Lucknow) में ₹5-12 लाख और बड़े शहर (Delhi, Chandigarh) में ₹15-25 लाख तक लग सकते हैं। इसमें rent deposit, interiors, kitchen equipment, licenses, और 3 महीने का working capital शामिल है।' },
-      { question: 'FSSAI license कैसे मिलता है?', answer: 'FSSAI license foscos.fssai.gov.in पर online apply करें। Basic Registration (turnover <₹12L) ₹100 में मिलता है। State License (₹12L-₹20Cr) ₹2,000-₹5,000 लगता है। Process 30-60 दिन का है।' },
+      { question: 'FSSAI license कैसे मिलता है?', answer: 'FSSAI license foscos.fssai.gov.in पर online apply करें। Basic Registration (turnover ₹1.5 करोड़ तक) ₹100/साल में मिलता है। State License (₹1.5 करोड़-₹50 करोड़) ₹2,000-₹5,000 लगता है। ये limits 1 अप्रैल 2026 से लागू हैं। Process 30-60 दिन का है।' },
       { question: 'रेस्टोरेंट profit कब से शुरू होता है?', answer: 'Average restaurant 12-18 months में break-even करता है। अगर location अच्छी है और food quality consistent है, तो 8-10 months में भी profit शुरू हो सकता है।' },
       { question: 'क्या restaurant के लिए GST registration ज़रूरी है?', answer: 'अगर annual turnover ₹20 लाख से ज़्यादा है (₹10 लाख special category states में) तो GST registration mandatory है। नए restaurant को पहले से register करना better है — professional billing और ITC claim कर सकते हैं।' },
       { question: 'Restaurant का menu कैसे plan करें?', answer: 'शुरू में 25-30 items रखें। Food cost 30-35% target करें। Best-sellers identify करें और slow items हटाएं। DineOpen का menu analysis feature use करें top-selling items track करने के लिए।' },
@@ -406,7 +409,7 @@ export const hindiBlogPostContent = {
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 DineOpen Free Trial शुरू करें</h3>
-  <p style="color: #9ca3af; margin: 0 0 20px 0;">30 दिन फ्री — कोई credit card नहीं</p>
+  <p style="color: #9ca3af; margin: 0 0 20px 0;">7 दिन फ्री trial — कोई credit card नहीं</p>
   <a href="/#pricing" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: bold; text-decoration: none;">अभी शुरू करें →</a>
 </div>
 
@@ -430,8 +433,8 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 4 ====================
   'pos-system-kya-hai': {
     id: 'pos-system-kya-hai',
-    title: hindiBlogPosts[3].title,
-    excerpt: hindiBlogPosts[3].excerpt,
+    title: postBySlug('pos-system-kya-hai').title,
+    excerpt: postBySlug('pos-system-kya-hai').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
@@ -542,7 +545,7 @@ export const hindiBlogPostContent = {
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 DineOpen Free POS शुरू करें</h3>
-  <p style="color: #9ca3af; margin: 0 0 20px 0;">India का #1 Cloud POS — 30 दिन फ्री, कोई credit card नहीं</p>
+  <p style="color: #9ca3af; margin: 0 0 20px 0;">Cloud POS — 7 दिन फ्री trial, कोई credit card नहीं</p>
   <a href="/#pricing" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: bold; text-decoration: none;">अभी शुरू करें →</a>
 </div>
 
@@ -551,8 +554,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '4 मार्च 2026',
     readTime: '7 मिनट',
-    category: hindiBlogPosts[3].category,
-    categoryColor: hindiBlogPosts[3].categoryColor,
+    category: postBySlug('pos-system-kya-hai').category,
+    categoryColor: postBySlug('pos-system-kya-hai').categoryColor,
     tags: ['POS system', 'cloud POS', 'restaurant technology', 'billing', 'DineOpen'],
     faqs: [
       { question: 'POS system और billing software में क्या फर्क है?', answer: 'Billing software सिर्फ bill बनाता है। POS system उससे ज़्यादा करता है — billing + inventory + KOT + reports + customer management सब एक में। DineOpen जैसे modern POS में दोनों included हैं।' },
@@ -567,8 +570,8 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 5 ====================
   'restaurant-gst-billing-software': {
     id: 'restaurant-gst-billing-software',
-    title: hindiBlogPosts[4].title,
-    excerpt: hindiBlogPosts[4].excerpt,
+    title: postBySlug('restaurant-gst-billing-software').title,
+    excerpt: postBySlug('restaurant-gst-billing-software').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
@@ -688,8 +691,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '5 मार्च 2026',
     readTime: '8 मिनट',
-    category: hindiBlogPosts[4].category,
-    categoryColor: hindiBlogPosts[4].categoryColor,
+    category: postBySlug('restaurant-gst-billing-software').category,
+    categoryColor: postBySlug('restaurant-gst-billing-software').categoryColor,
     tags: ['GST billing', 'GSTR filing', 'restaurant GST', 'tax compliance', 'billing software'],
     faqs: [
       { question: 'Restaurant पर GST कितना लगता है?', answer: 'ज़्यादातर restaurants पर 5% GST (CGST 2.5% + SGST 2.5%) लगता है, without ITC। Outdoor catering पर 18% GST with ITC लगता है। AC हो या non-AC, regular dine-in पर rate same 5% है।' },
@@ -703,13 +706,13 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 6 ====================
   'menu-card-kaise-banaye': {
     id: 'menu-card-kaise-banaye',
-    title: hindiBlogPosts[5].title,
-    excerpt: hindiBlogPosts[5].excerpt,
+    title: postBySlug('menu-card-kaise-banaye').title,
+    excerpt: postBySlug('menu-card-kaise-banaye').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
   <h3 style="color: #065f46; margin: 0 0 8px 0; font-size: 16px;">✅ सीधा जवाब</h3>
-  <p style="color: #064e3b; font-size: 17px; line-height: 1.7; margin: 0;">एक attractive menu card बनाने के लिए — categories wise items रखें, clear pricing दें, high-profit items को highlight करें, और QR menu ज़रूर बनाएं। <a href="/tools/qr-menu-maker" style="color: #065f46; font-weight: bold;">DineOpen का Free QR Menu Maker</a> से 5 मिनट में digital menu ready करें।</p>
+  <p style="color: #064e3b; font-size: 17px; line-height: 1.7; margin: 0;">Menu card बनाने के 5 steps: (1) dishes को categories में बाँटें (Starters, Main Course, Breads, Drinks), (2) हर dish की food cost निकालकर सही price रखें, (3) सबसे ज़्यादा मुनाफ़े वाली 2-3 dishes हर section में सबसे ऊपर रखें, (4) छोटे और साफ़ नाम, एक line का description, (5) print के साथ QR menu भी बनाएं। <a href="/tools/menu-card-maker" style="color: #065f46; font-weight: bold;">Free Menu Card Maker</a> में अपना मेनू कार्ड बनाकर PDF download कीजिए, और <a href="/tools/qr-menu-maker" style="color: #065f46; font-weight: bold;">QR Menu Maker</a> से 5 मिनट में digital menu।</p>
 </div>
 
 <div style="text-align: center; margin: 30px 0;">
@@ -826,8 +829,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '6 मार्च 2026',
     readTime: '9 मिनट',
-    category: hindiBlogPosts[5].category,
-    categoryColor: hindiBlogPosts[5].categoryColor,
+    category: postBySlug('menu-card-kaise-banaye').category,
+    categoryColor: postBySlug('menu-card-kaise-banaye').categoryColor,
     tags: ['menu card', 'QR menu', 'menu design', 'restaurant menu', 'digital menu'],
     faqs: [
       { question: 'Restaurant menu card बनाने में कितना खर्च आता है?', answer: 'Print menu card ₹2,000-₹10,000 में बनता है (design + printing)। लेकिन digital QR menu DineOpen पर बिल्कुल free बना सकते हैं — photos, categories, pricing सब include। हर बार update भी free है।' },
@@ -841,8 +844,8 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 7 ====================
   'restaurant-inventory-management-hindi': {
     id: 'restaurant-inventory-management-hindi',
-    title: hindiBlogPosts[6].title,
-    excerpt: hindiBlogPosts[6].excerpt,
+    title: postBySlug('restaurant-inventory-management-hindi').title,
+    excerpt: postBySlug('restaurant-inventory-management-hindi').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
@@ -972,8 +975,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '7 मार्च 2026',
     readTime: '10 मिनट',
-    category: hindiBlogPosts[6].category,
-    categoryColor: hindiBlogPosts[6].categoryColor,
+    category: postBySlug('restaurant-inventory-management-hindi').category,
+    categoryColor: postBySlug('restaurant-inventory-management-hindi').categoryColor,
     tags: ['inventory management', 'stock control', 'FIFO', 'purchase orders', 'waste reduction'],
     faqs: [
       { question: 'Restaurant inventory कितनी बार count करनी चाहिए?', answer: 'High-value perishable items (paneer, chicken, cream, butter) daily count करें। Dry stock (dal, rice, spices) weekly count करें। Non-food items monthly count काफी है। Best time — सुबह opening से पहले या रात closing के बाद।' },
@@ -987,8 +990,8 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 8 ====================
   'online-order-kaise-le': {
     id: 'online-order-kaise-le',
-    title: hindiBlogPosts[7].title,
-    excerpt: hindiBlogPosts[7].excerpt,
+    title: postBySlug('online-order-kaise-le').title,
+    excerpt: postBySlug('online-order-kaise-le').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
@@ -1119,7 +1122,7 @@ export const hindiBlogPostContent = {
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 DineOpen Free Trial शुरू करें</h3>
-  <p style="color: #9ca3af; margin: 0 0 20px 0;">Zero commission online ordering — 30 दिन फ्री</p>
+  <p style="color: #9ca3af; margin: 0 0 20px 0;">Zero commission online ordering — 7 दिन फ्री trial</p>
   <a href="/#pricing" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: bold; text-decoration: none;">अभी शुरू करें →</a>
 </div>
 
@@ -1128,8 +1131,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '8 मार्च 2026',
     readTime: '7 मिनट',
-    category: hindiBlogPosts[7].category,
-    categoryColor: hindiBlogPosts[7].categoryColor,
+    category: postBySlug('online-order-kaise-le').category,
+    categoryColor: postBySlug('online-order-kaise-le').categoryColor,
     tags: ['online ordering', 'Swiggy', 'Zomato', 'QR ordering', 'WhatsApp orders'],
     faqs: [
       { question: 'Swiggy/Zomato पर restaurant कैसे register करें?', answer: 'Swiggy Partner app या partner.swiggy.com पर जाएं। Restaurant details, FSSAI license, GST certificate, PAN card और bank details upload करें। Menu add करें। Verification के बाद 7-15 दिन में live हो जाएगा। Zomato का process भी similar है।' },
@@ -1143,8 +1146,8 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 9 ====================
   'restaurant-profit-kaise-badhaye': {
     id: 'restaurant-profit-kaise-badhaye',
-    title: hindiBlogPosts[8].title,
-    excerpt: hindiBlogPosts[8].excerpt,
+    title: postBySlug('restaurant-profit-kaise-badhaye').title,
+    excerpt: postBySlug('restaurant-profit-kaise-badhaye').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
@@ -1238,7 +1241,7 @@ export const hindiBlogPostContent = {
 
 <div style="background: linear-gradient(135deg, #111827, #1f2937); border-radius: 16px; padding: 32px; margin: 32px 0; text-align: center;">
   <h3 style="color: white; margin: 0 0 12px 0;">🚀 DineOpen Free Trial शुरू करें</h3>
-  <p style="color: #9ca3af; margin: 0 0 20px 0;">POS + Analytics + Online Ordering — 30 दिन फ्री</p>
+  <p style="color: #9ca3af; margin: 0 0 20px 0;">POS + Analytics + Online Ordering — 7 दिन फ्री trial</p>
   <a href="/#pricing" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px; font-weight: bold; text-decoration: none;">अभी शुरू करें →</a>
 </div>
 
@@ -1247,8 +1250,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '9 मार्च 2026',
     readTime: '9 मिनट',
-    category: hindiBlogPosts[8].category,
-    categoryColor: hindiBlogPosts[8].categoryColor,
+    category: postBySlug('restaurant-profit-kaise-badhaye').category,
+    categoryColor: postBySlug('restaurant-profit-kaise-badhaye').categoryColor,
     tags: ['restaurant profit', 'revenue growth', 'cost control', 'upselling', 'menu engineering'],
     faqs: [
       { question: 'Restaurant का ideal profit margin कितना होना चाहिए?', answer: 'Indian restaurants में 10-15% net profit margin healthy माना जाता है। Fine dining में 15-20% possible है। अगर profit 8% से कम है तो cost structure review करें और revenue बढ़ाने पर focus करें।' },
@@ -1262,8 +1265,8 @@ export const hindiBlogPostContent = {
   // ==================== BLOG 10 ====================
   'qr-menu-kaise-banaye-free': {
     id: 'qr-menu-kaise-banaye-free',
-    title: hindiBlogPosts[9].title,
-    excerpt: hindiBlogPosts[9].excerpt,
+    title: postBySlug('qr-menu-kaise-banaye-free').title,
+    excerpt: postBySlug('qr-menu-kaise-banaye-free').excerpt,
     content: `<div>
 
 <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-left: 4px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;">
@@ -1373,8 +1376,8 @@ export const hindiBlogPostContent = {
     authorRole: 'रेस्टोरेंट टेक्नोलॉजी एक्सपर्ट',
     publishDate: '10 मार्च 2026',
     readTime: '5 मिनट',
-    category: hindiBlogPosts[9].category,
-    categoryColor: hindiBlogPosts[9].categoryColor,
+    category: postBySlug('qr-menu-kaise-banaye-free').category,
+    categoryColor: postBySlug('qr-menu-kaise-banaye-free').categoryColor,
     tags: ['QR menu', 'digital menu', 'contactless menu', 'QR code', 'free menu maker'],
     faqs: [
       { question: 'QR menu बनाने में कितना खर्चा आता है?', answer: 'DineOpen पर QR menu बनाना बिल्कुल FREE है। कोई monthly charge नहीं, कोई hidden fees नहीं। सिर्फ QR code print करने का ₹5-10 per copy खर्चा आएगा जो आप किसी भी printer से करा सकते हैं।' },

@@ -87,7 +87,7 @@ export default function MithaiShopsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Sweeten Your Business?"
-      ctaDescription="Join hundreds of mithai shops using DineOpen for faster billing and better inventory control."
+      ctaDescription="Join mithai shops using DineOpen for faster billing and better inventory control."
       relatedIndustries={relatedIndustries}
     />
   );

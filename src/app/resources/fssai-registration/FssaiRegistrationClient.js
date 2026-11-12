@@ -9,23 +9,23 @@ export default function FssaiRegistrationClient() {
   const licenseTypes = [
     {
       name: 'Basic Registration',
-      turnover: 'Up to ₹12 Lakhs/year',
+      turnover: 'Up to ₹1.5 Crore/year',
       fee: '₹100/year',
-      validity: '1-5 years',
-      for: 'Small eateries, food stalls, home-based food businesses',
+      validity: 'No expiry (issued from 1 Apr 2026); pay the yearly fee',
+      for: 'Small eateries, food stalls, home-based food businesses, most small restaurants and cafes',
     },
     {
       name: 'State License',
-      turnover: '₹12 Lakhs - ₹20 Crores/year',
+      turnover: '₹1.5 Crore - ₹50 Crore/year',
       fee: '₹2,000-5,000/year',
-      validity: '1-5 years',
-      for: 'Most restaurants, cafes, cloud kitchens, medium establishments',
+      validity: 'No expiry (issued from 1 Apr 2026); pay the yearly fee and file the annual return',
+      for: 'Larger restaurants, busy cafes and cloud kitchens, medium establishments',
     },
     {
       name: 'Central License',
-      turnover: 'Above ₹20 Crores/year',
+      turnover: 'Above ₹50 Crore/year',
       fee: '₹7,500/year',
-      validity: '1-5 years',
+      validity: 'No expiry (issued from 1 Apr 2026); pay the yearly fee and file the annual return',
       for: 'Large chains, import/export, multi-state operations',
     },
   ];
@@ -66,7 +66,7 @@ export default function FssaiRegistrationClient() {
             </p>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.2)', padding: '12px 20px', borderRadius: '8px' }}>
               <FaClock />
-              <span>Updated for 2024-2025</span>
+              <span>Updated for the April 2026 FSSAI rules</span>
             </div>
           </div>
         </div>
@@ -89,8 +89,8 @@ export default function FssaiRegistrationClient() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
               {licenseTypes.map((license, idx) => (
-                <div key={idx} style={{ padding: '28px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: idx === 1 ? '2px solid #059669' : '1px solid #e5e7eb' }}>
-                  {idx === 1 && <div style={{ backgroundColor: '#059669', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: '600', marginBottom: '12px', display: 'inline-block' }}>Most Common</div>}
+                <div key={idx} style={{ padding: '28px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: idx === 0 ? '2px solid #059669' : '1px solid #e5e7eb' }}>
+                  {idx === 0 && <div style={{ backgroundColor: '#059669', color: 'white', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', fontWeight: '600', marginBottom: '12px', display: 'inline-block' }}>Most Common</div>}
                   <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>{license.name}</h3>
                   <div style={{ marginBottom: '12px' }}>
                     <div style={{ fontSize: '14px', color: '#6b7280' }}>Annual Turnover</div>
@@ -173,7 +173,7 @@ export default function FssaiRegistrationClient() {
               Stay FSSAI Compliant with DineOpen
             </h2>
             <p style={{ fontSize: '16px', opacity: 0.9, marginBottom: '24px' }}>
-              DineOpen automatically displays your FSSAI license on bills, tracks expiry dates, and keeps you audit-ready.
+              DineOpen prints your FSSAI number on every bill and keeps your sales and stock records ready for an inspection.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '14px 28px', backgroundColor: '#059669', color: 'white', borderRadius: '8px', fontWeight: '600', textDecoration: 'none' }}>

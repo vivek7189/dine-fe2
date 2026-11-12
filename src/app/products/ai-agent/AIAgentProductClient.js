@@ -1093,7 +1093,7 @@ export default function AIAgentProductClient() {
             marginBottom: '40px',
             lineHeight: '1.6'
           }}>
-            Join thousands of restaurants using DineOpen AI Agent to streamline operations, 
+            Join restaurants using DineOpen AI Agent to streamline operations, 
             increase efficiency, and boost revenue.
           </p>
           <div style={{

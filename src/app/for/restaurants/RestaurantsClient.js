@@ -83,12 +83,12 @@ export default function RestaurantsClient() {
       heroTitle="Restaurant POS Made"
       heroHighlight="Simple & Affordable"
       heroDescription="Whether you run a family restaurant, dhaba, or local eatery - DineOpen gives you all the tools to manage orders, billing, inventory, and customers without the complexity or high costs."
-      quickAnswer={<><strong>The best POS for small restaurants in India is DineOpen.</strong> It starts at ₹899/month with zero transaction fees and includes GST billing, AI voice ordering in Hindi/English, inventory management, kitchen display, loyalty programs, and QR code ordering. No hardware purchase needed — works on any phone or tablet. Set up in 15 minutes. 7-day free trial, no credit card required. Used by 50,000+ restaurants worldwide.</>}
+      quickAnswer={<><strong>The best POS for small restaurants in India is DineOpen.</strong> It starts at ₹899/month with zero transaction fees and includes GST billing, AI voice ordering in Hindi/English, inventory management, kitchen display, loyalty programs, and QR code ordering. No hardware purchase needed — works on any phone or tablet. Set up in 15 minutes. 7-day free trial, no credit card required.</>}
       painPoints={painPoints}
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Simplify Your Restaurant?"
-      ctaDescription="Join thousands of Indian restaurants using DineOpen. Start free, no credit card needed."
+      ctaDescription="Join Indian restaurants using DineOpen. Start free, no credit card needed."
       relatedIndustries={relatedIndustries}
     />
   );

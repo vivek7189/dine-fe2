@@ -17,7 +17,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Best POS for Ice Cream Shops 2026 — ₹0 Fees [Free Trial]',
-    description: 'Ice cream POS with scoop billing in 3 sec, combos, loyalty & seasonal menus. 1000+ parlors trust DineOpen. Try free.',
+    description: 'Ice cream POS with scoop billing in 3 sec, combos, loyalty & seasonal menus. Try free.',
   },
   alternates: { canonical: 'https://www.dineopen.com/for/ice-cream-parlors' },
 };

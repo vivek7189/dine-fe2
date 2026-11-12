@@ -10,10 +10,10 @@ export default function RestaurantLicensesClient() {
     {
       name: 'FSSAI Food License',
       authority: 'Food Safety and Standards Authority of India',
-      cost: '₹2,000 - ₹7,500/year',
+      cost: '₹100 - ₹7,500/year',
       timeline: '30-60 days',
-      validity: '1-5 years',
-      description: 'Mandatory for any food business. Type depends on turnover (Basic/State/Central).',
+      validity: 'No expiry if issued from 1 Apr 2026 (yearly fee still due)',
+      description: 'Mandatory for any food business. Type depends on turnover: Basic Registration up to ₹1.5 crore, State Licence up to ₹50 crore, Central Licence above that.',
       link: '/resources/fssai-guide',
     },
     {

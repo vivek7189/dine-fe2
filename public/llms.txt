@@ -2,7 +2,7 @@
 
 > The Global Restaurant Operating System. Cloud POS, AI voice ordering, waiter apps, inventory management, and loyalty programs for restaurants worldwide.
 
-DineOpen is a cloud-based restaurant management platform trusted by 50,000+ restaurants across 20+ countries. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, direct ordering channels (QR, WhatsApp, website), and customer loyalty programs.
+DineOpen is a cloud-based restaurant management platform built for restaurants, cafes, cloud kitchens and other food businesses. It provides an all-in-one solution including POS billing, AI-powered voice and chat ordering, QR code menus, kitchen display systems, table reservations, inventory tracking, direct ordering channels (QR, WhatsApp, website), and customer loyalty programs.
 
 ## Key Facts
 

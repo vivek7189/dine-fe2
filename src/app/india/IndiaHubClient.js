@@ -7,7 +7,7 @@ import { FaCheck, FaMapMarkerAlt, FaStar, FaCity, FaUtensils, FaFileAlt, FaTools
 
 export default function IndiaHubClient() {
   const stats = [
-    { value: '50,000+', label: 'Restaurants Worldwide' },
+    { value: '9', label: 'Indian languages' },
     { value: '25+', label: 'Cities Covered' },
     { value: '99.9%', label: 'Uptime' },
     { value: '0%', label: 'Transaction Fees' },
@@ -102,11 +102,11 @@ export default function IndiaHubClient() {
               <span style={{ fontWeight: '600' }}>Made for Indian Restaurants</span>
             </div>
             <h1 style={{ fontSize: '48px', fontWeight: '800', marginBottom: '20px', lineHeight: 1.2 }}>
-              #1 Restaurant POS Software in India
+              DineOpen Across India: POS by State and City
             </h1>
             <p style={{ fontSize: '22px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              GST-compliant billing, FSSAI ready, Zomato/Swiggy sales tracking, UPI payments, Hindi voice ordering.
-              Trusted by 50,000+ restaurants across India.
+              Find DineOpen for your state and city: GST billing, UPI payments, Zomato/Swiggy sales tracking and Hindi voice ordering.
+              For the full product tour, see our <Link href="/restaurant-pos-software-india" style={{ color: 'white', textDecoration: 'underline' }}>restaurant POS software for India</Link>.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link
@@ -177,7 +177,7 @@ export default function IndiaHubClient() {
               {cities.map((city, idx) => (
                 <Link key={idx} href={city.href} style={{ display: 'block', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', textDecoration: 'none', transition: 'all 0.2s', border: '1px solid #e5e7eb' }}>
                   <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{city.name}</div>
-                  <div style={{ fontSize: '13px', color: '#ef4444' }}>{city.restaurants} restaurants</div>
+                  <div style={{ fontSize: '13px', color: '#ef4444' }}>Restaurant POS &amp; billing</div>
                 </Link>
               ))}
             </div>
@@ -289,7 +289,7 @@ export default function IndiaHubClient() {
               Ready to Transform Your Restaurant?
             </h2>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px' }}>
-              Join 50,000+ Indian restaurants using DineOpen. Free 7-day trial, no credit card required.
+              Restaurants, cafes and cloud kitchens across India run on DineOpen. Free 7-day trial, no credit card required.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link

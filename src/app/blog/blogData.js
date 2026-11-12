@@ -847,7 +847,7 @@ export const blogPosts = [
   {
     slug: 'fssai-license-restaurant-complete-guide',
     title: 'FSSAI License for Restaurants: Complete Registration Guide (2026)',
-    excerpt: 'Complete guide to getting FSSAI food license for your restaurant — types of licenses, documents required, online application process, fees, and renewal.',
+    excerpt: 'Complete guide to getting FSSAI food license for your restaurant — types of licenses, documents required, online application process, fees and the April 2026 rules (₹1.5 crore limit, no renewal).',
     date: '2026-03-10',
     category: 'Compliance',
     categoryColor: '#8b5cf6',
@@ -3374,7 +3374,7 @@ export const blogPostContent = {
         <div style="text-align: center; margin: 40px 0;">
           <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 32px; border-radius: 16px; color: white;">
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Ready to Transform Your Cafe?</h3>
-            <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join hundreds of cafe owners using DineOpen to boost sales and streamline operations</p>
+            <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95;">Join cafe owners using DineOpen to boost sales and streamline operations</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
               <a href="/#pricing" style="display: inline-block; padding: 16px 32px; background: white; color: #ef4444; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start 7-Day Free Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book Demo</a>
@@ -4024,7 +4024,7 @@ export const blogPostContent = {
           <li>✅ Environmental benefits appeal to eco-conscious customers</li>
         </ul>
 
-        <p>With DineOpen's AI-powered QR code menu system, you get all these benefits and more. Start your free trial today and join thousands of restaurants transforming their operations with digital menus!</p>
+        <p>With DineOpen's AI-powered QR code menu system, you get all these benefits and more. Start your free trial today and join restaurants transforming their operations with digital menus!</p>
 
         <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: March 26, 2026</em></p>
       `,
@@ -7036,7 +7036,7 @@ export const blogPostContent = {
           <li>✅ Environmental benefits</li>
         </ul>
 
-        <p>With DineOpen, you get a complete QR code menu solution with easy setup, beautiful design, and powerful analytics. Start your free trial today and join thousands of restaurants benefiting from QR code menus!</p>
+        <p>With DineOpen, you get a complete QR code menu solution with easy setup, beautiful design, and powerful analytics. Start your free trial today and join restaurants benefiting from QR code menus!</p>
 
         <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px;"><em>Last updated: February 9, 2025</em></p>
       `,
@@ -9009,7 +9009,7 @@ export const blogPostContent = {
     excerpt: 'Step-by-step cloud kitchen startup guide with real costs (₹3-15 lakh), FSSAI licensing, Swiggy/Zomato integration, multi-brand strategies, and profit margin benchmarks.',
     content: `
         <!-- quick-answer -->
-        <div class="quick-answer" style="background:#fff7ed;border:1px solid #fed7aa;border-left:5px solid #ef4444;border-radius:12px;padding:18px 22px;margin:0 0 28px;"><p style="margin:0 0 8px;font-weight:800;font-size:18px;color:#111827;">Quick answer: how much does it cost to start a cloud kitchen in India?</p><ul style="margin:0;padding-left:20px;font-size:16px;line-height:1.6;color:#1f2937;"><li style="margin:6px 0;"><strong>Total setup:</strong> about <strong>Rs 5-15 lakh</strong>, versus Rs 30-50 lakh for a dine-in restaurant</li><li style="margin:6px 0;"><strong>Kitchen equipment:</strong> <strong>Rs 3-8 lakh</strong> (stove, exhaust, refrigeration, prep tables, packaging); buy second-hand where possible</li><li style="margin:6px 0;"><strong>Licences:</strong> FSSAI (Basic Rs 100/year below Rs 12 lakh turnover), trade licence, GST</li><li style="margin:6px 0;"><strong>Watch:</strong> delivery-app commissions; the full cost and margin breakdown is below</li></ul></div>
+        <div class="quick-answer" style="background:#fff7ed;border:1px solid #fed7aa;border-left:5px solid #ef4444;border-radius:12px;padding:18px 22px;margin:0 0 28px;"><p style="margin:0 0 8px;font-weight:800;font-size:18px;color:#111827;">Quick answer: how much does it cost to start a cloud kitchen in India?</p><ul style="margin:0;padding-left:20px;font-size:16px;line-height:1.6;color:#1f2937;"><li style="margin:6px 0;"><strong>Total setup:</strong> about <strong>Rs 5-15 lakh</strong>, versus Rs 30-50 lakh for a dine-in restaurant</li><li style="margin:6px 0;"><strong>Kitchen equipment:</strong> <strong>Rs 3-8 lakh</strong> (stove, exhaust, refrigeration, prep tables, packaging); buy second-hand where possible</li><li style="margin:6px 0;"><strong>Licences:</strong> FSSAI (Basic Rs 100/year up to Rs 1.5 crore turnover), trade licence, GST</li><li style="margin:6px 0;"><strong>Watch:</strong> delivery-app commissions; the full cost and margin breakdown is below</li></ul></div>
 
         <div style="text-align: center; margin: 30px 0;">
           <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Commercial cloud kitchen setup" style="width: 100%; max-width: 700px; height: 350px; object-fit: cover; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" onerror="this.onerror=null; this.style.display='none';" />
@@ -9410,7 +9410,7 @@ export const blogPostContent = {
           </div>
           <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
             <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">Which licences does a cloud kitchen need?</h3>
-            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">FSSAI registration or licence (Basic Registration is ₹100/year below ₹12 lakh turnover), a trade or health licence from the local municipal body, fire NOC where required, and GST registration. Swiggy and Zomato ask for FSSAI before listing.</p>
+            <p style="font-size: 16px; line-height: 1.7; color: #374151; margin: 0;">FSSAI registration or licence (Basic Registration is ₹100/year up to ₹1.5 crore turnover), a trade or health licence from the local municipal body, fire NOC where required, and GST registration. Swiggy and Zomato ask for FSSAI before listing.</p>
           </div>
           <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; background: white;">
             <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px;">How long does a cloud kitchen take to break even?</h3>
@@ -9704,7 +9704,7 @@ export const blogPostContent = {
         <p style="font-size: 17px; line-height: 1.8; color: #374151;">This is where most first-time restaurant owners get stuck. India requires multiple licenses and permits before you can legally serve food. Missing even one can result in fines, closure, or legal trouble. Here is every license you need:</p>
 
         <h3 style="font-size: 22px; font-weight: 700; color: #1f2937; margin-top: 35px; margin-bottom: 15px;">FSSAI License</h3>
-        <p style="font-size: 17px; line-height: 1.8; color: #374151;">The Food Safety and Standards Authority of India (FSSAI) license is mandatory for any food business. Depending on your turnover, you will need a Basic Registration (under ₹12 lakhs), State License (₹12 lakhs to ₹20 crores), or Central License (above ₹20 crores). The process involves filling out Form A or Form B, submitting documents, and paying the fee. Read our complete <a href="/resources/fssai-guide" style="color: #ef4444; font-weight: 600;">FSSAI license guide</a> and <a href="/resources/fssai-registration" style="color: #ef4444; font-weight: 600;">step-by-step registration process</a> for detailed instructions.</p>
+        <p style="font-size: 17px; line-height: 1.8; color: #374151;">The Food Safety and Standards Authority of India (FSSAI) license is mandatory for any food business. Depending on your turnover, you will need a Basic Registration (up to ₹1.5 crore), State License (₹1.5 crore to ₹50 crore), or Central License (above ₹50 crore). These limits apply from 1 April 2026. The process involves filling out Form A or Form B, submitting documents, and paying the fee. Read our complete <a href="/resources/fssai-guide" style="color: #ef4444; font-weight: 600;">FSSAI license guide</a> and <a href="/resources/fssai-registration" style="color: #ef4444; font-weight: 600;">step-by-step registration process</a> for detailed instructions.</p>
 
         <h3 style="font-size: 22px; font-weight: 700; color: #1f2937; margin-top: 35px; margin-bottom: 15px;">GST Registration</h3>
         <p style="font-size: 17px; line-height: 1.8; color: #374151;">GST registration is mandatory if your annual turnover exceeds ₹20 lakhs (₹10 lakhs in special category states). Restaurants charge 5% GST (without input tax credit) or 18% GST (with ITC) depending on the type of establishment. Air-conditioned restaurants, those serving alcohol, and restaurants in hotels with room tariff above ₹7,500 may fall under different slabs. Our <a href="/resources/gst-restaurants" style="color: #ef4444; font-weight: 600;">GST guide for restaurants</a> explains everything in detail.</p>
@@ -11260,7 +11260,7 @@ export const blogPostContent = {
         <div style="text-align: center; margin: 40px 0;">
           <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 40px 32px; border-radius: 20px; color: white;">
             <h3 style="color: white; margin-bottom: 12px; font-size: 28px;">Start Managing Your Inventory the Smart Way</h3>
-            <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95; max-width: 600px; margin-left: auto; margin-right: auto;">Join thousands of restaurants using DineOpen to reduce waste, lower food costs, and never run out of stock again.</p>
+            <p style="font-size: 18px; margin-bottom: 24px; opacity: 0.95; max-width: 600px; margin-left: auto; margin-right: auto;">Join restaurants using DineOpen to reduce waste, lower food costs, and never run out of stock again.</p>
             <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
               <a href="/login?ref=inventory-blog-final" style="display: inline-block; padding: 16px 36px; background: white; color: #dc2626; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free 7-Day Trial →</a>
               <a href="/#contact" style="display: inline-block; padding: 16px 36px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid white;">Book a Free Demo</a>

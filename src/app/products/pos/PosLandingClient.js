@@ -75,7 +75,7 @@ export default function PosLandingClient() {
               The Smartest Restaurant<br />POS System
             </h1>
             <p style={{ fontSize: isMobile ? '18px' : '22px', color: '#374151', lineHeight: 1.7, maxWidth: '750px', margin: '0 auto 40px' }}>
-              Take orders, process payments, and manage your restaurant from any device. Built for dine-in, takeout, delivery, and room service with real-time kitchen sync and multi-location support.
+              Take orders, process payments, and manage your restaurant from any device. In India? See <Link href="/restaurant-pos-software-india" style={{ color: '#ef4444', fontWeight: 600 }}>restaurant POS software for India</Link> with GST billing and UPI.<br /> Built for dine-in, takeout, delivery, and room service with real-time kitchen sync and multi-location support.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/login?ref=pos" style={{ padding: '16px 32px', fontSize: '16px', fontWeight: '700', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>

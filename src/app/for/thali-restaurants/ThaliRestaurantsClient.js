@@ -87,7 +87,7 @@ export default function ThaliRestaurantsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve Unlimited Smiles?"
-      ctaDescription="Join hundreds of thali restaurants using DineOpen for smoother service and better margins."
+      ctaDescription="Join thali restaurants using DineOpen for smoother service and better margins."
       relatedIndustries={relatedIndustries}
     />
   );

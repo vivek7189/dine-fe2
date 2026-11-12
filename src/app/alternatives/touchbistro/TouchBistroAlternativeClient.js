@@ -28,7 +28,7 @@ export default function TouchBistroAlternativeClient() {
         <section style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', color: 'white', padding: '80px 20px', textAlign: 'center' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ display: 'inline-block', backgroundColor: 'rgba(255,255,255,0.2)', padding: '8px 20px', borderRadius: '20px', fontSize: '14px', marginBottom: '24px' }}>
-              #1 TouchBistro Alternative
+              TouchBistro Alternative
             </div>
             <h1 style={{ fontSize: '48px', fontWeight: '800', marginBottom: '20px', lineHeight: 1.2 }}>
               Looking for a <span style={{ color: '#fcd34d' }}>TouchBistro Alternative</span>?

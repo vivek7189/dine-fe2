@@ -87,7 +87,7 @@ export default function CafesClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Brew Up Better Business?"
-      ctaDescription="Join hundreds of cafes using DineOpen for faster service and happier customers."
+      ctaDescription="Join cafes using DineOpen for faster service and happier customers."
       relatedIndustries={relatedIndustries}
     />
   );

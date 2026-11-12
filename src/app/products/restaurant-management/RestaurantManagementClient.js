@@ -264,7 +264,7 @@ export default function RestaurantManagementClient() {
             Ready to Transform Your Restaurant?
           </h2>
           <p style={{ fontSize: isMobile ? '18px' : '20px', color: '#6b7280', marginBottom: '40px', lineHeight: '1.6' }}>
-            Join thousands of restaurants using DineOpen to streamline operations and boost revenue.
+            Join restaurants using DineOpen to streamline operations and boost revenue.
           </p>
           <button
             onClick={() => router.push('/login')}

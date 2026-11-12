@@ -87,7 +87,7 @@ export default function ChaiTapriClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve Chai Faster?"
-      ctaDescription="Join hundreds of chai tapris using DineOpen for quicker billing and better business insights."
+      ctaDescription="Join chai tapris using DineOpen for quicker billing and better business insights."
       relatedIndustries={relatedIndustries}
     />
   );

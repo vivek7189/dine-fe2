@@ -89,7 +89,7 @@ export default function GuidesHubClient() {
               Free Restaurant Guides & eBooks
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              Expert insights from 10,000+ restaurant owners. Download free guides on startup, marketing, operations, and growth.
+              Practical guides for restaurant owners. Download free guides on startup, marketing, operations, and growth.
             </p>
           </div>
         </section>

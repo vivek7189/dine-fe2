@@ -99,7 +99,7 @@ export default function StartupGuideClient() {
   ];
 
   const licenses = [
-    { name: 'FSSAI License', cost: '₹2,000 - ₹5,000', time: '30-60 days', required: true },
+    { name: 'FSSAI Registration (License above ₹1.5 Cr turnover)', cost: '₹100/year (License ₹2,000 - ₹5,000)', time: '7-60 days', required: true },
     { name: 'GST Registration', cost: 'Free', time: '7-15 days', required: true },
     { name: 'Shop & Establishment', cost: '₹500 - ₹2,000', time: '15-30 days', required: true },
     { name: 'Fire Safety NOC', cost: '₹5,000 - ₹15,000', time: '15-30 days', required: true },
@@ -133,7 +133,7 @@ export default function StartupGuideClient() {
               How to Open a Restaurant in India
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '32px', maxWidth: '700px', margin: '0 auto 32px' }}>
-              Step-by-step guide covering everything from concept to launch. Licenses, costs, timelines, and expert tips from 10,000+ restaurant owners.
+              Step-by-step guide covering everything from concept to launch. Licenses, costs, timelines, and practical tips for first-time restaurant owners.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/resources/business-plan" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#059669', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>

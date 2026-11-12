@@ -829,7 +829,7 @@ export default function PricingClient() {
             Start your 7-day free trial
           </h2>
           <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '8px' }}>
-            Join 50,000+ restaurants already running on DineOpen.
+            Join restaurants already running on DineOpen.
           </p>
           <p style={{ fontSize: '15px', color: '#6b7280', marginBottom: '32px' }}>
             No credit card required • Free migration from your old POS • Cancel anytime

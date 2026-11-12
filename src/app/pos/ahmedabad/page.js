@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Ahmedabad | Billing System | DineOpen',
-  description: 'Restaurant POS software in Ahmedabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 300+ Ahmedabad restaurants. Start free trial.',
+  description: 'Restaurant POS software in Ahmedabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Built for Ahmedabad restaurants. Start free trial.',
   keywords: 'restaurant POS Ahmedabad, billing software Ahmedabad, restaurant software Gujarat, GST billing Ahmedabad, cloud POS Ahmedabad, QR menu Ahmedabad, thali restaurant POS, restaurant management Ahmedabad',
   openGraph: {
     title: 'Best Restaurant POS Software in Ahmedabad | DineOpen',

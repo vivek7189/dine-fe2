@@ -47,7 +47,7 @@ export default function RestroworksAlternativeClient() {
         <section className="bg-gradient-to-br from-purple-700 to-purple-900 text-white py-20 px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <div className="inline-block bg-white/20 backdrop-blur-sm px-5 py-2 rounded-full text-sm font-medium mb-6">
-              #1 Restroworks Alternative
+              Restroworks Alternative
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
               Looking for a <span className="text-yellow-300">Restroworks Alternative</span>?

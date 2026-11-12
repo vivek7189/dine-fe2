@@ -85,14 +85,14 @@ export default function POSLocationsClient() {
               </h2>
             </div>
             <p style={{ fontSize: '18px', color: '#6b7280', textAlign: 'center', marginBottom: '48px' }}>
-              Trusted by thousands of restaurants in these cities
+              Restaurant POS and billing for cities across India
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
               {majorCities.map((city, idx) => (
                 <Link key={idx} href={city.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '28px', backgroundColor: 'white', borderRadius: '16px', textDecoration: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb', transition: 'all 0.2s' }}>
                   <div>
                     <div style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '6px' }}>{city.name}</div>
-                    <div style={{ fontSize: '14px', color: '#ef4444', fontWeight: '500' }}>{city.restaurants} restaurants</div>
+                    <div style={{ fontSize: '14px', color: '#ef4444', fontWeight: '500' }}>Restaurant POS &amp; billing</div>
                   </div>
                   <FaArrowRight style={{ color: '#ef4444', fontSize: '18px' }} />
                 </Link>

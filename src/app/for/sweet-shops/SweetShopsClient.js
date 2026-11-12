@@ -89,7 +89,7 @@ export default function SweetShopsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Sweeten Your Business?"
-      ctaDescription="Join thousands of sweet shops across India using DineOpen for faster billing."
+      ctaDescription="Join sweet shops across India using DineOpen for faster billing."
       relatedIndustries={relatedIndustries}
     />
   );

@@ -24,7 +24,7 @@ export default function ZomatoBaseAlternativeClient() {
         <section style={{ padding: '60px 20px', textAlign: 'center' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'inline-block', backgroundColor: '#fee2e2', color: '#dc2626', padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', marginBottom: '24px' }}>
-              #1 Zomato Base Alternative
+              Zomato Base Alternative
             </div>
             <h1 style={{ fontSize: '42px', fontWeight: '800', color: '#111827', marginBottom: '16px' }}>
               Looking for a <span style={{ color: '#ef4444' }}>Zomato Base Alternative</span>?

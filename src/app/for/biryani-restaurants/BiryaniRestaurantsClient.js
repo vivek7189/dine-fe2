@@ -87,7 +87,7 @@ export default function BiryaniRestaurantsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve Perfect Biryani?"
-      ctaDescription="Join hundreds of biryani restaurants using DineOpen for smoother operations and happier customers."
+      ctaDescription="Join biryani restaurants using DineOpen for smoother operations and happier customers."
       relatedIndustries={relatedIndustries}
     />
   );

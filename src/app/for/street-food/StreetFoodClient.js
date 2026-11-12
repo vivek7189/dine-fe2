@@ -87,7 +87,7 @@ export default function StreetFoodClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve Street Food Faster?"
-      ctaDescription="Join hundreds of street food vendors using DineOpen for organized operations and better earnings."
+      ctaDescription="Join street food vendors using DineOpen for organized operations and better earnings."
       relatedIndustries={relatedIndustries}
     />
   );

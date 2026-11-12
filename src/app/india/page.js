@@ -4,8 +4,8 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Restaurant POS Software India | GST Billing, FSSAI Compliant | DineOpen',
-  description: 'Best restaurant POS software for Indian restaurants. GST-compliant billing, FSSAI compliance, Zomato/Swiggy sales tracking, UPI payments, Hindi voice ordering. Trusted by 50,000+ restaurants across India.',
+  title: 'DineOpen in India: Restaurant POS by State & City',
+  description: 'Best restaurant POS software for Indian restaurants. GST-compliant billing, FSSAI compliance, Zomato/Swiggy sales tracking, UPI payments, Hindi voice ordering. For restaurants, cafes and cloud kitchens across India.',
   keywords: 'restaurant POS India, billing software India, restaurant management India, GST billing software, FSSAI compliant POS, Zomato Swiggy sales tracking, QR menu India, restaurant billing India, cafe POS India, bar POS India, hotel POS India',
   openGraph: {
     title: 'Restaurant POS Software India | DineOpen',

@@ -87,7 +87,7 @@ export default function NorthIndianRestaurantsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Serve North Indian Perfection?"
-      ctaDescription="Join hundreds of North Indian restaurants using DineOpen for smoother kitchen operations."
+      ctaDescription="Join North Indian restaurants using DineOpen for smoother kitchen operations."
       relatedIndustries={relatedIndustries}
     />
   );

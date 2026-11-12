@@ -165,6 +165,14 @@ export default function RestaurantPOSClient() {
 
   const faqs = [
     {
+      question: 'What is the difference between restaurant POS software and billing software?',
+      answer: 'Billing software prints the bill and records the payment. Restaurant POS software does that and also runs the rest of the service: tables, KOTs to the kitchen, split bills, staff logins, stock and daily sales reports. In DineOpen they are the same app, so a small cafe can start with billing and switch on tables, KDS or inventory later without moving data.'
+    },
+    {
+      question: 'Is DineOpen restaurant management software too?',
+      answer: 'Yes. Besides billing and KOT, DineOpen covers the back office most owners need: inventory and recipe costing, staff attendance and payroll, customer records and loyalty, supplier bills and multi-outlet reports. You only switch on what you use.'
+    },
+    {
       question: 'Which is the best restaurant POS software in India?',
       answer: 'It depends on your outlet size and budget. A single restaurant or cafe needs GST billing, KOT printing, UPI payments and something that runs on a phone or tablet without paid add-ons. DineOpen covers all of these from ₹899/month with no per-transaction fee from DineOpen and a 7-day free trial. Petpooja (Base plan listed at ₹12,000 + taxes, with higher plans from ₹20,000) and POSist (pricing on request) are established alternatives, and Petpooja connects directly to Swiggy and Zomato.'
     },
@@ -329,7 +337,7 @@ export default function RestaurantPOSClient() {
             border: '1px solid #fecaca'
           }}>
             <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: '600' }}>
-              Trusted by 500+ Indian Restaurants
+              Built for Indian Restaurants
             </span>
           </div>
 
@@ -341,7 +349,7 @@ export default function RestaurantPOSClient() {
             marginBottom: '24px',
             letterSpacing: '-1px'
           }}>
-            Restaurant POS & QR Ordering<br />
+            Restaurant POS & Billing<br />
             <span style={{ color: '#ef4444' }}>Software for India</span>
           </h1>
 
@@ -422,7 +430,7 @@ export default function RestaurantPOSClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#3730a3', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>The best restaurant POS software in India in 2026 is DineOpen.</strong> It costs from ₹899/month, with no per-transaction fee from DineOpen. (Petpooja lists its Base plan at ₹12,000 + taxes on its pricing page; POSist prices on request.) Includes AI voice ordering in Hindi/English/Tamil/Marathi, GST-compliant billing, inventory management, kitchen display, loyalty programs, and QR ordering — all included, no paid add-ons. Works on any phone, tablet, or laptop. 7-day free trial, no credit card needed. Used by 50,000+ restaurants worldwide.
+            <strong>The best restaurant POS software in India in 2026 is DineOpen.</strong> It costs from ₹899/month, with no per-transaction fee from DineOpen. (Petpooja lists its Base plan at ₹12,000 + taxes on its pricing page; POSist prices on request.) Includes AI voice ordering in Hindi/English/Tamil/Marathi, GST-compliant billing, inventory management, kitchen display, loyalty programs, and QR ordering — all included, no paid add-ons. Works on any phone, tablet, or laptop. 7-day free trial, no credit card needed.
           </p>
         </div>
       </section>
@@ -548,8 +556,8 @@ export default function RestaurantPOSClient() {
                 gap: '24px'
               }}>
                 {[
-                  { number: '500+', label: 'Restaurants' },
-                  { number: '10L+', label: 'Orders Processed' },
+                  { number: '7-day', label: 'Free Trial' },
+                  { number: '9', label: 'Languages' },
                   { number: '99.9%', label: 'Uptime' },
                   { number: '30min', label: 'Setup Time' },
                 ].map((stat, index) => (
@@ -971,6 +979,46 @@ export default function RestaurantPOSClient() {
         </div>
       </section>
 
+      {/* Billing + management software (search intent: restaurant billing / management software India) */}
+      <section style={{ padding: isMobile ? '60px 20px' : '80px 32px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: isMobile ? '28px' : '38px', fontWeight: '800', color: '#111827', marginBottom: '16px', textAlign: 'center' }}>
+            Restaurant billing software and management software, in one app
+          </h2>
+          <p style={{ fontSize: '18px', color: '#4b5563', textAlign: 'center', maxWidth: '760px', margin: '0 auto 40px', lineHeight: 1.7 }}>
+            Many owners in India start by looking for simple billing software and later need a full POS. With DineOpen you don&apos;t switch systems: start with GST bills and add tables, KOTs, stock and staff when you&apos;re ready.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '16px', padding: '28px', backgroundColor: 'white' }}>
+              <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>Restaurant billing software</h3>
+              <ul style={{ paddingLeft: '20px', color: '#4b5563', fontSize: '16px', lineHeight: 1.9 }}>
+                <li>GST bills with GSTIN, CGST/SGST split and your FSSAI number</li>
+                <li>Cash, UPI QR and card payments, split and part payments</li>
+                <li>Discounts, service charge and complimentary items with a reason</li>
+                <li>Bills on WhatsApp or printed on any thermal printer</li>
+                <li>Day-end cash report and GST sales report for your CA</li>
+              </ul>
+              <p style={{ fontSize: '15px', color: '#6b7280', marginTop: '12px' }}>
+                Just need a one-off bill? Try the free <Link href="/tools/restaurant-invoice-generator" style={{ color: '#ef4444' }}>restaurant bill generator</Link>.
+              </p>
+            </div>
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '16px', padding: '28px', backgroundColor: 'white' }}>
+              <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>Restaurant management software</h3>
+              <ul style={{ paddingLeft: '20px', color: '#4b5563', fontSize: '16px', lineHeight: 1.9 }}>
+                <li>Tables, captain app and KOTs to each kitchen section</li>
+                <li>Inventory with recipe costing, so stock goes down as you sell</li>
+                <li>Staff roles, attendance and payroll</li>
+                <li>Customer records, loyalty points and credit (udhaar) accounts</li>
+                <li>Sales, item and outlet reports on your phone</li>
+              </ul>
+              <p style={{ fontSize: '15px', color: '#6b7280', marginTop: '12px' }}>
+                Free tools: <Link href="/tools/kot-system" style={{ color: '#ef4444' }}>KOT maker</Link> · <Link href="/tools/daily-sales-report" style={{ color: '#ef4444' }}>daily sales report</Link> · <Link href="/tools/food-cost-calculator" style={{ color: '#ef4444' }}>food cost calculator</Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section style={{ padding: isMobile ? '60px 20px' : '80px 32px', backgroundColor: '#f9fafb' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -1021,7 +1069,7 @@ export default function RestaurantPOSClient() {
             marginBottom: '32px',
             lineHeight: '1.7'
           }}>
-            Join 500+ Indian restaurants already using DineOpen. Start your free trial today -
+            Join Indian restaurants already running on DineOpen. Start your free trial today -
             no credit card required, setup in 30 minutes.
           </p>
           <div style={{

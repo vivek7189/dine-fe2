@@ -87,7 +87,7 @@ export default function ChineseRestaurantsClient() {
       benefits={benefits}
       faqs={faqs}
       ctaTitle="Ready to Wok & Roll?"
-      ctaDescription="Join hundreds of Chinese restaurants using DineOpen for faster service and better kitchen coordination."
+      ctaDescription="Join Chinese restaurants using DineOpen for faster service and better kitchen coordination."
       relatedIndustries={relatedIndustries}
     />
   );

@@ -349,7 +349,7 @@ export default function LoyaltyLandingClient() {
               Start Building Customer Loyalty Today
             </h2>
             <p style={{ fontSize: '18px', opacity: 0.95, marginBottom: '36px', lineHeight: 1.6 }}>
-              Join thousands of restaurants using DineOpen to turn one-time visitors into loyal regulars. Set up your loyalty program in under 10 minutes.
+              Join restaurants using DineOpen to turn one-time visitors into loyal regulars. Set up your loyalty program in under 10 minutes.
             </p>
             <Link href="/login?ref=loyalty" style={{ padding: '18px 40px', backgroundColor: 'white', color: '#7c3aed', borderRadius: '10px', fontWeight: '700', textDecoration: 'none', fontSize: '18px', display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
               Get Started Free <FaArrowRight />

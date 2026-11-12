@@ -126,7 +126,7 @@ export default function TiffinServicesClient() {
         <section style={{ padding: '60px 20px', backgroundColor: '#f59e0b', color: 'white', textAlign: 'center' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px' }}>Ready to Scale Your Tiffin Business?</h2>
-            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Join 500+ tiffin services using DineOpen to manage subscriptions and grow.</p>
+            <p style={{ fontSize: '16px', opacity: 0.95, marginBottom: '24px' }}>Join tiffin services using DineOpen to manage subscriptions and grow.</p>
             <Link href="/pricing" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: 'white', color: '#d97706', borderRadius: '8px', fontWeight: '700', textDecoration: 'none' }}>View Pricing</Link>
           </div>
         </section>

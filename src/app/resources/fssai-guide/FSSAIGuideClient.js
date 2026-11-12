@@ -9,24 +9,24 @@ export default function FSSAIGuideClient() {
   const licenseTypes = [
     {
       type: 'Basic Registration',
-      turnover: 'Up to ₹12 Lakh/year',
-      validity: '1-5 years',
+      turnover: 'Up to ₹1.5 Crore/year',
+      validity: 'No expiry (pay the yearly fee)',
       fee: '₹100/year',
       suitable: 'Small eateries, food stalls, home-based food businesses',
       icon: <FaFileAlt />,
     },
     {
       type: 'State License',
-      turnover: '₹12 Lakh - ₹20 Crore/year',
-      validity: '1-5 years',
+      turnover: '₹1.5 Crore - ₹50 Crore/year',
+      validity: 'No expiry (yearly fee + annual return)',
       fee: '₹2,000 - ₹5,000/year',
       suitable: 'Restaurants, cafes, medium-sized food businesses',
       icon: <FaBuilding />,
     },
     {
       type: 'Central License',
-      turnover: 'Above ₹20 Crore/year',
-      validity: '1-5 years',
+      turnover: 'Above ₹50 Crore/year',
+      validity: 'No expiry (yearly fee + annual return)',
       fee: '₹7,500/year',
       suitable: 'Large chains, importers, multi-state operations',
       icon: <FaGlobe />,
@@ -51,7 +51,7 @@ export default function FSSAIGuideClient() {
       number: '01',
       title: 'Determine Your License Type',
       description: 'Based on your annual turnover, decide if you need Basic Registration, State License, or Central License.',
-      tip: 'Most new restaurants need State License (₹12L-20Cr turnover range).',
+      tip: 'Since 1 April 2026, most restaurants, cafes and cloud kitchens need only Basic Registration (turnover up to ₹1.5 crore).',
     },
     {
       number: '02',
@@ -130,8 +130,8 @@ export default function FSSAIGuideClient() {
               <p style={{ fontSize: '14px', color: '#6b7280' }}>State License Fee/Year</p>
             </div>
             <div>
-              <p style={{ fontSize: '42px', fontWeight: '800', color: '#0891b2', marginBottom: '4px' }}>5</p>
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>Years Max Validity</p>
+              <p style={{ fontSize: '42px', fontWeight: '800', color: '#0891b2', marginBottom: '4px' }}>₹1.5 Cr</p>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Basic Registration Limit</p>
             </div>
             <div>
               <p style={{ fontSize: '42px', fontWeight: '800', color: '#0891b2', marginBottom: '4px' }}>100%</p>

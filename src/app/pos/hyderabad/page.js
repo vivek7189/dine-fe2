@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best Restaurant POS Software in Hyderabad | Billing System | DineOpen',
-  description: 'Restaurant POS software in Hyderabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Trusted by 600+ Hyderabad restaurants. Start free trial.',
+  description: 'Restaurant POS software in Hyderabad. AI-powered billing, GST compliance, QR code ordering, Swiggy & Zomato order tracking. Built for Hyderabad restaurants. Start free trial.',
   keywords: 'restaurant POS Hyderabad, billing software Hyderabad, restaurant software Telangana, GST billing Hyderabad, cloud POS Hyderabad, QR menu Hyderabad, biryani restaurant POS, restaurant management Hyderabad',
   openGraph: {
     title: 'Best Restaurant POS Software in Hyderabad | DineOpen',

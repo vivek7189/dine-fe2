@@ -4,7 +4,7 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: '#1 Petpooja Alternative 2026 | Free Trial, Published Prices | DineOpen',
+  title: 'Petpooja Alternative 2026 | Free Trial, Published Prices | DineOpen',
   description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering and all features included from $20/mo (from ₹899/month in India). Petpooja prices sourced from its pricing page. 7-day free trial.',
   keywords: 'Petpooja alternative, Petpooja alternative free, Petpooja similar software, Petpooja competitor, top competitors to Petpooja, Petpooja app review, Petpooja POS review, restaurant POS India, GST billing software, Petpooja vs DineOpen, affordable restaurant POS India',
   openGraph: {
