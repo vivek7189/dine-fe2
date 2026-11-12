@@ -1514,6 +1514,9 @@ function BillingContent() {
           const isSpark = subPlanId.includes('spark');
           const isCancelled = currentSubscription?.cancelledAt || currentSubscription?.status === 'cancelled';
           const isExpired = currentSubscription?.status === 'expired';
+          // Autopay cancelled but the month is already paid → plan stays on until its end date
+          const _paidTill = currentSubscription?.nextBillingDate ? new Date(currentSubscription.nextBillingDate) : null;
+          const paidTillActive = !isTrial && isCancelled && !isExpired && _paidTill && _paidTill.getTime() > Date.now();
 
           return (
             <div style={{
@@ -1539,7 +1542,7 @@ function BillingContent() {
                     fontSize: '11px', color: isTrial ? '#166534' : isExpired ? '#dc2626' : '#6b7280',
                     marginBottom: '2px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px'
                   }}>
-                    {isTrial ? (trialInfo.isExpired ? 'Trial Expired' : 'Active Trial') : isCancelled ? 'Cancelled' : isExpired ? 'Expired' : 'Current Plan'}
+                    {isTrial ? (trialInfo.isExpired ? 'Trial Expired' : 'Active Trial') : paidTillActive ? 'Current Plan' : isCancelled ? 'Cancelled' : isExpired ? 'Expired' : 'Current Plan'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '20px', fontWeight: '700', color: isTrial ? '#166534' : '#1f2937' }}>
@@ -1550,7 +1553,15 @@ function BillingContent() {
                         {formatCurrency(currentSubscription.amount, currentSubscription.currency || 'USD')}/{currentSubscription?.period || 'month'}
                       </span>
                     )}
-                    {isCancelled && (
+                    {paidTillActive && (
+                      <span style={{
+                        backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 10px',
+                        borderRadius: '12px', fontSize: '12px', fontWeight: '600'
+                      }}>
+                        Autopay off · active till {formatDate(currentSubscription.nextBillingDate)}
+                      </span>
+                    )}
+                    {isCancelled && !paidTillActive && (
                       <span style={{
                         backgroundColor: '#fecaca', color: '#dc2626', padding: '4px 10px',
                         borderRadius: '12px', fontSize: '12px', fontWeight: '600'
