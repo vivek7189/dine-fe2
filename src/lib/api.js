@@ -5603,6 +5603,7 @@ class ApiClient {
     if (params.restaurantIds && Array.isArray(params.restaurantIds)) {
       params.restaurantIds.forEach(id => q.append('restaurantIds[]', id));
     }
+    if (params.weekStartsOn != null) q.append('weekStartsOn', String(params.weekStartsOn));
     const qs = q.toString();
     return this.request(`/api/hq-reports/${orgId}/${reportType}${qs ? `?${qs}` : ''}`);
   }

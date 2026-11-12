@@ -1109,8 +1109,46 @@ function OrderAnalyticsPDF({ data }) {
 
 // ── Revenue Trends ──────────────────────────────────────────────
 
+function HourlySalesPDF({ data }) {
+  const hours = data?.hourlySales || [];
+  const lbl = (h) => { const f = (x) => { const v = ((x % 24) + 24) % 24; return `${v % 12 === 0 ? 12 : v % 12} ${v < 12 ? 'AM' : 'PM'}`; }; return `${f(h)} - ${f(h + 1)}`; };
+  const peak = hours.reduce((b, h) => (!b || h.revenue > b.revenue ? h : b), null);
+  return (
+    <View>
+      <Text style={s.sectionTitle}>Hourly Sales</Text>
+      {peak && (
+        <View style={s.statsRow}>
+          <StatBox label="Top hour" value={lbl(peak.hour)} color={C.primary} sub={`${fmtCurrency(peak.avgRevenuePerDay)} per day`} />
+          <StatBox label="Total sales" value={fmtCurrency(hours.reduce((t, h) => t + (h.revenue || 0), 0))} color={C.blue} />
+        </View>
+      )}
+      <View style={s.table}>
+        <View style={s.tHead}>
+          <Text style={[s.th, { width: '22%' }]}>Hour</Text>
+          <Text style={[s.th, { width: '18%', textAlign: 'right' }]}>Sales</Text>
+          <Text style={[s.th, { width: '16%', textAlign: 'right' }]}>Per day</Text>
+          <Text style={[s.th, { width: '12%', textAlign: 'right' }]}>Orders</Text>
+          <Text style={[s.th, { width: '16%', textAlign: 'right' }]}>Avg order</Text>
+          <Text style={[s.th, { width: '16%', textAlign: 'right' }]}>Share</Text>
+        </View>
+        {hours.map((h, i) => (
+          <View key={i} style={i % 2 ? s.tRowAlt : s.tRow}>
+            <Text style={[s.tdBold, { width: '22%' }]}>{lbl(h.hour)}</Text>
+            <Text style={[s.tdGreen, { width: '18%', textAlign: 'right' }]}>{fmtCurrency(h.revenue)}</Text>
+            <Text style={[s.tdRight, { width: '16%' }]}>{fmtCurrency(h.avgRevenuePerDay)}</Text>
+            <Text style={[s.tdRight, { width: '12%' }]}>{h.orders}</Text>
+            <Text style={[s.tdRight, { width: '16%' }]}>{fmtCurrency(h.avgValue || 0)}</Text>
+            <Text style={[s.tdRight, { width: '16%' }]}>{fmtPct(h.share || 0)}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function RevenueTrendsPDF({ data }) {
   const sm = data?.summary || {};
+  const wc = data?.weekCompare;
   const daily = data?.dailyTrend || [];
   const dow = data?.dayOfWeekAvg || [];
   const outlets = data?.outletTrend || [];
@@ -1132,9 +1170,33 @@ function RevenueTrendsPDF({ data }) {
         </View>
       )}
 
+      {wc && Array.isArray(wc.days) && (
+        <View wrap={false}>
+          <Text style={s.subTitle}>This Week vs Usual ({wc.weekStart} to {wc.weekEnd}; usual = avg of {wc.weeks} weeks before)</Text>
+          <View style={s.table}>
+            <View style={s.tHead}>
+              <Text style={[s.th, { width: '24%' }]}>Day</Text>
+              <Text style={[s.th, { width: '22%', textAlign: 'right' }]}>Usual</Text>
+              <Text style={[s.th, { width: '22%', textAlign: 'right' }]}>This week</Text>
+              <Text style={[s.th, { width: '14%', textAlign: 'right' }]}>vs usual</Text>
+              <Text style={[s.th, { width: '18%', textAlign: 'right' }]}>Orders</Text>
+            </View>
+            {wc.days.map((d, i) => (
+              <View key={i} style={i % 2 ? s.tRowAlt : s.tRow}>
+                <Text style={[s.tdBold, { width: '24%' }]}>{d.day} {d.date.slice(5)}</Text>
+                <Text style={[s.tdRight, { width: '22%' }]}>{d.usualRevenue == null ? '-' : fmtCurrency(d.usualRevenue)}</Text>
+                <Text style={[s.tdGreen, { width: '22%', textAlign: 'right' }]}>{d.happened ? fmtCurrency(d.revenue || 0) : 'not yet'}</Text>
+                <Text style={[s.tdRight, { width: '14%' }]}>{d.happened && d.vsUsual != null ? `${d.vsUsual >= 0 ? '+' : ''}${d.vsUsual.toFixed(1)}%` : ''}</Text>
+                <Text style={[s.tdRight, { width: '18%' }]}>{d.happened ? (d.orders || 0) : '-'} / {d.usualOrders == null ? '-' : Number(d.usualOrders).toFixed(0)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       {dow.length > 0 && (
         <View wrap={false}>
-          <Text style={s.subTitle}>Day of Week Average</Text>
+          <Text style={s.subTitle}>Day of Week Average (chosen dates)</Text>
           <View style={s.table}>
             <View style={s.tHead}>
               <Text style={[s.th, { width: '25%' }]}>Day</Text>
@@ -1292,6 +1354,7 @@ const REPORT_TITLES = {
   payment: 'Payment Analytics Report',
   'order-analytics': 'Order Analytics Report',
   'revenue-trends': 'Revenue Trends Report',
+  'hourly-sales': 'Hourly Sales Report',
   'wallet-loyalty': 'Wallet & Loyalty Report',
   'item-sales': 'Item-wise Sales Report',
   'product-cost': 'Product Cost & Margin Report',
@@ -1398,6 +1461,7 @@ export function HQReportPDFDocument({ reportType, data, orgName, logoUrl, dateRa
         {reportType === 'payment' && <PaymentAnalyticsPDF data={data} />}
         {reportType === 'order-analytics' && <OrderAnalyticsPDF data={data} />}
         {reportType === 'revenue-trends' && <RevenueTrendsPDF data={data} />}
+        {reportType === 'hourly-sales' && <HourlySalesPDF data={data} />}
         {reportType === 'wallet-loyalty' && <WalletLoyaltyPDF data={data} />}
         {reportType === 'item-sales' && <MenuPerformancePDF data={data} />}
         {reportType === 'product-cost' && <ProductCostPDF data={data} />}

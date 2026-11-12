@@ -37,7 +37,9 @@ import {
   FaSortAmountDown,
   FaSortAmountUp,
   FaSearch,
+  FaClock,
 } from 'react-icons/fa';
+import { weekStartsOnMonday } from '../../../../lib/restaurantTime';
 import apiClient from '../../../../lib/api';
 
 // ============================================
@@ -62,6 +64,7 @@ const REPORT_TYPES = {
   PAYMENT: 'payment',
   ORDER_ANALYTICS: 'order-analytics',
   REVENUE_TRENDS: 'revenue-trends',
+  HOURLY: 'hourly-sales',         // Revenue Trends data, by hour of the day
   WALLET_LOYALTY: 'wallet-loyalty',
   ITEM_SALES: 'item-sales',
   PRODUCT_COST: 'product-cost',   // per-item sales vs recipe COGS + margin
@@ -1683,6 +1686,94 @@ const OrderAnalyticsView = ({ data, formatCurrency }) => {
   );
 };
 
+// "1 PM – 2 PM" for hour 13
+export const hourLabel = (h) => {
+  const f = (x) => { const v = ((x % 24) + 24) % 24; return `${v % 12 === 0 ? 12 : v % 12} ${v < 12 ? 'AM' : 'PM'}`; };
+  return `${f(h)} – ${f(h + 1)}`;
+};
+const shortDay = (k) => { const d = new Date(`${k}T12:00:00`); return isNaN(d) ? k : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
+
+// This week (to the report's end date) next to the usual for each weekday (average of the 4 weeks before).
+const WeekCompareCard = ({ wc, formatCurrency }) => {
+  if (!wc || !Array.isArray(wc.days)) return null;
+  const pct = (v) => (v == null ? '' : `${v >= 0 ? '\u25B2' : '\u25BC'} ${Math.abs(v).toFixed(1)}%`);
+  const soFarPct = wc.usualToDate > 0 ? ((wc.totalRevenue - wc.usualToDate) / wc.usualToDate) * 100 : null;
+  return (
+    <div style={styles.card} data-testid="week-compare">
+      <h3 style={styles.cardTitle}>This Week vs Usual</h3>
+      <div style={{ fontSize: 13, color: '#6b7280', margin: '-6px 0 12px' }}>
+        Week {shortDay(wc.weekStart)} – {shortDay(wc.weekEnd)} · usual = average of the same day over the {wc.weeks} weeks before (closed days left out)
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={styles.statCard('#16a34a')}><div style={styles.statValue('#16a34a')}>{formatCurrency(wc.totalRevenue || 0)}</div><div style={styles.statLabel}>This week so far</div></div>
+        <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{formatCurrency(wc.usualToDate || 0)}</div><div style={styles.statLabel}>Usual for these days</div></div>
+        {soFarPct != null && <div style={styles.statCard(soFarPct >= 0 ? '#16a34a' : '#dc2626')}><div style={styles.statValue(soFarPct >= 0 ? '#16a34a' : '#dc2626')}>{pct(soFarPct)}</div><div style={styles.statLabel}>vs usual</div></div>}
+        <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{formatCurrency(wc.usualWeek || 0)}</div><div style={styles.statLabel}>Usual full week</div></div>
+      </div>
+      <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
+        <th style={styles.th}>Day</th><th style={styles.th}>Usual (avg)</th><th style={styles.th}>This week</th><th style={styles.th}>vs usual</th><th style={styles.th}>Orders (this / usual)</th>
+      </tr></thead><tbody>
+        {wc.days.map((d, i) => (
+          <tr key={d.date} data-testid="week-row" style={d.happened ? undefined : { opacity: 0.7 }}>
+            <td style={styles.td(i % 2 === 0)}><span style={{ fontWeight: 600 }}>{d.day}</span> <span style={{ color: '#9ca3af', fontSize: 12 }}>{shortDay(d.date)}</span>{d.isToday && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '1px 7px' }}>today, so far</span>}</td>
+            <td style={styles.td(i % 2 === 0)}>{d.usualRevenue == null ? <span style={{ color: '#9ca3af' }}>no history</span> : formatCurrency(d.usualRevenue)}</td>
+            <td style={{ ...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a' }}>{d.happened ? formatCurrency(d.revenue || 0) : <span style={{ color: '#9ca3af', fontWeight: 400 }}>— not yet</span>}</td>
+            <td style={{ ...styles.td(i % 2 === 0), fontWeight: 600, color: d.vsUsual == null ? '#9ca3af' : d.vsUsual >= 0 ? '#16a34a' : '#dc2626' }}>{d.happened && d.vsUsual != null ? pct(d.vsUsual) : (d.happened && !d.orders ? (d.isToday ? 'no sales yet' : 'no sales (closed?)') : '')}</td>
+            <td style={styles.td(i % 2 === 0)}>{d.happened ? d.orders || 0 : '—'} / {d.usualOrders == null ? '—' : Number(d.usualOrders).toFixed(0)}</td>
+          </tr>
+        ))}
+      </tbody></table></div>
+    </div>
+  );
+};
+
+// ---- Hourly Sales View ----
+
+const HourlySalesView = ({ data, formatCurrency }) => {
+  const hours = data?.hourlySales || [];
+  const total = hours.reduce((t, h) => t + (h.revenue || 0), 0);
+  const peak = hours.reduce((b, h) => (!b || h.revenue > b.revenue ? h : b), null);
+  const busiest = hours.reduce((b, h) => (!b || h.orders > b.orders ? h : b), null);
+  const max = peak ? peak.revenue : 0;
+  return (
+    <div>
+      <div style={styles.card}>
+        <h3 style={styles.cardTitle}>Hourly Sales</h3>
+        <div style={{ fontSize: 13, color: '#6b7280', margin: '-6px 0 12px' }}>Sales by hour of the day for the chosen dates · per day = average over the days that had sales</div>
+        <div style={styles.summaryGrid}>
+          <div style={styles.statCard('#16a34a')}><div style={styles.statValue('#16a34a')}>{peak ? hourLabel(peak.hour) : '—'}</div><div style={styles.statLabel}>Top hour by sales{peak ? ` · ${formatCurrency(peak.avgRevenuePerDay)}/day` : ''}</div></div>
+          <div style={styles.statCard('#3b82f6')}><div style={styles.statValue('#3b82f6')}>{busiest ? hourLabel(busiest.hour) : '—'}</div><div style={styles.statLabel}>Busiest hour by orders{busiest ? ` · ${Number(busiest.avgOrdersPerDay).toFixed(1)}/day` : ''}</div></div>
+          <div style={styles.statCard('#8b5cf6')}><div style={styles.statValue('#8b5cf6')}>{formatCurrency(total)}</div><div style={styles.statLabel}>Total sales</div></div>
+        </div>
+      </div>
+      <div style={styles.card}>
+        {hours.length === 0 ? <div style={{ color: '#9ca3af', textAlign: 'center', padding: 20 }}>No sales in these dates</div> : (
+          <div style={styles.tableWrap}><table style={styles.table} data-testid="hourly-table"><thead><tr>
+            <th style={styles.th}>Hour</th><th style={styles.th}>Sales</th><th style={styles.th}>Per day</th><th style={styles.th}>Orders</th><th style={styles.th}>Orders / day</th><th style={styles.th}>Avg order</th><th style={styles.th}>Share</th>
+          </tr></thead><tbody>
+            {hours.map((h, i) => (
+              <tr key={h.hour} data-testid="hourly-row" style={peak && h.hour === peak.hour ? { outline: '2px solid #bbf7d0' } : undefined}>
+                <td style={{ ...styles.td(i % 2 === 0), fontWeight: 600, whiteSpace: 'nowrap' }}>{hourLabel(h.hour)}</td>
+                <td style={{ ...styles.td(i % 2 === 0), fontWeight: 600, color: '#16a34a' }}>{formatCurrency(h.revenue)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(h.avgRevenuePerDay)}</td>
+                <td style={styles.td(i % 2 === 0)}>{h.orders}</td>
+                <td style={styles.td(i % 2 === 0)}>{Number(h.avgOrdersPerDay || 0).toFixed(1)}</td>
+                <td style={styles.td(i % 2 === 0)}>{formatCurrency(h.avgValue || 0)}</td>
+                <td style={styles.td(i % 2 === 0)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 120 }}>
+                    <div style={{ flex: 1, height: 8, background: '#f1f5f9', borderRadius: 4 }}><div style={{ width: `${max > 0 ? (h.revenue / max) * 100 : 0}%`, height: 8, background: '#16a34a', borderRadius: 4 }} /></div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{(h.share || 0).toFixed(1)}%</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ---- Revenue Trends View ----
 
 const RevenueTrendsView = ({ data, formatCurrency }) => {
@@ -1722,9 +1813,10 @@ const RevenueTrendsView = ({ data, formatCurrency }) => {
           )}
         </div>
       )}
+      <WeekCompareCard wc={data?.weekCompare} formatCurrency={formatCurrency} />
       {dow.length > 0 && (
         <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Day of Week Average</h3>
+          <h3 style={styles.cardTitle}>Day of Week Average <span style={{ fontWeight: 400, fontSize: 13, color: '#6b7280' }}>(chosen dates)</span></h3>
           <div style={styles.tableWrap}><table style={styles.table}><thead><tr>
             <th style={styles.th}>Day</th><th style={styles.th}>Avg Revenue</th><th style={styles.th}>Avg Orders</th><th style={styles.th}>Total Revenue</th>
           </tr></thead><tbody>
@@ -1978,9 +2070,16 @@ function getExcelSheetData(reportType, data, formatCurrency) {
       const dow = data?.dayOfWeekAvg || [];
       const outlets = data?.outletTrend || [];
       sheets.push({ name: 'Revenue Summary', data: [['Metric', 'Value'], ['Total Revenue', sm.totalRevenue || 0], ['Previous Period', sm.previousPeriodRevenue || 0], ['Growth Rate', `${sm.growthRate || 0}%`], ['Avg Daily', sm.avgDailyRevenue || 0]] });
+      const wc = data?.weekCompare;
+      if (wc && wc.days) sheets.push({ name: 'This Week vs Usual', data: [['Day', 'Date', `Usual (avg ${wc.weeks} wks)`, 'This week', 'vs usual %', 'Orders', 'Usual orders'], ...wc.days.map(d => [d.day, d.date, d.usualRevenue ?? '', d.happened ? (d.revenue || 0) : 'not yet', d.vsUsual ?? '', d.happened ? (d.orders || 0) : '', d.usualOrders ?? ''])] });
       if (dow.length) sheets.push({ name: 'Day of Week', data: [['Day', 'Avg Revenue', 'Avg Orders', 'Total'], ...dow.map(d => [d.day, d.avgRevenue || 0, (d.avgOrders || 0).toFixed(1), d.totalRevenue || 0])] });
       if (outlets.length) sheets.push({ name: 'Outlet Comparison', data: [['Outlet', 'Current', 'Previous', 'Growth'], ...outlets.map(o => [o.outletName, o.revenue, o.previousRevenue || 0, `${(o.growth || 0).toFixed(1)}%`])] });
       if (daily.length) sheets.push({ name: 'Daily', data: [['Date', 'Revenue', 'Orders', 'Avg Value'], ...daily.map(d => [d.date, d.revenue, d.orderCount, d.avgValue || 0])] });
+      break;
+    }
+    case REPORT_TYPES.HOURLY: {
+      const hours = data?.hourlySales || [];
+      sheets.push({ name: 'Hourly Sales', data: [['Hour', 'Sales', 'Per day', 'Orders', 'Orders / day', 'Avg order', 'Share %'], ...hours.map(h => [hourLabel(h.hour), h.revenue, h.avgRevenuePerDay, h.orders, h.avgOrdersPerDay, h.avgValue || 0, h.share || 0])] });
       break;
     }
     case REPORT_TYPES.WALLET_LOYALTY: {
@@ -2187,6 +2286,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     { key: REPORT_TYPES.PAYMENT, label: 'Payment Analytics', icon: FaMoneyBillWave, show: true },
     { key: REPORT_TYPES.ORDER_ANALYTICS, label: 'Order Analytics', icon: FaShoppingBag, show: true },
     { key: REPORT_TYPES.REVENUE_TRENDS, label: 'Revenue Trends', icon: FaChartArea, show: true },
+    { key: REPORT_TYPES.HOURLY, label: 'Hourly Sales', icon: FaClock, show: true },
     { key: REPORT_TYPES.WALLET_LOYALTY, label: 'Wallet & Loyalty', icon: FaWallet, show: true },
     { key: REPORT_TYPES.ITEM_SALES, label: 'Item-wise Sales', icon: FaListOl, show: true },
     { key: REPORT_TYPES.PRODUCT_COST, label: 'Product Cost & Margin', icon: FaChartPie, show: true },
@@ -2211,6 +2311,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
       [REPORT_TYPES.PAYMENT]: 'payment-analytics',
       [REPORT_TYPES.ORDER_ANALYTICS]: 'order-analytics',
       [REPORT_TYPES.REVENUE_TRENDS]: 'revenue-trends',
+      [REPORT_TYPES.HOURLY]: 'hourly-sales',
       [REPORT_TYPES.WALLET_LOYALTY]: 'wallet-loyalty',
       [REPORT_TYPES.ITEM_SALES]: 'menu-performance',
       [REPORT_TYPES.PRODUCT_COST]: 'product-cost-margin',
@@ -2280,7 +2381,8 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
           result = await apiClient.getOrderAnalytics(orgId, dateParams);
           break;
         case REPORT_TYPES.REVENUE_TRENDS:
-          result = await apiClient.getRevenueTrends(orgId, dateParams);
+        case REPORT_TYPES.HOURLY:
+          result = await apiClient.getRevenueTrends(orgId, { ...dateParams, weekStartsOn: weekStartsOnMonday() ? 1 : 0 });
           break;
         case REPORT_TYPES.WALLET_LOYALTY:
           result = await apiClient.getWalletLoyaltyReport(orgId, dateParams);
@@ -2408,7 +2510,7 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
     setExporting(true);
     try {
       // These reports are computed client-side, so generate CSV from loaded reportData.
-      if ([REPORT_TYPES.ITEM_SALES, REPORT_TYPES.PRODUCT_COST, REPORT_TYPES.RECIPE_COST].includes(activeReport) && reportData) {
+      if ([REPORT_TYPES.ITEM_SALES, REPORT_TYPES.PRODUCT_COST, REPORT_TYPES.RECIPE_COST, REPORT_TYPES.HOURLY].includes(activeReport) && reportData) {
         const sheetData = getExcelSheetData(activeReport, reportData, formatCurrency);
         if (sheetData.length > 0) {
           // Use the last sheet for RECIPE_COST (the detailed Ingredients sheet); first otherwise.
@@ -2593,6 +2695,8 @@ export default function HQReportsTab({ orgData, outlets, formatCurrency, restaur
         return <OrderAnalyticsView data={reportData} formatCurrency={formatCurrency} />;
       case REPORT_TYPES.REVENUE_TRENDS:
         return <RevenueTrendsView data={reportData} formatCurrency={formatCurrency} />;
+      case REPORT_TYPES.HOURLY:
+        return <HourlySalesView data={reportData} formatCurrency={formatCurrency} />;
       case REPORT_TYPES.WALLET_LOYALTY:
         return <WalletLoyaltyView data={reportData} formatCurrency={formatCurrency} />;
       case REPORT_TYPES.ITEM_SALES:
