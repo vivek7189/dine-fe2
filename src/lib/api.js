@@ -3533,6 +3533,16 @@ class ApiClient {
     return this.request(`/api/staff-perks/${restaurantId}/quote`, { method: 'POST', body: JSON.stringify({ staffId, items, orderId }) });
   }
 
+  // Opening balance of a supplier: { amount (0 = remove), direction: 'owe' | 'advance', asOf: 'YYYY-MM-DD', note }
+  async setSupplierOpeningBalance(restaurantId, supplierId, body) {
+    return this.request(`/api/supplier-opening-balance/${restaurantId}/${supplierId}`, { method: 'PUT', body: JSON.stringify(body) });
+  }
+
+  // { balances: { supplierId: { owed, advance, balance, unpaidBills, paidBills, opening } } }
+  async getSupplierBalances(restaurantId) {
+    return this.request(`/api/supplier-balances/${restaurantId}`);
+  }
+
   async getSupplierLedger(restaurantId, supplierId, params = {}) {
     const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v))).toString();
     return this.request(`/api/supplier-ledger/${restaurantId}/${supplierId}${q ? `?${q}` : ''}`);

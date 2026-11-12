@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
 import { convertUnits } from '../utils/unitConversion';
 import { restaurantToday, ymd } from '../../../../lib/restaurantTime';
+import { emptyOpening } from '../../../../components/suppliers/SupplierOpeningModal';
 
 export default function useInventory() {
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ export default function useInventory() {
   });
 
   const [supplierFormData, setSupplierFormData] = useState({
-    name: '', contact: '', phone: '', email: '', address: '', paymentTerms: '', notes: ''
+    name: '', contact: '', phone: '', email: '', address: '', paymentTerms: '', notes: '', opening: emptyOpening()
   });
 
   const [purchaseOrderFormData, setPurchaseOrderFormData] = useState({
@@ -669,17 +670,27 @@ export default function useInventory() {
     }
     try {
       setLoading(true); setError(null);
-      const response = await apiClient.createSupplier(currentRestaurant.id, supplierFormData);
+      const { opening, ...supplierData } = supplierFormData;
+      const response = await apiClient.createSupplier(currentRestaurant.id, supplierData);
       if (response.supplier) {
-        setSuccess('Supplier added successfully!');
+        // Opening balance from the old book (optional) — saved right after the supplier.
+        const openingAmt = Math.round((Number(opening?.amount) || 0) * 100) / 100;
+        let openingNote = '';
+        if (openingAmt > 0 && (response.supplier.id || response.supplier._id)) {
+          try {
+            await apiClient.setSupplierOpeningBalance(currentRestaurant.id, response.supplier.id || response.supplier._id,
+              { amount: openingAmt, direction: opening.direction, asOf: opening.asOf, note: '' });
+          } catch (e) { openingNote = ` — opening balance not saved (${e.message || 'error'}), add it with "+ Opening"`; }
+        }
+        setSuccess(`Supplier added successfully!${openingNote}`);
         setShowAddSupplierModal(false);
-        setSupplierFormData({ name: '', contact: '', phone: '', email: '', address: '', paymentTerms: '', notes: '' });
+        setSupplierFormData({ name: '', contact: '', phone: '', email: '', address: '', paymentTerms: '', notes: '', opening: emptyOpening() });
         loadInventoryData();
       }
     } catch (error) {
       console.error('Error adding supplier:', error);
       setError(error.message || 'Failed to add supplier');
-    } finally { setLoading(true); }
+    } finally { setLoading(false); }
   };
 
   const handleDeleteSupplier = async (supplierId) => {

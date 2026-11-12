@@ -7,6 +7,7 @@ import { FaPlus, FaEnvelope, FaMicrophone, FaStop, FaCheck, FaTimes, FaArrowRigh
 import { fmtQty } from '../utils/formatQty';
 import SupplierPayModal from '../../../../components/suppliers/SupplierPayModal';
 import SupplierLedgerModal from '../../../../components/suppliers/SupplierLedgerModal';
+import SupplierOpeningModal from '../../../../components/suppliers/SupplierOpeningModal';
 import ReceiptVarianceModal, { poReceiptSummary } from './ReceiptVarianceModal';
 
 const BASE_SUB_TABS = [
@@ -91,6 +92,17 @@ const returnTypeColor = (t) => {
 // `new Date(obj)` renders "Invalid Date", so always go through toJsDate.
 const fmtDate = (v) => { const d = toJsDate(v); return d ? d.toLocaleDateString() : '-'; };
 
+// Paid / part paid / unpaid of a supplier bill (same rule as the server: "paid" with no amount = fully paid).
+const invoicePayState = (inv) => {
+  const total = Number(inv.totalAmount || inv.amount || inv.total || 0) || 0;
+  const paidAmt = Number(inv.paidAmount) || 0;
+  const paid = inv.paymentStatus === 'paid' ? Math.max(total, paidAmt) : paidAmt;
+  const left = Math.max(0, Math.round((total - paid) * 100) / 100);
+  if (total > 0 && left < 0.005) return { key: 'paid', label: 'Paid', bg: '#d1fae5', color: '#065f46', left: 0 };
+  if (paid > 0) return { key: 'partial', label: 'Part paid', bg: '#fef3c7', color: '#92400e', left };
+  return { key: 'unpaid', label: 'Unpaid', bg: '#fee2e2', color: '#991b1b', left };
+};
+
 export default function ProcurementTab({
   procurementSubTab, setProcurementSubTab,
   suppliers = [], purchaseOrders = [], grns = [], purchaseRequisitions = [],
@@ -125,6 +137,15 @@ export default function ProcurementTab({
   const [toast, setToast] = useState(null);
   const [payFor, setPayFor] = useState(null);       // supplier being paid
   const [ledgerFor, setLedgerFor] = useState(null); // supplier statement open
+  const [openingFor, setOpeningFor] = useState(null); // supplier whose opening balance is being set
+  const [balances, setBalances] = useState({});        // supplierId → { balance, owed, advance, unpaidBills, paidBills, opening }
+  const [invoicePayFilter, setInvoicePayFilter] = useState('all'); // Invoices: all | unpaid | paid
+  const loadBalances = useCallback(async () => {
+    if (!currentRestaurant?.id) return;
+    try { const r = await apiClient.getSupplierBalances(currentRestaurant.id); setBalances(r?.balances || {}); }
+    catch { setBalances({}); } // older server: no balance column values
+  }, [currentRestaurant?.id]);
+  useEffect(() => { loadBalances(); }, [loadBalances, suppliers.length, supplierInvoices]);
   const [receiptView, setReceiptView] = useState(null); // { po, grn } ordered-vs-received
   const findPO = (id) => purchaseOrders.find(p => (p.id || p._id) === id) || null;
   const supplierNameOf = (id) => suppliers.find(s => (s.id || s._id) === id)?.name || '';
@@ -330,7 +351,7 @@ export default function ProcurementTab({
         <div style={tableWrap}>
           <table style={table}>
             <thead><tr>
-              <th style={th}>Name</th><th style={th}>Contact</th><th style={th}>Phone</th>
+              <th style={th}>Name</th><th style={th}>Contact</th><th style={th}>Balance</th><th style={th}>Phone</th>
               <th style={th}>Email</th><th style={th}>Rating</th><th style={th}>Actions</th>
             </tr></thead>
             <tbody>
@@ -340,6 +361,18 @@ export default function ProcurementTab({
                   <tr key={s.id || s._id}>
                     <td style={{ ...td, fontWeight: 600 }}>{s.name}</td>
                     <td style={td}>{s.contactPerson || s.contact || '-'}</td>
+                    <td style={{ ...td, whiteSpace: 'nowrap' }} data-testid="supplier-balance">
+                      {(() => {
+                        const b = balances[s.id || s._id];
+                        if (!b || (Math.abs(b.balance) < 0.005 && !b.unpaidBills)) return <span style={{ color: '#9ca3af', fontSize: 12 }}>{b && b.paidBills ? 'All paid' : '-'}</span>;
+                        if (b.balance < 0) return <span style={{ color: '#1d4ed8', fontWeight: 600 }}>{formatCurrency(-b.balance)} <span style={{ fontSize: 11, fontWeight: 500 }}>advance</span></span>;
+                        return (
+                          <span style={{ color: '#b91c1c', fontWeight: 700 }}>{formatCurrency(b.balance)}
+                            <span style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280' }}>{b.unpaidBills} unpaid{b.paidBills ? ` · ${b.paidBills} paid` : ''}</span>
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td style={td}>{s.phone || '-'}</td>
                     <td style={td}>{s.email || '-'}</td>
                     <td style={td}>
@@ -359,6 +392,12 @@ export default function ProcurementTab({
                         <button data-testid="supplier-statement" style={btnSmall('#dbeafe', '#1e40af')} onClick={() => setLedgerFor({ id: s.id || s._id, name: s.name })}>
                           <FaBook size={10} /> Statement
                         </button>
+                        {permissions.update && (
+                          <button data-testid="supplier-opening" style={btnSmall('#f3f4f6', '#374151')} title="Opening balance from your old book"
+                            onClick={() => setOpeningFor({ id: s.id || s._id, name: s.name })}>
+                            {balances[s.id || s._id]?.opening ? 'Opening ✓' : '+ Opening'}
+                          </button>
+                        )}
                         {permissions.delete && (
                           <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplier(s.id || s._id)}>
                             <FaTimes size={10} /> Delete
@@ -532,25 +571,44 @@ export default function ProcurementTab({
   const renderInvoices = () => (
     <div>
       {sectionHeader('Supplier Invoices', 'Add Invoice', () => setShowAddInvoiceModal(true), null, permissions.add)}
+      {supplierInvoices.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {[['all', 'All', supplierInvoices.length], ['unpaid', 'Unpaid', supplierInvoices.filter(i => invoicePayState(i).key !== 'paid').length], ['paid', 'Paid', supplierInvoices.filter(i => invoicePayState(i).key === 'paid').length]].map(([k, label, n]) => (
+            <button key={k} type="button" data-testid={`inv-filter-${k}`} onClick={() => setInvoicePayFilter(k)}
+              style={{ padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${invoicePayFilter === k ? '#059669' : '#e5e7eb'}`, background: invoicePayFilter === k ? '#ecfdf5' : '#fff', color: invoicePayFilter === k ? '#065f46' : '#374151' }}>
+              {label} ({n})
+            </button>
+          ))}
+        </div>
+      )}
       {supplierInvoices.length === 0 ? emptyState('No invoices recorded') : (
         <div style={tableWrap}>
           <table style={table}>
             <thead><tr>
               <th style={th}>Invoice #</th><th style={th}>Supplier</th><th style={th}>Date</th>
-              <th style={th}>Amount</th><th style={th}>Status</th>
+              <th style={th}>Amount</th><th style={th}>Payment</th><th style={th}>Status</th>
               {permissions.delete && handleDeleteSupplierInvoice && <th style={th}></th>}
             </tr></thead>
             <tbody>
-              {supplierInvoices.map(inv => (
-                <tr key={inv.id || inv._id}>
+              {supplierInvoices.filter(inv => invoicePayFilter === 'all' || (invoicePayFilter === 'paid') === (invoicePayState(inv).key === 'paid')).map(inv => (
+                <tr key={inv.id || inv._id} data-testid="invoice-row">
                   <td style={{ ...td, fontWeight: 600 }}>
                     {inv.invoiceNumber || inv.id || inv._id}
+                    {inv.isOpeningBalance && <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>from old book</div>}
                     {inv.kraInvoiceNumber && <div style={{ fontSize: '11.5px', fontWeight: 500, color: '#64748b', wordBreak: 'break-all' }}>KRA: {inv.kraInvoiceNumber}</div>}
                     {inv.stockAdded && <div style={{ fontSize: '11px', fontWeight: 600, color: '#15803d' }}>Stock added</div>}
                   </td>
                   <td style={td}>{inv.supplierName || inv.supplier || (suppliers.find(s => (s.id || s._id) === (inv.supplierId || inv.supplier_id))?.name) || '-'}</td>
                   <td style={td}>{fmtDate(inv.invoiceDate || inv.date || inv.invoice_date || inv.receivedDate || inv.createdAt)}</td>
                   <td style={td}>{formatCurrency(inv.totalAmount || inv.amount || inv.total || inv.subtotal || 0)}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                    {(() => { const ps = invoicePayState(inv); return (
+                      <>
+                        <span data-testid="invoice-pay-state" style={badge(ps.bg, ps.color)}>{ps.label}</span>
+                        {ps.key === 'partial' && <div style={{ fontSize: 11, color: '#92400e', marginTop: 2 }}>{formatCurrency(ps.left)} left</div>}
+                      </>
+                    ); })()}
+                  </td>
                   <td style={td}>
                     <span style={badge(...Object.values(invoiceStatusColor(inv.status)))}>
                       {inv.status || 'unmatched'}
@@ -1008,11 +1066,17 @@ export default function ProcurementTab({
 
       {payFor && (
         <SupplierPayModal restaurantId={currentRestaurant?.id} supplier={payFor} formatCurrency={formatCurrency}
-          onClose={() => setPayFor(null)} onDone={() => { showToast(`Payment to ${payFor.name} saved`); reloadProcurement && reloadProcurement(); }} />
+          onClose={() => setPayFor(null)} onDone={() => { showToast(`Payment to ${payFor.name} saved`); loadBalances(); reloadProcurement && reloadProcurement(); }} />
       )}
       {ledgerFor && (
         <SupplierLedgerModal restaurantId={currentRestaurant?.id} supplier={ledgerFor} formatCurrency={formatCurrency} restaurantName={currentRestaurant?.name || ''}
-          onClose={() => setLedgerFor(null)} onChanged={() => reloadProcurement && reloadProcurement()} />
+          canEdit={!!permissions.update}
+          onClose={() => setLedgerFor(null)} onChanged={() => { loadBalances(); reloadProcurement && reloadProcurement(); }} />
+      )}
+      {openingFor && (
+        <SupplierOpeningModal restaurantId={currentRestaurant?.id} supplier={openingFor}
+          onClose={() => setOpeningFor(null)}
+          onSaved={() => { showToast(`Opening balance for ${openingFor.name} saved`); loadBalances(); reloadProcurement && reloadProcurement(); }} />
       )}
       {receiptView && (
         <ReceiptVarianceModal po={receiptView.po} grn={receiptView.grn} grns={grns} formatCurrency={formatCurrency}

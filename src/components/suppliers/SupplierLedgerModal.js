@@ -8,6 +8,7 @@ import { FaTimes, FaMoneyBillWave, FaPrint, FaFileCsv, FaUndo, FaBook } from 're
 import apiClient from '../../lib/api';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import SupplierPayModal, { methodLabel } from './SupplierPayModal';
+import SupplierOpeningModal from './SupplierOpeningModal';
 
 const fmtDay = (v) => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : ''; };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -15,6 +16,8 @@ const btn = (bg, color, border) => ({ padding: '8px 12px', borderRadius: 8, bord
 const dateInput = { padding: '7px 10px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: 13 };
 
 function lineText(l) {
+  if (l.type === 'bill' && l.opening) return { title: 'Opening balance (we owe)', sub: [l.notes, l.paymentStatus === 'paid' ? 'paid' : ''].filter(Boolean).join(' · ') };
+  if (l.type === 'opening_advance') return { title: 'Opening balance (they owe us)', sub: [l.notes && l.notes !== 'Opening balance' ? l.notes : '', l.unallocated > 0 ? 'not used yet' : ''].filter(Boolean).join(' · ') };
   if (l.type === 'bill') return { title: `Bill ${l.ref || ''}`.trim(), sub: [l.kra && `KRA ${l.kra}`, l.dueDate && `due ${fmtDay(l.dueDate)}`].filter(Boolean).join(' · ') };
   if (l.type === 'credit_note') return { title: `Credit note ${l.ref || ''}`.trim(), sub: ['Goods returned', l.unallocated > 0 ? 'not used yet' : ''].filter(Boolean).join(' · ') };
   if (l.type === 'payment_void') return { title: `Payment cancelled${l.ref ? ` (${l.ref})` : ''}`, sub: l.voidReason || '' };
@@ -26,7 +29,7 @@ function lineText(l) {
   };
 }
 
-export default function SupplierLedgerModal({ restaurantId, supplier, onClose, onChanged, formatCurrency, restaurantName = '' }) {
+export default function SupplierLedgerModal({ restaurantId, supplier, onClose, onChanged, formatCurrency, restaurantName = '', canEdit = true }) {
   const { formatCurrency: fmtCtx } = useCurrency();
   const fmtRaw = formatCurrency || fmtCtx;
   // Minus in front of the currency (−KSh100.00, not KSh-100.00) — a minus balance = paid ahead.
@@ -39,6 +42,7 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
   const [msg, setMsg] = useState('');
   const [paying, setPaying] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editOpening, setEditOpening] = useState(false);
 
   const reqNo = useRef(0); // only the latest request may fill the table (dates changed quickly)
   const load = useCallback(async () => {
@@ -79,7 +83,7 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
   const downloadCsv = () => {
     const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const out = [['Date', 'Entry', 'Details', 'Bill amount', 'Paid / credit', 'Balance'].map(q).join(',')];
-    out.push([q(''), q('Opening balance'), q(''), q(''), q(''), q(data.openingBalance)].join(','));
+    if (range.from) out.push([q(''), q(`Brought forward (before ${fmtDay(range.from)})`), q(''), q(''), q(''), q(data.openingBalance)].join(','));
     rows.forEach(l => { const t = lineText(l); out.push([fmtDay(l.at), t.title, t.sub, l.debit || '', l.credit || '', l.balance ?? ''].map(q).join(',')); });
     out.push([q(''), q('Closing balance'), q(''), q(data.totals.billed), q(data.totals.paid + data.totals.credited), q(data.closingBalance)].join(','));
     const blob = new Blob([out.join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -99,9 +103,9 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
       table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid #e5e7eb;padding:6px 8px;text-align:left;vertical-align:top}th{background:#f9fafb}
       .n{text-align:right;white-space:nowrap}.s{color:#6b7280;font-size:11px}.sum{display:flex;gap:24px;margin:0 0 14px;font-size:13px}</style></head><body>
       <h1>${esc(restaurantName ? `${restaurantName} — ` : '')}Supplier statement: ${esc(name)}</h1><h2>${esc(period)}</h2>
-      <div class="sum"><div>Opening <b>${esc(fmt(data.openingBalance))}</b></div><div>Bills <b>${esc(fmt(data.totals.billed))}</b></div><div>Paid <b>${esc(fmt(data.totals.paid))}</b></div><div>Credit notes <b>${esc(fmt(data.totals.credited))}</b></div><div>Closing <b>${esc(fmt(data.closingBalance))}</b></div></div>
+      <div class="sum">${range.from ? `<div>Brought forward <b>${esc(fmt(data.openingBalance))}</b></div>` : ''}<div>Bills <b>${esc(fmt(data.totals.billed))}</b></div><div>Paid <b>${esc(fmt(data.totals.paid))}</b></div><div>Credit notes <b>${esc(fmt(data.totals.credited))}</b></div><div>Closing <b>${esc(fmt(data.closingBalance))}</b></div></div>
       <table><thead><tr><th>Date</th><th>Entry</th><th class="n">Bill</th><th class="n">Paid / credit</th><th class="n">Balance</th></tr></thead><tbody>
-      <tr><td></td><td><b>Opening balance</b></td><td></td><td></td><td class="n">${esc(fmt(data.openingBalance))}</td></tr>${tr}
+      ${range.from ? `<tr><td></td><td><b>Brought forward</b></td><td></td><td></td><td class="n">${esc(fmt(data.openingBalance))}</td></tr>` : ''}${tr}
       <tr><td></td><td><b>Closing balance</b></td><td></td><td></td><td class="n"><b>${esc(fmt(data.closingBalance))}</b></td></tr></tbody></table>
       <script>window.onload=function(){window.print()}</script></body></html>`);
     w.document.close();
@@ -133,6 +137,7 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
           <label style={{ fontSize: 12, color: '#6b7280' }}>To <input type="date" value={range.to} onChange={e => setRange(r => ({ ...r, to: e.target.value }))} style={dateInput} /></label>
           {(range.from || range.to) && <button style={btn('#fff', '#374151', '#e5e7eb')} onClick={() => setRange({ from: '', to: '' })}>All dates</button>}
           <div style={{ flex: 1 }} />
+          {canEdit && <button data-testid="ledger-opening" disabled={!data} style={btn('#fff', '#374151', '#e5e7eb')} onClick={() => setEditOpening(true)}>{data?.openingSet ? 'Edit opening balance' : '+ Opening balance'}</button>}
           <button data-testid="ledger-pay" style={btn('#059669', '#fff')} onClick={() => setPaying(true)}><FaMoneyBillWave size={12} /> Pay</button>
           {data?.advance > 0 && data?.outstanding > 0 && <button data-testid="ledger-use-advance" disabled={busy} style={btn('#eff6ff', '#1d4ed8', '#bfdbfe')} onClick={applyAdvance}>Use advance</button>}
           <button style={btn('#fff', '#374151', '#e5e7eb')} disabled={!data} onClick={print}><FaPrint size={11} /> Print</button>
@@ -146,7 +151,7 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
           {data && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 12 }}>
-                {card('Opening', fmt(data.openingBalance))}
+                {range.from ? card('Brought forward', fmt(data.openingBalance)) : card('Opening balance', fmt(data.totals.opening || 0))}
                 {card('Bills', fmt(data.totals.billed))}
                 {card('Paid', fmt(data.totals.paid), '#059669')}
                 {card('Credit notes', fmt(data.totals.credited))}
@@ -166,10 +171,12 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
                     </tr>
                   </thead>
                   <tbody>
-                    <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: 8 }} /><td style={{ padding: 8, fontWeight: 600 }}>Opening balance</td><td /><td />
-                      <td style={{ padding: 8, textAlign: 'right', fontWeight: 600 }}>{fmt(data.openingBalance)}</td><td />
-                    </tr>
+                    {range.from && (
+                      <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: 8 }} /><td style={{ padding: 8, fontWeight: 600 }}>Brought forward <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 12 }}>(before {fmtDay(range.from)})</span></td><td /><td />
+                        <td style={{ padding: 8, textAlign: 'right', fontWeight: 600 }}>{fmt(data.openingBalance)}</td><td />
+                      </tr>
+                    )}
                     {rows.map(l => {
                       const t = lineText(l);
                       const voided = l.type === 'payment_void';
@@ -206,6 +213,10 @@ export default function SupplierLedgerModal({ restaurantId, supplier, onClose, o
           )}
         </div>
       </div>
+      {editOpening && data && (
+        <SupplierOpeningModal restaurantId={restaurantId} supplier={{ id: supplierId, name }} current={data.openingSet || null}
+          onClose={() => setEditOpening(false)} onSaved={() => { setMsg('Opening balance saved'); changed(); }} />
+      )}
       {paying && (
         <SupplierPayModal restaurantId={restaurantId} supplier={{ id: supplierId, name }} formatCurrency={fmtRaw}
           onClose={() => setPaying(false)} onDone={() => { setMsg('Payment saved'); changed(); }} />

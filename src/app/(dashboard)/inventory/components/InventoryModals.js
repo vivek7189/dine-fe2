@@ -7,6 +7,7 @@ import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
 import { convertUnits } from '../utils/unitConversion';
 import { fmtQty } from '../utils/formatQty';
+import { OpeningFields, emptyOpening } from '../../../../components/suppliers/SupplierOpeningModal';
 
 // AI-made recipes are off: the owner writes every recipe (flip to bring the generator back).
 const SHOW_AI_RECIPE = false;
@@ -749,6 +750,11 @@ function AddSupplierModal(props) {
         <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
           <label style={labelStyle}>Notes</label>
           <FocusTextarea value={supplierFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes" />
+        </div>
+        <div style={{ ...fieldWrap, gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+          <label style={labelStyle}>Opening balance (optional)</label>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>What was owed with this supplier when you started (from your old book). Leave empty if nothing.</div>
+          <OpeningFields compact value={supplierFormData.opening || emptyOpening()} onChange={v => update('opening', v)} />
         </div>
       </div>
     </ModalShell>
