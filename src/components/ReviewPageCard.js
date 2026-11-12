@@ -42,6 +42,14 @@ export default function ReviewPageCard({ restaurantId, cardStyle, isMobile }) {
     } catch (e) { setMsg(e?.message || 'Could not save'); }
     setBusy(false);
   };
+  const toggleDraft = async () => {
+    setBusy(true); setMsg('');
+    try {
+      await apiClient.post(`/api/google-reviews/review-page/${restaurantId}`, { enabled: data.enabled, draftText: !data.draftText });
+      await load();
+    } catch (e) { setMsg(e?.message || 'Could not save'); }
+    setBusy(false);
+  };
   const copy = async () => {
     try { await navigator.clipboard.writeText(data.pageUrl); setMsg('Link copied'); } catch (_) { setMsg(data.pageUrl); }
   };
@@ -77,6 +85,18 @@ export default function ReviewPageCard({ restaurantId, cardStyle, isMobile }) {
         </div>
       )}
       {msg && <div style={{ marginTop: 10, fontSize: 13, color: '#166534', wordBreak: 'break-all' }}>{msg}</div>}
+
+      {data.enabled && (
+        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 14, padding: '10px 12px', background: '#f9fafb', borderRadius: 10, cursor: 'pointer' }}>
+          <input type="checkbox" data-testid="draft-toggle" checked={!!data.draftText} disabled={busy} onChange={toggleDraft} style={{ marginTop: 3 }} />
+          <span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#1f2937' }}>Help guests write their review</span>
+            <span style={{ display: 'block', fontSize: 12.5, color: '#6b7280', marginTop: 2, lineHeight: 1.5 }}>
+              4–5 star guests tap what they liked (and a favourite dish); we make a short draft they can change, copy it and open Google to paste. Each draft is worded differently. Guests always post it themselves — please don&apos;t offer rewards for reviews (Google removes those).
+            </span>
+          </span>
+        </label>
+      )}
 
       {data.enabled && (
         <>
