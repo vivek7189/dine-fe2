@@ -236,6 +236,9 @@ jobs:
         working-directory: frontend
         # Write .env.production.local (higher Next.js precedence than the tracked .env.production,
         # which otherwise wins) so the server app bakes the GCP backend from the workflow env.
+        env:
+          # the macOS runner's default Node heap (~2 GB) runs out on the static export (v1.14.220)
+          NODE_OPTIONS: --max-old-space-size=6144
         run: |
           printf 'NEXT_PUBLIC_API_URL=%s\nNEXT_PUBLIC_API_URL2=%s\nNEXT_PUBLIC_APP_KIND=%s\n' "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_API_URL" "$NEXT_PUBLIC_APP_KIND" > .env.production.local
           node scripts/build-electron.js
