@@ -6248,7 +6248,9 @@ const Admin = () => {
     extra.map(norm).filter(Boolean).sort().forEach(add);
     return out;
   }, [customRoles, staff, shiftExtraRoles]);
-  const roleLabel = (r) => String(r || '').toLowerCase() === 'kitchen_display' ? 'Kitchen display (KOT screen)' : String(r || '').replace(/\b\w/g, c => c.toUpperCase());
+  const roleLabel = (r) => String(r || '').toLowerCase() === 'kitchen_display' ? 'Kitchen display (KOT screen)'
+    : String(r || '').toLowerCase() === 'stall_owner' ? 'Stall owner (food court)'
+    : String(r || '').replace(/\b\w/g, c => c.toUpperCase());
   // Role options are lowercase; a staff member saved as "Chef" must still show as selected and keep
   // their spelling when re-picked (was: no chip selected, and saving changed it to "chef").
   const sameRole = (a, b) => String(a || '').trim().toLowerCase().replace(/\s+/g, ' ') === String(b || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -7408,7 +7410,8 @@ const Admin = () => {
     if (!selectedStaff) return;
     const { name, phone, email, role } = editStaffForm;
     if (!name.trim()) { showWarning('Name is required'); return; }
-    if (!phone.trim() && role !== 'kitchen_display') { showWarning('Phone is required'); return; }
+    // Kitchen display and food court stall owner logins have no phone.
+    if (!phone.trim() && role !== 'kitchen_display' && String(role || '').toLowerCase() !== 'stall_owner') { showWarning('Phone is required'); return; }
 
     // Only owner can assign admin role
     if (role === 'admin' && currentUserRole !== 'owner') {

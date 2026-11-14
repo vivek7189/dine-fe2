@@ -26,7 +26,7 @@ function rangeFor(period, from, to) {
   return [ymd(t), ymd(t)];
 }
 
-const newStall = (n) => ({ id: `stall_${Date.now().toString(36)}`, name: `Stall ${n}`, ownerName: '', phone: '', categories: [], itemIds: [], commissionPct: 0, active: true });
+const newStall = (n) => ({ id: `stall_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name: `Stall ${n}`, ownerName: '', phone: '', categories: [], itemIds: [], commissionPct: 0, active: true });
 
 function resolveRestaurantId() {
   try {
