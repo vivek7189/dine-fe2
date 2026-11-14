@@ -33,6 +33,7 @@ import {
   FaUserClock,
   FaUtensils,
   FaBullhorn,
+  FaStore,
 } from 'react-icons/fa';
 import { getCachedCalendarAccess } from '../../../lib/calendar';
 import { getEffectivePageAccess, accessValueOn } from '../../../lib/pageAccessConfig';
@@ -256,6 +257,14 @@ const features = [
     href: '/reprint-log',
   },
   {
+    id: 'food-court',
+    name: 'Food Court',
+    description: 'Run stalls under one central billing counter — stall-wise sales, commission and payouts, and a login for each stall owner',
+    icon: FaStore,
+    gradient: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+    href: '/food-court',
+  },
+  {
     id: 'staff-sales',
     name: 'Staff Sales Report',
     description: 'Per-staff revenue, order count, average ticket, and tips earned',
@@ -305,7 +314,7 @@ const STAFF_CARD_ACCESS = {
   'phone-agent': ['analytics'], 'whatsapp-ordering': ['analytics'], 'social-media': ['analytics'],
   'hotel-pms': ['hotel'], hotel: ['hotel'], 'google-reviews': ['admin'], spaces: ['admin'], parking: ['parking'],
   bookings: ['bookings'], feedback: ['feedback', 'admin'], 'recipe-cost-sheet': ['inventory'],
-  'hourly-report': ['analytics'], 'menu-engineering': ['analytics'], 'reprint-log': ['analytics'], 'staff-sales': ['analytics'],
+  'hourly-report': ['analytics'], 'menu-engineering': ['analytics'], 'reprint-log': ['analytics'], 'staff-sales': ['analytics'], 'food-court': ['analytics'],
   'promotion-report': ['analytics'], 'split-bills': ['analytics'], 'comp-report': ['analytics'], 'audit-trail': ['analytics'],
 };
 

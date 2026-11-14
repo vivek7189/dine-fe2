@@ -1192,6 +1192,8 @@ class ApiClient {
     if (!user) return '/login';
     // Kitchen display login: only ever the kitchen screen.
     if (String(user.role || '').toLowerCase() === 'kitchen_display') return '/kitchen-display';
+    // Food court stall owner login: only their stall's sales page.
+    if (String(user.role || '').toLowerCase() === 'stall_owner') return '/my-stall';
 
     // Role-based landing page (opt-in). Owner/admin configure a per-role default
     // page in POS Settings (posSettings.roleLandingPages), e.g. cashier -> /dashboard,
@@ -2557,6 +2559,27 @@ class ApiClient {
   // edits) — distinct from getPinStatus(), which reports the LOGIN PIN.
   async getApprovalPinStatus() {
     return this.request('/api/staff/me/pin/status');
+  }
+
+  // Food court mode (backend routes/foodCourt.js): stalls settings, settlement report, stall owner view.
+  async getFoodCourtSettings(restaurantId) {
+    return this.request(`/api/food-court/${restaurantId}/settings`);
+  }
+
+  async saveFoodCourtSettings(restaurantId, settings) {
+    return this.request(`/api/food-court/${restaurantId}/settings`, { method: 'PUT', body: settings });
+  }
+
+  async getFoodCourtReport(restaurantId, startDate, endDate) {
+    return this.request(`/api/food-court/${restaurantId}/report?startDate=${startDate}&endDate=${endDate}`);
+  }
+
+  async getMyStall() {
+    return this.request('/api/food-court/me');
+  }
+
+  async getMyStallReport(startDate, endDate) {
+    return this.request(`/api/food-court/me/report?startDate=${startDate}&endDate=${endDate}`);
   }
 
   async addStaff(restaurantId, staffData) {

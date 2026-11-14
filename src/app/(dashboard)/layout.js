@@ -246,6 +246,11 @@ function DashboardLayoutContent({ children }) {
         router.replace('/kitchen-display');
         return;
       }
+      // Food court stall owner login: no dashboard pages — only their stall's sales page.
+      if (String(user.role).toLowerCase() === 'stall_owner') {
+        router.replace('/my-stall');
+        return;
+      }
 
       // Super admin disabled pages check — applies to ALL roles including owner/admin
       const routeSegment = pathname.split('/').filter(Boolean)[0] || '';
@@ -457,7 +462,7 @@ function DashboardLayoutContent({ children }) {
 
   // Kitchen display login: render nothing here (the route guard above sends it to /kitchen-display).
   if (typeof window !== 'undefined') {
-    try { if (String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase() === 'kitchen_display') return null; } catch { /* ignore */ }
+    try { if (['kitchen_display', 'stall_owner'].includes(String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase())) return null; } catch { /* ignore */ }
   }
 
   return (

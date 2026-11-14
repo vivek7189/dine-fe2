@@ -13,6 +13,7 @@ export const ROLES_ROUTE_PERMISSION = {
   '/promotion-report': 'page.analytics',
   '/sales-summary': 'page.analytics',
   '/staff-sales': 'page.analytics',
+  '/food-court': 'page.analytics',
   '/reprint-log': 'orders.view',
   '/open-orders': 'orders.view',
   '/split-bills': 'orders.view',
