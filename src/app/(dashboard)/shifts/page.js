@@ -85,7 +85,9 @@ export default function ShiftsPage() {
       setLoading(true);
       try {
         const [staffRes] = await Promise.all([
-          apiClient.getStaff(restaurantId),
+          // The full staff list is owner-only; staff ticked "Shift rota" get the active-staff list.
+          apiClient.getStaff(restaurantId)
+            .catch(() => apiClient.getWaiters(restaurantId).then(r => ({ staff: (r?.waiters || []).map(w => ({ ...w, status: 'active' })) }))),
           loadSettings(),
         ]);
         setStaff(staffRes?.staff || []);

@@ -319,7 +319,7 @@ const features = [
 const STAFF_SELF = new Set(['announcements', 'my-pay', 'my-meetings', 'my-shifts', 'calendar', 'repairs', 'suggestions', 'dish-ideas', 'marketing']);
 // … and the access a staff member needs for each management card (reports → Analytics).
 const STAFF_CARD_ACCESS = {
-  shifts: ['admin'], register: ['completeBill'], 'shifts-cash': ['shifts'], dineai: ['dineai', 'analytics'],
+  shifts: ['admin', 'rota'], register: ['completeBill'], 'shifts-cash': ['shifts'], dineai: ['dineai', 'analytics'],
   'phone-agent': ['analytics'], 'whatsapp-ordering': ['analytics'], 'social-media': ['analytics'],
   'hotel-pms': ['hotel'], hotel: ['hotel'], 'google-reviews': ['admin'], spaces: ['admin'], parking: ['parking'],
   bookings: ['bookings'], feedback: ['feedback', 'admin'], 'recipe-cost-sheet': ['inventory'],

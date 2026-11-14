@@ -48,6 +48,7 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'meetings', label: 'Staff Meetings (plan, minutes, reminders)', icon: 'FaHandshake', category: 'staff' },
   { key: 'staffRequests', label: 'Repairs & staff requests (see all, assign, reply)', icon: 'FaTools', category: 'staff' },
   { key: 'announcements', label: 'Announcements (post to staff)', icon: 'FaBullhorn', category: 'staff' },
+  { key: 'rota', label: 'Shift rota (make & publish shifts, approve swaps)', icon: 'FaCalendarAlt', category: 'staff' },
 ];
 
 // ─── Route segment → pageAccess key mapping ───
@@ -163,10 +164,10 @@ export const NAV_ID_TO_ACCESS_KEY = {
 
 // ─── One access rule for route guard, Sidebar, Home tiles and page buttons ───
 // Pages that ALSO open with their own tick (owners tick "Books" for an accountant without Admin).
-// Either key allows the page — widening only, nobody loses access. (Shifts rota deliberately not
-// here: the "Shifts" tick is Shifts & Cash, it must not open the staff rota.)
-export const ROUTE_ALT_ACCESS_KEYS = { '/books': ['books'], '/feedback': ['feedback'], '/dineai': ['dineai'], '/attendance': ['attendance'] };
-export const NAV_ALT_ACCESS_KEYS = { books: ['books'], feedback: ['feedback'], dineai: ['dineai'], attendance: ['attendance'] };
+// Either key allows the page — widening only, nobody loses access. (The "Shifts" tick is Shifts &
+// Cash and must not open the staff rota; the rota has its own "Shift rota" tick.)
+export const ROUTE_ALT_ACCESS_KEYS = { '/books': ['books'], '/feedback': ['feedback'], '/dineai': ['dineai'], '/attendance': ['attendance'], '/shifts': ['rota'] };
+export const NAV_ALT_ACCESS_KEYS = { books: ['books'], feedback: ['feedback'], dineai: ['dineai'], attendance: ['attendance'], shifts: ['rota'] };
 
 // Is a pageAccess value "on"? (object = any sub-permission on)
 export function accessValueOn(v) {
