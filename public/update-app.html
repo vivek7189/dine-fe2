@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Update DineOpen</title>
+<!-- Opened from the in-app "Please update" notice (billingNotice CTA) for restaurants on old apps.
+     Links always resolve to the newest release (backend /api/download/desktop; GitHub latest APK). -->
+<style>
+  :root { --red: #dc2626; --ink: #0f172a; --muted: #475569; --line: #e2e8f0; --bg: #f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; margin-bottom: 24px; }
+  .logo span { width: 34px; height: 34px; border-radius: 9px; background: var(--red); color: #fff; display: grid; place-items: center; }
+  h1 { font-size: 26px; margin: 0 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; line-height: 1.55; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 17px; margin: 0 0 4px; }
+  .card p { color: var(--muted); margin: 0 0 14px; font-size: 14px; line-height: 1.5; }
+  a.btn { display: inline-block; background: var(--red); color: #fff; text-decoration: none; font-weight: 700; padding: 11px 18px; border-radius: 10px; }
+  a.btn.alt { background: #0f172a; }
+  ol { color: var(--muted); line-height: 1.7; padding-left: 20px; margin: 22px 0 0; font-size: 14px; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 22px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo"><span>D</span>DineOpen</div>
+  <h1>Please update your DineOpen app</h1>
+  <p class="lead">Your app is an old version that will soon stop syncing with your online account. Updating takes about 2 minutes. Your menu, bills and settings stay safe.</p>
+
+  <div class="card">
+    <h2>DineOpen POS for Windows</h2>
+    <p>The normal billing app on your counter computer.</p>
+    <a class="btn" href="https://api.dineopen.com/api/download/desktop?app=online&amp;platform=win">Download POS app</a>
+  </div>
+
+  <div class="card">
+    <h2>DineOpen Server for Windows</h2>
+    <p>Only if your main counter PC runs the DineOpen <b>Server</b> (offline) app that other devices connect to.</p>
+    <a class="btn alt" href="https://api.dineopen.com/api/download/desktop?app=server&amp;platform=win">Download Server app</a>
+  </div>
+
+  <div class="card">
+    <h2>DineOpen app for Android</h2>
+    <p>For waiter / captain phones and tablets.</p>
+    <a class="btn alt" id="apk" href="https://github.com/vivek7189/dine-app2/releases/latest">Download Android app</a>
+  </div>
+
+  <ol>
+    <li>Download the app you use (above).</li>
+    <li>Close DineOpen, then open the downloaded file and follow the steps.</li>
+    <li>Open DineOpen again and log in as usual.</li>
+  </ol>
+  <p class="note">Not sure which one you use, or need help? Contact DineOpen support and we will guide you.</p>
+</main>
+<script>
+  // Point the Android button straight at the newest APK file (falls back to the release page).
+  fetch('https://api.github.com/repos/vivek7189/dine-app2/releases?per_page=15', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(function (r) { return r.ok ? r.json() : []; })
+    .then(function (rels) {
+      var rel = (rels || []).find(function (x) { return /^v?\d+\.\d+/.test(x.tag_name || '') && (x.assets || []).some(function (a) { return /\.apk$/i.test(a.name); }); });
+      if (!rel) return;
+      var a = rel.assets.find(function (x) { return /DineOpen-Waiter-[\d.]+\.apk$/i.test(x.name); }) || rel.assets.find(function (x) { return /\.apk$/i.test(x.name); });
+      if (a) document.getElementById('apk').href = a.browser_download_url;
+    })
+    .catch(function () { /* keep the release page link */ });
+</script>
+</body>
+</html>
