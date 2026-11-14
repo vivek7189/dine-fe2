@@ -18,6 +18,7 @@ import {
   FaChevronRight, FaSave, FaTrash, FaEdit, FaUserClock, FaMapMarkerAlt
 } from 'react-icons/fa';
 import { fmtTime, fmtDate, restaurantToday, ymd, restaurantTimeZone } from '../../../lib/restaurantTime';
+import { getEffectivePageAccess, accessValueOn } from '../../../lib/pageAccessConfig';
 
 // Leaflet doesn't support SSR — dynamic import
 const StaffTrackingMap = dynamic(() => import('../../../components/StaffTrackingMap'), { ssr: false });
@@ -303,12 +304,21 @@ export default function AttendancePage() {
     return () => window.removeEventListener('restaurantChanged', handler);
   }, []);
 
-  const isAdmin = ['admin', 'owner', 'co-owner', 'manager'].includes(String(userRole || '').toLowerCase());
+  // Owner / manager, or a staff member the owner ticked "Attendance" in Staff → Page access
+  // (the server checks the same tick).
+  const [attendanceTick, setAttendanceTick] = useState(false);
+  useEffect(() => {
+    try { setAttendanceTick(accessValueOn((getEffectivePageAccess(JSON.parse(localStorage.getItem('user') || 'null')) || {}).attendance)); } catch { /* not ticked */ }
+  }, []);
+  const isAdmin = ['admin', 'owner', 'co-owner', 'manager'].includes(String(userRole || '').toLowerCase()) || attendanceTick;
 
   // Load staff
   useEffect(() => {
     if (!restaurantId) return;
-    apiClient.getStaff(restaurantId).then(res => {
+    // The full staff list is owner-only; managers and ticked staff get the active-staff list instead.
+    apiClient.getStaff(restaurantId)
+      .catch(() => apiClient.getWaiters(restaurantId).then(r => ({ staff: (r?.waiters || []).map(w => ({ ...w, status: 'active' })) })))
+      .then(res => {
       // Normalize: API returns `id` but some code uses `_id` — ensure both exist
       const staff = (res?.staff || []).filter(s => s.status === 'active').map(s => ({
         ...s,

@@ -13,6 +13,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import { getEffectivePageAccess, accessValueOn } from '../../../lib/pageAccessConfig';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { Photos, PhotoPicker } from '../../../components/requests/RequestPhotos';
 import RepairTicket, { RefTag } from '../../../components/requests/RepairTicket';
@@ -86,7 +87,9 @@ function StaffRequestsContent() {
   const { currencySettings, formatCurrency } = useCurrency();
   const symbol = (currencySettings && currencySettings.currencySymbol) || '';
   const money = (n) => (n == null || n === '' ? '' : (formatCurrency ? formatCurrency(Number(n)) : `${symbol}${n}`));
-  const isManager = MANAGER_ROLES.includes(String(user?.role || '').toLowerCase());
+  // Owner / manager, or staff ticked "Repairs & staff requests" in Page access (server checks it too).
+  const isManager = MANAGER_ROLES.includes(String(user?.role || '').toLowerCase())
+    || (!!user && accessValueOn((getEffectivePageAccess(user) || {}).staffRequests));
 
   useEffect(() => {
     try {

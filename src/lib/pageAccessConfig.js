@@ -40,6 +40,14 @@ export const PAGE_ACCESS_CONFIG = [
   { key: 'calendar', label: 'Event Calendar', icon: 'FaCalendarAlt', category: 'more' },
   // the staff member's OWN salary, advances, bonuses, appraisals (off unless ticked)
   { key: 'myPay', label: 'My Pay (own salary, advance, bonus, appraisal)', icon: 'FaMoneyBillWave', category: 'more' },
+
+  // Staff management for one chosen person (owner / manager have these by role). Off unless ticked;
+  // the server checks the same keys (backend utils/hrGuards.js hasStaffTick, routes/diary.js).
+  { key: 'attendance', label: 'Attendance (all staff, punches, leave approvals)', icon: 'FaUserClock', category: 'staff' },
+  { key: 'diary', label: 'Daily Diary', icon: 'FaBook', category: 'staff' },
+  { key: 'meetings', label: 'Staff Meetings (plan, minutes, reminders)', icon: 'FaHandshake', category: 'staff' },
+  { key: 'staffRequests', label: 'Repairs & staff requests (see all, assign, reply)', icon: 'FaTools', category: 'staff' },
+  { key: 'announcements', label: 'Announcements (post to staff)', icon: 'FaBullhorn', category: 'staff' },
 ];
 
 // ─── Route segment → pageAccess key mapping ───
@@ -157,8 +165,8 @@ export const NAV_ID_TO_ACCESS_KEY = {
 // Pages that ALSO open with their own tick (owners tick "Books" for an accountant without Admin).
 // Either key allows the page — widening only, nobody loses access. (Shifts rota deliberately not
 // here: the "Shifts" tick is Shifts & Cash, it must not open the staff rota.)
-export const ROUTE_ALT_ACCESS_KEYS = { '/books': ['books'], '/feedback': ['feedback'], '/dineai': ['dineai'] };
-export const NAV_ALT_ACCESS_KEYS = { books: ['books'], feedback: ['feedback'], dineai: ['dineai'] };
+export const ROUTE_ALT_ACCESS_KEYS = { '/books': ['books'], '/feedback': ['feedback'], '/dineai': ['dineai'], '/attendance': ['attendance'] };
+export const NAV_ALT_ACCESS_KEYS = { books: ['books'], feedback: ['feedback'], dineai: ['dineai'], attendance: ['attendance'] };
 
 // Is a pageAccess value "on"? (object = any sub-permission on)
 export function accessValueOn(v) {

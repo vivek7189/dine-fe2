@@ -65,6 +65,15 @@ const features = [
     href: '/my-meetings',
   },
   {
+    // Staff ticked "Staff Meetings" (owner / managers use Books → Meetings)
+    id: 'meetings',
+    name: 'Staff Meetings',
+    description: 'Plan meetings, agenda, minutes and reminders for the team',
+    icon: FaHandshake,
+    gradient: 'linear-gradient(135deg, #4338ca, #6366f1)',
+    href: '/meetings',
+  },
+  {
     id: 'my-shifts',
     name: 'My Shifts & Leave',
     description: 'Your shifts, swaps and open shifts, apply for leave, your availability',
@@ -316,6 +325,7 @@ const STAFF_CARD_ACCESS = {
   bookings: ['bookings'], feedback: ['feedback', 'admin'], 'recipe-cost-sheet': ['inventory'],
   'hourly-report': ['analytics'], 'menu-engineering': ['analytics'], 'reprint-log': ['analytics'], 'staff-sales': ['analytics'], 'food-court': ['analytics'],
   'promotion-report': ['analytics'], 'split-bills': ['analytics'], 'comp-report': ['analytics'], 'audit-trail': ['analytics'],
+  meetings: ['meetings'],
 };
 
 export default function MorePage() {
@@ -350,9 +360,12 @@ export default function MorePage() {
   // Owner / admin / manager: how many repairs + suggestions are waiting (badge on those cards)
   useEffect(() => {
     try {
-      const role = String(JSON.parse(localStorage.getItem('user') || '{}').role || '').toLowerCase();
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = String(u.role || '').toLowerCase();
       const rid = localStorage.getItem('selectedRestaurantId');
-      if (!rid || !['owner', 'admin', 'co-owner', 'manager'].includes(role)) return;
+      // … and staff ticked "Repairs & staff requests"
+      const ticked = accessValueOn((getEffectivePageAccess(u) || {}).staffRequests);
+      if (!rid || (!['owner', 'admin', 'co-owner', 'manager'].includes(role) && !ticked)) return;
       apiClient.getStaffRequests(rid).then(r => { if (r?.open) setOpenRequests(r.open); }).catch(() => {});
     } catch {}
   }, []);
@@ -398,6 +411,7 @@ export default function MorePage() {
     && (f.id !== 'announcements' || announcements.enabled)
     && (f.id !== 'my-pay' || myPayAllowed) && (f.id !== 'calendar' || !calendarDenied)
     && (f.id !== 'my-shifts' || !ownerView)
+    && (f.id !== 'meetings' || staffView)
     && (!staffView || STAFF_SELF.has(f.id) || grants(f)));
   // Search: every typed word must appear in the card's name or description ("staff sales", "audit")
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
