@@ -209,6 +209,9 @@ function PinEntry({ restaurantId, onSuccess, error: externalError }) {
 function TokenDisplayContent() {
   const searchParams = useSearchParams();
   const restaurantId = searchParams.get('restaurant');
+  // Food court: &stall=<id> → this stall's own screen (only its tokens, ready when its items are done).
+  const stallId = searchParams.get('stall');
+  const stallQs = stallId ? `&stall=${encodeURIComponent(stallId)}` : '';
 
   const [screen, setScreen] = useState('loading');
   const [pin, setPin] = useState('');
@@ -238,9 +241,10 @@ function TokenDisplayContent() {
     if (!restaurantId) { setScreen('error'); setErrorMsg('No restaurant ID provided'); return; }
     (async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=`);
+        const res = await fetch(`${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=${stallQs}`);
         if (res.status === 401) { setScreen('pin'); return; }
         if (res.status === 403) { setScreen('error'); setErrorMsg('Token display is not enabled for this restaurant'); return; }
+        if (res.status === 404 && stallId) { setScreen('error'); setErrorMsg('This stall was not found or food court mode is off'); return; }
         if (!res.ok) { setScreen('error'); setErrorMsg('Failed to load token display'); return; }
         const data = await res.json();
         setRestaurant(data.restaurant);
@@ -252,13 +256,13 @@ function TokenDisplayContent() {
         setErrorMsg('Connection failed');
       }
     })();
-  }, [restaurantId]);
+  }, [restaurantId, stallId, stallQs]);
 
   // ─── Fetch orders ───
   const fetchOrders = useCallback(async () => {
     if (!restaurantId) return;
     try {
-      const url = `${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=${encodeURIComponent(pin)}`;
+      const url = `${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=${encodeURIComponent(pin)}${stallQs}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
@@ -290,7 +294,7 @@ function TokenDisplayContent() {
       if (data.settings) setSettings(data.settings);
       if (data.restaurant) setRestaurant(data.restaurant);
     } catch (err) { /* retry on next event */ }
-  }, [restaurantId, pin]);
+  }, [restaurantId, pin, stallQs]);
 
   // ─── Auto-clear ready tokens ───
   useEffect(() => {
@@ -356,7 +360,7 @@ function TokenDisplayContent() {
     setSettings(data.settings);
     setScreen('display');
     setTimeout(() => {
-      fetch(`${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=${encodeURIComponent(enteredPin)}`)
+      fetch(`${API_BASE_URL}/api/public/token-display/${restaurantId}?pin=${encodeURIComponent(enteredPin)}${stallQs}`)
         .then(r => r.json())
         .then(d => { if (d.orders) setOrders(d.orders); })
         .catch(() => {});

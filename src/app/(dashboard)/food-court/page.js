@@ -307,6 +307,12 @@ export default function FoodCourtPage() {
                     <button onClick={() => setSettings((st) => ({ ...st, stalls: st.stalls.filter((x) => x.id !== s.id) }))} className="ml-auto text-red-600 flex items-center gap-1"><FaTrash /> Remove</button>
                   )}
                 </div>
+                {isSaved && s.active && saved.enabled && rid && (
+                  <div className="mt-3 text-xs text-gray-600 bg-gray-50 rounded-lg p-2 space-y-1">
+                    <div><b>Kitchen screen:</b> open the KOT screen at this stall and pick <b>{s.name}</b> at the top — it shows only this stall&apos;s items; &quot;{s.name} done&quot; marks them ready.</div>
+                    <div className="break-all"><b>Customer token screen:</b> {typeof window !== 'undefined' ? `${window.location.origin}/token-display?restaurant=${rid}&stall=${s.id}` : ''} <span className="text-gray-400">(turn on Token display in Admin settings first)</span></div>
+                  </div>
+                )}
                 {creds[s.id] && (
                   <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200 text-sm">
                     <div className="font-semibold text-green-800">Login created — share this with the stall owner (shown once)</div>

@@ -41,6 +41,7 @@ import { t } from '../../../lib/i18n';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { seatLabel } from '../../../utils/orderItemKey';
+import { buildCategoryIndex, resolveCategoryPath } from '../../../utils/categoryTree';
 import { fmtTime } from '../../../lib/restaurantTime';
 
 // ─── Tab Definitions ───
@@ -743,6 +744,10 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
   // are untouched. On a station screen "Done" only clears the ticket from THAT screen (it comes
   // back if new items for this station are added to the order); order status is not changed.
   const [stationCfg, setStationCfg] = useState(null);       // { barCategories: [] }
+  // Food court mode (restaurant.foodCourt): each active stall is also a station here — its screen shows
+  // only that stall's items (same category rules as the stalls report). Off → nothing changes.
+  const [foodCourtCfg, setFoodCourtCfg] = useState(null);
+  const [menuCatIndex, setMenuCatIndex] = useState(null);
   const [menuCatOf, setMenuCatOf] = useState(null);         // Map menuItemId → category
   const [menuCats, setMenuCats] = useState([]);             // [{ value, label }]
   const [station, setStation] = useState('all');
@@ -764,16 +769,27 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
       setStationDone(JSON.parse(localStorage.getItem(`kds_station_done:${stationRid}`) || '[]'));
     } catch (_) { /* storage blocked — defaults */ }
     apiClient.getRestaurant(stationRid)
-      .then((r) => { if (alive) setStationCfg((r && r.restaurant && r.restaurant.posSettings && r.restaurant.posSettings.kdsStations) || {}); })
+      .then((r) => {
+        if (!alive) return;
+        setStationCfg((r && r.restaurant && r.restaurant.posSettings && r.restaurant.posSettings.kdsStations) || {});
+        setFoodCourtCfg((r && r.restaurant && r.restaurant.foodCourt) || null);
+      })
       .catch(() => { if (alive) setStationCfg({}); });
     return () => { alive = false; };
   }, [stationRid]);
 
   const barCategories = Array.isArray(stationCfg?.barCategories) ? stationCfg.barCategories : [];
-  const stationsOn = barCategories.length > 0;
+  const stallStations = (foodCourtCfg && foodCourtCfg.enabled === true && Array.isArray(foodCourtCfg.stalls))
+    ? foodCourtCfg.stalls.filter(s => s && s.id && s.active !== false) : [];
+  const isStallStation = (s) => typeof s === 'string' && s.startsWith('stall:');
+  const stationsOn = barCategories.length > 0 || stallStations.length > 0;
   // Kitchen display login with a fixed station (Bar / Kitchen / All) — no picker on that screen.
   const fixedStation = kdsMode && ['all', 'bar', 'kitchen'].includes(kdsMode.station) ? kdsMode.station : null;
-  const activeStation = stationsOn ? (fixedStation || station) : 'all';
+  let activeStation = stationsOn ? (fixedStation || station) : 'all';
+  // A station saved on this machine that no longer exists (stall removed / bar categories cleared) → All.
+  if (isStallStation(activeStation) && !stallStations.some(s => `stall:${s.id}` === activeStation)) activeStation = 'all';
+  if ((activeStation === 'bar' || activeStation === 'kitchen') && barCategories.length === 0) activeStation = 'all';
+  const activeStall = isStallStation(activeStation) ? stallStations.find(s => `stall:${s.id}` === activeStation) : null;
 
   // The menu tells each item's category (order lines may not carry it). Loaded only when needed.
   useEffect(() => {
@@ -791,6 +807,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
         if (v && !cats.has(v)) cats.set(v, { value: v, label: names.get(v) || String(it.category).replace(/[-_]+/g, ' ') });
       });
       setMenuCatOf(map);
+      setMenuCatIndex(buildCategoryIndex((res && res.categories) || []));
       setMenuCats([...cats.values()].sort((a, b) => a.label.localeCompare(b.label)));
     }).catch(() => {});
     return () => { alive = false; };
@@ -801,12 +818,29 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
     const cat = (menuCatOf && menuCatOf.get(item.menuItemId || item.id)) || item.category;
     return barSet.has(normCat(cat));
   };
+  // Which stall made this line: an item picked for a stall wins, else the deepest category on the
+  // item's path that a stall owns (backend utils/foodCourt.js stallMatcher — same rule).
+  const stallOfItem = (item) => {
+    const mid = normCat(item.menuItemId || item.id);
+    for (const s of stallStations) if ((s.itemIds || []).some(x => normCat(x) === mid)) return s.id;
+    const cat = (menuCatOf && menuCatOf.get(item.menuItemId || item.id)) || item.subCategory || item.category;
+    const path = menuCatIndex ? resolveCategoryPath({ category: cat }, menuCatIndex).slice().reverse() : [{ id: cat, name: cat }];
+    for (const n of path) {
+      for (const s of stallStations) {
+        if ((s.categories || []).some(c => normCat(c) === normCat(n.id) || normCat(c) === normCat(n.name))) return s.id;
+      }
+    }
+    return null;
+  };
+  const onThisStation = (i) => (activeStation === 'bar' ? isBarItem(i)
+    : activeStation === 'kitchen' ? !isBarItem(i)
+    : activeStall ? stallOfItem(i) === activeStall.id : true);
   const stationKey = (o) => `${activeStation}:${o.id}:${(o.items || []).map(i => `${i.menuItemId || i.id || i.name}x${i.quantity}`).join(',')}`;
   const withLineIdx = (o) => ({ ...o, items: (Array.isArray(o.items) ? o.items : []).map((i, idx) => ({ ...i, _idx: idx })) });
   const stationOrders = activeStation === 'all'
     ? kotOrders.map(withLineIdx)
     : kotOrders.map(withLineIdx)
-      .map(o => ({ ...o, items: o.items.filter(i => (activeStation === 'bar' ? isBarItem(i) : !isBarItem(i))) }))
+      .map(o => ({ ...o, items: o.items.filter(onThisStation) }))
       .filter(o => o.items.length > 0 && !stationDone.includes(stationKey(o)));
 
   const pickStation = (s) => {
@@ -817,6 +851,23 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
     const next = [...stationDone, stationKey(o)].slice(-500);
     setStationDone(next);
     try { localStorage.setItem(`kds_station_done:${stationRid}`, JSON.stringify(next)); } catch (_) { /* ignore */ }
+  };
+  // Stall screen "Done": the stall's lines are marked made (kdsReady, saved on the order) so the stall's
+  // token screen shows the customer's token as ready, then the ticket leaves this screen.
+  const markStallDone = async (o) => {
+    if (!(kdsMode && kdsMode.canUpdateStatus === false) && !o._isOffline) {
+      for (const it of (o.items || []).filter(i => !i.kdsReady && i._idx != null)) {
+        try {
+          await apiClient.request(`/api/kot/${encodeURIComponent(o.id)}/item-ready`, {
+            method: 'PATCH', body: JSON.stringify({ index: it._idx, menuItemId: it.menuItemId || it.id || '', name: it.name || '', ready: true, restaurantId: o.restaurantId }),
+          });
+        } catch (e) {
+          setNotification({ show: true, type: 'error', message: e?.message || 'Could not mark the items ready' });
+          return;
+        }
+      }
+    }
+    markStationDone(o);
   };
   const itemTicks = ['on', 'required'].includes(stationCfg?.itemTicks) ? stationCfg.itemTicks : 'off';
   const canTick = itemTicks !== 'off' && !(kdsMode && kdsMode.canUpdateStatus === false);
@@ -1056,10 +1107,10 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
               {/* Bar / Kitchen station (this screen) */}
               {stationsOn && !fixedStation && (
                 <div style={{ display: 'flex', gap: 2, background: '#f3f4f6', padding: 3, borderRadius: 9 }}>
-                  {[['all', 'All'], ['kitchen', 'Kitchen'], ['bar', 'Bar']].map(([k, label]) => (
+                  {[['all', 'All'], ...(barCategories.length ? [['kitchen', 'Kitchen'], ['bar', 'Bar']] : []), ...stallStations.map(s => [`stall:${s.id}`, s.name])].map(([k, label]) => (
                     <button key={k} onClick={() => pickStation(k)}
                       style={{ padding: isClient && isMobile ? '5px 8px' : '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: isClient && isMobile ? '11px' : '13px', fontWeight: 600,
-                        background: activeStation === k ? (k === 'bar' ? '#7c3aed' : k === 'kitchen' ? '#ea580c' : 'white') : 'transparent',
+                        background: activeStation === k ? (k === 'bar' ? '#7c3aed' : k === 'kitchen' ? '#ea580c' : isStallStation(k) ? '#d97706' : 'white') : 'transparent',
                         color: activeStation === k ? (k === 'all' ? '#111827' : 'white') : '#6b7280',
                         boxShadow: activeStation === k ? '0 1px 3px rgba(0,0,0,0.12)' : 'none' }}>
                       {label}
@@ -1233,11 +1284,11 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                 // Bar / Kitchen screen: "Done" clears the ticket from this screen only.
                 if (activeStation !== 'all' && !['completed', 'served'].includes(kot.status)) {
                   actionButton = {
-                    label: activeStation === 'bar' ? 'Bar done' : 'Kitchen done',
+                    label: activeStall ? `${activeStall.name} done` : activeStation === 'bar' ? 'Bar done' : 'Kitchen done',
                     icon: FaCheck,
                     color: '#16a34a',
                     shadow: '#16a34a40',
-                    onClick: () => markStationDone(kot),
+                    onClick: () => (activeStall ? markStallDone(kot) : markStationDone(kot)),
                     screenOnly: true,
                   };
                 }
