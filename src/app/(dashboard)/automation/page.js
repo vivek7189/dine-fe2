@@ -550,8 +550,11 @@ const CustomersTab = ({ customers, restaurantId }) => {
 };
 
 // Coupons Tab Component
-const CouponsTab = ({ coupons, restaurantId }) => {
+const CouponsTab = ({ coupons: allCoupons, restaurantId }) => {
   const { formatCurrency } = useCurrency();
+  // One-time codes come in printed batches (hundreds of codes) — they're managed in Offers → Coupons.
+  const coupons = allCoupons.filter(c => c.type !== 'single');
+  const oneTimeCount = allCoupons.length - coupons.length;
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -560,6 +563,10 @@ const CouponsTab = ({ coupons, restaurantId }) => {
           <FaPlus /> Create Coupon
         </button>
       </div>
+
+      {oneTimeCount > 0 && (
+        <p className="text-sm text-gray-500">{oneTimeCount} one-time codes are managed in Offers → Coupons → One-time codes.</p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {coupons.map(coupon => (
