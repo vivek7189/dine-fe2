@@ -339,6 +339,49 @@ async function receiptPageHeightMicrons(webContents, widthMicrons) {
   }
 }
 
+// macOS: many thermal drivers (e.g. PosBox) only accept their OWN paper list (72.0mm x 70…250mm) — a
+// custom 80mm x <bill-height> page isn't on it, so CUPS falls back to the driver default (A4) and a
+// silent auto-print comes out split (header torn off). The manual dialog works because the user picks
+// "72.0mm x 200.0mm". Read the queue's PPD and use the driver's own size: the widest paper not wider
+// than the requested roll, shortest one that fits the bill (else the tallest). Drivers that take custom
+// sizes keep the custom height. null → keep the old custom page (Windows, no PPD, regular A4 printers).
+function macDriverPaper(queueName, widthMicrons, heightMicrons) {
+  if (process.platform !== 'darwin' || !queueName) return null;
+  try {
+    const ppdPath = path.join('/etc/cups/ppd', `${path.basename(queueName)}.ppd`);
+    if (!fs.existsSync(ppdPath)) return null;
+    return pickDriverPaper(fs.readFileSync(ppdPath, 'latin1'), widthMicrons, heightMicrons);
+  } catch {
+    return null;
+  }
+}
+
+function pickDriverPaper(ppd, widthMicrons, heightMicrons) {
+  const ptToMicrons = (pt) => Math.round(parseFloat(pt) * 25400 / 72);
+  const fitsRoll = (w) => w <= widthMicrons + 1000;
+  // Custom page sizes supported → keep the bill height, just clamp to what the driver allows.
+  if (/^\*CustomPageSize\s+True/m.test(ppd)) {
+    const wP = ppd.match(/^\*ParamCustomPageSize\s+Width:\s*\d+\s+\w+\s+([\d.]+)\s+([\d.]+)/m);
+    const hP = ppd.match(/^\*ParamCustomPageSize\s+Height:\s*\d+\s+\w+\s+([\d.]+)\s+([\d.]+)/m);
+    if (wP && hP) {
+      const maxW = ptToMicrons(wP[2]);
+      const [minH, maxH] = [ptToMicrons(hP[1]), ptToMicrons(hP[2])];
+      if (maxW >= widthMicrons - 500) return null; // the requested custom page is already valid
+      if (!fitsRoll(maxW)) return null;
+      return { width: maxW, height: Math.min(maxH, Math.max(minH, heightMicrons)), name: 'Custom' };
+    }
+  }
+  const papers = [];
+  const re = /^\*PaperDimension\s+([^\s/:]+)(?:\/([^:]*))?:\s*"\s*([\d.]+)\s+([\d.]+)\s*"/gm;
+  let m;
+  while ((m = re.exec(ppd))) papers.push({ name: (m[2] || m[1]).trim(), width: ptToMicrons(m[3]), height: ptToMicrons(m[4]) });
+  const roll = papers.filter((p) => fitsRoll(p.width) && p.height > p.width);
+  if (!roll.length) return null; // no receipt-roll sizes (e.g. an A4 office printer) → old behaviour
+  const w = Math.max(...roll.map((p) => p.width));
+  const sameW = roll.filter((p) => Math.abs(p.width - w) <= 500).sort((a, b) => a.height - b.height);
+  return sameW.find((p) => p.height >= heightMicrons) || sameW[sameW.length - 1];
+}
+
 // ──── Print diagnostics log (local, for remote root-cause without site visit) ────
 // Every print attempt appends one structured line here with the REAL outcome and
 // full machine context. This does NOT change what the handler returns to the app
@@ -1215,6 +1258,11 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
     if (match && match.name) resolvedDeviceName = match.name;
   }
   const deviceMatched = deviceName ? printerNames.includes(resolvedDeviceName) : true; // no name = system default
+  // macOS only: print on one of the driver's own paper sizes (see macDriverPaper). Windows: unchanged.
+  const macQueue = resolvedDeviceName || (printers.find((p) => p.isDefault) || {}).name;
+  const driverPaper = deviceMatched || !deviceName ? macDriverPaper(macQueue, widthMicrons, pageHeightMicrons) : null;
+  const pageSize = driverPaper ? { width: driverPaper.width, height: driverPaper.height } : { width: widthMicrons, height: pageHeightMicrons };
+  if (driverPaper) console.log('[Print] macOS driver paper:', driverPaper.name, Math.round(driverPaper.width / 1000) + 'x' + Math.round(driverPaper.height / 1000) + 'mm');
   // Capture the REAL os-driver outcome for the diagnostic return. success stays true for the app
   // (unchanged behavior); realSuccess/failureReason/hint carry the truth to the server diagnostics.
   let osRealSuccess = null, osFailureReason = null, osHint = null;
@@ -1246,8 +1294,8 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
       deviceName: resolvedDeviceName,
       copies: copies || 1,
       printBackground: true,
-      // Thermal paper size in microns (58mm or 80mm width, long roll height)
-      pageSize: { width: widthMicrons, height: pageHeightMicrons },
+      // Thermal paper size in microns (58mm or 80mm width, long roll height; macOS: the driver's own size)
+      pageSize,
       // Use 'none' so the printer driver doesn't add its own margins — CSS padding
       // (via printLeftMargin setting) has full control over content positioning.
       // This is the industry standard for thermal receipt printers and fixes left-side
@@ -1282,6 +1330,7 @@ async function _doPrintJob(event, { html, copies, type, printerWidth, stationId,
         deviceMatched, printerNames, copies: copies || 1,
         printerWidth: printerWidth || 80, stationId: stationId || null,
         pageHeightMm: Math.round(pageHeightMicrons / 1000), // a long bill must get a page longer than 297 mm
+        driverPaper: driverPaper ? driverPaper.name : null,
         hint,
       });
       finish();
