@@ -4366,6 +4366,20 @@ class ApiClient {
     });
   }
 
+  // One-time codes: a batch of unique codes (e.g. 200 for an event), each usable once
+  async generateCouponBatch(restaurantId, data) {
+    return this.request(`/api/automation/${restaurantId}/coupons/generate-batch`, {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async deleteCouponBatch(restaurantId, batchId) {
+    return this.request(`/api/automation/${restaurantId}/coupons/batch/${encodeURIComponent(batchId)}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getCustomerCoupons(restaurantId, phone) {
     return this.request(`/api/automation/${restaurantId}/coupons/customer/${encodeURIComponent(phone)}`);
   }

@@ -26,6 +26,9 @@ import {
   FaCheckCircle,
   FaUserPlus,
   FaWallet,
+  FaPrint,
+  FaDownload,
+  FaTicketAlt,
 } from 'react-icons/fa';
 import apiClient from '../../../lib/api';
 import { toJsDate } from '../../../utils/dateParse';
@@ -219,7 +222,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
   // Coupon state
   const [coupons, setCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(false);
-  const [couponSubView, setCouponSubView] = useState('public'); // 'public' | 'private'
+  const [couponSubView, setCouponSubView] = useState('public'); // 'public' | 'private' | 'single'
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [couponForm, setCouponForm] = useState({
@@ -237,6 +240,11 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     validFrom: '', validTo: ''
   });
   const [couponDenominations, setCouponDenominations] = useState([]); // array of numbers e.g. [500, 200, 200, 100]
+  // One-time codes: a printed batch of unique codes (e.g. 200 for an event), each usable once at billing
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchForm, setBatchForm] = useState({ name: '', count: '100', discountType: 'percentage', value: '', maxDiscountAmount: '', minOrderAmount: '', validFrom: '', validTo: '', prefix: '' });
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [deleteBatchConfirm, setDeleteBatchConfirm] = useState(null);
   const [denomInput, setDenomInput] = useState('');
   const [generating, setGenerating] = useState(false);
   const [customerSearchResults, setCustomerSearchResults] = useState([]);
@@ -425,6 +433,130 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  // ── One-time codes (type 'single'), grouped by the batch they were generated in ──
+  const couponBatches = useMemo(() => {
+    const map = new Map();
+    for (const c of coupons) {
+      if (c.type !== 'single') continue;
+      const key = c.batchId || c.id;
+      if (!map.has(key)) {
+        map.set(key, {
+          batchId: key, name: c.batchName || c.description || 'One-time coupons',
+          discountType: c.discountType, value: c.value, maxDiscountAmount: c.maxDiscountAmount || 0,
+          minOrderAmount: c.minOrderAmount || 0, validTo: c.validTo ? toJsDate(c.validTo) : null,
+          createdAt: c.createdAt ? toJsDate(c.createdAt) : null, codes: [],
+        });
+      }
+      map.get(key).codes.push(c);
+    }
+    return [...map.values()]
+      .map(b => ({ ...b, used: b.codes.filter(c => c.redeemedAt).length, codes: b.codes.sort((x, y) => String(x.code).localeCompare(String(y.code))) }))
+      .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
+  }, [coupons]);
+
+  const batchOfferText = (b) => (b.discountType === 'percentage' ? `${b.value}% OFF` : `${getCurrencySymbol()}${b.value} OFF`);
+  const batchTermsText = (b) => [
+    b.discountType === 'percentage' && b.maxDiscountAmount > 0 ? `Up to ${getCurrencySymbol()}${b.maxDiscountAmount} off` : null,
+    b.minOrderAmount > 0 ? `Min. bill ${getCurrencySymbol()}${b.minOrderAmount}` : null,
+    b.validTo ? `Valid till ${b.validTo.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : null,
+  ].filter(Boolean).join(' · ');
+
+  const handleGenerateBatch = async () => {
+    const rid = getRestaurantId();
+    if (!rid) return;
+    const count = parseInt(batchForm.count, 10);
+    if (!(count >= 1 && count <= 1000)) { showError('Number of codes must be between 1 and 1000'); return; }
+    if (!(Number(batchForm.value) > 0)) { showError('Enter the discount'); return; }
+    if (batchForm.discountType === 'percentage' && Number(batchForm.value) > 100) { showError('Percentage cannot be more than 100'); return; }
+    setBatchSaving(true);
+    try {
+      const res = await apiClient.generateCouponBatch(rid, {
+        name: batchForm.name.trim(),
+        count,
+        discountType: batchForm.discountType,
+        value: Number(batchForm.value),
+        maxDiscountAmount: batchForm.discountType === 'percentage' ? (Number(batchForm.maxDiscountAmount) || 0) : 0,
+        minOrderAmount: Number(batchForm.minOrderAmount) || 0,
+        validFrom: batchForm.validFrom || new Date().toISOString().split('T')[0],
+        validTo: batchForm.validTo || null,
+        prefix: batchForm.prefix,
+      });
+      showSuccess(`${res.coupons?.length || count} one-time codes ready — print them from the list`);
+      setShowBatchModal(false);
+      setBatchForm({ name: '', count: '100', discountType: 'percentage', value: '', maxDiscountAmount: '', minOrderAmount: '', validFrom: '', validTo: '', prefix: '' });
+      loadCoupons();
+    } catch (err) {
+      showError(err.message || 'Failed to generate codes');
+    } finally {
+      setBatchSaving(false);
+    }
+  };
+
+  const handleDeleteBatch = async (batch) => {
+    const rid = getRestaurantId();
+    if (!rid) return;
+    try {
+      const res = await apiClient.deleteCouponBatch(rid, batch.batchId);
+      showSuccess(`${res.deleted || 0} unused codes deleted${res.kept ? ` (${res.kept} used kept for the bills)` : ''}`);
+      setDeleteBatchConfirm(null);
+      loadCoupons();
+    } catch (err) {
+      showError(err.message || 'Failed to delete codes');
+    }
+  };
+
+  // A4 sheet of cut-out coupon cards (unused codes only), printed from a hidden frame (web + desktop).
+  const printBatch = (batch) => {
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    let restName = '';
+    try {
+      const sel = JSON.parse(localStorage.getItem('selectedRestaurant') || 'null');
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      restName = sel?.name || u.restaurant?.name || u.restaurantName || '';
+    } catch { /* name is optional */ }
+    const unused = batch.codes.filter(c => !c.redeemedAt);
+    if (!unused.length) { showError('All codes in this batch are used'); return; }
+    const terms = batchTermsText(batch);
+    const cards = unused.map(c => `<div class="card"><div class="rest">${esc(restName)}</div><div class="off">${esc(batchOfferText(batch))}</div><div class="name">${esc(batch.name)}</div><div class="code">${esc(c.code)}</div><div class="terms">${esc(terms)}</div><div class="once">One-time use · show this code at billing</div></div>`).join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(batch.name)}</title><style>
+      @page { size: A4; margin: 8mm; } * { box-sizing: border-box; } body { margin: 0; font-family: Arial, sans-serif; color: #111; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+      .card { border: 1px dashed #999; padding: 4mm 3mm; text-align: center; height: 34mm; break-inside: avoid; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: center; gap: 1mm; }
+      .rest { font-size: 9pt; font-weight: bold; text-transform: uppercase; letter-spacing: .5px; } .off { font-size: 16pt; font-weight: 800; color: #b91c1c; }
+      .name { font-size: 8pt; color: #555; } .code { font-family: 'Courier New', monospace; font-size: 14pt; font-weight: bold; letter-spacing: 2px; border: 1.5px solid #111; border-radius: 3px; padding: 1mm 2mm; margin: 0 auto; }
+      .terms { font-size: 7pt; color: #444; } .once { font-size: 7pt; color: #777; }
+    </style></head><body><div class="grid">${cards}</div></body></html>`;
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;';
+    document.body.appendChild(frame);
+    const doc = frame.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    const cleanup = () => { try { frame.remove(); } catch { /* already gone */ } };
+    setTimeout(() => {
+      try {
+        frame.contentWindow.onafterprint = cleanup;
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+      } catch { showError('Could not open the print window'); cleanup(); }
+      setTimeout(cleanup, 120000);
+    }, 300);
+  };
+
+  const downloadBatchCsv = (batch) => {
+    const rows = [['Code', 'Offer', 'Status', 'Used on', 'Valid till']].concat(batch.codes.map(c => [
+      c.code, batchOfferText(batch), c.redeemedAt ? 'Used' : 'Unused',
+      c.redeemedAt ? toJsDate(c.redeemedAt)?.toLocaleString() || '' : '',
+      batch.validTo ? batch.validTo.toLocaleDateString() : '',
+    ]));
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `${batch.name.replace(/[^\w-]+/g, '_') || 'coupons'}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
   // Coupon functions
@@ -1473,8 +1605,9 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                 {/* Public/Private toggle */}
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: '#f3f4f6', borderRadius: '10px', padding: '4px', width: 'fit-content' }}>
                   {[
-                    { id: 'public', label: `Public (${coupons.filter(c => c.type !== 'private').length})` },
+                    { id: 'public', label: `Public (${coupons.filter(c => c.type !== 'private' && c.type !== 'single').length})` },
                     { id: 'private', label: `Private (${coupons.filter(c => c.type === 'private').length})` },
+                    { id: 'single', label: `One-time codes (${coupons.filter(c => c.type === 'single').length})` },
                   ].map(tab => (
                     <button key={tab.id} onClick={() => setCouponSubView(tab.id)} style={{
                       padding: '6px 16px', borderRadius: '8px', border: 'none',
@@ -1518,7 +1651,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
 
                     {couponsLoading ? (
                       <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading coupons...</div>
-                    ) : coupons.filter(c => c.type !== 'private').length === 0 ? (
+                    ) : coupons.filter(c => c.type !== 'private' && c.type !== 'single').length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
                         <FaGift size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
                         <p style={{ margin: 0, fontSize: '14px' }}>No public coupons yet. Create one to get started.</p>
@@ -1534,7 +1667,7 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                             </tr>
                           </thead>
                           <tbody>
-                            {coupons.filter(c => c.type !== 'private').map(coupon => {
+                            {coupons.filter(c => c.type !== 'private' && c.type !== 'single').map(coupon => {
                               const now = new Date();
                               const validTo = coupon.validTo ? new Date(coupon.validTo?._seconds ? coupon.validTo._seconds * 1000 : coupon.validTo) : null;
                               const isExpired = validTo && validTo < now;
@@ -1687,7 +1820,168 @@ const OffersManagement = ({ embedded = false, restaurantId: propRestaurantId = n
                     )}
                   </div>
                 )}
+
+                {/* One-time codes: printed batches, each code usable once */}
+                {couponSubView === 'single' && (
+                  <div style={{
+                    backgroundColor: 'white', borderRadius: isMobile ? '12px' : '16px',
+                    padding: isMobile ? '14px' : '24px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '15px' : '18px', fontWeight: '600', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FaTicketAlt color="#7c3aed" size={16} /> One-time Codes
+                      </h3>
+                      <button
+                        onClick={() => setShowBatchModal(true)}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: '600', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <FaPlus size={11} /> Generate Codes
+                      </button>
+                    </div>
+                    <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280' }}>
+                      Make a set of unique codes (for example 200 for an event) and print them. Each code works only once at billing — after that it can&apos;t be used again.
+                    </p>
+
+                    {couponsLoading ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading codes...</div>
+                    ) : couponBatches.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                        <FaTicketAlt size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                        <p style={{ margin: 0, fontSize: '14px' }}>No one-time codes yet. Tap Generate Codes to make a set.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {couponBatches.map(b => {
+                          const total = b.codes.length;
+                          const unused = total - b.used;
+                          const expired = b.validTo && new Date(b.validTo.getTime()).setHours(23, 59, 59, 999) < Date.now();
+                          return (
+                            <div key={b.batchId} style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: '700', fontSize: '15px', color: '#1f2937' }}>
+                                    {b.name}
+                                    <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: '700', background: '#f5f3ff', color: '#6d28d9' }}>{batchOfferText(b)}</span>
+                                    {expired && <span style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: '#fef2f2', color: '#dc2626' }}>Expired</span>}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                                    {batchTermsText(b) || 'No limits'}{b.createdAt ? ` · made ${b.createdAt.toLocaleDateString()}` : ''}
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  <button onClick={() => printBatch(b)} disabled={!unused} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #ddd6fe', background: unused ? '#f5f3ff' : '#f9fafb', color: unused ? '#6d28d9' : '#9ca3af', fontWeight: '600', fontSize: '12px', cursor: unused ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <FaPrint size={11} /> Print {unused} unused
+                                  </button>
+                                  <button onClick={() => downloadBatchCsv(b)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <FaDownload size={11} /> CSV
+                                  </button>
+                                  {unused > 0 && (
+                                    <button onClick={() => setDeleteBatchConfirm(b)} title="Delete the unused codes" style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#ef4444', fontSize: '12px', cursor: 'pointer' }}>
+                                      <FaTrash size={11} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: '#ede9fe', overflow: 'hidden' }}>
+                                  <div style={{ width: `${total ? Math.round((b.used / total) * 100) : 0}%`, height: '100%', background: '#7c3aed' }} />
+                                </div>
+                                <span style={{ fontSize: '12px', color: '#374151', whiteSpace: 'nowrap' }}><b>{b.used}</b> used · {unused} left · {total} codes</span>
+                              </div>
+                              {deleteBatchConfirm?.batchId === b.batchId && (
+                                <div style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '8px', background: '#fef2f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: '13px', color: '#991b1b' }}>Delete the {unused} unused codes? Printed copies will stop working. Used codes stay for your bills.</span>
+                                  <span style={{ display: 'flex', gap: '6px' }}>
+                                    <button onClick={() => setDeleteBatchConfirm(null)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', fontSize: '12px', cursor: 'pointer' }}>Keep</button>
+                                    <button onClick={() => handleDeleteBatch(b)} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#dc2626', color: 'white', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>Delete unused</button>
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
+            )}
+
+            {/* Generate One-time Codes Modal */}
+            {showBatchModal && createPortal(
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 10000, padding: isMobile ? '0' : '16px' }}>
+                <div style={{ background: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Generate One-time Codes</h3>
+                    <button onClick={() => setShowBatchModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><FaTimes size={16} /></button>
+                  </div>
+                  <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280' }}>Every code is different and works once. Print them and hand them out.</p>
+                  {(() => {
+                    const lbl = { display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' };
+                    const inp = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' };
+                    const set = (k) => (e) => setBatchForm(prev => ({ ...prev, [k]: e.target.value }));
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div>
+                          <label style={lbl}>Name</label>
+                          <input value={batchForm.name} onChange={set('name')} placeholder="e.g. Diwali event" style={inp} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={lbl}>Number of codes</label>
+                            <input type="number" min="1" max="1000" value={batchForm.count} onChange={set('count')} style={inp} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={lbl}>Code starts with <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                            <input value={batchForm.prefix} onChange={(e) => setBatchForm(prev => ({ ...prev, prefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) }))} placeholder="e.g. MW" style={inp} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={lbl}>Discount</label>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', padding: '3px' }}>
+                              {[['percentage', '%'], ['flat', getCurrencySymbol() || 'Amount']].map(([k, l]) => (
+                                <button key={k} onClick={() => setBatchForm(prev => ({ ...prev, discountType: k }))} style={{ padding: '6px 14px', borderRadius: '6px', border: 'none', background: batchForm.discountType === k ? 'white' : 'transparent', fontWeight: '700', fontSize: '13px', cursor: 'pointer', boxShadow: batchForm.discountType === k ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>{l}</button>
+                              ))}
+                            </div>
+                            <input type="number" min="0" value={batchForm.value} onChange={set('value')} placeholder={batchForm.discountType === 'percentage' ? 'e.g. 20' : 'e.g. 200'} style={{ ...inp, flex: 1 }} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          {batchForm.discountType === 'percentage' && (
+                            <div style={{ flex: 1 }}>
+                              <label style={lbl}>Max discount <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                              <input type="number" min="0" value={batchForm.maxDiscountAmount} onChange={set('maxDiscountAmount')} placeholder="No limit" style={inp} />
+                            </div>
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <label style={lbl}>Min. bill <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                            <input type="number" min="0" value={batchForm.minOrderAmount} onChange={set('minOrderAmount')} placeholder="None" style={inp} />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={lbl}>Valid from</label>
+                            <input type="date" value={batchForm.validFrom} onChange={set('validFrom')} style={inp} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={lbl}>Valid till <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                            <input type="date" value={batchForm.validTo} onChange={set('validTo')} style={inp} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '22px' }}>
+                    <button onClick={() => setShowBatchModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', background: 'white', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={handleGenerateBatch} disabled={batchSaving} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: '600', fontSize: '14px', cursor: batchSaving ? 'not-allowed' : 'pointer', opacity: batchSaving ? 0.6 : 1 }}>
+                      {batchSaving ? 'Generating...' : `Generate ${parseInt(batchForm.count, 10) || ''} codes`}
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
             )}
 
             {/* Create/Edit Public Coupon Modal */}
