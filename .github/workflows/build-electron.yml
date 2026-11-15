@@ -197,6 +197,24 @@ jobs:
             sleep 20
           done
 
+      # electron-builder refuses to add files to a release published more than 2 hours ago
+      # ("skipped publishing … existing release published more than 2 hours ago"), which is exactly the
+      # usual case for a later v<ver>-mac push after v<ver>-win. Attach the files ourselves (same names
+      # electron-builder uses: spaces → dashes, as latest-mac.yml expects). --clobber keeps re-runs safe.
+      - name: Attach macOS files to the v<version> release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG="v${{ needs.setup.outputs.version }}"
+          gh release view "$TAG" >/dev/null 2>&1 || { echo "release $TAG not found — leaving electron-builder's result"; exit 0; }
+          mkdir -p mac-upload
+          for f in dist-electron/*.dmg dist-electron/*.zip dist-electron/*.blockmap dist-electron/latest-mac.yml; do
+            [ -f "$f" ] && cp "$f" "mac-upload/$(basename "$f" | tr ' ' '-')"
+          done
+          ls -la mac-upload
+          gh release upload "$TAG" mac-upload/* --clobber
+
       - name: Upload macOS release artifacts
         uses: actions/upload-artifact@v4
         with:
