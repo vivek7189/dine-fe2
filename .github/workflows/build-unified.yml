@@ -224,6 +224,24 @@ jobs:
         working-directory: dine-backend
         run: npm ci
 
+      # The runner is Apple Silicon, so `npm ci` only installs @embedded-postgres/darwin-arm64, but the
+      # same backend folder goes into the Intel (x64) .dmg too, where embedded-postgres imports
+      # @embedded-postgres/darwin-x64 and the local database never starts. The two packages ship
+      # byte-identical universal (x86_64 + arm64) binaries, so add a tiny darwin-x64 package that
+      # points at the arm64 one (no second 144 MB copy in each .dmg).
+      - name: Add Intel embedded-postgres entry for the x64 .dmg
+        working-directory: dine-backend
+        run: |
+          set -e
+          ARM=node_modules/@embedded-postgres/darwin-arm64
+          X64=node_modules/@embedded-postgres/darwin-x64
+          VER=$(node -p "require('./$ARM/package.json').version")
+          lipo -archs "$ARM/native/bin/postgres" | grep -q x86_64 || { echo "arm64 postgres is not universal"; exit 1; }
+          mkdir -p "$X64/dist"
+          printf '{"name":"@embedded-postgres/darwin-x64","version":"%s","type":"module","exports":"./dist/index.js"}\n' "$VER" > "$X64/package.json"
+          echo "export * from '@embedded-postgres/darwin-arm64';" > "$X64/dist/index.js"
+          node --input-type=module -e "const m = await import('@embedded-postgres/darwin-x64'); console.log(m.postgres)"
+
       - name: Install frontend deps
         working-directory: frontend
         run: npm ci

@@ -5705,7 +5705,7 @@ const PrintSettings = ({ restaurants, selectedRestaurant, setSelectedRestaurant 
  *  the LATEST installer for that app + platform (no GitHub page, no manual link edits). */
 function AppDownloadTab() {
   const apiBase = (apiClient && apiClient.baseURL) || getApiBase();
-  const dl = (app, platform) => `${apiBase}/api/download/desktop?app=${app}&platform=${platform}`;
+  const dl = (app, platform, arch) => `${apiBase}/api/download/desktop?app=${app}&platform=${platform}${arch ? `&arch=${arch}` : ''}`;
 
   // Desktop-only: the version this app ran before the current one, for one-step rollback.
   const [verInfo, setVerInfo] = useState(null);   // { current, previous, appKind, platform }
@@ -5757,9 +5757,16 @@ function AppDownloadTab() {
       <a href={dl(app, 'win')} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #0078d4, #005a9e)', '0 4px 14px rgba(0,120,212,0.3)')}>
         <FaWindows size={14} /> Windows (.exe)
       </a>
-      <a href={dl(app, 'mac')} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #333, #111)', '0 4px 14px rgba(0,0,0,0.2)')}>
-        <FaApple size={14} /> Mac (.dmg)
+      {/* An Intel Mac can't open the Apple-chip build ("not supported on this Mac"), so offer both. */}
+      <a href={dl(app, 'mac', 'arm64')} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #333, #111)', '0 4px 14px rgba(0,0,0,0.2)')}>
+        <FaApple size={14} /> Mac · Apple chip
       </a>
+      <a href={dl(app, 'mac', 'x64')} target="_blank" rel="noopener noreferrer" style={btnStyle('linear-gradient(135deg, #4b5563, #1f2937)', '0 4px 14px rgba(0,0,0,0.2)')}>
+        <FaApple size={14} /> Mac · Intel
+      </a>
+      <div style={{ width: '100%', fontSize: '12px', color: '#6b7280' }}>
+        Mac: Apple menu → About This Mac. Chip: Apple M… → Apple chip; Processor: Intel → Intel.
+      </div>
     </div>
   );
   const appCard = ({ emoji, iconBg, title, subtitle, desc, app }) => (

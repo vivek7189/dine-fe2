@@ -21,6 +21,7 @@
   .card p { color: var(--muted); margin: 0 0 14px; font-size: 14px; line-height: 1.5; }
   a.btn { display: inline-block; background: var(--red); color: #fff; text-decoration: none; font-weight: 700; padding: 11px 18px; border-radius: 10px; }
   a.btn.alt { background: #0f172a; }
+  .card a.btn { margin: 0 6px 8px 0; }
   ol { color: var(--muted); line-height: 1.7; padding-left: 20px; margin: 22px 0 0; font-size: 14px; }
   .note { font-size: 13px; color: var(--muted); margin-top: 22px; }
 </style>
@@ -41,6 +42,15 @@
     <h2>DineOpen Server for Windows</h2>
     <p>Only if your main counter PC runs the DineOpen <b>Server</b> (offline) app that other devices connect to.</p>
     <a class="btn alt" href="https://api.dineopen.com/api/download/desktop?app=server&amp;platform=win">Download Server app</a>
+  </div>
+
+  <div class="card">
+    <h2>DineOpen for Mac</h2>
+    <p>Pick your Mac type: Apple menu &rarr; About This Mac. &ldquo;Chip: Apple M&hellip;&rdquo; = Apple chip, &ldquo;Processor: Intel&rdquo; = Intel.</p>
+    <a class="btn alt" href="https://api.dineopen.com/api/download/desktop?app=online&amp;platform=mac&amp;arch=arm64">POS &middot; Apple chip</a>
+    <a class="btn alt" href="https://api.dineopen.com/api/download/desktop?app=online&amp;platform=mac&amp;arch=x64">POS &middot; Intel Mac</a>
+    <a class="btn alt" href="https://api.dineopen.com/api/download/desktop?app=server&amp;platform=mac&amp;arch=arm64">Server &middot; Apple chip</a>
+    <a class="btn alt" href="https://api.dineopen.com/api/download/desktop?app=server&amp;platform=mac&amp;arch=x64">Server &middot; Intel Mac</a>
   </div>
 
   <div class="card">

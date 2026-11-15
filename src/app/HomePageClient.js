@@ -873,19 +873,15 @@ export default function LandingPage() {
               <div style={{ fontSize: '11px', color: '#64748b' }}>Windows 10+</div>
             </a>
 
-            {/* Mac — auto-latest installer via backend resolver (same as Admin → App Download) */}
-            <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com'}/api/download/desktop?app=online&platform=mac`}
-              target="_blank" rel="noopener noreferrer"
+            {/* Mac — two installers: Apple chip (M1–M4) and Intel. An Intel Mac can't open the Apple-chip
+                build ("not supported on this Mac"), and the browser can't tell them apart, so the user picks. */}
+            <div
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
                 padding: '28px 20px', borderRadius: '16px',
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-                textDecoration: 'none', transition: 'all 0.25s ease',
                 backdropFilter: 'blur(10px)'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
               <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #555, #222)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FaApple size={28} style={{ color: 'white' }} />
@@ -894,8 +890,20 @@ export default function LandingPage() {
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Download for</div>
                 <div style={{ fontSize: '17px', color: 'white', fontWeight: '700' }}>macOS</div>
               </div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>macOS 11+</div>
-            </a>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {[['arm64', 'Apple chip (M1–M4)'], ['x64', 'Intel Mac']].map(([arch, label]) => (
+                  <a
+                    key={arch}
+                    href={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.dineopen.com'}/api/download/desktop?app=online&platform=mac&arch=${arch}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ padding: '7px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', fontSize: '12.5px', fontWeight: '600', textDecoration: 'none' }}
+                  >
+                    {label}
+                  </a>
+                ))}
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' }}>macOS 11+ · Apple menu → About This Mac shows Chip or Processor</div>
+            </div>
           </div>
 
           {/* Bottom note */}
