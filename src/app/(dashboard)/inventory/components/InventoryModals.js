@@ -5,7 +5,23 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
-import { convertUnits } from '../utils/unitConversion';
+import { convertUnits, UNIT_CONVERSIONS } from '../utils/unitConversion';
+
+// Supplier bills are in kg / litres even when the stock item is kept in g / ml. The invoice line offers
+// the bigger unit and converts on save (12 kg cumin → 12000 g), so stock never shows "12 g".
+export function invoiceBuyUnits(itemUnit) {
+  const u = String(itemUnit || '').toLowerCase().trim();
+  const dim = UNIT_CONVERSIONS[u]?.dimension;
+  if (dim === 'mass') return ['kg', 'g'];
+  if (dim === 'volume') return ['l', 'ml'];
+  return itemUnit ? [itemUnit] : [];
+}
+export const defaultInvoiceBuyUnit = (itemUnit) => invoiceBuyUnits(itemUnit)[0] || itemUnit || '';
+// Line amount: what the user typed in Amount, else qty × rate.
+export const invoiceLineAmount = (it) => {
+  if (it.amount !== undefined && it.amount !== '' && it.amount !== null) return parseFloat(it.amount) || 0;
+  return (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0);
+};
 import { fmtQty } from '../utils/formatQty';
 import { OpeningFields, emptyOpening } from '../../../../components/suppliers/SupplierOpeningModal';
 
@@ -700,18 +716,30 @@ function AddSupplierModal(props) {
   const {
     showAddSupplierModal, setShowAddSupplierModal,
     supplierFormData, setSupplierFormData, handleAddSupplier,
+    editingSupplierId, closeSupplierModal, handleDeleteSupplier,
     getModalStyles, getModalContentStyles
   } = props;
+  const editing = !!editingSupplierId;
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTyped, setDeleteTyped] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [originalName, setOriginalName] = useState('');
+  useEffect(() => {
+    setDeleteOpen(false); setDeleteTyped(''); setDeleteError('');
+    if (showAddSupplierModal && editingSupplierId) setOriginalName(supplierFormData.name || '');
+  }, [showAddSupplierModal, editingSupplierId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = (field, value) => setSupplierFormData({ ...supplierFormData, [field]: value });
+  const close = () => (closeSupplierModal ? closeSupplierModal() : setShowAddSupplierModal(false));
+  const nameMatches = deleteTyped.trim().toLowerCase() === String(originalName || '').trim().toLowerCase() && !!originalName;
 
   return (
-    <ModalShell show={showAddSupplierModal} onClose={() => setShowAddSupplierModal(false)} title="Add Supplier"
+    <ModalShell show={showAddSupplierModal} onClose={close} title={editing ? 'Edit Supplier' : 'Add Supplier'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddSupplierModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={handleAddSupplier}><FaSave /> Add Supplier</button>
+          <button style={secondaryBtn} onClick={close}>Cancel</button>
+          <button style={primaryBtn} onClick={handleAddSupplier}><FaSave /> {editing ? 'Save Changes' : 'Add Supplier'}</button>
         </div>
       }>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -751,11 +779,36 @@ function AddSupplierModal(props) {
           <label style={labelStyle}>Notes</label>
           <FocusTextarea value={supplierFormData.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes" />
         </div>
-        <div style={{ ...fieldWrap, gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-          <label style={labelStyle}>Opening balance (optional)</label>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>What was owed with this supplier when you started (from your old book). Leave empty if nothing.</div>
-          <OpeningFields compact value={supplierFormData.opening || emptyOpening()} onChange={v => update('opening', v)} />
-        </div>
+        {!editing && (
+          <div style={{ ...fieldWrap, gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+            <label style={labelStyle}>Opening balance (optional)</label>
+            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>What was owed with this supplier when you started (from your old book). Leave empty if nothing.</div>
+            <OpeningFields compact value={supplierFormData.opening || emptyOpening()} onChange={v => update('opening', v)} />
+          </div>
+        )}
+        {editing && handleDeleteSupplier && (
+          <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+            {!deleteOpen ? (
+              <button type="button" onClick={() => setDeleteOpen(true)} style={{ background: 'none', border: 'none', padding: 0, color: '#9ca3af', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}>
+                Delete this supplier…
+              </button>
+            ) : (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '13px', color: '#991b1b', fontWeight: 600, marginBottom: '6px' }}>Delete {originalName}?</div>
+                <div style={{ fontSize: '12px', color: '#7f1d1d', marginBottom: '8px' }}>Old bills and payments stay in your records. A supplier with unpaid bills can&apos;t be deleted. Type the supplier name to confirm:</div>
+                <FocusInput value={deleteTyped} onChange={e => { setDeleteTyped(e.target.value); setDeleteError(''); }} placeholder={originalName} />
+                {deleteError && <div role="alert" style={{ marginTop: '8px', fontSize: '12.5px', fontWeight: 600, color: '#b91c1c' }}>{deleteError}</div>}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button type="button" style={secondaryBtn} onClick={() => { setDeleteOpen(false); setDeleteTyped(''); setDeleteError(''); }}>Keep</button>
+                  <button type="button" disabled={!nameMatches} onClick={async () => { const r = await handleDeleteSupplier(editingSupplierId); if (r && r.ok === false) setDeleteError(r.error); }}
+                    style={{ ...primaryBtn, background: nameMatches ? '#dc2626' : '#fca5a5', cursor: nameMatches ? 'pointer' : 'not-allowed' }}>
+                    <FaTrash /> Delete supplier
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </ModalShell>
   );
@@ -1603,6 +1656,31 @@ function AddInvoiceModal(props) {
     newItems[index] = { ...newItems[index], [field]: value };
     setInvoiceFormData({ ...invoiceFormData, items: newItems });
   };
+  const patchItem = (index, patch) => {
+    const newItems = [...invoiceFormData.items];
+    newItems[index] = { ...newItems[index], ...patch };
+    setInvoiceFormData({ ...invoiceFormData, items: newItems });
+    if (invoiceError && setInvoiceError) setInvoiceError(null);
+  };
+  const round2 = (n) => Math.round(n * 100) / 100;
+  // Qty / rate / amount stay in step: amount = qty × rate; typing the amount works out the rate.
+  const setQty = (index, item, v) => {
+    const q = parseFloat(v) || 0; const r = parseFloat(item.unitPrice) || 0;
+    patchItem(index, { quantity: v, ...(r > 0 ? { amount: round2(q * r) } : (item.amount !== undefined && q > 0 ? { unitPrice: round2((parseFloat(item.amount) || 0) / q) } : {})) });
+  };
+  const setRate = (index, item, v) => {
+    const q = parseFloat(item.quantity) || 0;
+    patchItem(index, { unitPrice: v, amount: round2(q * (parseFloat(v) || 0)) });
+  };
+  const setAmount = (index, item, v) => {
+    const q = parseFloat(item.quantity) || 0;
+    patchItem(index, { amount: v, ...(q > 0 ? { unitPrice: round2((parseFloat(v) || 0) / q) } : {}) });
+  };
+  const linesTotal = round2((invoiceFormData.items || []).reduce((s, it) => s + invoiceLineAmount(it), 0));
+  const billTotal = parseFloat(invoiceFormData.totalAmount) || 0;
+  const linesOver = billTotal > 0 && linesTotal > billTotal * 1.02 + 1;
+  const linesShort = billTotal > 0 && linesTotal > 0 && linesTotal < billTotal * 0.7;
+  const money = (n) => (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <ModalShell show={showAddInvoiceModal} onClose={close} title="Add Supplier Invoice"
@@ -1678,23 +1756,45 @@ function AddInvoiceModal(props) {
           <label style={{ ...labelStyle, marginBottom: 0 }}>Items</label>
           <button style={secondaryBtn} onClick={addItem}><FaPlus /> Add Item</button>
         </div>
+        {invoiceFormData.items.length > 0 && (
+          <div style={{ ...rowStyle, fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>
+            <span style={{ flex: 2 }}>Item</span><span style={{ flex: 1.4 }}>Qty</span><span style={{ flex: 1 }}>Rate</span><span style={{ flex: 1 }}>Amount</span><span style={{ width: '38px' }} />
+          </div>
+        )}
         {invoiceFormData.items.map((item, index) => {
           const inv = inventoryItems.find(i => i.id === item.inventoryItemId);
           const needsPick = !item.inventoryItemId;
+          const units = invoiceBuyUnits(inv?.unit);
+          const buyUnit = item.buyUnit || inv?.unit || '';
+          const amt = invoiceLineAmount(item);
           return (
           <div key={index} style={{ marginBottom: '10px' }}>
             <div style={rowStyle}>
               <FocusSelect style={{ ...inputStyle, flex: 2, ...(needsPick && item.scannedName ? { borderColor: '#f59e0b', background: '#fffbeb' } : {}) }} value={item.inventoryItemId}
-                onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
+                onChange={e => { const picked = inventoryItems.find(i => i.id === e.target.value); patchItem(index, { inventoryItemId: e.target.value, buyUnit: defaultInvoiceBuyUnit(picked?.unit) }); }}>
                 <option value="">Select item</option>
                 {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
               </FocusSelect>
-              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="0" step="any" placeholder={inv?.unit ? `Qty (${inv.unit})` : 'Qty'}
-                value={item.quantity} onChange={e => updateItem(index, 'quantity', e.target.value)} />
-              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder="Price"
-                value={item.unitPrice} onChange={e => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} />
+              <div style={{ flex: 1.4, display: 'flex', gap: '4px' }}>
+                <FocusInput style={{ ...inputStyle, flex: 1, minWidth: 0 }} type="number" min="0" step="any" placeholder="Qty"
+                  value={item.quantity} onChange={e => setQty(index, item, e.target.value)} />
+                {units.length > 1 ? (
+                  <FocusSelect style={{ ...inputStyle, width: '62px', padding: '8px 4px' }} value={buyUnit} onChange={e => patchItem(index, { buyUnit: e.target.value })}>
+                    {units.map(u => <option key={u} value={u}>{u === 'l' ? 'L' : u}</option>)}
+                  </FocusSelect>
+                ) : (buyUnit ? <span style={{ alignSelf: 'center', fontSize: '12px', color: '#64748b' }}>{buyUnit}</span> : null)}
+              </div>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder={buyUnit ? `per ${buyUnit === 'l' ? 'L' : buyUnit}` : 'Rate'}
+                value={item.unitPrice} onChange={e => setRate(index, item, e.target.value)} />
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder="Amount"
+                value={item.amount !== undefined ? item.amount : (amt ? Math.round(amt * 100) / 100 : '')} onChange={e => setAmount(index, item, e.target.value)} />
               <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
             </div>
+            {inv && (parseFloat(item.quantity) > 0) && buyUnit && inv.unit && buyUnit.toLowerCase() !== String(inv.unit).toLowerCase() && (
+              <div style={{ fontSize: '11.5px', marginTop: '3px', color: '#64748b' }}>
+                Adds {Math.round(convertUnits(parseFloat(item.quantity), buyUnit, inv.unit) * 1000) / 1000} {inv.unit} to stock
+              </div>
+            )}
             {item.scannedName && (
               <div style={{ fontSize: '11.5px', marginTop: '3px', color: needsPick ? '#b45309' : '#64748b' }}>
                 On the invoice: “{item.scannedName}”{needsPick ? ' (pick the matching stock item, or ' : ''}
@@ -1711,6 +1811,25 @@ function AddInvoiceModal(props) {
         })}
         {invoiceFormData.items.length === 0 && (
           <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: '14px' }}>No items added yet. Use OCR or add manually.</p>
+        )}
+        {invoiceFormData.items.length > 0 && (
+          <div data-testid="invoice-lines-check" style={{ marginTop: '6px', padding: '10px 12px', borderRadius: '10px', fontSize: '13px',
+            background: linesOver ? '#fef2f2' : linesShort ? '#fffbeb' : '#f8fafc', border: `1px solid ${linesOver ? '#fecaca' : linesShort ? '#fde68a' : '#e2e8f0'}`,
+            color: linesOver ? '#991b1b' : linesShort ? '#92400e' : '#334155' }}>
+            Items add up to <b>{money(linesTotal)}</b>{billTotal > 0 && <> · bill total <b>{money(billTotal)}</b></>}
+            {linesOver && (
+              <div style={{ marginTop: '4px' }}>
+                The items come to more than the bill. <b>Rate</b> is the price of <b>one</b> kg / litre / piece — or type the line&apos;s <b>Amount</b> and the rate is worked out.
+                {invoiceFormData.items.length === 1 && (
+                  <button type="button" onClick={() => setAmount(0, invoiceFormData.items[0], String(billTotal))}
+                    style={{ display: 'block', marginTop: '6px', border: '1px solid #fca5a5', background: 'white', color: '#991b1b', borderRadius: '8px', padding: '5px 10px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>
+                    Use the bill total ({money(billTotal)}) as this item&apos;s amount
+                  </button>
+                )}
+              </div>
+            )}
+            {linesShort && !linesOver && <div style={{ marginTop: '4px' }}>The items are well below the bill — a line may be missing (tax is fine).</div>}
+          </div>
         )}
       </div>
 

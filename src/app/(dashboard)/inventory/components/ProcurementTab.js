@@ -112,7 +112,7 @@ export default function ProcurementTab({
   setShowAddSupplierModal, setShowAddPurchaseOrderModal, setShowAddGRNModal,
   setShowAddRequisitionModal, setShowAddInvoiceModal, setShowAddReturnModal, setShowAddTransferModal,
   handleUpdateReturnStatus, handleDeleteReturn, handleUpdateTransferStatus, handleDeleteTransfer,
-  handleDeleteSupplier, handleDeleteSupplierInvoice, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
+  handleDeleteSupplier, openEditSupplier, handleDeleteSupplierInvoice, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
   getOrderStatusColor,
   startVoiceListeningPO, isListeningVoice, voiceTranscript, processingVoice, voiceError,
   smartSuggestions, loadingSuggestions,
@@ -398,9 +398,10 @@ export default function ProcurementTab({
                             {balances[s.id || s._id]?.opening ? 'Opening ✓' : '+ Opening'}
                           </button>
                         )}
-                        {permissions.delete && (
-                          <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleDeleteSupplier(s.id || s._id)}>
-                            <FaTimes size={10} /> Delete
+                        {permissions.update && openEditSupplier && (
+                          <button data-testid="supplier-edit" style={btnSmall('#f3f4f6', '#374151')} title="Edit name, phone, address… (delete is inside)"
+                            onClick={() => openEditSupplier(s)}>
+                            <FaEdit size={10} /> Edit
                           </button>
                         )}
                       </div>

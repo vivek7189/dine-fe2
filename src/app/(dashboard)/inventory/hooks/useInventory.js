@@ -36,6 +36,7 @@ export default function useInventory() {
   };
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState(null); // set → the supplier form edits this supplier
   const [showAddPurchaseOrderModal, setShowAddPurchaseOrderModal] = useState(false);
   const [editingPurchaseOrderId, setEditingPurchaseOrderId] = useState(null);
   const [showAddRecipeModal, setShowAddRecipeModal] = useState(false);
@@ -663,10 +664,39 @@ export default function useInventory() {
   };
 
   // Supplier handlers
+  const blankSupplierForm = () => ({ name: '', contact: '', phone: '', email: '', address: '', paymentTerms: '', notes: '', opening: emptyOpening() });
+  const openEditSupplier = (s) => {
+    setSupplierFormData({
+      name: s.name || '', contact: s.contactPerson || s.contact || '', phone: s.phone || '', email: s.email || '',
+      address: s.address || '', paymentTerms: s.paymentTerms || '', notes: s.notes || '', opening: emptyOpening(),
+    });
+    setEditingSupplierId(s.id || s._id);
+    setShowAddSupplierModal(true);
+  };
+  const closeSupplierModal = () => {
+    setShowAddSupplierModal(false);
+    if (editingSupplierId) { setEditingSupplierId(null); setSupplierFormData(blankSupplierForm()); }
+  };
+
   const handleAddSupplier = async () => {
     if (!currentRestaurant) return;
     if (!supplierFormData.name || !supplierFormData.contact) {
       setError('Supplier name and contact person are required'); return;
+    }
+    if (editingSupplierId) {
+      try {
+        setLoading(true); setError(null);
+        const { opening, ...details } = supplierFormData;
+        await apiClient.updateSupplier(currentRestaurant.id, editingSupplierId, { ...details, contactPerson: details.contact });
+        setSuccess('Supplier updated');
+        setShowAddSupplierModal(false);
+        setEditingSupplierId(null);
+        setSupplierFormData(blankSupplierForm());
+        loadInventoryData();
+      } catch (error) {
+        setError(error.message || 'Failed to update supplier');
+      } finally { setLoading(false); }
+      return;
     }
     try {
       setLoading(true); setError(null);
@@ -693,19 +723,22 @@ export default function useInventory() {
     } finally { setLoading(false); }
   };
 
+  // Called from the supplier form after the user typed the supplier's name (no one-click delete).
   const handleDeleteSupplier = async (supplierId) => {
-    if (!currentRestaurant) return;
-    if (confirm('Are you sure you want to delete this supplier?')) {
-      try {
-        setLoading(true); setError(null);
-        await apiClient.deleteSupplier(currentRestaurant.id, supplierId);
-        setSuccess('Supplier deleted successfully!');
-        loadInventoryData();
-      } catch (error) {
-        console.error('Error deleting supplier:', error);
-        setError(error.message || 'Failed to delete supplier');
-      } finally { setLoading(false); }
-    }
+    if (!currentRestaurant || !supplierId) return false;
+    try {
+      setLoading(true); setError(null);
+      await apiClient.deleteSupplier(currentRestaurant.id, supplierId);
+      setSuccess('Supplier deleted');
+      setShowAddSupplierModal(false);
+      setEditingSupplierId(null);
+      setSupplierFormData(blankSupplierForm());
+      loadInventoryData();
+      return { ok: true };
+    } catch (error) {
+      // Shown inside the supplier form (the page banner sits behind the open form).
+      return { ok: false, error: error.message || 'Failed to delete supplier' };
+    } finally { setLoading(false); }
   };
 
   // Purchase Order handlers
@@ -1322,6 +1355,15 @@ export default function useInventory() {
     const invalidItem = invoiceFormData.items.find(it => !it.inventoryItemId);
     if (invalidItem) { fail(invalidItem.scannedName ? `Pick the stock item for "${invalidItem.scannedName}"` : 'Pick the stock item on every line'); return; }
     if (invoiceFormData.items.some(it => !((parseFloat(it.quantity) || 0) > 0))) { fail('Every line needs a quantity above 0'); return; }
+    // Bill total typed into a line's rate (MFC: 9 kg × 5145 for a 5145 bill) used to set a cost of 5145/kg.
+    const lineAmount = (it) => (it.amount !== undefined && it.amount !== '' && it.amount !== null) ? (parseFloat(it.amount) || 0) : (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0);
+    const linesTotalCheck = invoiceFormData.items.reduce((s, it) => s + lineAmount(it), 0);
+    const billTotalCheck = parseFloat(invoiceFormData.totalAmount) || 0;
+    if (invoiceFormData.addToStock !== false && billTotalCheck > 0 && linesTotalCheck > billTotalCheck * 1.02 + 1) {
+      const m = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      fail(`The items add up to ${m(linesTotalCheck)} but the bill total is ${m(billTotalCheck)}. Rate is the price of ONE kg / litre / piece — or type each line's Amount.`);
+      return;
+    }
     if (savingInvoice) return; // a save is already in flight — never submit the same invoice twice
 
     try {
@@ -1331,14 +1373,20 @@ export default function useInventory() {
       const enrichedItems = invoiceFormData.items.map(it => {
         const invItem = inventoryItems.find(inv => inv.id === it.inventoryItemId);
         const qty = parseFloat(it.quantity) || 0;
-        const price = parseFloat(it.unitPrice) || 0;
+        const amount = Math.round(lineAmount(it) * 100) / 100;
+        // Bought in kg / L, stocked in g / ml → convert the quantity; the rate follows (per stock unit).
+        const buyUnit = it.buyUnit || invItem?.unit || '';
+        const stockQty = invItem?.unit && buyUnit ? convertUnits(qty, buyUnit, invItem.unit) : qty;
+        const q = Math.round(stockQty * 1000) / 1000;
         return {
           inventoryItemId: it.inventoryItemId,
           inventoryItemName: invItem?.name || '',
-          quantity: qty,
-          unitPrice: price,
+          quantity: q,
+          unitPrice: q > 0 ? Math.round((amount / q) * 10000) / 10000 : 0,
           tax: 0,
-          total: qty * price
+          total: amount,
+          ...(buyUnit && invItem?.unit && buyUnit.toLowerCase() !== String(invItem.unit).toLowerCase()
+            ? { purchaseQty: qty, purchaseUnit: buyUnit, purchaseRate: qty > 0 ? Math.round((amount / qty) * 100) / 100 : 0 } : {}),
         };
       });
       const subtotal = enrichedItems.reduce((sum, it) => sum + it.total, 0);
@@ -1573,6 +1621,7 @@ export default function useInventory() {
     // Modal states
     showAddModal, setShowAddModal, showEditModal, setShowEditModal,
     showAddSupplierModal, setShowAddSupplierModal, showAddPurchaseOrderModal, setShowAddPurchaseOrderModal,
+    editingSupplierId, openEditSupplier, closeSupplierModal,
     editingPurchaseOrderId, handleEditPurchaseOrder, resetPurchaseOrderForm,
     showAddRecipeModal, setShowAddRecipeModal, showAddGRNModal, setShowAddGRNModal,
     showAddRequisitionModal, setShowAddRequisitionModal, showAddInvoiceModal, setShowAddInvoiceModal, invoiceError, setInvoiceError, createStockFromScan, creatingStockLine,
