@@ -1,6 +1,8 @@
 'use client';
 
-import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync, FaCog, FaWallet } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync, FaCog, FaWallet, FaHistory } from 'react-icons/fa';
+import BooksHistoryModal from './BooksHistoryModal';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -18,7 +20,25 @@ export default function ExpensesTab({
   setShowAddExpenseModal, handleEditExpense, handleDeleteExpense,
   expenseCategoryFilter, setExpenseCategoryFilter, EXPENSE_CATEGORIES,
   setShowManageCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP, onOpenPettyCash,
+  restaurantId, apiClient,
 }) {
+  // Expense history (posSettings.booksAuditTrail): when it is on, a delete asks why (kept in the history).
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyOn, setHistoryOn] = useState(false);
+  useEffect(() => {
+    if (!restaurantId || !apiClient?.getBooksAuditLog) return;
+    let alive = true;
+    apiClient.getBooksAuditLog(restaurantId, { entity: 'expense', limit: 1 }).then(r => { if (alive) setHistoryOn(!!(r && r.enabled)); }).catch(() => {});
+    return () => { alive = false; };
+  }, [restaurantId, apiClient]);
+  const deleteExpense = (expense) => {
+    if (historyOn) {
+      const reason = window.prompt('Delete this expense? Reason (kept in the history):', '');
+      if (reason !== null) handleDeleteExpense(expense.id, reason.trim());
+      return;
+    }
+    if (window.confirm('Delete this expense?')) handleDeleteExpense(expense.id);
+  };
   const getCatLabel = (key) => CATEGORY_LABELS_MAP?.[key] || key;
   const getCatColor = (key) => CATEGORY_COLORS_MAP?.[key] || DEFAULT_CATEGORY_COLORS[key] || '#6b7280';
 
@@ -52,6 +72,19 @@ export default function ExpensesTab({
           </select>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {apiClient?.getBooksAuditLog && (
+            <button
+              onClick={() => setShowHistory(true)}
+              data-testid="open-expense-history"
+              style={{
+                padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569',
+                border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px',
+                fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              <FaHistory size={11} /> History
+            </button>
+          )}
           {onOpenPettyCash && (
             <button
               onClick={onOpenPettyCash}
@@ -203,7 +236,7 @@ export default function ExpensesTab({
                         <FaEdit size={12} />
                       </button>
                       <button
-                        onClick={() => { if (window.confirm('Delete this expense?')) handleDeleteExpense(expense.id); }}
+                        onClick={() => deleteExpense(expense)}
                         style={{
                           width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #fecaca',
                           backgroundColor: '#fef2f2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -225,6 +258,15 @@ export default function ExpensesTab({
           )}
         </div>
       </div>
+      <BooksHistoryModal
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        restaurantId={restaurantId}
+        apiClient={apiClient}
+        formatCurrency={formatCurrency}
+        CATEGORY_LABELS_MAP={CATEGORY_LABELS_MAP}
+        onEnabledChange={setHistoryOn}
+      />
     </div>
   );
 }

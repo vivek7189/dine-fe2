@@ -80,6 +80,9 @@ export function orderDisplayNumber(order) {
 const last4 = (v) => String(v || '').replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
 export function billNumberLabel(order) {
   if (!order) return '';
+  // Financial-year tax invoice number (orderSettings.taxInvoiceNumbering, e.g. "MFC/26-27/00123"):
+  // only orders made while it is on carry one; every other bill prints exactly as before.
+  if (order.taxInvoiceNo) return String(order.taxInvoiceNo);
   // A real (server) number: the till-tagged display number, or a numeric daily number. Some screens
   // fill dailyOrderId with a fallback (an order code / offline code) — that is not a bill number.
   const hasRealNumber = order.orderNumberDisplay != null

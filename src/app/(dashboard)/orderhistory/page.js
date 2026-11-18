@@ -2065,6 +2065,7 @@ const OrderHistory = () => {
       orderId: order.id,
       dailyOrderId: order.dailyOrderId || order.orderNumber,
       orderNumberDisplay: order.orderNumberDisplay || null,
+      taxInvoiceNo: order.taxInvoiceNo || null,
       // Offline-made orders: an unsynced bill shows "OFFLINE-CBCF" (billNumberLabel); synced ones the real number.
       syncSource: order.syncSource || null,
       idempotencyKey: order.idempotencyKey || null,

@@ -5339,8 +5339,14 @@ class ApiClient {
   async updateBooksExpense(restaurantId, expenseId, data) {
     return this.request(`/api/books/${restaurantId}/expenses/${expenseId}`, { method: 'PATCH', body: JSON.stringify(data) });
   }
-  async deleteBooksExpense(restaurantId, expenseId) {
-    return this.request(`/api/books/${restaurantId}/expenses/${expenseId}`, { method: 'DELETE' });
+  async deleteBooksExpense(restaurantId, expenseId, reason) {
+    const q = reason ? `?reason=${encodeURIComponent(String(reason).slice(0, 300))}` : '';
+    return this.request(`/api/books/${restaurantId}/expenses/${expenseId}${q}`, { method: 'DELETE' });
+  }
+  // Books change history (posSettings.booksAuditTrail). params: { entity, from, to, limit }
+  async getBooksAuditLog(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/books/${restaurantId}/audit-log${q ? `?${q}` : ''}`);
   }
   async getExpenseCategories(restaurantId) {
     return this.request(`/api/books/${restaurantId}/expense-categories`);

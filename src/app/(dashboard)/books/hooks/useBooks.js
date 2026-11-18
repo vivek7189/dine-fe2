@@ -396,9 +396,9 @@ export default function useBooks() {
     } catch (err) { setError('Failed to update expense'); }
   };
 
-  const handleDeleteExpense = async (expenseId) => {
+  const handleDeleteExpense = async (expenseId, reason) => {
     try {
-      const res = await apiClient.deleteBooksExpense(restaurantId, expenseId);
+      const res = await apiClient.deleteBooksExpense(restaurantId, expenseId, reason);
       if (res.success) {
         setSuccess('Expense deleted');
         fetchExpenses();

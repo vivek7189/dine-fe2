@@ -3918,6 +3918,7 @@ function RestaurantPOSContent() {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
               orderNumberDisplay: currentOrder.orderNumberDisplay,
+              taxInvoiceNo: currentOrder.taxInvoiceNo || null,
               show: true,
               message: t('dashboard.billingCompleteEmoji')
             });
@@ -4005,6 +4006,7 @@ function RestaurantPOSContent() {
             orderId: completedOrderId,
             dailyOrderId: currentOrder.dailyOrderId,
             orderNumberDisplay: currentOrder.orderNumberDisplay,
+            taxInvoiceNo: currentOrder.taxInvoiceNo || null,
             show: true,
             message: t('dashboard.billingCompleteEmoji')
           });
@@ -4358,6 +4360,7 @@ function RestaurantPOSContent() {
         orderId,
         dailyOrderId: orderResponse.order?.dailyOrderId,
         orderNumberDisplay: orderResponse.order?.orderNumberDisplay,
+        taxInvoiceNo: orderResponse.order?.taxInvoiceNo || null,
         show: true,
         message: t('dashboard.billingCompleteEmoji')
       };
@@ -4516,6 +4519,7 @@ function RestaurantPOSContent() {
             orderId: currentOrder?.id || billingData.idempotencyKey,
             dailyOrderId: currentOrder?.dailyOrderId || null,
             orderNumberDisplay: currentOrder?.orderNumberDisplay || null,
+            taxInvoiceNo: currentOrder?.taxInvoiceNo || null,
             show: true,
             message: t('dashboard.billingCompleteEmoji')
           });
@@ -5314,6 +5318,7 @@ function RestaurantPOSContent() {
             orderId: currentOrder.id,
             dailyOrderId: currentOrder.dailyOrderId,
             orderNumberDisplay: currentOrder.orderNumberDisplay,
+            taxInvoiceNo: currentOrder.taxInvoiceNo || null,
             show: true,
             message: incrementalItems.length > 0
               ? `KOT Update: ${incrementalItems.length} new/changed item(s)`
@@ -5322,6 +5327,7 @@ function RestaurantPOSContent() {
               orderId: currentOrder.id,
               dailyOrderId: currentOrder.dailyOrderId,
               orderNumberDisplay: currentOrder.orderNumberDisplay,
+              taxInvoiceNo: currentOrder.taxInvoiceNo || null,
               items: filterKotExcludedItems(incrementalItems.length > 0 ? incrementalItems : (seatOnlyUpdate ? [] : cart), printSettings).map(item => {
                 const isNew = newItems.includes(item);
                 const isUpdated = updatedItems.includes(item);
@@ -5375,6 +5381,7 @@ function RestaurantPOSContent() {
                 tableNumber: (roomForKot ? null : tableToUseForKot) || '',
                 orderNumber: orderDisplayNumber(currentOrder),
                 orderNumberDisplay: currentOrder.orderNumberDisplay || null,
+                taxInvoiceNo: currentOrder.taxInvoiceNo || null,
                 orderId: currentOrder.id,
                 orderType,
                 waiterName: '',
@@ -5699,6 +5706,7 @@ function RestaurantPOSContent() {
               orderId: _orderId,
               dailyOrderId: _dailyOrderId,
               orderNumberDisplay: _orderObj?.orderNumberDisplay || null,
+              taxInvoiceNo: _orderObj?.taxInvoiceNo || null,
               show: true,
               processing: false,
               message: t('dashboard.orderPlacedToKitchen'),
@@ -5706,6 +5714,7 @@ function RestaurantPOSContent() {
                 orderId: _orderId,
                 dailyOrderId: _dailyOrderId,
                 orderNumberDisplay: _orderObj?.orderNumberDisplay || null,
+                taxInvoiceNo: _orderObj?.taxInvoiceNo || null,
                 items: cartKotItems,
                 tableNumber: savedTableNumber,
                 roomNumber: savedRoomNumber,
@@ -5734,6 +5743,7 @@ function RestaurantPOSContent() {
                   tableNumber: savedTableNumber || '',
                   orderNumber: orderDisplayNumber(_orderObj),
                   orderNumberDisplay: _orderObj?.orderNumberDisplay || null,
+                  taxInvoiceNo: _orderObj?.taxInvoiceNo || null,
                   orderId: _orderId,
                   orderType,
                   waiterName: '',

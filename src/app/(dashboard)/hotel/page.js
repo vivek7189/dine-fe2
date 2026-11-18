@@ -953,6 +953,7 @@ const Hotel = () => {
             paymentStatus: order.paymentStatus,
             dailyOrderId: order.dailyOrderId || order.orderNumber,
             orderNumberDisplay: order.orderNumberDisplay || null,
+            taxInvoiceNo: order.taxInvoiceNo || null,
             createdAt: order.createdAt
           };
         }) || [];

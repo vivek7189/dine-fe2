@@ -168,6 +168,7 @@ import StaffAccessSettings from '../../../components/admin/StaffAccessSettings';
 import { settingsPatch, applySettingsPatch } from '../../../utils/settingsPatch';
 import AlsoWorksAs from '../../../components/staff/AlsoWorksAs';
 import RolesSettings from '../../../components/admin/RolesSettings';
+import TaxInvoiceNumberCard from '../../../components/admin/TaxInvoiceNumberCard';
 import { normOT, ruleForOrderType, newOrderTypeRule, isOrderTypeRule } from '../../../utils/orderTypePrices';
 
 // Reusable shimmer skeleton for tab content while restaurants load
@@ -15874,6 +15875,18 @@ const Admin = () => {
               <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>Add a restaurant first, then configure order numbering here.</p>
             )}
           </div>
+
+          {/* Tax invoice number (financial-year bill number; orderSettings.taxInvoiceNumbering, off by default) */}
+          {selectedRestaurant && (
+            <TaxInvoiceNumberCard
+              restaurant={selectedRestaurant}
+              onSaved={(value) => {
+                const apply = (r) => ({ ...r, orderSettings: { ...(r.orderSettings || {}), taxInvoiceNumbering: value } });
+                setRestaurants(prev => prev.map(r => (r.id === selectedRestaurant.id ? apply(r) : r)));
+                setSelectedRestaurant(prev => (prev && prev.id === selectedRestaurant.id ? apply(prev) : prev));
+              }}
+            />
+          )}
 
           {/* Edit Completed Orders Card */}
           <div style={{
