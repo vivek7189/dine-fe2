@@ -7,6 +7,7 @@ import {
   FaBolt, FaArrowRight, FaClipboardList, FaTrash, FaTimes, FaClock
 } from 'react-icons/fa';
 import { fmtQty } from '../utils/formatQty';
+import StockValueModal from './StockValueModal';
 
 export default function DashboardTab({
   inventoryItems, dashboardStats, suppliers, purchaseOrders,
@@ -14,8 +15,11 @@ export default function DashboardTab({
   setShowAddModal, setShowQuickStockModal, setActiveTab,
   getStatusColor, onLogWaste, onReorderLowStock,
   permissions = { read: true, add: true, update: true, delete: true },
+  restaurantId, onStockValueChanged,
 }) {
   const [showAlertModal, setShowAlertModal] = useState(false);
+  const [showStockValue, setShowStockValue] = useState(false);
+  const costingMethod = dashboardStats?.costingMethod || 'latest';
   // Only "low" when a real threshold (>0) is set — an item with no threshold (min 0/undefined)
   // is "out of stock" when 0, not "low". Keeps GCP (min=0) and Vercel (min undefined) consistent.
   const lowStockItems = inventoryItems.filter(
@@ -142,17 +146,18 @@ export default function DashboardTab({
         {[
           { label: 'Total Items', value: inventoryItems.length, icon: FaBoxes, color: '#059669', bg: '#ecfdf5', tab: 'stock' },
           { label: 'Low Stock', value: lowStockItems.length, icon: FaExclamationTriangle, color: '#ef4444', bg: '#fef2f2', pulse: lowStockItems.length > 0, tab: 'stock' },
-          { label: 'Total Value', value: formatCurrency(totalValue), icon: FaWarehouse, color: '#3b82f6', bg: '#eff6ff' },
+          { label: 'Total Value', value: formatCurrency(totalValue), icon: FaWarehouse, color: '#3b82f6', bg: '#eff6ff', open: () => setShowStockValue(true), subtitle: costingMethod === 'fifo' ? 'FIFO · tap for items' : 'Latest price' },
           { label: 'Suppliers', value: suppliers.length, icon: FaClipboardList, color: '#8b5cf6', bg: '#f5f3ff', tab: 'procurement' },
           { label: 'Wastage', value: `${dashboardStats?.wastedItemsCount || 0} items`, icon: FaTrash, color: '#d97706', bg: '#fffbeb', subtitle: `${formatCurrency(dashboardStats?.totalWasteValue || 0)} wasted` },
         ].map((stat) => (
           <div
             key={stat.label}
-            onClick={stat.tab ? () => setActiveTab(stat.tab) : undefined}
+            onClick={stat.open || (stat.tab ? () => setActiveTab(stat.tab) : undefined)}
+            data-testid={stat.open ? 'stock-value-card' : undefined}
             style={{
               backgroundColor: 'white', borderRadius: '14px', padding: isMobile ? '14px' : '18px',
               boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #f3f4f6',
-              cursor: stat.tab ? 'pointer' : 'default',
+              cursor: stat.tab || stat.open ? 'pointer' : 'default',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -506,6 +511,16 @@ export default function DashboardTab({
         </div>,
         document.body
       )}
+
+      <StockValueModal
+        open={showStockValue}
+        onClose={() => setShowStockValue(false)}
+        restaurantId={restaurantId}
+        costingMethod={costingMethod}
+        totalValue={totalValue}
+        formatCurrency={formatCurrency}
+        onChanged={() => { onStockValueChanged && onStockValueChanged(); }}
+      />
 
       <style>{`
         @keyframes pulse {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt, FaGift, FaStar, FaHandshake } from 'react-icons/fa';
+import { FaChartLine, FaMoneyBillWave, FaReceipt, FaTruck, FaBalanceScale, FaBook, FaCheckCircle, FaTimesCircle, FaUsers, FaFileInvoice, FaListAlt, FaGift, FaStar, FaHandshake, FaWallet } from 'react-icons/fa';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import useBooks from './hooks/useBooks';
 import OverviewTab from './components/OverviewTab';
@@ -18,6 +18,7 @@ import MeetingsTab from './components/MeetingsTab';
 import GSTReportsTab from './components/GSTReportsTab';
 import TaxSummaryTab from './components/TaxSummaryTab';
 import LedgerTab from './components/LedgerTab';
+import PettyCashTab from './components/PettyCashTab';
 import BooksModals from './components/BooksModals';
 
 const TABS = [
@@ -35,7 +36,9 @@ const TABS = [
   { id: 'ledger', name: 'Ledger', icon: FaListAlt },
 ];
 
-const validTabIds = TABS.map(t => t.id);
+// Petty cash (posSettings.pettyCash) shows as a tab after Expenses only once it is turned on.
+const PETTY_TAB = { id: 'petty-cash', name: 'Petty cash', icon: FaWallet };
+const validTabIds = [...TABS.map(t => t.id), PETTY_TAB.id];
 
 export default function BooksPage() {
   const { formatCurrency, currencySettings } = useCurrency();
@@ -45,9 +48,19 @@ export default function BooksPage() {
   const cur = String(currencySettings?.currencyCode || '').toUpperCase();
   const isIndia = cc ? cc === 'IN' : (!cur || cur === 'INR');
   const taxLabel = currencySettings?.taxLabel && currencySettings.taxLabel !== 'GST' ? currencySettings.taxLabel : 'Tax';
-  const tabs = isIndia ? TABS : TABS.map(t => (t.id === 'gst' ? { ...t, name: `${taxLabel} Report` } : t));
   const books = useBooks();
   const { isMobile, activeTab, setActiveTab, error, setError, success, setSuccess, period, setPeriod, PERIODS, customStart, setCustomStart, customEnd, setCustomEnd } = books;
+  const [pettyOn, setPettyOn] = useState(false);
+  useEffect(() => {
+    if (!books.restaurantId || !books.apiClient?.getPettyCash) return;
+    let alive = true;
+    books.apiClient.getPettyCash(books.restaurantId).then(r => { if (alive) setPettyOn(!!(r && r.enabled)); }).catch(() => {});
+    return () => { alive = false; };
+  }, [books.restaurantId, books.apiClient]);
+  const baseTabs = isIndia ? TABS : TABS.map(t => (t.id === 'gst' ? { ...t, name: `${taxLabel} Report` } : t));
+  const tabs = (pettyOn || activeTab === PETTY_TAB.id)
+    ? baseTabs.flatMap(t => (t.id === 'expenses' ? [t, PETTY_TAB] : [t]))
+    : baseTabs;
   const isMobileEmbed = typeof window !== 'undefined' && window.__DINEOPEN_MOBILE_EMBED__;
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -173,7 +186,23 @@ export default function BooksPage() {
         {/* Tab Content */}
         {activeTab === 'overview' && <OverviewTab {...books} formatCurrency={formatCurrency} />}
         {activeTab === 'revenue' && <RevenueTab {...books} formatCurrency={formatCurrency} />}
-        {activeTab === 'expenses' && <ExpensesTab {...books} formatCurrency={formatCurrency} />}
+        {activeTab === 'expenses' && <ExpensesTab {...books} formatCurrency={formatCurrency} onOpenPettyCash={() => handleTabChange(PETTY_TAB.id)} />}
+        {activeTab === PETTY_TAB.id && (
+          <PettyCashTab
+            restaurantId={books.restaurantId}
+            apiClient={books.apiClient}
+            formatCurrency={formatCurrency}
+            isMobile={isMobile}
+            period={period}
+            customStart={customStart}
+            customEnd={customEnd}
+            EXPENSE_CATEGORIES={books.EXPENSE_CATEGORIES}
+            CATEGORY_LABELS_MAP={books.CATEGORY_LABELS_MAP}
+            setError={setError}
+            setSuccess={setSuccess}
+            onEnabledChange={setPettyOn}
+          />
+        )}
         {activeTab === 'supplier-dues' && <SupplierDuesTab {...books} formatCurrency={formatCurrency} />}
         {activeTab === 'pnl' && <ProfitLossTab {...books} formatCurrency={formatCurrency} />}
         {activeTab === 'payroll' && (

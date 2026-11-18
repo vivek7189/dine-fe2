@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { FaExclamationTriangle, FaPlus, FaSync, FaCheckCircle, FaMagic, FaTrash } from 'react-icons/fa';
+import { FaExclamationTriangle, FaPlus, FaSync, FaCheckCircle, FaMagic, FaTrash, FaUtensils } from 'react-icons/fa';
 import { fmtQty } from '../utils/formatQty';
+import DishWasteModal from './DishWasteModal';
 
 const InventoryDownloadPDFButton = dynamic(() => import('./pdf/InventoryDownloadPDFButton'), { ssr: false });
 
@@ -23,6 +24,7 @@ const sourceLabels = {
   AUTO_EXPIRY: 'Auto',
   EXPIRY: 'Expiry',
   LEFTOVER: 'AI Leftover',
+  DISH_WASTE: 'Dish',
 };
 
 const periodOptions = [
@@ -55,7 +57,8 @@ const btnStyle = (bg, color) => ({
   border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
 });
 
-export default function WasteTab({ waste, inventoryItems, isMobile, formatCurrency, permissions = { read: true, add: true, update: true, delete: true }, currentRestaurant }) {
+export default function WasteTab({ waste, inventoryItems, menuItems = [], isMobile, formatCurrency, permissions = { read: true, add: true, update: true, delete: true }, currentRestaurant }) {
+  const [showDishWaste, setShowDishWaste] = useState(false);
   const {
     loading, wasteEntries, wasteSummary, expiryAlerts,
     wastePeriod, setWastePeriod, wasteReason, setWasteReason,
@@ -179,6 +182,11 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
           </button>
         )}
         {permissions.update && (
+          <button onClick={() => setShowDishWaste(true)} data-testid="waste-dish-btn" style={btnStyle('#dc2626', '#fff')}>
+            <FaUtensils size={10} /> Waste a dish
+          </button>
+        )}
+        {permissions.update && (
           <button onClick={() => waste.setShowLeftoverModal(true)} style={btnStyle('#7c3aed', '#fff')}>
             <FaMagic size={10} /> AI Leftover
           </button>
@@ -254,6 +262,11 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
                         </td>
                         <td style={{ ...tdStyle, fontWeight: 600, color: '#111827' }}>
                           {entry.itemName || '-'}
+                          {entry.menuItemName && (
+                            <div style={{ fontSize: 11, fontWeight: 400, color: '#6b7280', marginTop: 2 }}>
+                              from {entry.dishQuantity ? `${fmtQty(entry.dishQuantity)} × ` : ''}{entry.menuItemName}
+                            </div>
+                          )}
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {fmtQty(entry.quantity)} {entry.unit || ''}
@@ -296,6 +309,15 @@ export default function WasteTab({ waste, inventoryItems, isMobile, formatCurren
           </>
         )}
       </div>
+
+      <DishWasteModal
+        open={showDishWaste}
+        onClose={() => setShowDishWaste(false)}
+        onSaved={() => loadWasteData()}
+        restaurantId={currentRestaurant?.id}
+        menuItems={menuItems}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 }

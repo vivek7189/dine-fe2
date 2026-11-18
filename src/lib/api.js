@@ -3205,6 +3205,31 @@ class ApiClient {
     });
   }
 
+  // Waste a whole dish: its recipe ingredients come off stock. data: { menuItemId, variantName?, quantity, reason?, notes?, preview? }
+  async wasteDish(restaurantId, data) {
+    return this.request(`/api/inventory/${restaurantId}/waste-dish`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  // FIFO stock value per item (posSettings.inventoryCosting === 'fifo').
+  async getFifoValuation(restaurantId) {
+    return this.request(`/api/inventory/${restaurantId}/fifo-valuation`);
+  }
+
+  // Petty cash float (posSettings.pettyCash). params: { from, to } ISO.
+  async getPettyCash(restaurantId, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this.request(`/api/petty-cash/${restaurantId}${q ? `?${q}` : ''}`);
+  }
+  async addPettyCashEntry(restaurantId, data) {
+    return this.request(`/api/petty-cash/${restaurantId}/entries`, { method: 'POST', body: JSON.stringify(data) });
+  }
+  async countPettyCash(restaurantId, data) {
+    return this.request(`/api/petty-cash/${restaurantId}/count`, { method: 'POST', body: JSON.stringify(data) });
+  }
+  async voidPettyCashEntry(restaurantId, entryId, reason) {
+    return this.request(`/api/petty-cash/${restaurantId}/entries/${entryId}/void`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
   async getWasteEntries(restaurantId, params = {}) {
     const query = new URLSearchParams(params).toString();
     const queryString = query ? `?${query}` : '';

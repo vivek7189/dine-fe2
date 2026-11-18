@@ -1,6 +1,6 @@
 'use client';
 
-import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync, FaCog } from 'react-icons/fa';
+import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync, FaCog, FaWallet } from 'react-icons/fa';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -17,7 +17,7 @@ export default function ExpensesTab({
   expensesList, expensesSummary, loadingExpenses, isMobile, formatCurrency,
   setShowAddExpenseModal, handleEditExpense, handleDeleteExpense,
   expenseCategoryFilter, setExpenseCategoryFilter, EXPENSE_CATEGORIES,
-  setShowManageCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP,
+  setShowManageCategories, CATEGORY_LABELS_MAP, CATEGORY_COLORS_MAP, onOpenPettyCash,
 }) {
   const getCatLabel = (key) => CATEGORY_LABELS_MAP?.[key] || key;
   const getCatColor = (key) => CATEGORY_COLORS_MAP?.[key] || DEFAULT_CATEGORY_COLORS[key] || '#6b7280';
@@ -52,6 +52,19 @@ export default function ExpensesTab({
           </select>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {onOpenPettyCash && (
+            <button
+              onClick={onOpenPettyCash}
+              data-testid="open-petty-cash"
+              style={{
+                padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569',
+                border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px',
+                fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              <FaWallet size={11} /> Petty cash
+            </button>
+          )}
           <button
             onClick={() => setShowManageCategories(true)}
             style={{
@@ -173,7 +186,7 @@ export default function ExpensesTab({
                         <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
                           {expense.vendor && <span>{expense.vendor}</span>}
                           {expense.vendor && expense.paymentMethod && <span> {'\u00B7'} </span>}
-                          {expense.paymentMethod && <span style={{ textTransform: 'capitalize' }}>{expense.paymentMethod}</span>}
+                          {expense.paymentMethod && <span style={{ textTransform: 'capitalize' }}>{expense.paymentMethod === 'petty_cash' ? 'Petty cash' : expense.paymentMethod}</span>}
                         </div>
                       )}
                     </div>

@@ -360,6 +360,8 @@ export default function InventoryManagement() {
             onLogWaste={() => waste.setShowQuickWasteModal(true)}
             onReorderLowStock={inventory.openLowStockPO}
             permissions={permissions}
+            restaurantId={inventory.currentRestaurant?.id}
+            onStockValueChanged={inventory.loadInventoryData}
           />
         )}
 
@@ -541,6 +543,7 @@ export default function InventoryManagement() {
           <WasteTab
             waste={waste}
             inventoryItems={inventory.inventoryItems}
+            menuItems={inventory.menuItems}
             isMobile={isMobile}
             formatCurrency={formatCurrency}
             permissions={permissions}
