@@ -44,6 +44,8 @@ export default function HourlySalesPage() {
   // Sub-restaurant filtering
   const [subRestaurants, setSubRestaurants] = useState([]);
   const [selectedSubRestaurant, setSelectedSubRestaurant] = useState('');
+  // Dine-in / Takeaway / Delivery — how most restaurants split sales (a "section" is a sub-restaurant).
+  const [orderType, setOrderType] = useState('');
 
   // Search filter for table
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,6 +160,7 @@ export default function HourlySalesPage() {
       if (selectedSubRestaurant) {
         options.subRestaurantId = selectedSubRestaurant;
       }
+      if (orderType) options.orderType = orderType;
       const res = await apiClient.getHourlySales(restaurantId, options);
       if (res?.success) {
         setData(res);
@@ -170,7 +173,7 @@ export default function HourlySalesPage() {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, getDateRange, selectedSubRestaurant]);
+  }, [restaurantId, getDateRange, selectedSubRestaurant, orderType]);
 
   useEffect(() => {
     if (restaurantId) fetchData();
@@ -349,6 +352,20 @@ export default function HourlySalesPage() {
             </div>
           )}
 
+          {/* Order type filter */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className="text-xs text-gray-500 font-medium">Order type:</span>
+            {[['', 'All'], ['dine-in', 'Dine-in'], ['takeaway', 'Takeaway'], ['delivery', 'Delivery']].map(([k, l]) => (
+              <button
+                key={k || 'all'}
+                onClick={() => setOrderType(k)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${orderType === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+
           {/* Sub-restaurant Filter */}
           {subRestaurants.length > 0 && (
             <div className="flex items-center gap-2 mt-3">
@@ -379,6 +396,12 @@ export default function HourlySalesPage() {
           </div>
         ) : data ? (
           <>
+            {selectedSubRestaurant && totalOrders === 0 && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                No orders are assigned to the section <b>{(subRestaurants.find(sr => sr.id === selectedSubRestaurant) || {}).name || 'selected'}</b>.
+                {' '}For takeaway sales, choose <b>All Sections</b> and <b>Order type: Takeaway</b>.
+              </div>
+            )}
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">

@@ -1910,6 +1910,7 @@ class ApiClient {
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
     if (options.subRestaurantId) params.append('subRestaurantId', options.subRestaurantId);
+    if (options.orderType) params.append('orderType', options.orderType);
     // tz: added by request() as the numeric offset the backend's parseTZ reads (restaurant timezone
     // aware). An IANA name here ("Asia/Kolkata") was ignored → report bucketed by the server clock.
     const qs = params.toString();
