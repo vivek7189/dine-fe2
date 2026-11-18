@@ -4,6 +4,7 @@ import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
 import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { siteSection } from '../lib/siteSection';
 
 // Project key is public (sent to every browser) — fallback keeps tracking on when the build env lacks it
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || 'phc_AdmCxAj5txqYAeyrgxsphiwW5sfyJ6h8tFW2ycZU9vnN';
@@ -53,6 +54,9 @@ function PostHogPageView() {
       let url = window.origin + pathname;
       const search = searchParams?.toString();
       if (search) url += '?' + search;
+      // site_section (website / signup / app / customer) rides on every event from this page,
+      // so website visitors can be counted apart from staff and restaurant guests.
+      ph.register({ site_section: siteSection(pathname) });
       ph.capture('$pageview', { $current_url: url });
     }
   }, [pathname, searchParams, ph]);
