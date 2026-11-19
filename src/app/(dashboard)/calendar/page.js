@@ -12,6 +12,7 @@ import {
 import EventDrawer from '../../../components/calendar/EventDrawer';
 import EventFormModal from '../../../components/calendar/EventFormModal';
 import ImportEventsModal from '../../../components/calendar/ImportEventsModal';
+import { useCalendarOrders, DayOrderChips, DayOrderDots, DayOrderList, monthOrderCounts } from '../../../components/calendar/calendarOrders';
 import { weekStartsOnMonday, weekdayOffset } from '../../../lib/restaurantTime';
 
 const VIEW_KEY = 'dineCalendarView';
@@ -113,6 +114,9 @@ export default function CalendarPage() {
     (diary?.followUps || []).forEach((f) => { if (f.status !== 'resolved') { const x = m[f.date] || (m[f.date] = {}); (x.followUps || (x.followUps = [])).push(f); } });
     return m;
   }, [diary]);
+
+  // Scheduled orders + bookings on their day (posSettings.calendarOrders, off by default).
+  const calOrders = useCalendarOrders(restaurantId, range);
 
   // Prefetch the neighbouring months so paging feels instant.
   useEffect(() => {
@@ -315,6 +319,7 @@ export default function CalendarPage() {
                     )}
                   </div>
                   <div className="dcal-chips">
+                    <DayOrderChips entry={calOrders.byDay[d]} onOpen={() => setSelectedDay(d)} />
                     {(diaryByDay[d]?.followUps || []).slice(0, 1).map((f) => (
                       <span key={f.id} className="dcal-chip" title={`Diary follow-up: ${f.title || f.type}`}
                         onClick={(ev) => { ev.stopPropagation(); window.location.href = `/diary?date=${f.loggedOn}`; }}
@@ -333,6 +338,7 @@ export default function CalendarPage() {
                     {list.length > max && <span className="dcal-more">{t('eventCalendar.more', { n: list.length - max })}</span>}
                   </div>
                   <div className="dcal-dots">
+                    <DayOrderDots entry={calOrders.byDay[d]} />
                     {list.slice(0, 3).map((e) => <span key={e.key} style={{ background: categoryStyle(e).color }} />)}
                   </div>
                 </div>
@@ -362,6 +368,18 @@ export default function CalendarPage() {
               {(diaryByDay[selectedDay]?.followUps || []).map((f) => <div key={f.id} style={{ marginTop: 4, color: '#b91c1c' }}>Follow up: {f.title || f.type} (logged {f.loggedOn})</div>)}
             </a>
           )}
+          {selectedDay && <DayOrderList entry={calOrders.byDay[selectedDay]} formatCurrency={formatCurrency} />}
+          {!selectedDay && calOrders.enabled && (() => {
+            const n = monthOrderCounts(calOrders.byDay, monthPrefix);
+            return n.orders + n.bookings > 0 ? (
+              <div style={{ margin: '0 0 10px', fontSize: 13, color: '#334155' }}>
+                {n.orders > 0 && <span style={{ color: '#1d4ed8', fontWeight: 700 }}>🛵 {n.orders} scheduled order{n.orders === 1 ? '' : 's'}</span>}
+                {n.orders > 0 && n.bookings > 0 && ' · '}
+                {n.bookings > 0 && <span style={{ color: '#047857', fontWeight: 700 }}>📅 {n.bookings} booking{n.bookings === 1 ? '' : 's'}</span>}
+                <span style={{ color: '#94a3b8' }}> — tap a day to see them</span>
+              </div>
+            ) : null;
+          })()}
           {loading && !data ? <div className="dcal-skel" /> : panelEvents.length === 0 ? (
             <div style={{ padding: '18px 4px', fontSize: 13, color: '#94a3b8' }}>{selectedDay ? t('eventCalendar.noEventsDay') : t('eventCalendar.noEventsMonth')}</div>
           ) : (
@@ -483,6 +501,13 @@ export default function CalendarPage() {
             <i style={{ background: CATEGORY_STYLE[c].color }} /> {categoryLabel(c)}
           </button>
         ))}
+        {calOrders.canToggle && (
+          <button data-testid="cal-orders-toggle" disabled={calOrders.saving} onClick={() => calOrders.setOn(!calOrders.enabled)} aria-pressed={calOrders.enabled}
+            title={calOrders.enabled ? 'Showing scheduled orders and bookings — tap to hide' : 'Show scheduled orders and bookings on their day'}
+            style={calOrders.enabled ? { background: '#eff6ff', borderColor: '#bfdbfe', color: '#1d4ed8' } : undefined}>
+            🛵📅 {calOrders.enabled ? 'Orders & bookings: on' : 'Show orders & bookings'}
+          </button>
+        )}
         {canManage && hiddenCount > 0 && (
           <button onClick={() => setShowHidden((s) => !s)} aria-pressed={showHidden}>
             {showHidden ? <FaEye size={11} /> : <FaEyeSlash size={11} />} {t('eventCalendar.showHidden', { n: hiddenCount })}
