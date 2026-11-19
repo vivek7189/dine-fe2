@@ -21,6 +21,7 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
   const panelRef = useRef(null); // the "how many do you have" panel — the bottom Save bar scrolls to it
   const [busy, setBusy] = useState(false);
   const [stopId, setStopId] = useState(null);
+  const [savedNote, setSavedNote] = useState(''); // shown on this tab — the page-level message can be off-screen
 
   const load = useCallback(async () => {
     if (!restaurantId) return;
@@ -42,13 +43,27 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
       && (filter === 'all' || (filter === 'tracked' && i.tracked) || (filter === 'untracked' && !i.tracked) || (filter === 'out' && i.tracked && stockOf(i) <= 0)));
   }, [items, q, filter]);
   const nSel = Object.keys(selected).length;
+  // MFC: ticked items and left — a tick alone is not saved. Warn before the page is closed / reloaded.
+  useEffect(() => {
+    if (!nSel) return undefined;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [nSel]);
+  useEffect(() => {
+    if (!savedNote) return undefined;
+    const t = setTimeout(() => setSavedNote(''), 6000);
+    return () => clearTimeout(t);
+  }, [savedNote]);
 
   const track = async (entries, okText) => {
     setBusy(true); setError('');
     try {
       const r = await apiClient.trackSoldAsIs(restaurantId, entries);
       const bad = (r.results || []).filter(x => !x.ok);
-      onMessage?.(bad.length ? `${entries.length - bad.length} done, ${bad.length} failed` : okText);
+      const msg = bad.length ? `${entries.length - bad.length} done, ${bad.length} failed` : okText;
+      onMessage?.(msg);
+      setSavedNote(msg);
       setSelected({}); setStopId(null);
       await load();
     } catch (e) { setError(e?.message || 'Could not save.'); }
@@ -85,6 +100,7 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
         {[['all', 'All'], ['tracked', 'Tracked'], ['untracked', 'Not tracked'], ['out', 'Out of stock']].map(([k, l]) => <button key={k} type="button" onClick={() => setFilter(k)} style={chip(filter === k)}>{l}</button>)}
       </div>
       {error && <div style={{ fontSize: 13, color: '#b91c1c', background: '#fef2f2', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>{error}</div>}
+      {savedNote && <div role="status" data-testid="soldasis-saved" style={{ fontSize: 13, color: '#065f46', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, padding: '8px 10px', marginBottom: 10, fontWeight: 600 }}>✓ {savedNote}</div>}
 
       {canUpdate && nSel > 0 && (
         <div ref={panelRef} style={{ border: '1px solid #a7f3d0', background: '#f0fdf4', borderRadius: 12, padding: 12, marginBottom: 12 }}>
@@ -103,7 +119,7 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button type="button" disabled={busy} onClick={() => track(Object.entries(selected).map(([menuItemId, v]) => ({ menuItemId, track: true, openingStock: v.openingStock === '' ? 0 : Number(v.openingStock), ...(v.lowStock !== '' ? { lowStock: Number(v.lowStock) } : {}) })), `Tracking ${nSel} item${nSel > 1 ? 's' : ''}`)}
-              style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: '#059669', color: '#fff', fontWeight: 800, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving…' : `Track ${nSel}`}</button>
+              style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: '#059669', color: '#fff', fontWeight: 800, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving…' : `Save — track ${nSel}`}</button>
             <button type="button" onClick={() => setSelected({})} style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid #d1d5db', background: '#fff', fontWeight: 700, cursor: 'pointer' }}>Clear</button>
             <span style={{ fontSize: 12, color: '#6b7280' }}>Blank count = 0 (shows “out of stock” until you add stock).</span>
           </div>
@@ -157,13 +173,14 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
       {canUpdate && nSel > 0 && (
         <div data-testid="soldasis-savebar" style={{ position: 'sticky', bottom: 0, zIndex: 5, marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
           padding: '10px 12px', background: '#065f46', color: '#fff', borderRadius: 12, boxShadow: '0 -4px 16px rgba(0,0,0,0.12)' }}>
-          <span style={{ fontWeight: 700, fontSize: 13.5 }}>{nSel} item{nSel > 1 ? 's' : ''} ticked</span>
+          <span style={{ fontWeight: 700, fontSize: 13.5 }}>{nSel} item{nSel > 1 ? 's' : ''} ticked — not saved yet</span>
           <button type="button" onClick={() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             style={{ border: 'none', background: 'none', color: '#a7f3d0', fontSize: 12.5, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>enter counts</button>
           <span style={{ flex: 1 }} />
           <button type="button" onClick={() => setSelected({})} style={{ padding: '7px 12px', borderRadius: 9, border: '1px solid #a7f3d0', background: 'transparent', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Clear</button>
           <button type="button" disabled={busy} onClick={() => track(Object.entries(selected).map(([menuItemId, v]) => ({ menuItemId, track: true, openingStock: v.openingStock === '' ? 0 : Number(v.openingStock), ...(v.lowStock !== '' ? { lowStock: Number(v.lowStock) } : {}) })), `Saved: tracking ${nSel} item${nSel > 1 ? 's' : ''}`)}
             style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: '#fff', color: '#065f46', fontWeight: 800, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving…' : `Save — track ${nSel}`}</button>
+          <span style={{ flexBasis: '100%', fontSize: 12, color: '#a7f3d0' }}>Press Save, or the ticks are lost when you leave this page.</span>
         </div>
       )}
     </div>

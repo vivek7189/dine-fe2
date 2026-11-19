@@ -147,6 +147,7 @@ export default function useInventory() {
   const [savingReturn, setSavingReturn] = useState(false);
   const [savingTransfer, setSavingTransfer] = useState(false);
   const invoiceFileInputRef = useRef(null);
+  const invoiceCostWarnRef = useRef(''); // the price check below asks once; Save again keeps the lines as typed
   const [selectedPOForGRN, setSelectedPOForGRN] = useState(null);
   const [selectedRequisition, setSelectedRequisition] = useState(null);
 
@@ -1364,6 +1365,29 @@ export default function useInventory() {
       fail(`The items add up to ${m(linesTotalCheck)} but the bill total is ${m(billTotalCheck)}. Rate is the price of ONE kg / litre / piece — or type each line's Amount.`);
       return;
     }
+    // Whole bill typed as quantity 1 (MFC: Mushrooms "1 g for 1,897" → cost 1,897 per g, stock value in crores).
+    // Ask once when a line's price per stock unit is over 20× the item's current price; Save again keeps it.
+    if (invoiceFormData.addToStock !== false) {
+      const m = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });
+      const jumps = [];
+      for (const it of invoiceFormData.items) {
+        const inv = inventoryItems.find(x => x.id === it.inventoryItemId);
+        const oldCost = Number(inv?.costPerUnit) || 0;
+        const qty = parseFloat(it.quantity) || 0;
+        const buyUnit = it.buyUnit || inv?.unit || '';
+        const stockQty = inv?.unit && buyUnit ? convertUnits(qty, buyUnit, inv.unit) : qty;
+        const newCost = stockQty > 0 ? lineAmount(it) / stockQty : 0;
+        if (oldCost > 0 && newCost > oldCost * 20) {
+          jumps.push(`${inv.name}: ${m(qty)} ${buyUnit} for ${m(lineAmount(it))} = ${m(newCost)} per ${inv.unit} (now ${m(oldCost)} per ${inv.unit})`);
+        }
+      }
+      const sig = jumps.join('|');
+      if (jumps.length && invoiceCostWarnRef.current !== sig) {
+        invoiceCostWarnRef.current = sig;
+        fail(`Please check the quantity — the price looks far too high: ${jumps.join('; ')}. Enter the real quantity (e.g. 9.5 kg), or press Save again if it is right.`);
+        return;
+      }
+    }
     if (savingInvoice) return; // a save is already in flight — never submit the same invoice twice
 
     try {
@@ -1417,6 +1441,7 @@ export default function useInventory() {
       const added = Number(saved?.stockAdded) || 0;
       setSuccess(added ? `Invoice saved. Stock added for ${added} item${added > 1 ? 's' : ''}.` : 'Supplier invoice saved.');
       if (added) { try { loadInventoryData?.(); } catch (_) {} }
+      invoiceCostWarnRef.current = '';
       setShowAddInvoiceModal(false);
       // Reset form
       setInvoiceFormData({
