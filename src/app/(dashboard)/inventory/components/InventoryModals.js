@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
-import { convertUnits, UNIT_CONVERSIONS, billLineUnit } from '../utils/unitConversion';
+import { convertUnits, UNIT_CONVERSIONS, billLineUnit, convertForItem } from '../utils/unitConversion';
 
 // Supplier bills are in kg / litres even when the stock item is kept in g / ml. The invoice line offers
 // the bigger unit and converts on save (12 kg cumin → 12000 g), so stock never shows "12 g".
@@ -400,6 +400,9 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
   const supplierOptions = suppliers.map(s => ({ value: s.name || s.id, label: s.name }));
 
   const u = formData.unit || 'unit';
+  // "1 <unit> = N ___": suggest a unit of the other kind (pcs item → g; kg / L item → pcs).
+  const stockKind = UNIT_CONVERSIONS[String(formData.unit || '').toLowerCase().trim()]?.dimension;
+  const otherKindUnit = stockKind === 'mass' || stockKind === 'volume' ? 'pcs' : 'g';
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
       {simple && (
@@ -463,14 +466,14 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
         </div>
       )}
       <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
-        <label style={labelStyle}>Recipes use another kind of unit? (optional)</label>
+        <label style={labelStyle}>Recipe uses a different kind of unit? (optional)</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, color: '#374151', whiteSpace: 'nowrap' }}>1 {u} =</span>
           <FocusInput type="text" inputMode="decimal" data-testid="unit-equivalent-qty" style={{ maxWidth: 110 }}
             value={formData.unitEquivalent?.quantity ?? ''}
-            onChange={e => update('unitEquivalent', { unit: formData.unitEquivalent?.unit || 'g', quantity: e.target.value })}
+            onChange={e => update('unitEquivalent', { unit: formData.unitEquivalent?.unit || otherKindUnit, quantity: e.target.value })}
             placeholder="e.g. 180" />
-          <select value={formData.unitEquivalent?.unit || 'g'} data-testid="unit-equivalent-unit"
+          <select value={formData.unitEquivalent?.unit || otherKindUnit} data-testid="unit-equivalent-unit"
             onChange={e => update('unitEquivalent', { unit: e.target.value, quantity: formData.unitEquivalent?.quantity ?? '' })}
             style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}>
             {['g', 'kg', 'ml', 'L', 'pcs'].map(x => <option key={x} value={x}>{x}</option>)}
@@ -554,7 +557,7 @@ function AddEditItemModal(props) {
     showAddModal, setShowAddModal, showEditModal, setShowEditModal,
     formData, setFormData, categories, suppliers, editingItem,
     handleAddItem, handleUpdateItem, getModalStyles, getModalContentStyles,
-    currentRestaurant, loadInventoryData, error, inventoryItems, handleEditItem, onReceiveExisting,
+    currentRestaurant, loadInventoryData, error, inventoryItems, handleEditItem, onReceiveExisting, savingForm,
   } = props;
   const footerError = error ? <span style={{ flex: 1, alignSelf: 'center', color: '#b91c1c', fontSize: '13px', fontWeight: 600 }}>{error}</span> : null;
 
@@ -579,8 +582,8 @@ function AddEditItemModal(props) {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             {footerError}
             <button style={secondaryBtn} onClick={close}>Cancel</button>
-            <button style={primaryBtn} onClick={handleUpdateItem}>
-              <FaSave /> Update Item
+            <button style={{ ...primaryBtn, opacity: savingForm ? 0.6 : 1 }} disabled={!!savingForm} onClick={handleUpdateItem}>
+              <FaSave /> {savingForm ? 'Saving…' : 'Update Item'}
             </button>
           </div>
         }>
@@ -735,9 +738,10 @@ function AddSupplierModal(props) {
     showAddSupplierModal, setShowAddSupplierModal,
     supplierFormData, setSupplierFormData, handleAddSupplier,
     editingSupplierId, closeSupplierModal, handleDeleteSupplier,
-    getModalStyles, getModalContentStyles, loading, error,
+    getModalStyles, getModalContentStyles, savingForm, error, setError,
   } = props;
   const editing = !!editingSupplierId;
+  useEffect(() => { if (showAddSupplierModal && setError) setError(null); }, [showAddSupplierModal]); // eslint-disable-line react-hooks/exhaustive-deps
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTyped, setDeleteTyped] = useState('');
   const [deleteError, setDeleteError] = useState('');
@@ -754,7 +758,7 @@ function AddSupplierModal(props) {
   return (
     <ModalShell show={showAddSupplierModal} onClose={close} title={editing ? 'Edit Supplier' : 'Add Supplier'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={<ModalFooter error={showAddSupplierModal ? error : null} saving={!!loading} onCancel={close} onSave={handleAddSupplier} label={editing ? 'Save Changes' : 'Add Supplier'} />}>
+      footer={<ModalFooter error={showAddSupplierModal ? error : null} saving={!!savingForm} onCancel={close} onSave={handleAddSupplier} label={editing ? 'Save Changes' : 'Add Supplier'} />}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Name *</label>
@@ -834,10 +838,13 @@ function AddPurchaseOrderModal(props) {
     purchaseOrderFormData, setPurchaseOrderFormData,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency,
-    editingPurchaseOrderId, resetPurchaseOrderForm, addLowStockToPO, loading, error,
+    editingPurchaseOrderId, resetPurchaseOrderForm, addLowStockToPO, savingForm, error, setError,
   } = props;
   const [lowStockNote, setLowStockNote] = useState('');
-  useEffect(() => { if (!showAddPurchaseOrderModal) setLowStockNote(''); }, [showAddPurchaseOrderModal]);
+  useEffect(() => {
+    if (!showAddPurchaseOrderModal) setLowStockNote('');
+    else if (setError) setError(null);
+  }, [showAddPurchaseOrderModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fmtMoney = formatCurrency || (n => `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
   const poGrandTotal = (purchaseOrderFormData.items || []).reduce(
@@ -848,7 +855,7 @@ function AddPurchaseOrderModal(props) {
   return (
     <ModalShell show={showAddPurchaseOrderModal} onClose={closePOModal} title={isEditingPO ? 'Edit Purchase Order' : 'Create Purchase Order'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={<ModalFooter error={showAddPurchaseOrderModal ? error : null} saving={!!loading} onCancel={closePOModal} onSave={handleAddPurchaseOrder} label={isEditingPO ? 'Update Order' : 'Create Order'} />}>
+      footer={<ModalFooter error={showAddPurchaseOrderModal ? error : null} saving={!!savingForm} onCancel={closePOModal} onSave={handleAddPurchaseOrder} label={isEditingPO ? 'Update Order' : 'Create Order'} />}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Supplier *</label>
@@ -1072,6 +1079,16 @@ function RecipeFormBody({ recipeFormData, setRecipeFormData, inventoryItems,
               <button style={dangerBtn} onClick={() => removeRecipeIngredient(index)}><FaTrash /></button>
             )}
             </div>
+            {(() => {
+              // Recipe unit that can't become the stock item's unit → selling won't reduce that item.
+              const linked = !isSubRecipe && ing.inventoryItemId ? inventoryItems.find(i => i.id === ing.inventoryItemId) : null;
+              if (!linked || !ing.unit || !linked.unit || convertForItem(1, ing.unit, linked) != null) return null;
+              return (
+                <div data-testid="recipe-unit-mismatch" style={{ fontSize: 11, color: '#b45309', marginTop: 2, marginBottom: 4, paddingLeft: 4 }}>
+                  {linked.name} is counted in {linked.unit} — “{ing.unit}” won&apos;t reduce its stock. Pick {linked.unit}, or set “1 {linked.unit} = … {ing.unit}” on the item (Stock → Edit → More options).
+                </div>
+              );
+            })()}
             {needsLink && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 11, color: '#d97706', marginTop: 2, marginBottom: 4, paddingLeft: 4 }}>
                 <span>Not linked to stock — pick a matching item above{onQuickAddIngredientStock ? ', or' : '.'}</span>
@@ -1222,14 +1239,22 @@ function QuickStockModal(props) {
     showQuickStockModal, setShowQuickStockModal,
     inventoryItems, handleQuickStockUpdate,
     quickStockItems, setQuickStockItems,
-    getModalStyles, getModalContentStyles, loading, error,
+    getModalStyles, getModalContentStyles, savingForm: loading, error, setError,
   } = props;
 
   const [filter, setFilter] = useState('');
   const [batchInfo, setBatchInfo] = useState({}); // { [itemId]: { mfgDate, expiryDays } }
   const [typed, setTyped] = useState({}); // { [itemId]: text as typed } — so "2.5", "-" and "" can be typed
   // Fresh each time it opens (it stays mounted while hidden).
-  useEffect(() => { if (showQuickStockModal) { setBatchInfo({}); setTyped({}); } }, [showQuickStockModal]);
+  useEffect(() => { if (showQuickStockModal) { setBatchInfo({}); setTyped({}); if (setError) setError(null); } }, [showQuickStockModal]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Rows that were saved (removed from the pending list after a partial failure) stop showing their typed number.
+  useEffect(() => {
+    setTyped(t => {
+      const keep = {}; let changed = false;
+      for (const [id, v] of Object.entries(t)) { if (quickStockItems.some(q => q.itemId === id)) keep[id] = v; else changed = true; }
+      return changed ? keep : t;
+    });
+  }, [quickStockItems]);
 
   const getAdjustment = (itemId) => {
     const entry = quickStockItems.find(q => q.itemId === itemId);
@@ -1252,7 +1277,10 @@ function QuickStockModal(props) {
 
   const typeAdjustment = (itemId, text) => {
     setTyped(t => ({ ...t, [itemId]: text }));
-    const n = parseFloat(String(text).replace(',', '.'));
+    // "2,5" (decimal comma) → 2.5; "1,000" (thousands) → 1000.
+    const raw = String(text).trim();
+    const norm = /^-?\d+,\d{1,2}$/.test(raw) ? raw.replace(',', '.') : raw.replace(/,/g, '');
+    const n = parseFloat(norm);
     setAdjustment(itemId, Number.isFinite(n) ? Math.round(n * 10000) / 10000 : 0);
   };
 
@@ -1295,7 +1323,7 @@ function QuickStockModal(props) {
         </div>
       }>
       <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px', marginTop: '-8px' }}>
-        Adjust stock levels for your daily check-in. Changed items are highlighted.
+        Type how much to <b>add (+)</b> or <b>take off (−)</b> — not the new total. To set what you counted on the shelf, use <b>Stock Count</b>.
       </p>
 
       <div style={{ marginBottom: '16px' }}>
@@ -1480,6 +1508,9 @@ function AddGRNModal(props) {
           </button>
         </div>
       }>
+      <div data-testid="grn-help" style={{ marginBottom: 12, padding: '9px 12px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 12.5, color: '#065f46' }}>
+        This adds the accepted goods to stock now. When you later enter this supplier&apos;s bill, untick “Add these items to stock” so they are not added twice.
+      </div>
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 12px', fontSize: '12.5px', color: '#166534', marginBottom: '14px', lineHeight: 1.5 }}>
         Enter what actually arrived. <b>Accepted</b> quantity (received − rejected) is added to stock.
         Short delivery? Save now and record the rest later — the order stays <b>partially received</b>.
@@ -1592,6 +1623,9 @@ function AddRequisitionModal(props) {
     <ModalShell show={showAddRequisitionModal} onClose={close} title="Add Purchase Requisition"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={<ModalFooter error={error} saving={savingRequisition} onCancel={close} onSave={() => handleCreateRequisition && handleCreateRequisition()} label="Create Requisition" />}>
+      <div data-testid="requisition-help" style={{ marginBottom: 12, padding: '9px 12px', borderRadius: 10, background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: 12.5, color: '#1e3a8a' }}>
+        A request only — stock and orders don&apos;t change. A manager approves it, then creates the purchase order.
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Priority</label>
@@ -1783,7 +1817,12 @@ function AddInvoiceModal(props) {
         </div>
         {invoiceFormData.items.length > 0 && (
           <div style={{ ...rowStyle, fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>
-            <span style={{ flex: 2 }}>Item</span><span style={{ flex: 1.4 }}>Qty</span><span style={{ flex: 1 }}>Rate</span><span style={{ flex: 1 }}>Amount</span><span style={{ width: '38px' }} />
+            <span style={{ flex: 2 }}>Item</span><span style={{ flex: 1.4 }}>Qty received</span><span style={{ flex: 1 }}>Rate</span><span style={{ flex: 1 }}>Amount</span><span style={{ width: '38px' }} />
+          </div>
+        )}
+        {invoiceFormData.items.length > 0 && (
+          <div data-testid="invoice-qty-help" style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 8px' }}>
+            Qty = how much came (e.g. 9.5 kg, 12 L, 24 pcs) — not 1. Rate = price of ONE kg / L / pc. Stock value uses Amount ÷ Qty.
           </div>
         )}
         {invoiceFormData.items.map((item, index) => {
@@ -1820,6 +1859,17 @@ function AddInvoiceModal(props) {
                 Adds {Math.round(convertUnits(parseFloat(item.quantity), buyUnit, inv.unit) * 1000) / 1000} {inv.unit} to stock
               </div>
             )}
+            {(() => {
+              // An item with no cost yet: quantity 1 with a big amount is usually the whole bill typed as 1.
+              const q = parseFloat(item.quantity) || 0, old = Number(inv?.costPerUnit) || 0;
+              if (!inv || old > 0 || q !== 1 || !(amt >= 300) || !buyUnit || ['pcs', 'pc', 'piece', 'nos'].includes(String(buyUnit).toLowerCase())) return null;
+              const u = buyUnit === 'l' ? 'L' : buyUnit;
+              return (
+                <div data-testid="invoice-qty-one" style={{ fontSize: '11.5px', marginTop: '3px', color: '#b45309', fontWeight: 600 }}>
+                  1 {u} for {amt.toLocaleString(undefined, { maximumFractionDigits: 2 })}? If more came, type how many {u} — the cost per {u} becomes Amount ÷ Qty.
+                </div>
+              );
+            })()}
             {(() => {
               // The whole bill typed as quantity 1 → a price per unit far above what this item costs.
               const q = parseFloat(item.quantity) || 0, old = Number(inv?.costPerUnit) || 0;

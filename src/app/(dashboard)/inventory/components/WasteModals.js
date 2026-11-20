@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaTrash, FaBoxOpen, FaSearch, FaUtensils, FaCubes } from 'react-icons/fa';
 import { fmtQty } from '../utils/formatQty';
-import { convertUnits } from '../utils/unitConversion';
+import { convertForItem } from '../utils/unitConversion';
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #e8ecf1',
@@ -307,7 +307,8 @@ function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
       const invItem = (inventoryItems || []).find(i => i.id === ing.inventoryItemId);
       const qty = Math.round(ing.quantity * multiplier * 100) / 100;
       // Recipe unit (e.g. g) → the item's stock unit (e.g. kg) before using its cost per stock unit.
-      const cost = invItem ? convertUnits(qty, ing.unit || invItem.unit, invItem.unit) * (invItem.costPerUnit || 0) : 0;
+      const inStock = invItem ? convertForItem(qty, ing.unit || invItem.unit, invItem) : null; // null = units don't convert (not taken)
+      const cost = inStock != null ? inStock * (invItem.costPerUnit || 0) : 0;
       return {
         name: ing.inventoryItemName || ing.name,
         qty,

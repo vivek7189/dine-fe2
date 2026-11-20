@@ -108,6 +108,7 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
       {canUpdate && nSel > 0 && (
         <div ref={panelRef} style={{ border: '1px solid #a7f3d0', background: '#f0fdf4', borderRadius: 12, padding: 12, marginBottom: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 8 }}>Track {nSel} item{nSel > 1 ? 's' : ''} — how many do you have now?</div>
+          <div data-testid="soldasis-track-help" style={{ fontSize: 12, color: '#047857', marginTop: -4, marginBottom: 8 }}>This sets the starting count once. For an item already tracked, use + Receive to add stock.</div>
           <div style={{ display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
             {Object.entries(selected).map(([id, v]) => {
               const it = items.find(i => i.id === id); if (!it) return null;

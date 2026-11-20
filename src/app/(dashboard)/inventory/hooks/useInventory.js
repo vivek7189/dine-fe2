@@ -146,6 +146,10 @@ export default function useInventory() {
   const [savingGRN, setSavingGRN] = useState(false);
   const [savingReturn, setSavingReturn] = useState(false);
   const [savingRequisition, setSavingRequisition] = useState(false);
+  // Save in progress in the item / supplier / PO / quick-stock windows (own flag — the page-wide
+  // `loading` is also true while the page loads or other actions run).
+  const [savingForm, setSavingForm] = useState(false);
+  const formSaving = useRef(false); // blocks a second tap at once (state updates only on the next render)
   const [savingTransfer, setSavingTransfer] = useState(false);
   const invoiceFileInputRef = useRef(null);
   const invoiceCostWarnRef = useRef(''); // the price check below asks once; Save again keeps the lines as typed
@@ -493,9 +497,9 @@ export default function useInventory() {
   };
 
   const handleUpdateItem = async () => {
-    if (!currentRestaurant || !editingItem) return;
+    if (!currentRestaurant || !editingItem || formSaving.current) return; // a double tap must not apply the stock change twice
     try {
-      setLoading(true); setError(null);
+      formSaving.current = true; setSavingForm(true); setLoading(true); setError(null);
       const response = await apiClient.updateInventoryItem(currentRestaurant.id, editingItem.id, formData);
       if (response.item) {
         setSuccess('Item updated successfully!');
@@ -506,7 +510,7 @@ export default function useInventory() {
     } catch (error) {
       console.error('Error updating item:', error);
       setError(error.message || 'Failed to update item');
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setSavingForm(false); formSaving.current = false; }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -568,7 +572,7 @@ export default function useInventory() {
     quickStockSaving.current = true;
     const done = new Set();
     try {
-      setLoading(true); setError(null);
+      formSaving.current = true; setSavingForm(true); setLoading(true); setError(null);
       for (const update of updates) {
         if (update.adjustment !== 0) {
           const item = inventoryItems.find(i => i.id === update.itemId);
@@ -596,7 +600,7 @@ export default function useInventory() {
       setQuickStockItems(prev => prev.filter(q => !done.has(q.itemId)));
       if (done.size > 0) loadInventoryData();
       setError(`${done.size ? `${done.size} saved. ` : ''}${error.message || 'Failed to update stock'}`);
-    } finally { setLoading(false); quickStockSaving.current = false; }
+    } finally { setLoading(false); setSavingForm(false); quickStockSaving.current = false; formSaving.current = false; }
   };
 
   // Quick order handlers
@@ -688,13 +692,13 @@ export default function useInventory() {
   };
 
   const handleAddSupplier = async () => {
-    if (!currentRestaurant || loading) return; // no duplicate supplier on a double tap
+    if (!currentRestaurant || formSaving.current) return; // no duplicate supplier on a double tap
     if (!supplierFormData.name || !supplierFormData.contact) {
       setError('Supplier name and contact person are required'); return;
     }
     if (editingSupplierId) {
       try {
-        setLoading(true); setError(null);
+        formSaving.current = true; setSavingForm(true); setLoading(true); setError(null);
         const { opening, ...details } = supplierFormData;
         await apiClient.updateSupplier(currentRestaurant.id, editingSupplierId, { ...details, contactPerson: details.contact });
         setSuccess('Supplier updated');
@@ -704,11 +708,11 @@ export default function useInventory() {
         loadInventoryData();
       } catch (error) {
         setError(error.message || 'Failed to update supplier');
-      } finally { setLoading(false); }
+      } finally { setLoading(false); setSavingForm(false); formSaving.current = false; }
       return;
     }
     try {
-      setLoading(true); setError(null);
+      formSaving.current = true; setSavingForm(true); setLoading(true); setError(null);
       const { opening, ...supplierData } = supplierFormData;
       const response = await apiClient.createSupplier(currentRestaurant.id, supplierData);
       if (response.supplier) {
@@ -729,7 +733,7 @@ export default function useInventory() {
     } catch (error) {
       console.error('Error adding supplier:', error);
       setError(error.message || 'Failed to add supplier');
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setSavingForm(false); formSaving.current = false; }
   };
 
   // Called from the supplier form after the user typed the supplier's name (no one-click delete).
@@ -780,14 +784,14 @@ export default function useInventory() {
   };
 
   const handleAddPurchaseOrder = async () => {
-    if (!currentRestaurant || loading) return;
-    // Rows where no item was picked are left out (they used to be saved as blank lines).
-    const poItems = (purchaseOrderFormData.items || []).filter(it => it.inventoryItemId);
+    if (!currentRestaurant || formSaving.current) return;
+    // Empty rows (no item picked, no name) are left out — they used to be saved as blank lines.
+    const poItems = (purchaseOrderFormData.items || []).filter(it => it.inventoryItemId || String(it.inventoryItemName || '').trim());
     if (!purchaseOrderFormData.supplierId || poItems.length === 0) {
       setError('Please select a supplier and add at least one item'); return;
     }
     try {
-      setLoading(true); setError(null);
+      formSaving.current = true; setSavingForm(true); setLoading(true); setError(null);
       if (editingPurchaseOrderId) {
         // Edit existing PO (backend re-snapshots units + recomputes total; locked once received).
         // A note typed here is added to the PO's notes (the server appends it).
@@ -814,7 +818,7 @@ export default function useInventory() {
     } catch (error) {
       console.error('Error saving purchase order:', error);
       setError(error.message || 'Failed to save purchase order');
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setSavingForm(false); formSaving.current = false; }
   };
 
   // ── Reorder from low stock ──
@@ -1048,7 +1052,7 @@ export default function useInventory() {
       setLoading(true);
       const updatedIngredients = recipeFormData.ingredients
         .filter(ing => (ing.type === 'recipe' ? !!ing.subRecipeId : !!(ing.inventoryItemId || String(ing.inventoryItemName || '').trim())))
-        .map(ing => {
+        .map(({ _unmatched, ...ing }) => {
           const item = inventoryItems.find(i => i.id === ing.inventoryItemId);
           return {
             ...ing,
@@ -1761,7 +1765,7 @@ export default function useInventory() {
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
     startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice, savingInvoice, handleDeleteSupplierInvoice, handleCreateGRN, savingGRN,
     handleCreateReturn, handleUpdateReturnStatus, handleDeleteReturn, savingReturn,
-    handleCreateRequisition, handleUpdateRequisitionStatus, savingRequisition,
+    handleCreateRequisition, handleUpdateRequisitionStatus, savingRequisition, savingForm,
     handleCreateTransfer, handleUpdateTransferStatus, handleDeleteTransfer, savingTransfer,
     loadInventoryData, loadSCMData,
     addLowStockToPO, openLowStockPO, lowStockPOLines,

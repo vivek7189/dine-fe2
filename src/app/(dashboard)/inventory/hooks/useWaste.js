@@ -139,10 +139,17 @@ export default function useWaste(currentRestaurant, inventoryItems = []) {
     if (loading) return false;
     setLoading(true); setError(null);
     try {
+      let viaDish = false;
       if (recipe.menuItemId) {
         // Same recipe / unit rules as a sale, and the reason + note are kept on the waste entries.
-        await apiClient.wasteDish(rid, { menuItemId: recipe.menuItemId, quantity, reason, notes });
-      } else {
+        try {
+          await apiClient.wasteDish(rid, { menuItemId: recipe.menuItemId, quantity, reason, notes });
+          viaDish = true;
+        } catch (e) {
+          if (e && e.status !== 404) throw e; // dish no longer on the menu → by the recipe below
+        }
+      }
+      if (!viaDish) {
         // A recipe not linked to a dish: its ingredients come off as an end-of-day leftover.
         const multiplier = quantity / (recipe.servings || 1);
         await apiClient.confirmLeftoverWaste(rid, [{

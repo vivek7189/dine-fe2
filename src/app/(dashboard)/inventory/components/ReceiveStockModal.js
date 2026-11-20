@@ -150,6 +150,10 @@ export default function ReceiveStockModal({ open, onClose, restaurantId, invento
                     <div><label style={lbl}>Cost per {stockItem.unit || 'unit'} {currencySymbol ? `(${currencySymbol})` : ''}</label><input type="number" min="0" step="any" inputMode="decimal" value={cost} onChange={e => setCost(e.target.value)} style={inp} placeholder={stockItem.costPerUnit ? String(stockItem.costPerUnit) : 'optional'} /></div>
                     <div><label style={lbl}>Expiry (optional)</label><input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} style={inp} /></div>
                   </div>
+                  <div data-testid="receive-cost-help" style={{ fontSize: 11.5, color: '#64748b', marginTop: -4 }}>
+                    Cost = price of ONE {stockItem.unit || 'unit'}, not the bill total.
+                    {totalQty > 0 && Number(cost) > 0 ? <b style={{ color: '#047857' }}> Total: {currencySymbol}{fmt(totalQty * Number(cost))}</b> : null}
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div><label style={lbl}>Supplier (optional)</label><input value={supplier} onChange={e => setSupplier(e.target.value)} style={inp} placeholder={stockItem.supplier || ''} /></div>
                     <div><label style={lbl}>Note (optional)</label><input value={note} onChange={e => setNote(e.target.value)} style={inp} placeholder="Bill no. …" /></div>

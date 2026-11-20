@@ -28,6 +28,8 @@ export const UNIT_CONVERSIONS = {
   'litre': { dimension: 'volume', toBase: 1000 },
   'liter': { dimension: 'volume', toBase: 1000 },
   'litres': { dimension: 'volume', toBase: 1000 },
+  'ltrs': { dimension: 'volume', toBase: 1000 },
+  'lts': { dimension: 'volume', toBase: 1000 },
   'liters': { dimension: 'volume', toBase: 1000 },
   'cl': { dimension: 'volume', toBase: 10 },
   'cup': { dimension: 'volume', toBase: 236.588 },
@@ -49,6 +51,9 @@ export const UNIT_CONVERSIONS = {
 
   // Count (base: pcs)
   'pcs': { dimension: 'count', toBase: 1 },
+  'pcs.': { dimension: 'count', toBase: 1 },
+  'pc.': { dimension: 'count', toBase: 1 },
+  'nos.': { dimension: 'count', toBase: 1 },
   'pc': { dimension: 'count', toBase: 1 },
   'piece': { dimension: 'count', toBase: 1 },
   'pieces': { dimension: 'count', toBase: 1 },
@@ -65,6 +70,8 @@ export const UNIT_CONVERSIONS = {
   'packs': { dimension: 'pack', toBase: 1 },
   'packet': { dimension: 'pack', toBase: 1 },
   'packets': { dimension: 'pack', toBase: 1 },
+  'pkt': { dimension: 'pack', toBase: 1 },
+  'pkts': { dimension: 'pack', toBase: 1 },
   'bottle': { dimension: 'bottle', toBase: 1 },
   'bottles': { dimension: 'bottle', toBase: 1 },
   'can': { dimension: 'can', toBase: 1 },
@@ -94,6 +101,23 @@ export function convertUnits(quantity, fromUnit, toUnit) {
   if (fromConv.dimension !== toConv.dimension) return quantity;
 
   return (quantity * fromConv.toBase) / toConv.toBase;
+}
+
+// Recipe/waste quantity → this stock item's unit, the same way the server does it: same kind of unit
+// (g↔kg, ml↔L) converts; another kind (g↔pcs) only through the item's "1 <unit> = N <unit>" setting
+// (item.unitEquivalent). Returns null when it can't convert (the server skips such lines).
+export function convertForItem(quantity, fromUnit, item) {
+  const to = item && item.unit;
+  if (!fromUnit || !to) return quantity;
+  const f = UNIT_CONVERSIONS[String(fromUnit).toLowerCase().trim()];
+  const t = UNIT_CONVERSIONS[String(to).toLowerCase().trim()];
+  if (String(fromUnit).toLowerCase().trim() === String(to).toLowerCase().trim()) return quantity;
+  if (f && t && f.dimension === t.dimension) return (quantity * f.toBase) / t.toBase;
+  const eq = item.unitEquivalent;
+  const per = Number(eq && eq.quantity);
+  const e = eq && UNIT_CONVERSIONS[String(eq.unit || '').toLowerCase().trim()];
+  if (!e || !(per > 0) || !f || f.dimension !== e.dimension) return null;
+  return ((quantity * f.toBase) / e.toBase) / per;
 }
 
 // Supplier bill line: the unit its quantity was bought in. Not chosen (a scanned bill, an older line) →
