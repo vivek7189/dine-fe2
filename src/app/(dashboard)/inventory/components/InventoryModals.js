@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
-import { convertUnits, UNIT_CONVERSIONS } from '../utils/unitConversion';
+import { convertUnits, UNIT_CONVERSIONS, billLineUnit } from '../utils/unitConversion';
 
 // Supplier bills are in kg / litres even when the stock item is kept in g / ml. The invoice line offers
 // the bigger unit and converts on save (12 kg cumin → 12000 g), so stock never shows "12 g".
@@ -1543,13 +1543,15 @@ function AddRequisitionModal(props) {
   const {
     showAddRequisitionModal, setShowAddRequisitionModal,
     requisitionFormData, setRequisitionFormData,
-    inventoryItems, getModalStyles, getModalContentStyles
+    inventoryItems, getModalStyles, getModalContentStyles,
+    handleCreateRequisition, savingRequisition, error, setError
   } = props;
+  const close = () => { if (!savingRequisition) { setShowAddRequisitionModal(false); if (setError) setError(null); } };
 
   const addItem = () => {
     setRequisitionFormData({
       ...requisitionFormData,
-      items: [...requisitionFormData.items, { inventoryItemId: '', quantity: 1 }]
+      items: [...requisitionFormData.items, { inventoryItemId: '', quantity: '' }]
     });
   };
 
@@ -1567,14 +1569,9 @@ function AddRequisitionModal(props) {
   };
 
   return (
-    <ModalShell show={showAddRequisitionModal} onClose={() => setShowAddRequisitionModal(false)} title="Add Purchase Requisition"
+    <ModalShell show={showAddRequisitionModal} onClose={close} title="Add Purchase Requisition"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={() => setShowAddRequisitionModal(false)}>Cancel</button>
-          <button style={primaryBtn} onClick={() => setShowAddRequisitionModal(false)}><FaSave /> Create Requisition</button>
-        </div>
-      }>
+      footer={<ModalFooter error={error} saving={savingRequisition} onCancel={close} onSave={() => handleCreateRequisition && handleCreateRequisition()} label="Create Requisition" />}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Priority</label>
@@ -1596,18 +1593,26 @@ function AddRequisitionModal(props) {
           <label style={{ ...labelStyle, marginBottom: 0 }}>Items Needed</label>
           <button style={secondaryBtn} onClick={addItem}><FaPlus /> Add Item</button>
         </div>
-        {requisitionFormData.items.map((item, index) => (
-          <div key={index} style={rowStyle}>
-            <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
-              onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
-              <option value="">Select item</option>
-              {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
-            </FocusSelect>
-            <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" min="1" placeholder="Qty"
-              value={item.quantity} onChange={e => updateItem(index, 'quantity', parseInt(e.target.value) || 1)} />
-            <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
+        {requisitionFormData.items.map((item, index) => {
+          const inv = inventoryItems.find(i => i.id === item.inventoryItemId);
+          return (
+          <div key={index} style={{ marginBottom: '10px' }}>
+            <div style={rowStyle}>
+              <FocusSelect style={{ ...inputStyle, flex: 2 }} value={item.inventoryItemId}
+                onChange={e => updateItem(index, 'inventoryItemId', e.target.value)}>
+                <option value="">Select item</option>
+                {inventoryItems.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </FocusSelect>
+              <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder={inv?.unit ? `Qty (${inv.unit})` : 'Qty'}
+                value={item.quantity} onChange={e => updateItem(index, 'quantity', e.target.value)} />
+              <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
+            </div>
+            {inv && (
+              <div style={{ fontSize: '11.5px', marginTop: '3px', color: '#64748b' }}>In stock: {fmtQty(inv.currentStock)} {inv.unit || ''}</div>
+            )}
           </div>
-        ))}
+          );
+        })}
         {requisitionFormData.items.length === 0 && (
           <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px', fontSize: '14px' }}>No items added yet</p>
         )}
@@ -1765,7 +1770,7 @@ function AddInvoiceModal(props) {
           const inv = inventoryItems.find(i => i.id === item.inventoryItemId);
           const needsPick = !item.inventoryItemId;
           const units = invoiceBuyUnits(inv?.unit);
-          const buyUnit = item.buyUnit || inv?.unit || '';
+          const buyUnit = inv ? billLineUnit(item.buyUnit, inv.unit) : (item.buyUnit || '');
           const amt = invoiceLineAmount(item);
           return (
           <div key={index} style={{ marginBottom: '10px' }}>
@@ -1795,6 +1800,20 @@ function AddInvoiceModal(props) {
                 Adds {Math.round(convertUnits(parseFloat(item.quantity), buyUnit, inv.unit) * 1000) / 1000} {inv.unit} to stock
               </div>
             )}
+            {(() => {
+              // The whole bill typed as quantity 1 → a price per unit far above what this item costs.
+              const q = parseFloat(item.quantity) || 0, old = Number(inv?.costPerUnit) || 0;
+              if (!inv || !(q > 0) || !(amt > 0) || !(old > 0)) return null;
+              const stockQty = inv.unit && buyUnit ? convertUnits(q, buyUnit, inv.unit) : q;
+              const per = stockQty > 0 ? amt / stockQty : 0;
+              if (!(per > old * 5)) return null;
+              const f = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });
+              return (
+                <div data-testid="invoice-price-jump" style={{ fontSize: '11.5px', marginTop: '3px', color: '#b91c1c', fontWeight: 600 }}>
+                  That is {f(per)} per {inv.unit} — {inv.name} costs {f(old)} per {inv.unit} now. Check the quantity.
+                </div>
+              );
+            })()}
             {item.scannedName && (
               <div style={{ fontSize: '11.5px', marginTop: '3px', color: needsPick ? '#b45309' : '#64748b' }}>
                 On the invoice: “{item.scannedName}”{needsPick ? ' (pick the matching stock item, or ' : ''}
@@ -1850,7 +1869,7 @@ function AddInvoiceModal(props) {
 }
 
 // Shared line editor for returns / transfers: pick an item, enter a quantity (decimals ok), see stock.
-function StockLines({ items, setItems, inventoryItems, emptyText }) {
+function StockLines({ items, setItems, inventoryItems, emptyText, withValue = false, formatCurrency }) {
   const byId = (id) => inventoryItems.find(inv => inv.id === id);
   const update = (index, patch) => { const next = [...items]; next[index] = { ...next[index], ...patch }; setItems(next); };
   return (
@@ -1873,11 +1892,21 @@ function StockLines({ items, setItems, inventoryItems, emptyText }) {
               </FocusSelect>
               <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder={inv?.unit ? `Qty (${inv.unit})` : 'Qty'}
                 value={item.quantity} onChange={e => update(index, { quantity: e.target.value })} />
+              {withValue && (
+                <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" placeholder={inv?.unit ? `Price per ${inv.unit}` : 'Price'}
+                  value={item.costPerUnit ?? ''} onChange={e => update(index, { costPerUnit: e.target.value })} />
+              )}
               <button style={dangerBtn} onClick={() => setItems(items.filter((_, i) => i !== index))}><FaTrash /></button>
             </div>
             {inv && (
               <div style={{ fontSize: '11.5px', marginTop: '3px', color: over ? '#b91c1c' : '#64748b' }}>
                 In stock: {fmtQty(inv.currentStock)} {inv.unit || ''}{inv.location ? ` · at ${inv.location}` : ''}{over ? ' — more than you have' : ''}
+                {withValue && qty > 0 && (() => {
+                  // Value of what goes back: the price typed here, else the item's cost now.
+                  const per = parseFloat(item.costPerUnit) > 0 ? parseFloat(item.costPerUnit) : (Number(inv.costPerUnit) || 0);
+                  const m = (n) => (formatCurrency ? formatCurrency(n) : n.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+                  return <span data-testid="return-line-value"> · value {m(Math.round(qty * per * 100) / 100)} ({m(per)} per {inv.unit || 'unit'})</span>;
+                })()}
               </div>
             )}
           </div>
@@ -1909,7 +1938,7 @@ function AddReturnModal(props) {
     returnFormData, setReturnFormData,
     suppliers, purchaseOrders, inventoryItems,
     handleCreateReturn, savingReturn, error, setError,
-    getModalStyles, getModalContentStyles
+    getModalStyles, getModalContentStyles, formatCurrency
   } = props;
 
   const update = (field, value) => setReturnFormData({ ...returnFormData, [field]: value });
@@ -1970,7 +1999,7 @@ function AddReturnModal(props) {
       </div>
 
       <StockLines items={returnFormData.items} setItems={items => update('items', items)}
-        inventoryItems={inventoryItems} emptyText="Add the items going back" />
+        inventoryItems={inventoryItems} emptyText="Add the items going back" withValue formatCurrency={formatCurrency} />
 
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>

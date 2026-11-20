@@ -3418,24 +3418,20 @@ class ApiClient {
 
   // Customer Management endpoints
 
+  // getSuppliers keeps the list 10 min — clear it after every change (MFC: an edited phone looked unsaved).
   async createSupplier(restaurantId, supplierData) {
-    return this.request(`/api/suppliers/${restaurantId}`, {
-      method: 'POST',
-      body: supplierData,
-    });
+    try { return await this.request(`/api/suppliers/${restaurantId}`, { method: 'POST', body: supplierData }); }
+    finally { this.invalidateCache(`/api/suppliers/${restaurantId}`); }
   }
 
   async updateSupplier(restaurantId, supplierId, updateData) {
-    return this.request(`/api/suppliers/${restaurantId}/${supplierId}`, {
-      method: 'PATCH',
-      body: updateData,
-    });
+    try { return await this.request(`/api/suppliers/${restaurantId}/${supplierId}`, { method: 'PATCH', body: updateData }); }
+    finally { this.invalidateCache(`/api/suppliers/${restaurantId}`); }
   }
 
   async deleteSupplier(restaurantId, supplierId) {
-    return this.request(`/api/suppliers/${restaurantId}/${supplierId}`, {
-      method: 'DELETE',
-    });
+    try { return await this.request(`/api/suppliers/${restaurantId}/${supplierId}`, { method: 'DELETE' }); }
+    finally { this.invalidateCache(`/api/suppliers/${restaurantId}`); }
   }
 
   async getSupplier(restaurantId, supplierId) {
@@ -3475,17 +3471,13 @@ class ApiClient {
   }
 
   async createPurchaseRequisition(restaurantId, requisitionData) {
-    return this.request(`/api/purchase-requisitions/${restaurantId}`, {
-      method: 'POST',
-      body: JSON.stringify(requisitionData),
-    });
+    try { return await this.request(`/api/purchase-requisitions/${restaurantId}`, { method: 'POST', body: JSON.stringify(requisitionData) }); }
+    finally { this.invalidateCache(`/api/purchase-requisitions/${restaurantId}`); }
   }
 
   async updatePurchaseRequisition(restaurantId, reqId, updateData) {
-    return this.request(`/api/purchase-requisitions/${restaurantId}/${reqId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(updateData),
-    });
+    try { return await this.request(`/api/purchase-requisitions/${restaurantId}/${reqId}`, { method: 'PATCH', body: JSON.stringify(updateData) }); }
+    finally { this.invalidateCache(`/api/purchase-requisitions/${restaurantId}`); }
   }
 
   async convertRequisitionToPO(restaurantId, reqId, poData) {

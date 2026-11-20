@@ -61,7 +61,10 @@ export default function SoldAsIsTab({ restaurantId, isMobile, canUpdate, formatC
     try {
       const r = await apiClient.trackSoldAsIs(restaurantId, entries);
       const bad = (r.results || []).filter(x => !x.ok);
-      const msg = bad.length ? `${entries.length - bad.length} done, ${bad.length} failed` : okText;
+      // Already tracked (e.g. ticked again on an old copy of the list): the typed count is not applied.
+      const already = (r.results || []).filter(x => x.ok && x.alreadyTracked).length;
+      const msg = (bad.length ? `${entries.length - bad.length} done, ${bad.length} failed` : okText)
+        + (already ? ` · ${already} ${already === 1 ? 'was' : 'were'} already tracked, so the count did not change — use Receive to add stock` : '');
       onMessage?.(msg);
       setSavedNote(msg);
       setSelected({}); setStopId(null);

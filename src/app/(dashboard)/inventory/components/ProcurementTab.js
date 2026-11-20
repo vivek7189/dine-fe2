@@ -111,7 +111,7 @@ export default function ProcurementTab({
   isMobile, formatCurrency,
   setShowAddSupplierModal, setShowAddPurchaseOrderModal, setShowAddGRNModal,
   setShowAddRequisitionModal, setShowAddInvoiceModal, setShowAddReturnModal, setShowAddTransferModal,
-  handleUpdateReturnStatus, handleDeleteReturn, handleUpdateTransferStatus, handleDeleteTransfer,
+  handleUpdateReturnStatus, handleDeleteReturn, handleUpdateTransferStatus, handleDeleteTransfer, handleUpdateRequisitionStatus,
   handleDeleteSupplier, openEditSupplier, handleDeleteSupplierInvoice, handleUpdateOrderStatus, handleEditPurchaseOrder, handleEmailPurchaseOrder,
   getOrderStatusColor,
   startVoiceListeningPO, isListeningVoice, voiceTranscript, processingVoice, voiceError,
@@ -508,18 +508,28 @@ export default function ProcurementTab({
         <div style={tableWrap}>
           <table style={table}>
             <thead><tr>
-              <th style={th}>ID</th><th style={th}>Requested By</th><th style={th}>Items</th>
-              <th style={th}>Priority</th><th style={th}>Status</th><th style={th}>Date</th>
+              <th style={th}>Date</th><th style={th}>Requested By</th><th style={th}>Items</th>
+              <th style={th}>Priority</th><th style={th}>Status</th><th style={th}></th>
             </tr></thead>
             <tbody>
               {purchaseRequisitions.map(r => (
                 <tr key={r.id || r._id}>
-                  <td style={{ ...td, fontWeight: 600 }}>{r.requisitionNumber || r.id || r._id}</td>
-                  <td style={td}>{r.requestedBy || '-'}</td>
-                  <td style={td}>{r.items?.length || 0}</td>
+                  <td style={td}>{fmtDate(r.createdAt || r.date)}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{r.requestedByName || r.requestedByRole || '-'}</td>
+                  <td style={td}>
+                    {(r.items || []).map((it, k) => <div key={k}>{it.inventoryItemName || 'Item'} — {it.quantity} {it.unit || ''}</div>)}
+                    {r.reason ? <div style={{ fontSize: 12, color: '#6b7280' }}>{r.reason}</div> : null}
+                  </td>
                   <td style={td}>{priorityBadge(r.priority || 'low')}</td>
                   <td style={td}>{statusBadge(r.status, getOrderStatusColor)}</td>
-                  <td style={td}>{fmtDate(r.date)}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                    {permissions.update && handleUpdateRequisitionStatus && r.status === 'pending' && (
+                      <span style={{ display: 'inline-flex', gap: 6 }}>
+                        <button style={btnSmall('#ecfdf5', '#047857')} onClick={() => handleUpdateRequisitionStatus(r, 'approved')}><FaCheck size={10} /> Approve</button>
+                        <button style={btnSmall('#fef2f2', '#991b1b')} onClick={() => handleUpdateRequisitionStatus(r, 'rejected')}><FaTimes size={10} /> Reject</button>
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

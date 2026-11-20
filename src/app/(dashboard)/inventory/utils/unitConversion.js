@@ -95,3 +95,14 @@ export function convertUnits(quantity, fromUnit, toUnit) {
 
   return (quantity * fromConv.toBase) / toConv.toBase;
 }
+
+// Supplier bill line: the unit its quantity was bought in. Not chosen (a scanned bill, an older line) →
+// kg / L for items kept in g / ml, since bills are in kg and litres (MFC: "10" milk saved as 10 ml at
+// 78 per ml, "1" paneer as 1 g at 1,537 per g — stock value in crores).
+export function billLineUnit(chosen, stockUnit) {
+  if (chosen) return chosen;
+  const dim = UNIT_CONVERSIONS[String(stockUnit || '').toLowerCase().trim()]?.dimension;
+  if (dim === 'mass') return 'kg';
+  if (dim === 'volume') return 'l';
+  return stockUnit || '';
+}

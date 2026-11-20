@@ -314,6 +314,7 @@ export default function StockTab({
                 <th style={thStyle}>Today&apos;s Usage</th>
                 <th style={thStyle}>Today&apos;s Waste</th>
                 <th style={thStyle}>Cost</th>
+                <th style={thStyle}>Value</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Supplier</th>
                 <th style={{ ...thStyle, width: 120, position: 'sticky', right: 0, background: '#f9fafb', zIndex: 2, borderLeft: '1px solid #e5e7eb' }}>Actions</th>
               </tr>
@@ -425,6 +426,10 @@ export default function StockTab({
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', color: '#374151', fontWeight: 500 }}>
                       {formatCurrency(item.costPerUnit)}
+                    </td>
+                    <td data-testid="stock-row-value" style={{ ...tdStyle, textAlign: 'center', color: '#111827', fontWeight: 600 }}>
+                      {/* stock on hand × cost per unit (MFC: cost shown, but no value per item) */}
+                      {formatCurrency(Math.round((Number(item.currentStock) || 0) * (Number(item.costPerUnit) || 0) * 100) / 100)}
                     </td>
                     <td style={{ ...tdStyle, color: '#6b7280', fontSize: 13 }}>
                       {item.supplier || '\u2014'}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
-import { convertUnits } from '../utils/unitConversion';
+import { convertUnits, billLineUnit } from '../utils/unitConversion';
 import { restaurantToday, ymd } from '../../../../lib/restaurantTime';
 import { emptyOpening } from '../../../../components/suppliers/SupplierOpeningModal';
 
@@ -145,6 +145,7 @@ export default function useInventory() {
   const [savingInvoice, setSavingInvoice] = useState(false);
   const [savingGRN, setSavingGRN] = useState(false);
   const [savingReturn, setSavingReturn] = useState(false);
+  const [savingRequisition, setSavingRequisition] = useState(false);
   const [savingTransfer, setSavingTransfer] = useState(false);
   const invoiceFileInputRef = useRef(null);
   const invoiceCostWarnRef = useRef(''); // the price check below asks once; Save again keeps the lines as typed
@@ -1366,7 +1367,8 @@ export default function useInventory() {
       return;
     }
     // Whole bill typed as quantity 1 (MFC: Mushrooms "1 g for 1,897" → cost 1,897 per g, stock value in crores).
-    // Ask once when a line's price per stock unit is over 20× the item's current price; Save again keeps it.
+    // Ask once when a line's price per stock unit is over 5× the item's current price; Save again keeps it.
+    // (20× let Brinjal 575 → 5,705 per kg through.)
     if (invoiceFormData.addToStock !== false) {
       const m = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });
       const jumps = [];
@@ -1374,10 +1376,10 @@ export default function useInventory() {
         const inv = inventoryItems.find(x => x.id === it.inventoryItemId);
         const oldCost = Number(inv?.costPerUnit) || 0;
         const qty = parseFloat(it.quantity) || 0;
-        const buyUnit = it.buyUnit || inv?.unit || '';
+        const buyUnit = inv ? billLineUnit(it.buyUnit, inv.unit) : (it.buyUnit || '');
         const stockQty = inv?.unit && buyUnit ? convertUnits(qty, buyUnit, inv.unit) : qty;
         const newCost = stockQty > 0 ? lineAmount(it) / stockQty : 0;
-        if (oldCost > 0 && newCost > oldCost * 20) {
+        if (oldCost > 0 && newCost > oldCost * 5) {
           jumps.push(`${inv.name}: ${m(qty)} ${buyUnit} for ${m(lineAmount(it))} = ${m(newCost)} per ${inv.unit} (now ${m(oldCost)} per ${inv.unit})`);
         }
       }
@@ -1399,7 +1401,7 @@ export default function useInventory() {
         const qty = parseFloat(it.quantity) || 0;
         const amount = Math.round(lineAmount(it) * 100) / 100;
         // Bought in kg / L, stocked in g / ml → convert the quantity; the rate follows (per stock unit).
-        const buyUnit = it.buyUnit || invItem?.unit || '';
+        const buyUnit = invItem ? billLineUnit(it.buyUnit, invItem.unit) : (it.buyUnit || '');
         const stockQty = invItem?.unit && buyUnit ? convertUnits(qty, buyUnit, invItem.unit) : qty;
         const q = Math.round(stockQty * 1000) / 1000;
         return {
@@ -1525,8 +1527,50 @@ export default function useInventory() {
     try { const d = await apiClient.getSupplierReturns(currentRestaurant.id); setSupplierReturns(d.returns || []); } catch (_) {}
   };
   const cleanLines = (items = []) => items
-    .map(it => ({ inventoryItemId: it.inventoryItemId, quantity: parseFloat(it.quantity) || 0 }))
+    .map(it => ({ inventoryItemId: it.inventoryItemId, quantity: parseFloat(it.quantity) || 0,
+      ...(parseFloat(it.costPerUnit) > 0 ? { costPerUnit: parseFloat(it.costPerUnit) } : {}) }))
     .filter(it => it.inventoryItemId && it.quantity > 0);
+
+  // ── Purchase requisitions: staff ask for stock, the owner / manager approves or rejects ──
+  // (MFC: "Create Requisition" only closed the window — nothing was ever saved.)
+  const reloadRequisitions = async () => {
+    try { const d = await apiClient.getPurchaseRequisitions(currentRestaurant.id); setPurchaseRequisitions(d.requisitions || []); } catch (_) {}
+  };
+  const handleCreateRequisition = async () => {
+    if (!currentRestaurant || savingRequisition) return;
+    const f = requisitionFormData;
+    const items = (f.items || []).filter(it => it.inventoryItemId && parseFloat(it.quantity) > 0).map(it => {
+      const inv = inventoryItems.find(i => i.id === it.inventoryItemId);
+      return { inventoryItemId: it.inventoryItemId, inventoryItemName: inv?.name || '', quantity: parseFloat(it.quantity), unit: inv?.unit || '',
+        currentStock: Number(inv?.currentStock) || 0, minStock: Number(inv?.minStock) || 0 };
+    });
+    if (items.length === 0) { setError('Add at least one item with a quantity'); return; }
+    let requestedByName = '';
+    try { const u = JSON.parse(localStorage.getItem('user') || 'null'); requestedByName = u?.name || u?.displayName || ''; } catch (_) {}
+    try {
+      setSavingRequisition(true); setError(null);
+      await apiClient.createPurchaseRequisition(currentRestaurant.id, {
+        items, priority: f.priority || 'medium', reason: f.reason || '', notes: f.notes || '', requestedByName,
+      });
+      setSuccess('Requisition sent');
+      setShowAddRequisitionModal(false);
+      setRequisitionFormData({ items: [], priority: 'medium', reason: '', notes: '' });
+      reloadRequisitions();
+    } catch (error) {
+      setError(error.message || 'Could not send the requisition');
+    } finally { setSavingRequisition(false); }
+  };
+  const handleUpdateRequisitionStatus = async (r, status) => {
+    if (!currentRestaurant || !r) return;
+    if (!confirm(status === 'approved' ? 'Approve this requisition?' : 'Reject this requisition?')) return;
+    try {
+      setError(null);
+      // No purchase order is made automatically — create it from Purchase Orders when you order.
+      await apiClient.updatePurchaseRequisition(currentRestaurant.id, r.id || r._id, { status, autoCreatePO: false });
+      setSuccess(status === 'approved' ? 'Requisition approved' : 'Requisition rejected');
+      reloadRequisitions();
+    } catch (error) { setError(error.message || 'Could not update the requisition'); }
+  };
 
   const handleCreateReturn = async () => {
     if (!currentRestaurant || savingReturn) return;
@@ -1700,6 +1744,7 @@ export default function useInventory() {
     handleEmailPurchaseOrder, handleUpdateOrderStatus,
     startVoiceListeningPO, generateReport, handleInvoiceOCR, handleSaveInvoice, savingInvoice, handleDeleteSupplierInvoice, handleCreateGRN, savingGRN,
     handleCreateReturn, handleUpdateReturnStatus, handleDeleteReturn, savingReturn,
+    handleCreateRequisition, handleUpdateRequisitionStatus, savingRequisition,
     handleCreateTransfer, handleUpdateTransferStatus, handleDeleteTransfer, savingTransfer,
     loadInventoryData, loadSCMData,
     addLowStockToPO, openLowStockPO, lowStockPOLines,

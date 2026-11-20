@@ -501,6 +501,7 @@ export default function InventoryManagement() {
             handleDeleteSupplierInvoice={inventory.handleDeleteSupplierInvoice}
             handleUpdateReturnStatus={inventory.handleUpdateReturnStatus}
             handleDeleteReturn={inventory.handleDeleteReturn}
+            handleUpdateRequisitionStatus={inventory.handleUpdateRequisitionStatus}
             handleUpdateTransferStatus={inventory.handleUpdateTransferStatus}
             handleDeleteTransfer={inventory.handleDeleteTransfer}
             handleUpdateOrderStatus={inventory.handleUpdateOrderStatus}
