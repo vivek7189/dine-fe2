@@ -93,23 +93,27 @@ export default function useWaste(currentRestaurant, inventoryItems = []) {
   }, [wastePeriod, wasteReason]);
 
   // Quick waste entry (spillage, damage, etc.)
-  const handleCreateWasteEntry = async () => {
-    if (!rid || !wasteFormData.itemId || !wasteFormData.quantity) {
+  // `override` lets the window pass the picked item directly (state set just before is not read yet).
+  // Returns true when saved.
+  const handleCreateWasteEntry = async (override = {}) => {
+    const f = { ...wasteFormData, ...override };
+    if (!rid || !f.itemId || !f.quantity) {
       setError('Select an item and enter quantity');
-      return;
+      return false;
     }
-    const item = inventoryItems.find(i => i.id === wasteFormData.itemId);
-    if (!item) { setError('Item not found'); return; }
+    const item = inventoryItems.find(i => i.id === f.itemId);
+    if (!item) { setError('Item not found'); return false; }
+    if (loading) return false;
 
-    setLoading(true);
+    setLoading(true); setError(null);
     try {
       await apiClient.createWasteEntry(rid, {
-        itemId: wasteFormData.itemId,
+        itemId: f.itemId,
         itemName: item.name,
-        quantity: Number(wasteFormData.quantity),
+        quantity: Number(f.quantity),
         unit: item.unit,
-        reason: wasteFormData.reason,
-        notes: wasteFormData.notes,
+        reason: f.reason,
+        notes: f.notes,
         source: 'MANUAL',
         costPerUnit: item.costPerUnit || 0
       });
@@ -117,8 +121,10 @@ export default function useWaste(currentRestaurant, inventoryItems = []) {
       setShowQuickWasteModal(false);
       setWasteFormData({ itemId: '', quantity: '', reason: 'spillage', notes: '' });
       await loadWasteData();
+      return true;
     } catch (e) {
       setError(e.message || 'Failed to log waste');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -128,52 +134,42 @@ export default function useWaste(currentRestaurant, inventoryItems = []) {
   const handleCreateDishWasteEntry = async (recipe, quantity, reason, notes) => {
     if (!rid || !recipe || !quantity) {
       setError('Select a dish and enter quantity');
-      return;
+      return false;
     }
-    setLoading(true);
+    if (loading) return false;
+    setLoading(true); setError(null);
     try {
-      // Compute ingredient quantities based on recipe servings
-      const servings = recipe.servings || 1;
-      const multiplier = quantity / servings;
-      const wasteItems = (recipe.ingredients || []).map(ing => ({
-        name: ing.inventoryItemName || ing.name,
-        quantity: ing.quantity * multiplier,
-        unit: ing.unit,
-        recipeName: recipe.name,
-        recipeId: recipe.id,
-        estimatedServings: quantity,
-        ingredients: [{
-          name: ing.inventoryItemName || ing.name,
-          qty: Math.round(ing.quantity * multiplier * 100) / 100,
-          unit: ing.unit,
-          inventoryItemId: ing.inventoryItemId,
-        }],
-        totalWasteValue: 0
-      }));
-
-      // Use confirm-leftover-waste to deduct ingredients via FIFO
-      await apiClient.confirmLeftoverWaste(rid, [{
-        name: recipe.name,
-        quantity,
-        unit: 'servings',
-        recipeName: recipe.name,
-        recipeId: recipe.id,
-        estimatedServings: quantity,
-        ingredients: (recipe.ingredients || []).map(ing => ({
-          name: ing.inventoryItemName || ing.name,
-          qty: Math.round(ing.quantity * multiplier * 100) / 100,
-          unit: ing.unit,
-          inventoryItemId: ing.inventoryItemId,
-        })),
-        totalWasteValue: 0
-      }]);
+      if (recipe.menuItemId) {
+        // Same recipe / unit rules as a sale, and the reason + note are kept on the waste entries.
+        await apiClient.wasteDish(rid, { menuItemId: recipe.menuItemId, quantity, reason, notes });
+      } else {
+        // A recipe not linked to a dish: its ingredients come off as an end-of-day leftover.
+        const multiplier = quantity / (recipe.servings || 1);
+        await apiClient.confirmLeftoverWaste(rid, [{
+          name: recipe.name,
+          quantity,
+          unit: 'servings',
+          recipeName: recipe.name,
+          recipeId: recipe.id,
+          estimatedServings: quantity,
+          ingredients: (recipe.ingredients || []).filter(ing => ing.inventoryItemId).map(ing => ({
+            name: ing.inventoryItemName || ing.name,
+            qty: Math.round(ing.quantity * multiplier * 100) / 100,
+            unit: ing.unit,
+            inventoryItemId: ing.inventoryItemId,
+          })),
+          totalWasteValue: 0
+        }]);
+      }
 
       setSuccess(`Logged waste for ${quantity} ${recipe.name}. Ingredients deducted.`);
       setShowQuickWasteModal(false);
       setWasteFormData({ itemId: '', quantity: '', reason: 'spillage', notes: '' });
       await loadWasteData();
+      return true;
     } catch (e) {
       setError(e.message || 'Failed to log dish waste');
+      return false;
     } finally {
       setLoading(false);
     }

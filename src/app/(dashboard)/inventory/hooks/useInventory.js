@@ -483,6 +483,8 @@ export default function useInventory() {
       costPerUnit: item.costPerUnit, supplier: item.supplier, description: item.description,
       barcode: item.barcode, mfgDate: item.mfgDate || '', expiryDays: item.expiryDays || '', expiryDate: item.expiryDate || '',
       expiryMethod: item.expiryDays ? 'days' : (item.expiryDate ? 'date' : 'days'), location: item.location,
+      purchaseUnit: item.purchaseUnit || '', conversionFactor: item.conversionFactor || 1,
+      unitEquivalent: item.unitEquivalent || null,
       // The stock this form started from: the server applies only the change the user makes
       // (currentStock − baseStock) to the LIVE stock, so sales made while the form is open are kept.
       baseStock: item.currentStock,
@@ -560,11 +562,13 @@ export default function useInventory() {
   };
 
   // Quick stock update (batch adjust multiple items at once)
+  const quickStockSaving = useRef(false);
   const handleQuickStockUpdate = async (updates) => {
-    if (!currentRestaurant) return;
+    if (!currentRestaurant || quickStockSaving.current) return; // a double tap must not add the change twice
+    quickStockSaving.current = true;
+    const done = new Set();
     try {
       setLoading(true); setError(null);
-      let updatedCount = 0;
       for (const update of updates) {
         if (update.adjustment !== 0) {
           const item = inventoryItems.find(i => i.id === update.itemId);
@@ -576,20 +580,23 @@ export default function useInventory() {
             if (update.mfgDate) updateData.mfgDate = update.mfgDate;
             if (update.expiryDays) updateData.expiryDays = update.expiryDays;
             await apiClient.updateInventoryItem(currentRestaurant.id, update.itemId, updateData);
-            updatedCount++;
+            done.add(update.itemId);
           }
         }
       }
-      if (updatedCount > 0) {
-        setSuccess(`Updated ${updatedCount} item(s) successfully!`);
+      if (done.size > 0) {
+        setSuccess(`Updated ${done.size} item(s) successfully!`);
         loadInventoryData();
       }
       setShowQuickStockModal(false);
       setQuickStockItems([]);
     } catch (error) {
       console.error('Error updating stock:', error);
-      setError(error.message || 'Failed to update stock');
-    } finally { setLoading(false); }
+      // Keep only the rows that were NOT saved, so pressing Save again can't add the saved ones twice.
+      setQuickStockItems(prev => prev.filter(q => !done.has(q.itemId)));
+      if (done.size > 0) loadInventoryData();
+      setError(`${done.size ? `${done.size} saved. ` : ''}${error.message || 'Failed to update stock'}`);
+    } finally { setLoading(false); quickStockSaving.current = false; }
   };
 
   // Quick order handlers
@@ -681,7 +688,7 @@ export default function useInventory() {
   };
 
   const handleAddSupplier = async () => {
-    if (!currentRestaurant) return;
+    if (!currentRestaurant || loading) return; // no duplicate supplier on a double tap
     if (!supplierFormData.name || !supplierFormData.contact) {
       setError('Supplier name and contact person are required'); return;
     }
@@ -773,18 +780,23 @@ export default function useInventory() {
   };
 
   const handleAddPurchaseOrder = async () => {
-    if (!currentRestaurant) return;
-    if (!purchaseOrderFormData.supplierId || purchaseOrderFormData.items.length === 0) {
+    if (!currentRestaurant || loading) return;
+    // Rows where no item was picked are left out (they used to be saved as blank lines).
+    const poItems = (purchaseOrderFormData.items || []).filter(it => it.inventoryItemId);
+    if (!purchaseOrderFormData.supplierId || poItems.length === 0) {
       setError('Please select a supplier and add at least one item'); return;
     }
     try {
       setLoading(true); setError(null);
       if (editingPurchaseOrderId) {
-        // Edit existing PO (backend re-snapshots units + recomputes total; locked once received)
+        // Edit existing PO (backend re-snapshots units + recomputes total; locked once received).
+        // A note typed here is added to the PO's notes (the server appends it).
+        const note = String(purchaseOrderFormData.notes || '').trim();
         await apiClient.updatePurchaseOrder(currentRestaurant.id, editingPurchaseOrderId, {
           supplierId: purchaseOrderFormData.supplierId,
-          items: purchaseOrderFormData.items,
+          items: poItems,
           expectedDeliveryDate: purchaseOrderFormData.expectedDeliveryDate || null,
+          ...(note ? { notes: note } : {}),
         });
         setSuccess('Purchase order updated successfully!');
         setShowAddPurchaseOrderModal(false);
@@ -792,7 +804,7 @@ export default function useInventory() {
         loadInventoryData();
         return;
       }
-      const response = await apiClient.createPurchaseOrder(currentRestaurant.id, purchaseOrderFormData);
+      const response = await apiClient.createPurchaseOrder(currentRestaurant.id, { ...purchaseOrderFormData, items: poItems });
       if (response.order) {
         setSuccess('Purchase order created successfully!');
         setShowAddPurchaseOrderModal(false);
@@ -1007,11 +1019,16 @@ export default function useInventory() {
       servings: recipe.servings || 1,
       prepTime: recipe.prepTime || 0,
       cookTime: recipe.cookTime || 0,
+      // Keep sub-recipe lines and not-yet-linked lines as they are (saving must not drop them).
       ingredients: (Array.isArray(recipe.ingredients) ? recipe.ingredients : []).map(ing => ({
         inventoryItemId: ing.inventoryItemId || '',
         inventoryItemName: ing.inventoryItemName || '',
         quantity: ing.quantity || 0,
         unit: ing.unit || '',
+        ...(ing.type ? { type: ing.type } : {}),
+        ...(ing.subRecipeId ? { subRecipeId: ing.subRecipeId } : {}),
+        ...(ing.unmapped ? { unmapped: true } : {}),
+        ...(ing._unmatched ? { _unmatched: true } : {}),
       })),
       instructions: Array.isArray(recipe.instructions) && recipe.instructions.length > 0
         ? recipe.instructions
@@ -1030,7 +1047,7 @@ export default function useInventory() {
     try {
       setLoading(true);
       const updatedIngredients = recipeFormData.ingredients
-        .filter(ing => ing.inventoryItemId)
+        .filter(ing => (ing.type === 'recipe' ? !!ing.subRecipeId : !!(ing.inventoryItemId || String(ing.inventoryItemName || '').trim())))
         .map(ing => {
           const item = inventoryItems.find(i => i.id === ing.inventoryItemId);
           return {

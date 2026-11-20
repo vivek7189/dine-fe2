@@ -462,6 +462,24 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
           </span>
         </div>
       )}
+      <div style={{ ...fieldWrap, gridColumn: '1 / -1' }}>
+        <label style={labelStyle}>Recipes use another kind of unit? (optional)</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: '#374151', whiteSpace: 'nowrap' }}>1 {u} =</span>
+          <FocusInput type="text" inputMode="decimal" data-testid="unit-equivalent-qty" style={{ maxWidth: 110 }}
+            value={formData.unitEquivalent?.quantity ?? ''}
+            onChange={e => update('unitEquivalent', { unit: formData.unitEquivalent?.unit || 'g', quantity: e.target.value })}
+            placeholder="e.g. 180" />
+          <select value={formData.unitEquivalent?.unit || 'g'} data-testid="unit-equivalent-unit"
+            onChange={e => update('unitEquivalent', { unit: e.target.value, quantity: formData.unitEquivalent?.quantity ?? '' })}
+            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}>
+            {['g', 'kg', 'ml', 'L', 'pcs'].map(x => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+        <span style={{ fontSize: 11, color: '#6b7280' }}>
+          Only when a recipe uses a different kind of unit — e.g. Apple counted in pcs, recipe in g: 1 pcs = 180 g. Without it those recipe lines don&apos;t reduce stock.
+        </span>
+      </div>
       <SectionHeader icon={<FaReceipt size={10} color="white" />} title="Tracking" />
       <div style={fieldWrap}>
         <label style={labelStyle}>Supplier</label>
@@ -717,7 +735,7 @@ function AddSupplierModal(props) {
     showAddSupplierModal, setShowAddSupplierModal,
     supplierFormData, setSupplierFormData, handleAddSupplier,
     editingSupplierId, closeSupplierModal, handleDeleteSupplier,
-    getModalStyles, getModalContentStyles
+    getModalStyles, getModalContentStyles, loading, error,
   } = props;
   const editing = !!editingSupplierId;
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -736,12 +754,7 @@ function AddSupplierModal(props) {
   return (
     <ModalShell show={showAddSupplierModal} onClose={close} title={editing ? 'Edit Supplier' : 'Add Supplier'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={close}>Cancel</button>
-          <button style={primaryBtn} onClick={handleAddSupplier}><FaSave /> {editing ? 'Save Changes' : 'Add Supplier'}</button>
-        </div>
-      }>
+      footer={<ModalFooter error={showAddSupplierModal ? error : null} saving={!!loading} onCancel={close} onSave={handleAddSupplier} label={editing ? 'Save Changes' : 'Add Supplier'} />}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Name *</label>
@@ -821,7 +834,7 @@ function AddPurchaseOrderModal(props) {
     purchaseOrderFormData, setPurchaseOrderFormData,
     handleAddPurchaseOrder, addPurchaseOrderItem, removePurchaseOrderItem, updatePurchaseOrderItem,
     suppliers, inventoryItems, getModalStyles, getModalContentStyles, formatCurrency,
-    editingPurchaseOrderId, resetPurchaseOrderForm, addLowStockToPO
+    editingPurchaseOrderId, resetPurchaseOrderForm, addLowStockToPO, loading, error,
   } = props;
   const [lowStockNote, setLowStockNote] = useState('');
   useEffect(() => { if (!showAddPurchaseOrderModal) setLowStockNote(''); }, [showAddPurchaseOrderModal]);
@@ -835,12 +848,7 @@ function AddPurchaseOrderModal(props) {
   return (
     <ModalShell show={showAddPurchaseOrderModal} onClose={closePOModal} title={isEditingPO ? 'Edit Purchase Order' : 'Create Purchase Order'}
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button style={secondaryBtn} onClick={closePOModal}>Cancel</button>
-          <button style={primaryBtn} onClick={handleAddPurchaseOrder}><FaSave /> {isEditingPO ? 'Update Order' : 'Create Order'}</button>
-        </div>
-      }>
+      footer={<ModalFooter error={showAddPurchaseOrderModal ? error : null} saving={!!loading} onCancel={closePOModal} onSave={handleAddPurchaseOrder} label={isEditingPO ? 'Update Order' : 'Create Order'} />}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Supplier *</label>
@@ -911,7 +919,7 @@ function AddPurchaseOrderModal(props) {
       <div style={fieldWrap}>
         <label style={labelStyle}>Notes</label>
         <FocusTextarea value={purchaseOrderFormData.notes}
-          onChange={e => setPurchaseOrderFormData({ ...purchaseOrderFormData, notes: e.target.value })} placeholder="Order notes" />
+          onChange={e => setPurchaseOrderFormData({ ...purchaseOrderFormData, notes: e.target.value })} placeholder={isEditingPO ? 'Add a note (added to the order notes)' : 'Order notes'} />
       </div>
     </ModalShell>
   );
@@ -1214,11 +1222,14 @@ function QuickStockModal(props) {
     showQuickStockModal, setShowQuickStockModal,
     inventoryItems, handleQuickStockUpdate,
     quickStockItems, setQuickStockItems,
-    getModalStyles, getModalContentStyles
+    getModalStyles, getModalContentStyles, loading, error,
   } = props;
 
   const [filter, setFilter] = useState('');
   const [batchInfo, setBatchInfo] = useState({}); // { [itemId]: { mfgDate, expiryDays } }
+  const [typed, setTyped] = useState({}); // { [itemId]: text as typed } — so "2.5", "-" and "" can be typed
+  // Fresh each time it opens (it stays mounted while hidden).
+  useEffect(() => { if (showQuickStockModal) { setBatchInfo({}); setTyped({}); } }, [showQuickStockModal]);
 
   const getAdjustment = (itemId) => {
     const entry = quickStockItems.find(q => q.itemId === itemId);
@@ -1234,8 +1245,15 @@ function QuickStockModal(props) {
   };
 
   const adjustBy = (itemId, delta) => {
-    const newAdj = getAdjustment(itemId) + delta;
+    const newAdj = Math.round((getAdjustment(itemId) + delta) * 10000) / 10000;
+    setTyped(t => { const n = { ...t }; delete n[itemId]; return n; });
     setAdjustment(itemId, newAdj);
+  };
+
+  const typeAdjustment = (itemId, text) => {
+    setTyped(t => ({ ...t, [itemId]: text }));
+    const n = parseFloat(String(text).replace(',', '.'));
+    setAdjustment(itemId, Number.isFinite(n) ? Math.round(n * 10000) / 10000 : 0);
   };
 
   const updateBatchInfo = (itemId, field, value) => {
@@ -1259,6 +1277,7 @@ function QuickStockModal(props) {
     setShowQuickStockModal(false);
     setQuickStockItems([]);
     setBatchInfo({});
+    setTyped({});
   };
 
   return (
@@ -1266,11 +1285,12 @@ function QuickStockModal(props) {
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          {error ? <span style={{ flex: 1, alignSelf: 'center', color: '#b91c1c', fontSize: '13px', fontWeight: 600 }}>{error}</span> : null}
           <button style={secondaryBtn} onClick={handleClose}>Cancel</button>
-          <button style={{ ...primaryBtn, opacity: changedCount === 0 ? 0.5 : 1 }}
-            disabled={changedCount === 0}
-            onClick={() => { handleQuickStockUpdate(quickStockItems.filter(q => q.adjustment !== 0)); setBatchInfo({}); }}>
-            <FaSave /> Save All Changes {changedCount > 0 && `(${changedCount})`}
+          <button style={{ ...primaryBtn, opacity: changedCount === 0 || loading ? 0.5 : 1 }}
+            disabled={changedCount === 0 || loading}
+            onClick={() => { handleQuickStockUpdate(quickStockItems.filter(q => q.adjustment !== 0)); }}>
+            <FaSave /> {loading ? 'Saving…' : <>Save All Changes {changedCount > 0 && `(${changedCount})`}</>}
           </button>
         </div>
       }>
@@ -1323,7 +1343,7 @@ function QuickStockModal(props) {
                     backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
                   }}><FaMinus /></button>
-                  <input type="number" value={adj} onChange={e => setAdjustment(item.id, parseInt(e.target.value) || 0)}
+                  <input type="text" inputMode="decimal" value={typed[item.id] !== undefined ? typed[item.id] : adj} onChange={e => typeAdjustment(item.id, e.target.value)}
                     style={{
                       width: '60px', textAlign: 'center', padding: '8px 4px', borderRadius: '8px',
                       border: '1px solid #e5e7eb', fontSize: '14px', fontWeight: 600, outline: 'none'
@@ -2070,7 +2090,7 @@ function QuickOrderModal(props) {
     quickOrderResult, setQuickOrderResult,
     menuItems,
     handleParseQuickOrderText, handleParseQuickOrderImage, handleConfirmQuickOrder,
-    getModalStyles, getModalContentStyles, isMobile, formatCurrency,
+    getModalStyles, getModalContentStyles, isMobile, formatCurrency, error,
   } = props;
 
   const [menuSearch, setMenuSearch] = useState('');
@@ -2162,6 +2182,9 @@ function QuickOrderModal(props) {
   return (
     <ModalShell show={showQuickOrderModal} onClose={handleCloseQuickOrder} title="Log External Order"
       getModalStyles={getModalStyles} getModalContentStyles={getModalContentStyles}>
+      {error && !quickOrderResult && (
+        <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, fontWeight: 600 }}>{error}</div>
+      )}
 
       {/* Deduction Results Screen */}
       {quickOrderResult ? (

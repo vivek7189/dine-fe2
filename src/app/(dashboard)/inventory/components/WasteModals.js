@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaTrash, FaBoxOpen, FaSearch, FaUtensils, FaCubes } from 'react-icons/fa';
 import { fmtQty } from '../utils/formatQty';
+import { convertUnits } from '../utils/unitConversion';
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #e8ecf1',
@@ -290,7 +291,7 @@ function SearchableSelector({ inventoryItems, recipes, selected, onSelect }) {
 
 // ─── Quick Waste Modal (Upgraded — Items + Dishes) ──────────────────────────
 function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
-  const { showQuickWasteModal, setShowQuickWasteModal, wasteFormData, setWasteFormData, handleCreateWasteEntry, handleCreateDishWasteEntry, loading } = waste;
+  const { showQuickWasteModal, setShowQuickWasteModal, wasteFormData, setWasteFormData, handleCreateWasteEntry, handleCreateDishWasteEntry, loading, error } = waste;
   const [selected, setSelected] = useState(null);
 
   const isDish = selected?.type === 'dish';
@@ -305,7 +306,8 @@ function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
     return (recipe.ingredients || []).map(ing => {
       const invItem = (inventoryItems || []).find(i => i.id === ing.inventoryItemId);
       const qty = Math.round(ing.quantity * multiplier * 100) / 100;
-      const cost = invItem ? qty * (invItem.costPerUnit || 0) : 0;
+      // Recipe unit (e.g. g) → the item's stock unit (e.g. kg) before using its cost per stock unit.
+      const cost = invItem ? convertUnits(qty, ing.unit || invItem.unit, invItem.unit) * (invItem.costPerUnit || 0) : 0;
       return {
         name: ing.inventoryItemName || ing.name,
         qty,
@@ -324,17 +326,13 @@ function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
     ? wasteFormData.quantity * (selected.costPerUnit || 0)
     : 0;
 
-  const handleSubmit = () => {
-    if (isDish) {
-      handleCreateDishWasteEntry(selected.raw, Number(wasteFormData.quantity), wasteFormData.reason, wasteFormData.notes);
-      setSelected(null);
-    } else {
-      // Set the itemId from selected item before submitting
-      setWasteFormData(prev => ({ ...prev, itemId: selected?.id }));
-      // Need to call directly since setState is async
-      handleCreateWasteEntry();
-      setSelected(null);
-    }
+  // The picked item stays selected until the save works (a failed save keeps everything to retry).
+  const handleSubmit = async () => {
+    if (loading) return;
+    const ok = isDish
+      ? await handleCreateDishWasteEntry(selected.raw, Number(wasteFormData.quantity), wasteFormData.reason, wasteFormData.notes)
+      : await handleCreateWasteEntry({ itemId: selected?.id });
+    if (ok) setSelected(null);
   };
 
   const handleClose = () => {
@@ -360,7 +358,8 @@ function QuickWasteModal({ waste, inventoryItems, recipes, formatCurrency }) {
       onClose={handleClose}
       title="Log Waste"
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {error && <span style={{ flex: '1 1 200px', fontSize: '12.5px', color: '#b91c1c' }}>{error}</span>}
           <button style={secondaryBtn} onClick={handleClose}>Cancel</button>
           <button
             style={{

@@ -5,6 +5,7 @@ import { getApiBase } from '@/lib/apiBase';
 import { createPortal } from 'react-dom';
 import { FaMagic, FaTrash, FaCheck, FaTimes, FaArrowLeft, FaChevronDown, FaChevronUp, FaExclamationTriangle, FaLeaf, FaDrumstickBite, FaFileImage, FaCloudUploadAlt, FaPaste, FaKeyboard, FaCamera, FaTruck, FaFileExcel } from 'react-icons/fa';
 import apiClient from '../../../../lib/api';
+import { useCurrency } from '../../../../contexts/CurrencyContext';
 
 const primaryBtn = {
   padding: '11px 24px', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
@@ -391,6 +392,7 @@ function StepInput({ text, setText, imageFiles, setImageFiles, inputMode, setInp
 // ─── Step 2: Preview ────────────────────────────────────────────────────────
 
 function InvoiceInventorySection({ items, onRemove, onChange, supplierInfo }) {
+  const cur = useCurrency().getCurrencySymbol();
   if (!items || items.length === 0) return null;
   return (
     <div style={{ marginBottom: '24px' }}>
@@ -404,7 +406,7 @@ function InvoiceInventorySection({ items, onRemove, onChange, supplierInfo }) {
           <span>Supplier: <strong>{supplierInfo.name || 'Unknown'}</strong></span>
           {supplierInfo.invoiceNumber && <span style={{ color: '#64748b' }}>&bull; Invoice #{supplierInfo.invoiceNumber}</span>}
           {supplierInfo.date && <span style={{ color: '#64748b' }}>&bull; {supplierInfo.date}</span>}
-          {supplierInfo.total && <span style={{ color: '#64748b' }}>&bull; Total: ₹{supplierInfo.total}</span>}
+          {supplierInfo.total && <span style={{ color: '#64748b' }}>&bull; Total: {cur}{supplierInfo.total}</span>}
         </div>
       )}
       <h3 style={sectionTitleStyle}>
@@ -422,7 +424,7 @@ function InvoiceInventorySection({ items, onRemove, onChange, supplierInfo }) {
               <th style={tableHeaderStyle}>Category</th>
               <th style={tableHeaderStyle}>Unit</th>
               <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Qty</th>
-              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Cost/Unit (₹)</th>
+              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Cost/Unit ({cur})</th>
               <th style={{ ...tableHeaderStyle, width: '40px' }}></th>
             </tr>
           </thead>
@@ -463,6 +465,7 @@ function InvoiceInventorySection({ items, onRemove, onChange, supplierInfo }) {
 }
 
 function InventoryItemsSection({ items, onRemove, onChange }) {
+  const cur = useCurrency().getCurrencySymbol();
   if (!items || items.length === 0) return null;
   return (
     <div style={{ marginBottom: '24px' }}>
@@ -480,7 +483,7 @@ function InventoryItemsSection({ items, onRemove, onChange }) {
               <th style={tableHeaderStyle}>Name</th>
               <th style={tableHeaderStyle}>Unit</th>
               <th style={tableHeaderStyle}>Category</th>
-              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Cost (₹)</th>
+              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Cost ({cur})</th>
               <th style={{ ...tableHeaderStyle, width: '40px' }}></th>
             </tr>
           </thead>
@@ -544,6 +547,7 @@ function MenuCategoriesSection({ categories, onRemove }) {
 }
 
 function MenuItemsSection({ items, onRemove, onChange }) {
+  const cur = useCurrency().getCurrencySymbol();
   if (!items || items.length === 0) return null;
   return (
     <div style={{ marginBottom: '24px' }}>
@@ -559,7 +563,7 @@ function MenuItemsSection({ items, onRemove, onChange }) {
           <thead>
             <tr>
               <th style={tableHeaderStyle}>Name</th>
-              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Price (₹)</th>
+              <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Price ({cur})</th>
               <th style={tableHeaderStyle}>Category</th>
               <th style={tableHeaderStyle}>Veg/Non-Veg</th>
               <th style={{ ...tableHeaderStyle, width: '40px' }}></th>

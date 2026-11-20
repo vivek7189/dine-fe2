@@ -314,7 +314,7 @@ export default function StockTab({
                 <th style={thStyle}>Today&apos;s Usage</th>
                 <th style={thStyle}>Today&apos;s Waste</th>
                 <th style={thStyle}>Cost</th>
-                <th style={thStyle}>Value</th>
+                <th style={thStyle} title="Stock × latest cost per unit">Value</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>Supplier</th>
                 <th style={{ ...thStyle, width: 120, position: 'sticky', right: 0, background: '#f9fafb', zIndex: 2, borderLeft: '1px solid #e5e7eb' }}>Actions</th>
               </tr>
