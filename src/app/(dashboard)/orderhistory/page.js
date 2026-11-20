@@ -110,6 +110,7 @@ import {
   FaFileExcel,
 } from 'react-icons/fa';
 import useTimedMenu from '../../../hooks/useTimedMenu';
+import { useSummaryGroups, GroupsByDayTable, downloadGroupsByDayExcel, groupsByDayCsv, GROUP_PREFIX } from '../../../components/GroupsByDayReport';
 
 // Customer orders that are not placed yet: waiting for approval (QR order approval) or for the
 // guest's Paytm payment. Nothing prints / edits / bills / advances until they are.
@@ -2755,6 +2756,17 @@ const OrderHistory = () => {
   };
 
   const summaryCatOf = (i) => i.category || 'Uncategorized';
+  // Report groups (Food, Drinks, …) set up in Reports → Category Sales: pick a group in the category
+  // filter, or see "Groups by day". Restaurants without groups see nothing new.
+  const summaryGroupsInfo = useSummaryGroups(restaurantId, summaryData?.dateRange?.start, summaryData?.dateRange?.end, salesScopeOwn);
+  const summaryHasGroups = summaryGroupsInfo.groups.length > 0;
+  const summaryPickedGroup = summaryCategory.startsWith(GROUP_PREFIX) ? summaryCategory.slice(GROUP_PREFIX.length) : '';
+  const summaryInCategory = useCallback((cat) => {
+    if (!summaryCategory) return true;
+    if (summaryPickedGroup) return summaryGroupsInfo.groupOf(cat) === summaryPickedGroup;
+    return cat === summaryCategory;
+  }, [summaryCategory, summaryPickedGroup, summaryGroupsInfo.groupOf]); // eslint-disable-line react-hooks/exhaustive-deps
+  const summaryCategoryLabel = summaryPickedGroup ? (summaryGroupsInfo.groups.find(g => g.id === summaryPickedGroup)?.name || summaryPickedGroup) : summaryCategory;
   // Categories present in this period (for the filter), biggest revenue first
   const summaryCategoryOptions = useMemo(() => {
     const m = {};
@@ -2769,13 +2781,20 @@ const OrderHistory = () => {
 
   // A category that isn't in the newly loaded period → back to All
   useEffect(() => {
-    if (summaryCategory && !summaryCategoryOptions.some(c => c.name === summaryCategory)) setSummaryCategory('');
-  }, [summaryCategoryOptions, summaryCategory]);
+    if (!summaryCategory) return;
+    if (summaryCategory.startsWith(GROUP_PREFIX)) {
+      if (summaryGroupsInfo.groups.length && !summaryGroupsInfo.groups.some(g => GROUP_PREFIX + g.id === summaryCategory)) setSummaryCategory('');
+      return;
+    }
+    if (!summaryCategoryOptions.some(c => c.name === summaryCategory)) setSummaryCategory('');
+  }, [summaryCategoryOptions, summaryCategory, summaryGroupsInfo.groups]);
+  // "Groups by day" only while the restaurant has groups
+  useEffect(() => { if (summaryGroupBy === 'groups' && !summaryHasGroups) setSummaryGroupBy('item'); }, [summaryGroupBy, summaryHasGroups]);
 
   const filteredSummaryItems = useMemo(() => {
     if (!summaryData?.items) return [];
     let items = [...summaryData.items];
-    if (summaryCategory) items = items.filter(i => summaryCatOf(i) === summaryCategory);
+    if (summaryCategory) items = items.filter(i => summaryInCategory(summaryCatOf(i)));
     if (summarySearch) {
       const term = summarySearch.toLowerCase();
       items = items.filter(i => i.name.toLowerCase().includes(term) || summaryCatOf(i).toLowerCase().includes(term));
@@ -2788,7 +2807,7 @@ const OrderHistory = () => {
       return summarySortDir === 'desc' ? -cmp : cmp;
     });
     return items;
-  }, [summaryData?.items, summarySearch, summarySortBy, summarySortDir, summaryCategory]);
+  }, [summaryData?.items, summarySearch, summarySortBy, summarySortDir, summaryCategory, summaryInCategory]);
 
   // Category totals of the items shown (same filter/search), for the "Categories" view + export
   const summaryCategoryRows = useMemo(() => {
@@ -2822,7 +2841,7 @@ const OrderHistory = () => {
     const catRows = [['#', 'Category', 'Items', 'Qty', 'Revenue', '% of Total']];
     summaryCategoryRows.forEach((c, idx) => catRows.push([idx + 1, c.name, c.items, c.quantity, Math.round(c.revenue * 100) / 100, pct(c.revenue)]));
     catRows.push(['', 'Total', items.length, items.reduce((s, i) => s + i.quantity, 0), totalRev, '100%']);
-    const suffix = `${summaryPeriod}${summaryCategory ? '-' + summaryCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
+    const suffix = `${summaryPeriod}${summaryCategoryLabel ? '-' + summaryCategoryLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
     return { itemRows, catRows, suffix };
   };
 
@@ -2860,7 +2879,7 @@ const OrderHistory = () => {
     const days = {};
     d.items.forEach(it => {
       const category = itemCat[String(it.name || '').toLowerCase()] || catName[it.cat] || it.cat || 'Uncategorized';
-      if (summaryCategory && category !== summaryCategory) return;
+      if (!summaryInCategory(category)) return;
       const name = it.size ? `${it.name} · ${it.size}` : it.name;
       if (term && !String(name).toLowerCase().includes(term) && !category.toLowerCase().includes(term)) return;
       Object.keys(it.qty || {}).forEach(day => {
@@ -2877,7 +2896,7 @@ const OrderHistory = () => {
     });
     return Object.values(days).sort((a, b) => a.day.localeCompare(b.day))
       .map(({ byKey, ...g }) => ({ ...g, revenue: Math.round(g.revenue * 100) / 100, items: g.items.sort((x, y) => y.revenue - x.revenue) }));
-  }, [summaryDaily.data, summaryData?.items, summaryCategory, summarySearch]);
+  }, [summaryDaily.data, summaryData?.items, summaryCategory, summarySearch, summaryInCategory]);
   const summaryDayLabel = (day) => {
     const dt = new Date(`${day}T12:00:00Z`);
     return Number.isNaN(dt.getTime()) ? day : dt.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -2908,7 +2927,7 @@ const OrderHistory = () => {
     rows.push(['Total', '', '', q, r2(rev)]);
     dayRows.push(['Total', '', q, r2(rev)]);
     itemRows.push(['Total', '', '', r2(q), r2(rev)]);
-    const suffix = `${summaryPeriod}${summaryCategory ? '-' + summaryCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
+    const suffix = `${summaryPeriod}${summaryCategoryLabel ? '-' + summaryCategoryLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''}`;
     return { rows, dayRows, itemRows, suffix };
   };
 
@@ -6952,7 +6971,7 @@ const OrderHistory = () => {
                   </h3>
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Category filter + Items / Categories view */}
-                    {summaryCategoryOptions.length > 0 && (
+                    {summaryCategoryOptions.length > 0 && summaryGroupBy !== 'groups' && (
                       <select
                         value={summaryCategory}
                         onChange={e => setSummaryCategory(e.target.value)}
@@ -6960,17 +6979,31 @@ const OrderHistory = () => {
                         className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 bg-white max-w-[180px] focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none"
                       >
                         <option value="">All categories</option>
-                        {summaryCategoryOptions.map(c => (
+                        {summaryHasGroups ? (
+                          <>
+                            <optgroup label="Groups">
+                              {summaryGroupsInfo.groups.map(g => (
+                                <option key={g.id} value={GROUP_PREFIX + g.id}>{g.name} (group)</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Categories">
+                              {summaryCategoryOptions.map(c => (
+                                <option key={c.name} value={c.name}>{c.name} ({c.items})</option>
+                              ))}
+                            </optgroup>
+                          </>
+                        ) : summaryCategoryOptions.map(c => (
                           <option key={c.name} value={c.name}>{c.name} ({c.items})</option>
                         ))}
                       </select>
                     )}
                     <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
-                      {[['item', 'Items'], ['category', 'Categories'], ['date', 'Date-wise']].map(([key, label]) => (
+                      {[['item', 'Items'], ['category', 'Categories'], ['date', 'Date-wise'], ...(summaryHasGroups ? [['groups', 'Groups by day']] : [])].map(([key, label]) => (
                         <button
                           key={key}
                           type="button"
                           onClick={() => setSummaryGroupBy(key)}
+                          data-testid={`summary-view-${key}`}
                           className={`px-2.5 py-1.5 ${summaryGroupBy === key ? 'bg-rose-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                         >
                           {label}
@@ -6981,6 +7014,15 @@ const OrderHistory = () => {
                     <button
                       onClick={() => {
                         // CSV = what is on screen: items (with Category), category totals, or day × item (Date-wise)
+                        if (summaryGroupBy === 'groups') {
+                          const g = groupsByDayCsv(summaryGroupsInfo.data);
+                          if (!g) { alert(summaryGroupsInfo.loading ? 'Sales by group are still loading — please try again in a moment.' : (summaryGroupsInfo.error || 'No sales to download for this date range.')); return; }
+                          const csvG = g.map(r => r.map(c => typeof c === 'string' && /[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c).join(',')).join('\n');
+                          const urlG = URL.createObjectURL(new Blob([csvG], { type: 'text/csv' }));
+                          const aG = document.createElement('a'); aG.href = urlG; aG.download = `sales-by-group-${summaryPeriod}.csv`;
+                          document.body.appendChild(aG); aG.click(); aG.remove(); URL.revokeObjectURL(urlG);
+                          return;
+                        }
                         if (summaryGroupBy === 'date' && !summaryDailyRows.length) { alert(summaryDaily.loading ? 'Day-by-day sales are still loading — please try again in a moment.' : (summaryDaily.error || 'No sales to download for this date range.')); return; }
                         const { itemRows, catRows, suffix } = buildItemSalesExport();
                         const rows = summaryGroupBy === 'date' ? buildDailySalesExport().rows : summaryGroupBy === 'category' ? catRows : itemRows;
@@ -6998,6 +7040,11 @@ const OrderHistory = () => {
                     <button
                       onClick={async () => {
                         try {
+                          if (summaryGroupBy === 'groups') {
+                            const done = await downloadGroupsByDayExcel(summaryGroupsInfo.data, summaryPeriod);
+                            if (!done) alert(summaryGroupsInfo.loading ? 'Sales by group are still loading — please try again in a moment.' : (summaryGroupsInfo.error || 'No sales to download for this date range.'));
+                            return;
+                          }
                           const XLSX = await import('xlsx');
                           const wb = XLSX.utils.book_new();
                           if (summaryGroupBy === 'date') {
@@ -7030,7 +7077,7 @@ const OrderHistory = () => {
                       <FaFileExcel className="text-green-600" /> Excel
                     </button>
                     {/* Search */}
-                    <div className="relative">
+                    {summaryGroupBy !== 'groups' && <div className="relative">
                       <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
                       <input type="text" placeholder={t('orderHistory.searchItems')} value={displaySummarySearch} onChange={e => {
                         const val = e.target.value;
@@ -7039,9 +7086,12 @@ const OrderHistory = () => {
                         summarySearchDebounceRef.current = setTimeout(() => setSummarySearch(val), 300);
                       }}
                         className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm w-44 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none" />
-                    </div>
+                    </div>}
                   </div>
                 </div>
+                {summaryGroupBy === 'groups' && (
+                  <GroupsByDayTable data={summaryGroupsInfo.data} loading={summaryGroupsInfo.loading} error={summaryGroupsInfo.error} formatCurrency={formatCurrency} />
+                )}
                 {summaryGroupBy === 'date' && (() => {
                   if (summaryDaily.loading || (!summaryDaily.data && !summaryDaily.error)) {
                     return <div className="text-center py-12 text-gray-400 text-sm">Loading day-by-day sales…</div>;
@@ -7231,7 +7281,7 @@ const OrderHistory = () => {
                           <tr className="bg-gray-50 border-t-2 border-gray-200 font-bold">
                             <td className="px-4 py-3"></td>
                             <td className="px-4 py-3 text-gray-800">{t('orderHistory.total')}</td>
-                            <td className="px-4 py-3 text-xs text-gray-500 font-semibold">{summaryCategory || ''}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500 font-semibold">{summaryCategoryLabel || ''}</td>
                             <td className="px-4 py-3 text-center">
                               <span className="inline-flex items-center justify-center bg-blue-100 text-blue-800 font-bold text-sm px-3 py-0.5 rounded-full">{totalQty}</span>
                             </td>
