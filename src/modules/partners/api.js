@@ -11,7 +11,7 @@ export const partnerToken = {
 };
 
 export class PartnerApiError extends Error {
-  constructor(message, status, code) { super(message); this.status = status; this.code = code; }
+  constructor(message, status, code, data) { super(message); this.status = status; this.code = code; this.data = data || {}; }
 }
 
 async function request(path, { method = 'GET', body, auth = true } = {}) {
@@ -29,13 +29,16 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
     partnerToken.clear();
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/partner/login')) window.location.href = '/partner/login';
   }
-  if (!res.ok || json.success === false) throw new PartnerApiError(json.error || 'Something went wrong. Please try again.', res.status, json.code);
+  if (!res.ok || json.success === false) throw new PartnerApiError(json.error || 'Something went wrong. Please try again.', res.status, json.code, json);
   return json;
 }
 
 const partnerApi = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password }, auth: false }),
   phoneLogin: (idToken) => request('/auth/phone', { method: 'POST', body: { idToken }, auth: false }),
+  googleLogin: (idToken) => request('/auth/google', { method: 'POST', body: { idToken }, auth: false }),
+  // after phone / Google sign-in said NEW_PARTNER: create the partner account (free, no approval)
+  signup: (d) => request('/auth/signup', { method: 'POST', body: d, auth: false }),
   apply: (data) => request('/apply', { method: 'POST', body: data, auth: false }),
   me: () => request('/me'),
   clients: () => request('/clients'),

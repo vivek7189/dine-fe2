@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Link from 'next/link';
 import CommonHeader from '../../components/CommonHeader';
 import Footer from '../../components/Footer';
 import { FaCheck, FaHandshake, FaTools, FaWallet, FaCalendarCheck, FaWhatsapp, FaSpinner, FaCheckCircle } from 'react-icons/fa';
@@ -110,9 +111,9 @@ export default function PartnersClient() {
             Introduce restaurants to DineOpen. We take care of the demo, setup and support. You receive 20% of their subscription every month, for as long as they stay with us.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="#apply" style={{ backgroundColor: RED, color: 'white', padding: '14px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>
-              Apply to become a partner
-            </a>
+            <Link href="/partner/login" style={{ backgroundColor: RED, color: 'white', padding: '14px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '16px', textDecoration: 'none' }}>
+              Join free with phone or Google
+            </Link>
             <a href="#how" style={{ backgroundColor: 'white', color: INK, padding: '14px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '16px', textDecoration: 'none', border: `1px solid ${BORDER}` }}>
               How it works
             </a>
@@ -217,8 +218,8 @@ export default function PartnersClient() {
 
         {/* Application form */}
         <section id="apply" style={section}>
-          <h2 style={h2}>Apply to become a partner</h2>
-          <p style={lede}>Takes 2 minutes. We reply within 2–3 business days on WhatsApp or email.</p>
+          <h2 style={h2}>Prefer to talk to us first?</h2>
+          <p style={lede}>Fastest way: <Link href="/partner/login" style={{ color: RED, fontWeight: 700 }}>sign up with your phone or Google</Link> — your partner account opens straight away. Or leave your details here and we reply within 2–3 business days.</p>
           <div style={{ ...card, maxWidth: '720px', margin: '0 auto', padding: '28px' }}>
             {done ? (
               <div style={{ textAlign: 'center', padding: '24px 8px' }}>
