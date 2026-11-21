@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import BlogOwnerCTA from '../../../components/BlogOwnerCTA';
 import { 
   FaArrowLeft, 
   FaCalendarAlt, 
@@ -246,6 +247,8 @@ export default function BlogClient({ blogPost }) {
           }}>
             <div dangerouslySetInnerHTML={{ __html: processedContent }} />
           </article>
+
+          <BlogOwnerCTA slug={blogPost.id} tags={blogPost.tags} />
 
           {/* Tags */}
           {blogPost.tags && blogPost.tags.length > 0 && (

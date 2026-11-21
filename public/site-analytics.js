@@ -36,4 +36,12 @@
   });
   window.posthog.register({ site_section: SECTION });
   window.posthog.capture('$pageview');
+
+  // Blog posts only: owner sign-up box (topic + country aware). Separate file; failures stay there.
+  if (/^\/(hi\/)?blog\/[^/]+/.test(location.pathname)) {
+    var c = document.createElement('script');
+    c.async = true;
+    c.src = '/blog-cta.js';
+    document.head.appendChild(c);
+  }
 })();
