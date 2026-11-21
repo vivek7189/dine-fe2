@@ -1960,9 +1960,11 @@ export const blogPostContent = {
     id: 'deliveroo-vs-just-eat-vs-uber-eats-commission-2026',
     title: 'Deliveroo vs Just Eat vs Uber Eats: Commission and Fees Compared (UK 2026)',
     excerpt: 'Compare Deliveroo, Just Eat and Uber Eats commission rates and fees for UK restaurants in 2026 — and how to cut what you pay with direct online ordering.',
+    seoTitle: 'Is Deliveroo, Uber Eats or Just Eat Cheaper? UK Fees 2026',
+    seoDescription: 'Just Eat is usually cheapest for restaurants (about 14% if you self-deliver); Deliveroo and Uber Eats take about 25-35%. See what you keep from a £20 order and how to cut fees.',
     author: 'Vivek Sharma',
     publishDate: '2026-07-25',
-    dateModified: '2026-07-25',
+    dateModified: '2026-11-22',
     readTime: '9 min read',
     category: 'Comparison',
     tags: ['Deliveroo commission', 'Just Eat fees', 'Uber Eats UK', 'restaurant delivery UK', 'delivery commission comparison'],
@@ -1970,6 +1972,24 @@ export const blogPostContent = {
         <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
           <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> In the UK, delivery-app commission usually runs <strong>Deliveroo ~25-35%</strong>, <strong>Uber Eats ~25-35%</strong>, and <strong>Just Eat ~14-30%</strong> depending on the plan (Just Eat has lower "order &amp; pay" style tiers when you self-deliver). All three also add fees. The cheapest channel is always your <strong>own online ordering</strong> at 0% commission — use the apps for discovery and move repeat customers to direct.</p>
         </div>
+
+        <h2>What does a restaurant keep from a £20 order?</h2>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Channel</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Typical commission</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">App takes</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">You keep*</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Just Eat</strong> (you deliver)</td><td style="padding:12px;border:1px solid #e5e7eb;">~14%</td><td style="padding:12px;border:1px solid #e5e7eb;">£2.80</td><td style="padding:12px;border:1px solid #e5e7eb;">£17.20</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Just Eat</strong> (their couriers)</td><td style="padding:12px;border:1px solid #e5e7eb;">up to ~30%</td><td style="padding:12px;border:1px solid #e5e7eb;">up to £6.00</td><td style="padding:12px;border:1px solid #e5e7eb;">from £14.00</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Uber Eats</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~25-35%</td><td style="padding:12px;border:1px solid #e5e7eb;">£5.00-£7.00</td><td style="padding:12px;border:1px solid #e5e7eb;">£13.00-£15.00</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Deliveroo</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~25-35%</td><td style="padding:12px;border:1px solid #e5e7eb;">£5.00-£7.00</td><td style="padding:12px;border:1px solid #e5e7eb;">£13.00-£15.00</td></tr>
+            <tr style="background:#f0fdf4;"><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Your own online ordering</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">0%</td><td style="padding:12px;border:1px solid #e5e7eb;">£0 (card fee only)</td><td style="padding:12px;border:1px solid #e5e7eb;">~£20 less card fee</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:13px;color:#6b7280;">*Before food, staff and delivery costs. The apps also charge VAT on their commission and may add per-order or marketing fees. Rates are negotiated per restaurant, so check your own contract.</p>
 
         <p>Deliveroo, Just Eat and Uber Eats put your restaurant in front of thousands of hungry people — and take a serious slice of every order for the privilege. Here is how their commission compares in 2026, and how UK restaurants reduce it.</p>
 
@@ -2006,11 +2026,18 @@ export const blogPostContent = {
         <p>Yes — the apps are great for being found, expensive for loyalty. A commission-free ordering page plus a loyalty nudge turns app customers into direct regulars. <a href="/uk">DineOpen</a> includes commission-free online ordering, QR dine-in, and Deliveroo/Just Eat/Uber Eats orders recorded on the same EPOS and tracked separately in reports, so you can run both without extra tools.</p>
 
         <h2>Frequently asked questions</h2>
+        <p><strong>Is Uber Eats or Deliveroo cheaper for restaurants?</strong> They are usually close: both typically take about 25% to 35% of the order. Uber Eats offers lower-commission plans in exchange for less visibility, and both can be cheaper if you deliver orders yourself.</p>
+        <p><strong>Is Just Eat or Uber Eats cheaper for restaurants?</strong> Just Eat is usually cheaper, at around 14% when you self-deliver against roughly 25% to 35% on Uber Eats. With Just Eat's own couriers the gap shrinks to similar levels.</p>
         <p><strong>Which is cheaper, Just Eat or Deliveroo?</strong> Just Eat usually has the lower headline commission, particularly if you self-deliver, while Deliveroo and Uber Eats tend to sit higher. The best value also depends on which app generates the most orders in your area.</p>
         <p><strong>How much does Deliveroo take from restaurants?</strong> Deliveroo commission typically ranges from about 25% to 35% of the order value depending on your plan, plus additional fees.</p>
         <p><strong>Can I reduce delivery app fees?</strong> You cannot avoid commission on marketplace orders, but you can move repeat customers to your own commission-free online ordering, self-deliver to unlock lower tiers, and price your delivery menu to protect margin.</p>
+
+        <h2>Sources</h2>
+        <p style="font-size:14px;color:#4b5563;">Rates are not published as one public price list; each app negotiates per restaurant. Figures above are typical ranges reported in 2026 by <a href="https://whito.co.uk/takeaways/guides/takeaway-delivery-app-commission-uk/" rel="nofollow noopener" target="_blank">Whito (UK takeaway commission guide)</a> and <a href="https://www.3s-pos.com/blogs/which-uk-food-delivery-platform-is-best-suited-for-your-restaurant" rel="nofollow noopener" target="_blank">3S POS</a>, the platforms' statements reported by the <a href="https://www.yorkshirepost.co.uk/read-this/heres-how-much-it-costs-a-business-when-you-order-food-via-uber-eats-deliveroo-and-just-eat-3128207" rel="nofollow noopener" target="_blank">Yorkshire Post</a>, and <a href="https://merchants.ubereats.com/gb/en/pricing" rel="nofollow noopener" target="_blank">Uber Eats UK merchant pricing</a>. Last checked 22 November 2026.</p>
     `,
     faqs: [
+      { q: "Is Uber Eats or Deliveroo cheaper for restaurants?", a: "They are usually close: both typically take about 25 to 35 percent of the order. Uber Eats offers lower-commission plans in exchange for less visibility, and both can be cheaper if you deliver orders yourself." },
+      { q: "Is Just Eat or Uber Eats cheaper for restaurants?", a: "Just Eat is usually cheaper, at around 14 percent when you self-deliver against roughly 25 to 35 percent on Uber Eats. With Just Eat's own couriers the gap shrinks to similar levels." },
       { q: "Which is cheaper for restaurants, Just Eat or Deliveroo?", a: "Just Eat usually has the lower headline commission, particularly if you self-deliver, while Deliveroo and Uber Eats tend to sit higher at around 25 to 35 percent. The best value also depends on which app generates the most orders in your area." },
       { q: "How much commission does Deliveroo take from restaurants?", a: "Deliveroo commission typically ranges from about 25 to 35 percent of the order value depending on your plan, plus additional fees." },
       { q: "Can UK restaurants reduce delivery app fees?", a: "You cannot avoid commission on marketplace orders, but you can move repeat customers to your own commission-free online ordering, self-deliver to unlock lower app tiers, and price your delivery menu to protect margin." },
