@@ -307,7 +307,7 @@ export const blogPosts = [
   {
     slug: 'best-pos-system-pubs-uk-2026',
     title: 'Best POS System for Pubs & Gastropubs in the UK 2026: Real Costs Compared',
-    excerpt: 'Compare 6 best POS systems for UK pubs and gastropubs 2026. Epos Now, DineOpen (from £8/mo), Lightspeed, Zettle compared. Tab management, split bills, VAT on alcohol, keg tracking.',
+    excerpt: 'Compare 6 best POS systems for UK pubs and gastropubs 2026. Epos Now, DineOpen (from £16/mo), Lightspeed, Zettle compared. Tab management, split bills, VAT on alcohol, keg tracking.',
     date: '2026-04-18',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -1658,7 +1658,7 @@ export const blogPostContent = {
     tags: ['best cafe EPOS', 'coffee shop EPOS UK', 'cafe POS UK', 'EPOS for coffee shops', 'counter service EPOS'],
     content: `
         <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> The best EPOS for a UK cafe is <strong>fast, contactless-first, and handles eat-in vs takeaway VAT automatically</strong>. Square and Zettle are great low-cost starting points; for cafes that want loyalty, online ordering and no contract, DineOpen runs on a tablet at £8/month with zero transaction-fee markup. Prioritise <strong>speed of service</strong> and <strong>correct VAT</strong> over a long feature list.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> The best EPOS for a UK cafe is <strong>fast, contactless-first, and handles eat-in vs takeaway VAT automatically</strong>. Square and Zettle are great low-cost starting points; for cafes that want loyalty, online ordering and no contract, DineOpen runs on a tablet at £16/month with zero transaction-fee markup. Prioritise <strong>speed of service</strong> and <strong>correct VAT</strong> over a long feature list.</p>
         </div>
 
         <p>A cafe POS has one main job: get a flat white and a pastry rung up and paid for in seconds, correctly. Deep table-management tools matter far less than raw speed and getting VAT right. Here is what to look for and how the options compare.</p>
@@ -1682,7 +1682,7 @@ export const blogPostContent = {
             <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">DineOpen</th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">Free app</td><td style="padding:12px;border:1px solid #e5e7eb;">£8/mo flat</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">Free app</td><td style="padding:12px;border:1px solid #e5e7eb;">£16/mo flat</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>VAT eat-in/takeaway</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Manual setup</td><td style="padding:12px;border:1px solid #e5e7eb;">Basic</td><td style="padding:12px;border:1px solid #e5e7eb;">Per order type</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Loyalty</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Add-on</td><td style="padding:12px;border:1px solid #e5e7eb;">Limited</td><td style="padding:12px;border:1px solid #e5e7eb;">Built-in</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
@@ -1698,14 +1698,14 @@ export const blogPostContent = {
         <p>See the full <a href="/for/cafes">cafe POS features</a> and the wider <a href="/blog/best-restaurant-pos-uk-2026">best UK restaurant POS</a> guide.</p>
 
         <h2>Frequently asked questions</h2>
-        <p><strong>What is the best EPOS for a coffee shop in the UK?</strong> The best coffee shop EPOS is fast, contactless-first, and handles eat-in vs takeaway VAT automatically. Square and Zettle suit very small cafes; systems like DineOpen add loyalty and online ordering at a flat £8/month with no contract.</p>
+        <p><strong>What is the best EPOS for a coffee shop in the UK?</strong> The best coffee shop EPOS is fast, contactless-first, and handles eat-in vs takeaway VAT automatically. Square and Zettle suit very small cafes; systems like DineOpen add loyalty and online ordering at a flat £16/month with no contract.</p>
         <p><strong>Does a cafe EPOS handle eat-in vs takeaway VAT?</strong> A good one does. It should let you set the correct 20% eat-in and 0% cold-takeaway rates per order type so your VAT return is accurate.</p>
-        <p><strong>How much does a cafe EPOS cost?</strong> From free (Zettle, Square base) to a flat £8/month, plus card processing. Avoid big upfront hardware costs and contracts for a small cafe.</p>
+        <p><strong>How much does a cafe EPOS cost?</strong> From free (Zettle, Square base) to a flat £16/month, plus card processing. Avoid big upfront hardware costs and contracts for a small cafe.</p>
     `,
     faqs: [
-      { q: "What is the best EPOS for a coffee shop in the UK?", a: "The best coffee shop EPOS is fast, contactless-first, and handles eat-in versus takeaway VAT automatically. Square and Zettle suit very small cafes, while systems like DineOpen add loyalty and online ordering at a flat 8 pounds per month with no contract." },
+      { q: "What is the best EPOS for a coffee shop in the UK?", a: "The best coffee shop EPOS is fast, contactless-first, and handles eat-in versus takeaway VAT automatically. Square and Zettle suit very small cafes, while systems like DineOpen add loyalty and online ordering at a flat 16 pounds per month with no contract." },
       { q: "Does a cafe EPOS handle eat-in versus takeaway VAT?", a: "A good one does. It should let you set the correct 20 percent eat-in rate and 0 percent cold-takeaway rate per order type so your VAT return stays accurate." },
-      { q: "How much does a cafe EPOS cost in the UK?", a: "From free with Zettle or Square base plans up to a flat 8 pounds per month, plus card processing. For a small cafe, avoid big upfront hardware costs and long contracts." },
+      { q: "How much does a cafe EPOS cost in the UK?", a: "From free with Zettle or Square base plans up to a flat 16 pounds per month, plus card processing. For a small cafe, avoid big upfront hardware costs and long contracts." },
       { q: "What matters most in a cafe POS?", a: "Speed of service and correct VAT matter most. A tight, thumb-friendly layout with quick modifiers, instant contactless payments, and automatic eat-in versus takeaway VAT beats a long feature list for counter service." },
     ],
   },
@@ -1854,7 +1854,7 @@ export const blogPostContent = {
     tags: ['EPOS Now cost', 'EPOS Now pricing', 'EPOS Now review', 'UK EPOS pricing', 'restaurant EPOS cost'],
     content: `
         <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> EPOS Now typically involves an <strong>upfront hardware bundle</strong> (commonly a few hundred pounds) plus a <strong>monthly software subscription</strong>, with <strong>card processing</strong> and any add-ons on top — often on a contract. Exact figures vary by the quote you are given, which is why it pays to compare. Flat-rate alternatives with no upfront hardware cost and no contract, like DineOpen at 8 pounds per month, are usually cheaper all-in for a small venue.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> EPOS Now typically involves an <strong>upfront hardware bundle</strong> (commonly a few hundred pounds) plus a <strong>monthly software subscription</strong>, with <strong>card processing</strong> and any add-ons on top — often on a contract. Exact figures vary by the quote you are given, which is why it pays to compare. Flat-rate alternatives with no upfront hardware cost and no contract, like DineOpen at 16 pounds per month, are usually cheaper all-in for a small venue.</p>
         </div>
 
         <p>EPOS Now is one of the most advertised EPOS brands in the UK, but its pricing is quote-based, so the number you are given can vary a lot. Here is how the cost breaks down, and what to watch for.</p>
@@ -1885,17 +1885,17 @@ export const blogPostContent = {
         </ul>
 
         <h2>How does that compare to alternatives?</h2>
-        <p>The main difference with modern cloud EPOS is the <em>shape</em> of the cost: no big upfront hardware bill (run it on a tablet), a low flat monthly fee, and no contract. For a small UK restaurant or cafe, that usually works out cheaper and lower-risk. <a href="/uk">DineOpen</a> starts at 8 pounds per month with VAT and allergen handling, Deliveroo/Just Eat sales tracked separately in reports, and no lock-in — see the full <a href="/blog/epos-now-alternatives-2026">EPOS Now alternatives</a> comparison.</p>
+        <p>The main difference with modern cloud EPOS is the <em>shape</em> of the cost: no big upfront hardware bill (run it on a tablet), a low flat monthly fee, and no contract. For a small UK restaurant or cafe, that usually works out cheaper and lower-risk. <a href="/uk">DineOpen</a> starts at 16 pounds per month with VAT and allergen handling, Deliveroo/Just Eat sales tracked separately in reports, and no lock-in — see the full <a href="/blog/epos-now-alternatives-2026">EPOS Now alternatives</a> comparison.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Does EPOS Now have an upfront cost?</strong> Yes, EPOS Now typically involves an upfront hardware bundle in addition to the monthly software subscription. Always confirm the hardware cost, the monthly fee, the processing rate, and the contract term in your quote.</p>
         <p><strong>Is EPOS Now on a contract?</strong> Many EPOS Now deals include a contract term. Check the length, the notice period, and any early-termination charges before you sign.</p>
-        <p><strong>Is there a cheaper alternative to EPOS Now?</strong> Yes. Flat-rate cloud EPOS systems with no upfront hardware cost and no contract, such as DineOpen at 8 pounds per month, are usually cheaper all-in for a small venue.</p>
+        <p><strong>Is there a cheaper alternative to EPOS Now?</strong> Yes. Flat-rate cloud EPOS systems with no upfront hardware cost and no contract, such as DineOpen at 16 pounds per month, are usually cheaper all-in for a small venue.</p>
     `,
     faqs: [
       { q: "Does EPOS Now have an upfront cost?", a: "Yes. EPOS Now typically involves an upfront hardware bundle in addition to a monthly software subscription. Always confirm the hardware cost, the monthly fee, the card-processing rate, and the contract term in your quote before signing." },
       { q: "Is EPOS Now on a contract?", a: "Many EPOS Now deals include a contract term. Check the length, the notice period, and any early-termination charges before you commit." },
-      { q: "Is there a cheaper alternative to EPOS Now?", a: "Yes. Flat-rate cloud EPOS systems with no upfront hardware cost and no contract, such as DineOpen at 8 pounds per month, are usually cheaper all-in for a small UK restaurant or cafe." },
+      { q: "Is there a cheaper alternative to EPOS Now?", a: "Yes. Flat-rate cloud EPOS systems with no upfront hardware cost and no contract, such as DineOpen at 16 pounds per month, are usually cheaper all-in for a small UK restaurant or cafe." },
       { q: "How much is EPOS Now per month?", a: "EPOS Now charges a monthly software subscription per till or location, plus card processing, on top of the initial hardware bundle. Because pricing is quote-based it varies, so compare the full all-in cost against alternatives." },
     ],
   },
@@ -2173,9 +2173,11 @@ export const blogPostContent = {
     id: 'reduce-doordash-uber-eats-commission-2026',
     title: 'How to Reduce DoorDash and Uber Eats Commission (US Restaurants, 2026)',
     excerpt: 'Third-party delivery apps take 15-30% per order. Here are 9 practical ways US restaurants cut DoorDash, Uber Eats and Grubhub commission in 2026 — from direct online ordering to smarter menu pricing.',
+    seoTitle: 'DoorDash vs Uber Eats Commission: Which Is Cheaper? (US 2026)',
+    seoDescription: 'DoorDash charges restaurants 15%, 25% or 30% by plan; Uber Eats 20%, 25% or 30%. Compare plans side by side, see what you keep from a $30 order, and 9 ways to cut fees.',
     author: 'Vivek Sharma',
     publishDate: '2026-07-25',
-    dateModified: '2026-07-25',
+    dateModified: '2026-11-22',
     readTime: '10 min read',
     category: 'Guide',
     tags: ['reduce DoorDash commission', 'Uber Eats fees', 'delivery commission', 'direct online ordering', 'restaurant delivery costs'],
@@ -2183,6 +2185,25 @@ export const blogPostContent = {
         <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
           <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> DoorDash, Uber Eats and Grubhub charge roughly <strong>15-30% commission</strong> per order. You can cut that by driving <strong>direct online ordering</strong> (your own site at 0% commission), choosing the lower-commission marketplace tiers, adding a modest delivery fee, pricing your delivery menu separately, offering pickup incentives, and using the apps mainly for <em>discovery</em> while moving repeat customers to direct ordering.</p>
         </div>
+
+        <h2>Does DoorDash or Uber Eats charge restaurants less?</h2>
+        <p>On the lowest plan, <strong>DoorDash is cheaper (15% vs 20%)</strong>. On the standard and top plans they match at 25% and 30%, although Uber Eats charges 30% on Plus-plan orders from Uber One members.</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:15px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Plan level</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">DoorDash</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Uber Eats</th>
+            <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">You keep from a $30 order*</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Lowest plan</td><td style="padding:12px;border:1px solid #e5e7eb;">Basic: 15%</td><td style="padding:12px;border:1px solid #e5e7eb;">Lite: 20%</td><td style="padding:12px;border:1px solid #e5e7eb;">$25.50 (DoorDash) / $24.00 (Uber Eats)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Standard plan</td><td style="padding:12px;border:1px solid #e5e7eb;">Plus: 25%</td><td style="padding:12px;border:1px solid #e5e7eb;">Plus: 25% (30% on Uber One orders)</td><td style="padding:12px;border:1px solid #e5e7eb;">$22.50</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Top plan</td><td style="padding:12px;border:1px solid #e5e7eb;">Premier: 30%</td><td style="padding:12px;border:1px solid #e5e7eb;">Premium: 30%</td><td style="padding:12px;border:1px solid #e5e7eb;">$21.00</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Pickup orders</td><td style="padding:12px;border:1px solid #e5e7eb;">6%</td><td style="padding:12px;border:1px solid #e5e7eb;">about 7-10%</td><td style="padding:12px;border:1px solid #e5e7eb;">about $27-28</td></tr>
+            <tr style="background:#f0fdf4;"><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Your own online ordering</strong></td><td style="padding:12px;border:1px solid #e5e7eb;" colspan="2">0% commission (card processing only)</td><td style="padding:12px;border:1px solid #e5e7eb;">about $29</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:13px;color:#6b7280;">*Before food, labor, packaging and card fees. Lower plans give a smaller delivery area and less visibility. Rates are for US restaurants with up to about 75 locations; larger chains negotiate their own terms, and some cities cap commission by law.</p>
 
         <p>Third-party delivery is a great way to get discovered — and a fast way to watch your margin disappear. On a 30% commission, a $30 order nets you $21 before food and labor cost. Here is how US restaurants claw that back in 2026, without disappearing from the apps entirely.</p>
 
@@ -2224,8 +2245,11 @@ export const blogPostContent = {
         <p><strong>How much commission does DoorDash take from restaurants?</strong> DoorDash marketplace commission typically ranges from about 15% to 30% per order depending on the partnership tier you choose, plus payment processing and optional marketing fees.</p>
         <p><strong>Can restaurants avoid delivery commission?</strong> You cannot avoid it on marketplace orders, but you can avoid it on direct orders. Building your own commission-free online ordering and moving repeat customers to it is the most effective way to cut total delivery costs.</p>
         <p><strong>Is it legal to charge more on DoorDash than in-store?</strong> Menu price-ups on delivery apps are widely used and permitted within each platform's policies. Keep the increase modest and check the current terms of each app.</p>
+        <h2>Sources</h2>
+        <p style="font-size:14px;color:#4b5563;"><a href="https://merchants.doordash.com/en-us/pricing" rel="nofollow noopener" target="_blank">DoorDash merchant pricing</a> (Basic 15%, Plus 25%, Premier 30%, pickup 6%); <a href="https://merchants.ubereats.com/us/en/pricing/" rel="nofollow noopener" target="_blank">Uber Eats US merchant pricing</a> and <a href="https://www.restaurantdive.com/news/uber-eats-increases-marketplace-fees/814294/" rel="nofollow noopener" target="_blank">Restaurant Dive</a> (Lite raised from 15% to 20%; Plus 25%, 30% on Uber One orders; Premium 30%). Last checked 22 November 2026.</p>
     `,
     faqs: [
+      { q: "Does DoorDash or Uber Eats have lower commission for restaurants?", a: "On the lowest plan DoorDash is cheaper: Basic is 15% against 20% on Uber Eats Lite. On the standard and top plans both charge 25% and 30%, and Uber Eats charges 30% on Plus-plan orders from Uber One members." },
       { q: "How much commission does DoorDash take from restaurants?", a: "DoorDash marketplace commission typically ranges from about 15 to 30 percent per order depending on the partnership tier you choose, plus payment processing and optional marketing fees." },
       { q: "Can restaurants avoid delivery commission entirely?", a: "You cannot avoid commission on marketplace orders, but you can avoid it on direct orders. Building your own commission-free online ordering and moving repeat customers to it is the most effective way to cut total delivery costs." },
       { q: "Is it legal to charge more on DoorDash than in-store?", a: "Menu price-ups on delivery apps are widely used and permitted within each platform's policies. Keep the increase modest and check the current terms of each app." },
@@ -2355,15 +2379,17 @@ export const blogPostContent = {
     id: 'epos-now-alternatives-2026',
     title: 'EPOS Now Alternatives 2026: 5 Cheaper, No-Lock-In UK Options',
     excerpt: 'Thinking of leaving EPOS Now? Here are the five best alternatives for UK restaurants, cafes and pubs in 2026 — compared on price, contracts, hardware and support, with no sales spin.',
+    seoTitle: 'Epos Now Alternatives UK 2026: 5 Options With No Contract',
+    seoDescription: 'Leaving Epos Now? Square, Lightspeed, SumUp, Zettle and DineOpen compared on monthly price, contract, hardware and card fees, for UK restaurants, cafes and pubs.',
     author: 'Vivek Sharma',
     publishDate: '2026-07-25',
-    dateModified: '2026-07-25',
+    dateModified: '2026-11-22',
     readTime: '10 min read',
     category: 'Comparison',
     tags: ['EPOS Now alternatives', 'restaurant EPOS UK', 'best EPOS system UK', 'EPOS Now review', 'cheap EPOS'],
     content: `
         <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> The best EPOS Now alternatives for UK hospitality in 2026 are <strong>DineOpen</strong> (flat £8/mo, no contract, zero transaction-fee markup), <strong>Square</strong> (free to start, great for cafes), <strong>Lightspeed</strong> (feature-rich but pricier), and <strong>SumUp</strong> or <strong>Zettle</strong> (simple and cheap for very small sites). Most restaurants leave EPOS Now over multi-year contracts, upfront hardware costs, and support — so prioritise <em>month-to-month</em> terms when you switch.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> The best EPOS Now alternatives for UK hospitality in 2026 are <strong>DineOpen</strong> (flat £16/mo, no contract, zero transaction-fee markup), <strong>Square</strong> (free to start, great for cafes), <strong>Lightspeed</strong> (feature-rich but pricier), and <strong>SumUp</strong> or <strong>Zettle</strong> (simple and cheap for very small sites). Most restaurants leave EPOS Now over multi-year contracts, upfront hardware costs, and support — so prioritise <em>month-to-month</em> terms when you switch.</p>
         </div>
 
         <p>EPOS Now is one of the most recognisable EPOS brands in the UK, and for a lot of small businesses it does the job. But if you have landed on this page, you are probably weighing up a switch — usually because of a long contract, a chunky upfront hardware bill, or support that has not kept up. Here are the alternatives worth looking at, and how to choose.</p>
@@ -2380,7 +2406,7 @@ export const blogPostContent = {
             <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Best for</th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>DineOpen</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">£8/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Restaurants, pubs &amp; takeaways wanting full features, no lock-in</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>DineOpen</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">£16/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Restaurants, pubs &amp; takeaways wanting full features, no lock-in</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Square</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Cafes, coffee shops, small sites starting out</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Lightspeed</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">£££</td><td style="padding:12px;border:1px solid #e5e7eb;">Often annual</td><td style="padding:12px;border:1px solid #e5e7eb;">Larger or multi-site venues needing deep features</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>SumUp</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Low</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Market stalls, tiny cafes, mobile</td></tr>
@@ -2389,7 +2415,7 @@ export const blogPostContent = {
         </table>
 
         <h2>Which EPOS Now alternative is cheapest?</h2>
-        <p>Square and Zettle are cheapest on software (Square is free to start), but remember to include card processing in the comparison — a low monthly fee with a higher swipe rate can cost more overall. For a restaurant that wants proper features (table plans, KOT/kitchen display, allergens, delivery-app sales tracking) without a contract, a flat-rate system like <a href="/uk">DineOpen</a> at £8/month with no per-transaction markup is usually the lowest all-in cost.</p>
+        <p>Square and Zettle are cheapest on software (Square is free to start), but remember to include card processing in the comparison — a low monthly fee with a higher swipe rate can cost more overall. For a restaurant that wants proper features (table plans, KOT/kitchen display, allergens, delivery-app sales tracking) without a contract, a flat-rate system like <a href="/uk">DineOpen</a> at £16/month with no per-transaction markup is usually a low all-in cost.</p>
 
         <h2>What should you look for when switching EPOS?</h2>
         <ul>
@@ -2401,12 +2427,12 @@ export const blogPostContent = {
         </ul>
 
         <h2>Frequently asked questions</h2>
-        <p><strong>Is there a free alternative to EPOS Now?</strong> Yes — Square offers a free base plan (you pay only card processing), and Zettle and SumUp are low-cost. For full restaurant features without a contract, DineOpen starts at £8/month.</p>
+        <p><strong>Is there a free alternative to EPOS Now?</strong> Yes — Square offers a free base plan (you pay only card processing), and Zettle and SumUp are low-cost. For full restaurant features without a contract, DineOpen starts at £16/month.</p>
         <p><strong>Can I leave EPOS Now early?</strong> It depends on your contract term. Check your agreement for the notice period and any early-termination charges before you switch, and line up your new EPOS so there is no gap in service.</p>
         <p><strong>What is the best EPOS Now alternative for a UK restaurant?</strong> For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, VAT and allergen handling, and commission-free direct online ordering — such as DineOpen — is the best balance of features and cost.</p>
     `,
     faqs: [
-      { q: "Is there a free alternative to EPOS Now?", a: "Yes. Square offers a free base plan where you pay only card processing, and Zettle and SumUp are low-cost options. For full restaurant features without a contract, DineOpen starts at just 8 pounds per month." },
+      { q: "Is there a free alternative to EPOS Now?", a: "Yes. Square offers a free base plan where you pay only card processing, and Zettle and SumUp are low-cost options. For full restaurant features without a contract, DineOpen starts at just 16 pounds per month." },
       { q: "Can I leave EPOS Now early?", a: "It depends on your contract term. Check your agreement for the notice period and any early-termination charges before switching, and line up your new EPOS so there is no gap in service." },
       { q: "What is the best EPOS Now alternative for a UK restaurant?", a: "For most restaurants, pubs and takeaways, a modern cloud EPOS with no contract, 20 percent VAT and allergen handling, and commission-free direct online ordering is the best balance of features and cost." },
       { q: "Why do restaurants switch away from EPOS Now?", a: "The most common reasons are long contracts that are hard to exit, upfront hardware and licence costs, add-ons that raise the monthly bill, and mixed experiences with support and cancellation." },
