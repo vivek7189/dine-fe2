@@ -4,7 +4,7 @@
 // with month totals, bills per day and an Excel (Groups by day / Monthly / Categories by month).
 // Only for restaurants that have set up report groups (Reports → Sales Summary → Category Sales →
 // Set up groups); figures come from /api/analytics/:id/category-by-day — the same rules as Category Sales.
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '../lib/api';
 
 const NONE = '__none__';
@@ -19,6 +19,7 @@ const r0 = (v) => Math.round(Number(v) || 0);
 export function useSummaryGroups(restaurantId, startDate, endDate, skip) {
   const [groups, setGroups] = useState({ id: '', list: [] });
   const [state, setState] = useState({ key: '', data: null, loading: false, error: '' });
+  const [reloadN, setReloadN] = useState(0); // bumped after the groups are edited
 
   useEffect(() => {
     if (!restaurantId || skip) { setGroups({ id: '', list: [] }); return undefined; }
@@ -27,7 +28,7 @@ export function useSummaryGroups(restaurantId, startDate, endDate, skip) {
       .then((r) => { if (alive) setGroups({ id: restaurantId, list: Array.isArray(r?.reportGroups) ? r.reportGroups : [] }); })
       .catch(() => { if (alive) setGroups({ id: restaurantId, list: [] }); }); // no groups / not allowed → nothing extra shown
     return () => { alive = false; };
-  }, [restaurantId, skip]);
+  }, [restaurantId, skip, reloadN]);
 
   const has = groups.id === restaurantId && groups.list.length > 0;
   useEffect(() => {
@@ -43,7 +44,7 @@ export function useSummaryGroups(restaurantId, startDate, endDate, skip) {
         setState({ key, data: null, loading: false, error: msg });
       });
     return () => { alive = false; };
-  }, [has, restaurantId, startDate, endDate]);
+  }, [has, restaurantId, startDate, endDate, reloadN]);
 
   // category (name or key, as on the item rows) → group id ('' = not in a group)
   const groupOf = useMemo(() => {
@@ -57,7 +58,8 @@ export function useSummaryGroups(restaurantId, startDate, endDate, skip) {
     return (cat) => m[catId(cat)] || '';
   }, [groups.list, state.data]);
 
-  return { groups: has ? groups.list : [], data: state.data, loading: state.loading, error: state.error, groupOf };
+  const reload = useCallback(() => setReloadN((n) => n + 1), []);
+  return { groups: has ? groups.list : [], data: state.data, loading: state.loading, error: state.error, groupOf, reload };
 }
 
 // Columns, day rows (every day of the range), month totals and grand total
@@ -160,12 +162,13 @@ export function groupsByDayCsv(data) {
   return out;
 }
 
-export function GroupsByDayTable({ data, loading, error, formatCurrency }) {
+export function GroupsByDayTable({ data, loading, error, formatCurrency, onEditGroups }) {
   const r = useMemo(() => buildGroupsByDay(data), [data]);
   if (loading || (!data && !error)) return <div className="text-center py-12 text-gray-400 text-sm">Loading sales by group…</div>;
   if (error) return <div className="text-center py-10 px-4 text-sm text-amber-700" data-testid="groups-byday-error">{error}</div>;
   if (!r || !r.rows.length || !r.grand.total) return <div className="text-center py-12 text-gray-400">No sales in this date range.</div>;
   const { cols, rows, months, grand, hasBills } = r;
+  const ungrouped = (data.categories || []).filter((c) => !c.group).map((c) => c.name || c.key);
   const money = (v) => (v ? formatCurrency(Math.round(v)) : <span className="text-gray-300">0</span>);
   const cells = (t, cls) => (
     <>
@@ -176,9 +179,23 @@ export function GroupsByDayTable({ data, loading, error, formatCurrency }) {
   );
   return (
     <div data-testid="groups-byday">
-      <p className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b border-gray-100" data-testid="groups-byday-help">
-        Each day&apos;s sales split by your groups ({cols.filter((c) => c.id !== NONE).map((c) => c.name).join(', ')}). Amount = item price × qty on paid bills, before bill discount, service charge and tax — same as Category Sales. Excel has 3 sheets: Groups by day, Monthly, Categories by month.
-      </p>
+      <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-start gap-2">
+        <p className="flex-1 text-xs text-gray-500" data-testid="groups-byday-help">
+          Each day&apos;s sales split by your groups ({cols.filter((c) => c.id !== NONE).map((c) => c.name).join(', ')}). Amount = item price × qty on paid bills, before bill discount, service charge and tax — same as Category Sales. Excel has 3 sheets: Groups by day, Monthly, Categories by month.
+          {' '}A new category is <b>not in a group</b> until you add it with <b>Edit groups</b>.
+        </p>
+        {onEditGroups && (
+          <button type="button" onClick={onEditGroups} data-testid="groups-byday-edit"
+            className="shrink-0 px-2.5 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+            Edit groups
+          </button>
+        )}
+      </div>
+      {ungrouped.length > 0 && (
+        <p className="px-4 py-2 text-xs text-amber-800 bg-amber-50 border-b border-amber-100" data-testid="groups-byday-ungrouped">
+          Not in any group: <b>{ungrouped.join(', ')}</b> — {onEditGroups ? <>tap <b>Edit groups</b> to put {ungrouped.length === 1 ? 'it' : 'them'} in one.</> : 'add them under Reports → Sales Summary → Category Sales → Set up groups.'}
+        </p>
+      )}
       <div className="overflow-x-auto max-h-[70vh]">
         <table className="w-full">
           <thead className="sticky top-0 z-10">

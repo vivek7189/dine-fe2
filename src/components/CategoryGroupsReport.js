@@ -280,14 +280,16 @@ export default function CategoryGroupsReport({ restaurantId, startDate, endDate,
       )}
 
       {setup && (
-        <GroupSetup restaurantId={restaurantId} initial={data.reportGroups || []} onClose={() => setSetup(false)} onSaved={() => { setSetup(false); setReload((n) => n + 1); }} />
+        <GroupSetup restaurantId={restaurantId} initial={data.reportGroups || []} extraCats={data.categories} onClose={() => setSetup(false)} onSaved={() => { setSetup(false); setReload((n) => n + 1); }} />
       )}
     </div>
   );
 }
 
 // Put each menu category into a group (one group per category). Reports only.
-function GroupSetup({ restaurantId, initial, onClose, onSaved }) {
+// Also opened from Order History → Sales Summary → Groups by day.
+// extraCats: categories seen in sales ([{ key, name }]) — listed too when the menu no longer has them.
+export function GroupSetup({ restaurantId, initial, onClose, onSaved, extraCats }) {
   const [cats, setCats] = useState(null);
   const [groups, setGroups] = useState(() => (initial.length ? initial : [{ id: 'food', name: 'Food', categories: [] }, { id: 'drinks', name: 'Drinks', categories: [] }]).map((g) => ({ ...g })));
   const [newName, setNewName] = useState('');
@@ -298,9 +300,16 @@ function GroupSetup({ restaurantId, initial, onClose, onSaved }) {
   useEffect(() => {
     apiClient.getMenu(restaurantId).then((r) => {
       const items = r?.menuItems || [];
-      setCats((r?.categories || []).filter((c) => !String(c.id || '').startsWith('qrmenu-')).map((c) => ({ id: c.id, name: c.name, n: items.filter((i) => norm(i.category) === norm(c.id) && i.status !== 'deleted').length })));
+      const list = (r?.categories || []).filter((c) => !String(c.id || '').startsWith('qrmenu-')).map((c) => ({ id: c.id, name: c.name, n: items.filter((i) => norm(i.category) === norm(c.id) && i.status !== 'deleted').length }));
+      const known = new Set(list.flatMap((c) => [norm(c.id), norm(c.name)]));
+      (extraCats || []).forEach((c) => {
+        if (!c || !c.key || known.has(norm(c.key)) || known.has(norm(c.name))) return;
+        known.add(norm(c.key));
+        list.push({ id: c.key, name: `${c.name || c.key} (in sales only)`, n: 0 });
+      });
+      setCats(list);
     }).catch((e) => { setCats([]); setErr(e?.message || 'Could not load categories'); });
-  }, [restaurantId]);
+  }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groupOf = (c) => groups.find((g) => (g.categories || []).some((x) => norm(x) === norm(c.id) || norm(x) === norm(c.name)))?.id || '';
   const assign = (c, gid) => setGroups((list) => list.map((g) => {

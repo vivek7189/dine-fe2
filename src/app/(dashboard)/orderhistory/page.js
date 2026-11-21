@@ -111,6 +111,7 @@ import {
 } from 'react-icons/fa';
 import useTimedMenu from '../../../hooks/useTimedMenu';
 import { useSummaryGroups, GroupsByDayTable, downloadGroupsByDayExcel, groupsByDayCsv, GROUP_PREFIX } from '../../../components/GroupsByDayReport';
+import { GroupSetup } from '../../../components/CategoryGroupsReport';
 
 // Customer orders that are not placed yet: waiting for approval (QR order approval) or for the
 // guest's Paytm payment. Nothing prints / edits / bills / advances until they are.
@@ -2760,6 +2761,7 @@ const OrderHistory = () => {
   // filter, or see "Groups by day". Restaurants without groups see nothing new.
   const summaryGroupsInfo = useSummaryGroups(restaurantId, summaryData?.dateRange?.start, summaryData?.dateRange?.end, salesScopeOwn);
   const summaryHasGroups = summaryGroupsInfo.groups.length > 0;
+  const [summaryGroupSetupOpen, setSummaryGroupSetupOpen] = useState(false);
   const summaryPickedGroup = summaryCategory.startsWith(GROUP_PREFIX) ? summaryCategory.slice(GROUP_PREFIX.length) : '';
   const summaryInCategory = useCallback((cat) => {
     if (!summaryCategory) return true;
@@ -7090,7 +7092,16 @@ const OrderHistory = () => {
                   </div>
                 </div>
                 {summaryGroupBy === 'groups' && (
-                  <GroupsByDayTable data={summaryGroupsInfo.data} loading={summaryGroupsInfo.loading} error={summaryGroupsInfo.error} formatCurrency={formatCurrency} />
+                  <GroupsByDayTable data={summaryGroupsInfo.data} loading={summaryGroupsInfo.loading} error={summaryGroupsInfo.error} formatCurrency={formatCurrency} onEditGroups={() => setSummaryGroupSetupOpen(true)} />
+                )}
+                {summaryGroupSetupOpen && (
+                  <GroupSetup
+                    restaurantId={restaurantId}
+                    initial={summaryGroupsInfo.groups}
+                    extraCats={summaryGroupsInfo.data?.categories}
+                    onClose={() => setSummaryGroupSetupOpen(false)}
+                    onSaved={() => { setSummaryGroupSetupOpen(false); summaryGroupsInfo.reload(); }}
+                  />
                 )}
                 {summaryGroupBy === 'date' && (() => {
                   if (summaryDaily.loading || (!summaryDaily.data && !summaryDaily.error)) {
