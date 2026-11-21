@@ -15,6 +15,7 @@ const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { s
 const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
 const HiddenItemsModal = dynamic(() => import('./components/HiddenItemsModal'), { ssr: false });
 import apiClient from '../../../lib/api';
+import ReportGroupPicker, { useReportGroups, setCategoryGroup } from '../../../components/ReportGroupPicker';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
@@ -158,6 +159,8 @@ const CategoryDropdown = ({
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', emoji: '🍽️', description: '', parentId: '' });
+  const reportGroups = useReportGroups(restaurantId); // [] unless the restaurant uses report groups
+  const [newCategoryGroup, setNewCategoryGroup] = useState('');
   const [loading, setLoading] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(null);
   const [categoryNotice, setCategoryNotice] = useState(null); // { type: 'error'|'info', message: string }
@@ -290,6 +293,12 @@ const CategoryDropdown = ({
       if (onCategoryAdded) {
         onCategoryAdded(response.category);
       }
+      if (newCategoryGroup) {
+        const made = response?.category || { name: newCategory.name.trim() };
+        try { await setCategoryGroup(restaurantId, made, newCategoryGroup); }
+        catch (gErr) { setCategoryNotice({ type: 'error', message: `Category added, but its report group was not saved: ${gErr?.message || 'error'}. Set it in the item window or Reports → Category Sales.` }); }
+      }
+      setNewCategoryGroup('');
       setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
       setShowAddForm(false);
       setSearchTerm('');
@@ -438,6 +447,18 @@ const CategoryDropdown = ({
                 <AvailabilityScheduleEditor compact label="Category available only at certain times"
                   value={newCategory.availabilitySchedule || null}
                   onChange={(v) => setNewCategory({ ...newCategory, availabilitySchedule: v })} />
+                {reportGroups.length > 0 && (
+                  <div data-testid="new-category-report-group">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Report group <span className="font-normal text-gray-400">— which total this category adds to in sales reports</span>
+                    </label>
+                    <select value={newCategoryGroup} onChange={(e) => setNewCategoryGroup(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Not in a group</option>
+                      {reportGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
+                  </div>
+                )}
                   <div className="flex gap-2">
                 <button
                       type="button"
@@ -2552,6 +2573,8 @@ const MenuManagement = () => {
   const btype = businessTypeConfig[currentRestaurant?.businessType] || businessTypeConfig.restaurant;
   const globalHideImages = currentRestaurant?.posSettings?.hideMenuImages === true;
   const taxLabel = currentRestaurant?.currencySettings?.taxLabel || 'Tax';
+  // GST wording (HSN help) only for India; same rule as utils/taxEngine
+  const isIndiaMarket = !currentRestaurant?.currencySettings || currentRestaurant.currencySettings.countryCode === 'IN' || currentRestaurant.currencySettings.currencyCode === 'INR';
   const [isClient, setIsClient] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -5979,7 +6002,7 @@ const MenuManagement = () => {
               {/* HSN / SAC Code (India GST invoice) — optional, shown on bill + GST reports */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                  HSN / SAC Code <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional — for GST invoice)</span>
+                  HSN / SAC Code <span style={{ color: '#9ca3af', fontWeight: 400 }}>{isIndiaMarket ? '(optional — for GST invoice)' : '(optional)'}</span>
                 </label>
                 <input
                   type="text"
@@ -5991,7 +6014,7 @@ const MenuManagement = () => {
                   onFocus={(e) => e.target.style.borderColor = btype.accent}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                 />
-                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>Shown on the bill &amp; in GST reports. Common: 996331 (restaurant service), or the product HSN for packaged goods.</p>
+                {isIndiaMarket && <p style={{ fontSize: '11px', color: '#9ca3af', margin: '5px 0 0' }}>Shown on the bill &amp; in GST reports. Common: 996331 (restaurant service), or the product HSN for packaged goods.</p>}
               </div>
 
               {/* Description */}
@@ -6839,6 +6862,14 @@ const MenuManagement = () => {
                       </select>
                     </div>
                   );
+                })()}
+
+                {/* Report group (Food, Drinks, …) of this item's category — only when the restaurant uses report groups */}
+                {(() => {
+                  const key = formData.subCategory || formData.category;
+                  if (!key) return null;
+                  const cat = categories.find(c => c.id === key || c.name === key) || { id: key, name: key };
+                  return <div style={{ marginBottom: '16px', marginTop: '-8px' }}><ReportGroupPicker restaurantId={currentRestaurant?.id} category={cat} /></div>;
                 })()}
 
                 {/* Kenya KRA eTIMS — per-item tax fields. Shown ONLY for Kenya (KES) stores. */}
