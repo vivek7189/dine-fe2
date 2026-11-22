@@ -12,6 +12,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supportsNativeAutoPrint, printDocument, buildKotDedupKey } from '../utils/printBridge';
 import { getStableTerminalId } from '../utils/terminalId';
+import { shouldPrintBillHere as shouldPrintBillHereFor } from '../utils/billPrintOwner';
 import { generateKOTHTML, generateBillHTML } from '../utils/printHtmlGenerator';
 import { buildTokenSlipHTML } from '../utils/printFontSizes';
 import { isElectron, isReactNativeWebView } from '../utils/platform';
@@ -176,6 +177,9 @@ export function useAutoPrint(restaurantId, printSettings) {
     if (!mainId || !myId) return true;                        // no Main set / unknown id → print (today's behavior)
     return mainId === myId;                                    // origin-less → only the Main terminal
   }, [printSettings]);
+
+  // Bills: printed where they were settled; settled on a phone / web → the Main terminal (see utils/billPrintOwner)
+  const shouldPrintBillHere = useCallback((data) => shouldPrintBillHereFor(printSettings, data, myTerminalIdRef.current), [printSettings]);
 
   // A dine-app phone that printed this ticket itself (its user opted in: "this phone's prints
   // replace the desktop's") tags the event with kotPrintedBy / billPrintedBy. Skip those so the
@@ -484,9 +488,12 @@ export function useAutoPrint(restaurantId, printSettings) {
   const handleBillingPrint = useCallback(async (data) => {
     const isPreBill = data.isPreBill === true;
     console.log(`🖨️ AutoPrint: handleBillingPrint called, isPreBill=${isPreBill}, orderId=${data.orderId || data.id}`);
-    // NOTE: bills are intentionally NOT routed by multi-terminal ownership — they print
-    // exactly as today (a bill prints where it's settled, not where the order was created).
-    // Multi-terminal ownership applies to kitchen tickets (KOT) only.
+    // Multi-terminal printing: a bill prints where it was settled (not where the order was
+    // created); a bill settled on a phone / web prints on the Main terminal.
+    if (!shouldPrintBillHere(data)) {
+      console.log(`🖨️ AutoPrint: Bill skipped — another terminal prints it (multi-terminal)`);
+      return;
+    }
     // Kenya KRA eTIMS: when live, the eTIMS flow prints the combined fiscal
     // receipt. Skip the normal final-bill print here (a pre-bill still prints).
     if (!isPreBill && typeof window !== 'undefined' && window.__etimsFiscalActive) {
@@ -541,7 +548,7 @@ export function useAutoPrint(restaurantId, printSettings) {
     } catch (err) {
       console.warn(`Auto-print ${isPreBill ? 'pre-bill' : 'bill'} skipped:`, err.message);
     }
-  }, [restaurantId, printSettings, processQueue, printTokensForOrder, logDiag]);
+  }, [restaurantId, printSettings, processQueue, printTokensForOrder, logDiag, shouldPrintBillHere]);
 
   // Keep the polling-fallback timer pointed at the freshest handlers without re-arming on every
   // printSettings refresh.

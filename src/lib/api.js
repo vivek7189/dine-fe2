@@ -9,6 +9,9 @@ import { getStableTerminalId } from '../utils/terminalId';
 import { isElectron } from '../utils/platform';
 import { stampServedBy } from './servedBy';
 
+// POST /api/orders, PATCH /api/orders/:id, PATCH /api/orders/:id/status, POST /api/orders/:id/manual-print
+const BILL_ROUTE_RE = /^\/api\/orders(\/[^/]+(\/(status|manual-print))?)?\/?$/;
+
 // Default cloud backend + the persisted-backend key both come from the SINGLE source
 // of truth (lib/apiBase.js). Never hardcode a backend URL or read the env directly
 // anywhere else — call getApiBase().
@@ -353,11 +356,19 @@ class ApiClient {
     //   console.log('🔑 Token preview:', token.substring(0, 20) + '...');
     // }
 
+    // Multi-terminal printing: the desktop says which terminal it is on the order calls that can
+    // raise a bill print, so the server can send that bill to this desktop only. Omitted on any error.
+    let billTerminal = null;
+    if (options.method && options.method !== 'GET' && BILL_ROUTE_RE.test(endpoint.split('?')[0]) && isElectron()) {
+      try { billTerminal = await getStableTerminalId(); } catch { billTerminal = null; }
+    }
+
     // Merge headers properly to ensure Authorization token is always included
     this._resolveAppVersion();
     const headers = {
       // Only set Content-Type for non-FormData requests
       ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(billTerminal && { 'X-Terminal-Id': billTerminal }),
       ...(options.headers || {}),
       // Always add Authorization token if available (this should override any conflicting header)
       ...(token && { Authorization: `Bearer ${token}` }),
