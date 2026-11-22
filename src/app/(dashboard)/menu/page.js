@@ -15,7 +15,7 @@ const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { s
 const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
 const HiddenItemsModal = dynamic(() => import('./components/HiddenItemsModal'), { ssr: false });
 import apiClient from '../../../lib/api';
-import ReportGroupPicker, { useReportGroups, setCategoryGroup } from '../../../components/ReportGroupPicker';
+import ReportGroupPicker, { useReportGroups, setCategoryGroup, addReportGroup } from '../../../components/ReportGroupPicker';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
@@ -160,7 +160,8 @@ const CategoryDropdown = ({
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', emoji: '🍽️', description: '', parentId: '' });
   const reportGroups = useReportGroups(restaurantId); // [] unless the restaurant uses report groups
-  const [newCategoryGroup, setNewCategoryGroup] = useState('');
+  const [newCategoryGroup, setNewCategoryGroup] = useState(''); // group id, or '__new__' with newGroupName
+  const [newGroupName, setNewGroupName] = useState('');
   const [loading, setLoading] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(null);
   const [categoryNotice, setCategoryNotice] = useState(null); // { type: 'error'|'info', message: string }
@@ -295,10 +296,13 @@ const CategoryDropdown = ({
       }
       if (newCategoryGroup) {
         const made = response?.category || { name: newCategory.name.trim() };
-        try { await setCategoryGroup(restaurantId, made, newCategoryGroup); }
+        try {
+          if (newCategoryGroup === '__new__') { if (newGroupName.trim()) await addReportGroup(restaurantId, newGroupName, made); }
+          else await setCategoryGroup(restaurantId, made, newCategoryGroup);
+        }
         catch (gErr) { setCategoryNotice({ type: 'error', message: `Category added, but its report group was not saved: ${gErr?.message || 'error'}. Set it in the item window or Reports → Category Sales.` }); }
       }
-      setNewCategoryGroup('');
+      setNewCategoryGroup(''); setNewGroupName('');
       setNewCategory({ name: '', emoji: '🍽️', description: '', parentId: '' });
       setShowAddForm(false);
       setSearchTerm('');
@@ -456,7 +460,13 @@ const CategoryDropdown = ({
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">Not in a group</option>
                       {reportGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                      {reportGroups.length < 12 && <option value="__new__">+ New group…</option>}
                     </select>
+                    {newCategoryGroup === '__new__' && (
+                      <input type="text" value={newGroupName} maxLength={40} onChange={(e) => setNewGroupName(e.target.value)}
+                        placeholder="New group name, e.g. Desserts" data-testid="new-category-report-group-name"
+                        className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    )}
                   </div>
                 )}
                   <div className="flex gap-2">
