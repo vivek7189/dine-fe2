@@ -44,7 +44,7 @@ const TOPICS = [
     text: 'Take orders from your own QR menu and ordering link at 0% commission, and keep delivery-app sales in the same reports.' },
   { key: 'pos', re: /\bpos\b|epos|billing|point.?of.?sale|toast|square|clover|lightspeed|petpooja|posist|software|kot|kds|kitchen.?display/i,
     title: 'Try a restaurant POS without a contract',
-    text: 'Billing, KOT and kitchen display, QR ordering, inventory and reports on any tablet or phone. Set up in minutes.' },
+    text: 'Billing, KOT printing, QR ordering, inventory and reports on any tablet or phone. Set up in minutes.' },
   { key: 'cost', re: /food.?cost|menu.?pric|margin|profit|wastage|waste|inventory|recipe/i,
     title: 'See your real food cost every day',
     text: 'DineOpen deducts stock from recipes as you sell, so food cost and margins update on their own.' },

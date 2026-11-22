@@ -48,7 +48,7 @@
     } : {
       starter: ['Opening soon, or already running a food business?', 'Get billing, menu, QR ordering and stock ready before day one. It takes about 5 minutes to set up.'],
       delivery: ['Stop paying commission on repeat orders', 'Take orders from your own QR menu and ordering link at 0% commission, and keep delivery-app sales in the same reports.'],
-      pos: ['Try a restaurant POS without a contract', 'Billing, KOT and kitchen display, QR ordering, inventory and reports on any tablet or phone. Set up in minutes.'],
+      pos: ['Try a restaurant POS without a contract', 'Billing, KOT printing, QR ordering, inventory and reports on any tablet or phone. Set up in minutes.'],
       cost: ['See your real food cost every day', 'DineOpen deducts stock from recipes as you sell, so food cost and margins update on their own.'],
       staff: ['Staff, shifts and payroll in one app', 'Attendance, rotas and salary sheets next to your sales, without spreadsheets.'],
       tax: ['Bills with the right tax, automatically', 'Set your country tax once (VAT, GST, HST or sales tax) and every bill and report gets it right.'],

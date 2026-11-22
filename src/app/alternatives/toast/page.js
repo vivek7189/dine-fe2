@@ -4,12 +4,12 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Best Toast POS Alternative 2026 | DineOpen - AI-Powered, Lower Cost',
-  description: 'Looking for a Toast alternative? DineOpen offers AI voice ordering, zero transaction fees vs Toast\'s 2.49%. No hardware lock-in. Save $7,000+/year. Free 7-day trial.',
-  keywords: 'Toast alternative, Toast POS alternative, better than Toast, Toast competitor, Toast replacement, Toast POS cheaper alternative, restaurant POS without fees, AI restaurant POS, Toast for restaurants alternative, affordable Toast alternative',
+  title: 'Toast POS Pricing 2026 & a Cheaper Alternative (No Contract) | DineOpen',
+  description: 'Toast POS costs $0 (Starter Kit, higher card rate) or $69/month (Point of Sale) plus 2.49% + 15¢ per card payment. Compare with DineOpen from $20/month, any device, no contract.',
+  keywords: 'Toast alternative, Toast POS alternative, Toast POS pricing, Toast POS cost, Toast competitor, Toast replacement, restaurant POS no contract',
   openGraph: {
-    title: 'Best Toast POS Alternative | DineOpen - AI-Powered, Zero Fees',
-    description: 'Switch from Toast to DineOpen. Get AI voice ordering, zero transaction fees, no hardware lock-in. Free 7-day trial.',
+    title: 'Toast POS Pricing 2026 & a Cheaper Alternative | DineOpen',
+    description: 'What Toast really costs (software, card fees, hardware) and how DineOpen compares: from $20/month, any device, no contract.',
     url: 'https://www.dineopen.com/alternatives/toast',
     siteName: 'DineOpen',
     images: [
@@ -17,73 +17,63 @@ export const metadata = {
         url: 'https://www.dineopen.com/og-toast-alternative.jpg',
         width: 1200,
         height: 630,
-        alt: 'DineOpen - Best Toast POS Alternative',
+        alt: 'Toast POS pricing compared with DineOpen',
       },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best Toast POS Alternative | DineOpen - Save on Fees',
-    description: 'Switch from Toast to DineOpen. AI voice ordering, zero transaction fees. Free 7-day trial.',
+    title: 'Toast POS Pricing 2026 & a Cheaper Alternative | DineOpen',
+    description: 'Toast: $0 or $69/month + 2.49% + 15¢ per card payment. DineOpen: from $20/month, any device, no contract.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/alternatives/toast',
   },
 };
 
+const FAQS = [
+  {
+    q: 'How much does Toast POS cost per month in 2026?',
+    a: 'Toast lists two main plans: the Starter Kit at $0 a month (for one or two terminals, with a higher card processing rate) and Point of Sale at $69 a month, where in-person card payments are 2.49% + 15 cents. Larger setups are quoted. Hardware and add-ons are extra.',
+  },
+  {
+    q: 'Is the Toast Starter Kit really free?',
+    a: 'The software is $0 a month, but Toast charges a higher card rate on that plan, so you pay through card fees instead. For a busy restaurant the card fees are usually much bigger than the software fee, so compare the total, not the monthly price.',
+  },
+  {
+    q: 'Is DineOpen cheaper than Toast?',
+    a: 'On software, yes for most restaurants. DineOpen Starter is $20 a month (POS, QR ordering, KOT printing, basic inventory) and Growth is $50 a month (adds kitchen display, online ordering website, AI voice ordering and advanced inventory), compared with $69 a month for Toast Point of Sale. DineOpen does not add a charge on your card payments; you keep the card terminal and processor you choose.',
+  },
+  {
+    q: 'Does DineOpen need special hardware like Toast?',
+    a: 'No. DineOpen runs on phones, tablets and computers you already have (web, Android, Windows and Mac) and works with common thermal receipt printers. Toast runs on Toast hardware.',
+  },
+  {
+    q: 'Which countries are Toast and DineOpen available in?',
+    a: 'Toast sells its POS in the United States, Canada, the UK, Ireland and Australia, and some Toast products such as Payroll and Capital are US only. DineOpen is available worldwide, with local tax (sales tax, VAT, GST, HST) and local pricing, for example £16 a month in the UK.',
+  },
+  {
+    q: 'Is there a contract with DineOpen?',
+    a: 'No. DineOpen is month to month with a 7-day free trial, and you can cancel any time. With Toast, ask for the term length in writing before you sign, because terms depend on the plan and quote.',
+  },
+];
+
 const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Is DineOpen better than Toast POS?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "DineOpen offers AI voice ordering and zero transaction fees compared to Toast's 2.49% + $0.15 per transaction. At $20/month vs Toast's $69/month, DineOpen is significantly more affordable with more advanced AI features."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How much can I save switching from Toast to DineOpen?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Restaurants save $7,000+ per year by switching from Toast to DineOpen. DineOpen costs $20/month compared to Toast's $69/month, and charges zero transaction fees."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Does DineOpen require proprietary hardware like Toast?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "No, DineOpen works on any device including phones, tablets, and laptops. There is no hardware lock-in or expensive proprietary equipment required like with Toast."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I switch from Toast to DineOpen?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, switching from Toast to DineOpen is straightforward with our easy migration process. Start with a free 7-day trial to test all features before committing."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Does DineOpen have online ordering like Toast?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, DineOpen includes built-in online ordering, QR code menus, and AI voice ordering — a feature Toast does not offer. All online ordering features are included at no extra cost."
-      }
-    }
-  ]
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQS.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
 };
 
 export default function ToastAlternativePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <ToastAlternativeClient />
+      <ToastAlternativeClient faqs={FAQS} />
     </>
   );
 }

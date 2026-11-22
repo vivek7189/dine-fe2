@@ -1790,7 +1790,7 @@ export const blogPostContent = {
     tags: ['best food truck POS', 'food truck POS system', 'mobile POS', 'POS for food trucks USA', 'food truck payments'],
     content: `
         <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> The best food truck POS in 2026 is <strong>mobile, cheap, and works offline</strong>. Square is the classic starting point (free software, portable readers). For food trucks that want full features — online ordering, loyalty, sales tax by location — without a contract, DineOpen runs on a tablet or phone at a flat $10/month with zero transaction-fee markup. Whatever you pick: prioritize <strong>offline mode</strong> and <strong>battery-friendly hardware</strong>.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> The best food truck POS in 2026 is <strong>mobile, cheap, and works offline</strong>. Square is the classic starting point (free software, portable readers). For food trucks that want full features — online ordering, loyalty, sales tax by location — without a contract, DineOpen runs on a tablet or phone from $20/month with zero transaction-fee markup. Whatever you pick: prioritize <strong>offline mode</strong> and <strong>battery-friendly hardware</strong>.</p>
         </div>
 
         <p>A food truck POS has a different job than a restaurant POS. You are on cell data (or none), your counter is a serving window, and your busiest hour might be in a park with no Wi-Fi. Here is what matters, and which systems handle it.</p>
@@ -1814,7 +1814,7 @@ export const blogPostContent = {
             <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">DineOpen</th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free</td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">$10/mo flat</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free</td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">from $20/mo</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Hardware</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Cheap reader</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary handheld</td><td style="padding:12px;border:1px solid #e5e7eb;">Your tablet/phone</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Offline mode</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
@@ -1833,12 +1833,12 @@ export const blogPostContent = {
         <h2>Frequently asked questions</h2>
         <p><strong>What is the best POS system for a food truck?</strong> The best food truck POS is mobile, affordable, and works offline. Square is the easiest free starting point; flat-rate systems like DineOpen add online ordering and location-based sales tax without a contract or per-swipe markup.</p>
         <p><strong>Do food truck POS systems work without internet?</strong> Yes — a good food truck POS keeps taking orders and card payments offline and syncs the data automatically when the connection returns. Always confirm offline card acceptance before buying.</p>
-        <p><strong>How much does a food truck POS cost?</strong> Software ranges from free (Square) to a flat $10/month, plus a portable card reader and per-transaction processing of roughly 2.5-3%. Avoid systems with large upfront hardware costs or multi-year contracts.</p>
+        <p><strong>How much does a food truck POS cost?</strong> Software ranges from free (Square) to DineOpen from $20/month, plus a portable card reader and per-transaction processing of roughly 2.5-3%. Avoid systems with large upfront hardware costs or multi-year contracts.</p>
     `,
     faqs: [
       { q: "What is the best POS system for a food truck in 2026?", a: "The best food truck POS is mobile, affordable, and works offline. Square is the easiest free starting point, while flat-rate systems like DineOpen add online ordering and location-based sales tax without a contract or per-swipe markup." },
       { q: "Do food truck POS systems work without internet?", a: "Yes. A good food truck POS keeps taking orders and card payments offline and syncs the data automatically when the connection returns. Always confirm offline card acceptance before buying." },
-      { q: "How much does a food truck POS cost?", a: "Software ranges from free with Square to a flat 10 dollars per month, plus a portable card reader and per-transaction processing of roughly 2.5 to 3 percent. Avoid systems with large upfront hardware costs or multi-year contracts." },
+      { q: "How much does a food truck POS cost?", a: "Software ranges from free with Square to DineOpen from 20 dollars per month, plus a portable card reader and per-transaction processing of roughly 2.5 to 3 percent. Avoid systems with large upfront hardware costs or multi-year contracts." },
       { q: "Does a food truck need to charge different sales tax by city?", a: "Often yes. If you operate in different cities or counties the combined sales-tax rate can change, so a POS that applies the correct local rate by location keeps your tax accurate." },
     ],
   },
@@ -2056,7 +2056,7 @@ export const blogPostContent = {
     tags: ['best bar POS', 'bar POS system', 'pub POS', 'brewery POS', 'POS for bars USA'],
     content: `
         <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> The best bar POS in 2026 is the one that nails <strong>fast tabs, card pre-authorization, quick re-orders, and tip-out</strong> — while handling your state's <strong>mixed-beverage tax</strong>. Toast and Square both work well for bars; Toast is deeper, Square is simpler and free to start. If you want those bar essentials without a contract or per-swipe markup, DineOpen does it at a flat $10/month.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> The best bar POS in 2026 is the one that nails <strong>fast tabs, card pre-authorization, quick re-orders, and tip-out</strong> — while handling your state's <strong>mixed-beverage tax</strong>. Toast and Square both work well for bars; Toast is deeper, Square is simpler and free to start. If you want those bar essentials without a contract or per-swipe markup, DineOpen does it from $20/month.</p>
         </div>
 
         <p>Bars live and die on speed. A POS that takes three taps to fire a round, or drops a tab when the card reader hiccups, costs you money every busy night. Here is what actually matters when choosing a bar POS in the US — and how the main options compare.</p>
@@ -2081,7 +2081,7 @@ export const blogPostContent = {
           </tr></thead>
           <tbody>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Tabs &amp; pre-auth</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Strong</td><td style="padding:12px;border:1px solid #e5e7eb;">Good</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software from</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">$10/mo flat</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software from</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">from $20/mo</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">1-3 yrs</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
           </tbody>
@@ -2105,7 +2105,7 @@ export const blogPostContent = {
       { q: "What is the best POS system for a bar in 2026?", a: "The best bar POS handles fast tabs, card pre-authorization, quick re-orders, tip-out, and your state's mixed-beverage tax. Toast is the deepest option, Square is the simplest and free to start, and flat-rate systems like DineOpen offer the same bar essentials without a contract or per-swipe markup." },
       { q: "Does a bar POS handle tabs and pre-authorization?", a: "Yes. Any serious bar POS lets you open a tab against a card, hold a pre-authorization, add rounds quickly, and settle with a tip at the end of the visit." },
       { q: "How do bars handle mixed-beverage tax?", a: "In states such as Texas the POS should track mixed-beverage sales separately so you can file the mixed-beverage gross-receipts or sales tax correctly. Confirm this in a demo if you operate in an affected state." },
-      { q: "What is the cheapest POS for a small bar?", a: "Square is free on software and flat-rate systems like DineOpen are 10 dollars per month with no contract. Always include card processing in the comparison, since on high card volume the processing rate matters more than the monthly software fee." },
+      { q: "What is the cheapest POS for a small bar?", a: "Square is free on software and flat-rate systems like DineOpen start at 20 dollars per month with no contract. Always include card processing in the comparison, since on high card volume the processing rate matters more than the monthly software fee." },
     ],
   },
   'how-much-does-lightspeed-pos-cost-2026': {
@@ -2155,7 +2155,7 @@ export const blogPostContent = {
         <p>A single full-service restaurant on a mid tier (~$149/mo annual) with processing on ~$40k/month card volume: roughly <strong>$1,800/yr software</strong> + <strong>~$12,000+/yr processing</strong> + hardware. That is comfortably over <strong>$14,000/year</strong> all-in — the processing, again, dwarfs the software.</p>
 
         <h2>Are there cheaper Lightspeed alternatives?</h2>
-        <p>Yes. If you like Lightspeed's capability but not the cost or the annual lock-in, <a href="/canada">DineOpen</a> offers the restaurant essentials — cloud POS, KDS, online ordering, inventory, AI ordering, delivery integrations, GST/HST/QST for Canada or sales tax for the US — at a flat <strong>$10/month (CAD 14) with zero transaction-fee markup and no contract</strong>. Compare directly on the <a href="/vs/dineopen-vs-lightspeed">DineOpen vs Lightspeed</a> page, browse <a href="/alternatives/lightspeed">Lightspeed alternatives</a>, or read the <a href="/blog/lightspeed-vs-touchbistro-vs-square-canada-2026">Lightspeed vs TouchBistro vs Square comparison</a>.</p>
+        <p>Yes. If you like Lightspeed's capability but not the cost or the annual lock-in, <a href="/canada">DineOpen</a> offers the restaurant essentials — cloud POS, KDS, online ordering, inventory, AI ordering, delivery integrations, GST/HST/QST for Canada or sales tax for the US — from <strong>US$20/month (KDS and online ordering on the US$50 Growth plan) with zero transaction-fee markup and no contract</strong>. Compare directly on the <a href="/vs/dineopen-vs-lightspeed">DineOpen vs Lightspeed</a> page, browse <a href="/alternatives/lightspeed">Lightspeed alternatives</a>, or read the <a href="/blog/lightspeed-vs-touchbistro-vs-square-canada-2026">Lightspeed vs TouchBistro vs Square comparison</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>How much does Lightspeed Restaurant cost per month?</strong> Software typically starts around $89/month and rises to roughly $149-$189+/month for higher tiers, usually cheaper per month on an annual plan, plus payment processing and hardware.</p>
@@ -2166,7 +2166,7 @@ export const blogPostContent = {
       { q: "How much does Lightspeed Restaurant cost per month in 2026?", a: "Lightspeed Restaurant software typically starts around 89 dollars per month and rises to roughly 149 to 189 dollars or more per month for higher tiers, usually cheaper per month on an annual plan, plus payment processing and hardware." },
       { q: "Does Lightspeed POS require a contract?", a: "Lightspeed's best pricing usually comes with an annual commitment. Month-to-month may be available at a higher rate, so check the current terms before signing." },
       { q: "Is Lightspeed POS expensive for a small restaurant?", a: "For a small single-site restaurant it can feel expensive once you add payment processing, add-on modules and hardware. It tends to make more sense for larger or multi-location operations; smaller venues often pay less all-in with a flat-rate system." },
-      { q: "What is a cheaper alternative to Lightspeed?", a: "Flat-rate systems with no per-transaction markup and no annual contract, such as DineOpen at about 10 dollars per month, are typically far cheaper all-in for a single restaurant while covering the core POS, ordering and inventory features." },
+      { q: "What is a cheaper alternative to Lightspeed?", a: "Flat-rate systems with no per-transaction markup and no annual contract, such as DineOpen from 20 dollars per month, are typically far cheaper all-in for a single restaurant while covering the core POS, ordering and inventory features." },
     ],
   },
   'reduce-doordash-uber-eats-commission-2026': {
@@ -2357,7 +2357,7 @@ export const blogPostContent = {
         <h2>How to lower your processing fees</h2>
         <ul>
           <li><strong>Move to interchange-plus</strong> if you are on flat-rate or tiered and doing real volume.</li>
-          <li><strong>Use a POS with no per-transaction markup</strong> — bring your own merchant account. <a href="/usa">DineOpen</a> charges a flat $10/month and takes 0% of your transactions.</li>
+          <li><strong>Use a POS with no per-transaction markup</strong> — bring your own merchant account. <a href="/usa">DineOpen</a> starts at $20/month and takes 0% of your transactions.</li>
           <li><strong>Encourage debit and lower-cost cards</strong> where practical.</li>
           <li><strong>Review your statement</strong> for junk fees (PCI, statement, batch) at least twice a year.</li>
           <li><strong>Consider surcharging/cash discounts</strong> where legal in your state, within card-network rules.</li>
@@ -2450,7 +2450,7 @@ export const blogPostContent = {
     tags: ['Lightspeed vs TouchBistro', 'best restaurant POS Canada', 'TouchBistro vs Square', 'Canadian restaurant POS', 'POS comparison Canada'],
     content: `
         <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> For Canadian restaurants in 2026: <strong>TouchBistro</strong> is purpose-built for full-service (iPad, tableside ordering); <strong>Lightspeed</strong> (Montreal-HQ) is powerful and scales to multi-site but costs more; <strong>Square</strong> is best for cafes and quick-service and lets you start free. All three handle GST/HST — but check Quebec QST and Bill 72 tipping if you operate in Quebec. If you want the essentials at a flat rate with no lock-in, <strong>DineOpen</strong> starts at CAD 14/month.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#7f1d1d;"><strong>Quick answer:</strong> For Canadian restaurants in 2026: <strong>TouchBistro</strong> is purpose-built for full-service (iPad, tableside ordering); <strong>Lightspeed</strong> (Montreal-HQ) is powerful and scales to multi-site but costs more; <strong>Square</strong> is best for cafes and quick-service and lets you start free. All three handle GST/HST — but check Quebec QST and Bill 72 tipping if you operate in Quebec. If you want the essentials at a flat rate with no lock-in, <strong>DineOpen</strong> starts at US$20/month.</p>
         </div>
 
         <p>Canada has a crowded POS market, but three names dominate the shortlist: <strong>Lightspeed</strong>, <strong>TouchBistro</strong>, and <strong>Square</strong>. Two of them (Lightspeed and TouchBistro) are Canadian companies, which is a nice bit of trivia but not a reason to buy. Here is how they actually compare for a Canadian restaurant.</p>
@@ -2485,7 +2485,7 @@ export const blogPostContent = {
         </ul>
 
         <h2>Where does DineOpen fit?</h2>
-        <p>All three are capable; the trade-off is cost and lock-in. <a href="/canada">DineOpen</a> gives Canadian restaurants the core they actually use — cloud POS, KDS, online ordering, inventory, AI ordering, delivery-app sales tracking (SkipTheDishes/Uber Eats/DoorDash), GST/HST/QST, bilingual receipts — at a flat <strong>CAD 14/month with zero transaction-fee markup and no contract</strong>. If Lightspeed feels like too much and Square feels like too little, that middle is exactly the gap it fills. See <a href="/alternatives/lightspeed">Lightspeed alternatives</a> and <a href="/alternatives/touchbistro">TouchBistro alternatives</a>.</p>
+        <p>All three are capable; the trade-off is cost and lock-in. <a href="/canada">DineOpen</a> gives Canadian restaurants the core they actually use — cloud POS, KDS, online ordering, inventory, AI ordering, delivery-app sales tracking (SkipTheDishes/Uber Eats/DoorDash), GST/HST/QST, bilingual receipts — from <strong>US$20/month (KDS and online ordering on the US$50 Growth plan) with zero transaction-fee markup and no contract</strong>. If Lightspeed feels like too much and Square feels like too little, that middle is exactly the gap it fills. See <a href="/alternatives/lightspeed">Lightspeed alternatives</a> and <a href="/alternatives/touchbistro">TouchBistro alternatives</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Is Lightspeed or TouchBistro better for a Canadian restaurant?</strong> TouchBistro is better for single-site full-service dining thanks to its tableside, coursing and floor-plan tools. Lightspeed is better for multi-location or combined retail-and-restaurant operations that need more depth and reporting — at a higher price.</p>
@@ -2496,7 +2496,7 @@ export const blogPostContent = {
       { q: "Is Lightspeed or TouchBistro better for a Canadian restaurant?", a: "TouchBistro is better for single-site full-service dining thanks to its tableside ordering, coursing and floor-plan tools. Lightspeed is better for multi-location or combined retail-and-restaurant operations that need more depth and reporting, at a higher price." },
       { q: "Is Square good for Canadian restaurants?", a: "Yes, especially for cafes and quick-service. It is free to start and easy to run, though it has fewer full-service dining features than TouchBistro." },
       { q: "Do these POS systems handle Quebec QST and Bill 72 tipping?", a: "They can, but always confirm in a demo. In Quebec you need 5 percent GST plus 9.975 percent QST, mandatory French-language receipts, and tips presented on the pre-tax subtotal under Bill 72." },
-      { q: "What is the cheapest POS for a Canadian restaurant?", a: "Square is free on software, and flat-rate systems like DineOpen are CAD 14 per month. Always include card processing in the comparison, since a lower monthly fee with a higher swipe rate can cost more overall." },
+      { q: "What is the cheapest POS for a Canadian restaurant?", a: "Square is free on software, and flat-rate systems like DineOpen start at 20 US dollars per month. Always include card processing in the comparison, since a lower monthly fee with a higher swipe rate can cost more overall." },
     ],
   },
   'how-much-does-toast-pos-cost-2026': {
@@ -2505,13 +2505,13 @@ export const blogPostContent = {
     excerpt: 'Toast advertises a $0 starter kit, but the real bill is bigger. Here is a transparent breakdown of Toast POS pricing in 2026 — software tiers, hardware, processing rates, add-ons and the contract — plus what you actually pay.',
     author: 'Vivek Sharma',
     publishDate: '2026-07-25',
-    dateModified: '2026-07-25',
+    dateModified: '2026-11-22',
     readTime: '9 min read',
     category: 'Pricing',
     tags: ['Toast POS cost', 'Toast POS pricing', 'Toast fees', 'Toast POS review', 'restaurant POS pricing'],
     content: `
         <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> Toast POS in 2026 has a $0 "Starter" tier (which trades a higher processing rate), and paid software tiers from about $69/month per terminal. Add online ordering, KDS, inventory and payroll and a realistic full-service setup runs <strong>$200+/month per location in software</strong> — before ~2.49–3.5% + $0.15 card processing and hardware. On $40,000/month in card sales, all-in Toast cost commonly exceeds <strong>$20,000/year</strong>.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> Toast POS in 2026 has a <strong>$0/month Starter Kit</strong> (one or two terminals, higher card rate) and a <strong>$69/month Point of Sale</strong> plan with in-person card payments at <strong>2.49% + $0.15</strong>, per Toast's pricing page. Add-ons, hardware and online/keyed card rates come on top. On $40,000/month of card sales, card fees alone at about 2.6% are roughly <strong>$12,500 a year</strong>, far more than the software.</p>
         </div>
 
         <p>Toast is a genuinely strong restaurant platform. But its pricing is layered, and the headline "$0" gets a lot of attention while the real bill lives in processing fees and add-ons. Here is the transparent version.</p>
@@ -2526,10 +2526,10 @@ export const blogPostContent = {
           <tbody>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software — Starter</td><td style="padding:12px;border:1px solid #e5e7eb;">$0/mo (higher processing rate)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;">Software — paid tiers</td><td style="padding:12px;border:1px solid #e5e7eb;">from ~$69/mo per terminal</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Add-ons (online order, KDS, inventory, payroll)</td><td style="padding:12px;border:1px solid #e5e7eb;">$50–$100+/mo each</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Add-ons (online order, KDS, inventory, payroll)</td><td style="padding:12px;border:1px solid #e5e7eb;">extra monthly fees (ask for a written quote)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;">Payment processing</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49–3.5% + $0.15 per transaction</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;">Hardware</td><td style="padding:12px;border:1px solid #e5e7eb;">buy upfront or lease (proprietary)</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Contract</td><td style="padding:12px;border:1px solid #e5e7eb;">commonly 1–3 years</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;">Contract</td><td style="padding:12px;border:1px solid #e5e7eb;">depends on plan and quote (get the term in writing)</td></tr>
           </tbody>
         </table>
 
@@ -2541,25 +2541,25 @@ export const blogPostContent = {
           <li><strong>Per-terminal software</strong> — costs multiply with each till.</li>
           <li><strong>Add-on modules</strong> — online ordering, KDS, inventory and payroll are usually separate line items.</li>
           <li><strong>Proprietary hardware</strong> — you cannot bring your own; leaving means new kit.</li>
-          <li><strong>Contract</strong> — a 1–3 year term makes a bad fit an expensive mistake.</li>
+          <li><strong>Contract</strong> — terms depend on the plan and quote; a long term makes a bad fit an expensive mistake, so get it in writing.</li>
         </ul>
 
         <h2>What do you actually pay? A worked example</h2>
-        <p>A 1-location full-service restaurant on a paid tier with a couple of add-ons and $40k/month card volume: roughly <strong>$150–$250/mo software</strong> + <strong>~$12,500/yr processing</strong> + hardware. That is comfortably over <strong>$20,000/year</strong> all-in. Multiply for extra terminals or locations.</p>
+        <p>A 1-location full-service restaurant on a paid tier with a couple of add-ons and $40k/month card volume: roughly <strong>$150–$250/mo software</strong> + <strong>~$12,500/yr processing</strong> + hardware. That is roughly <strong>$14,000–$15,500 a year</strong> before hardware. Multiply for extra terminals or locations.</p>
 
         <h2>Are there cheaper Toast alternatives?</h2>
-        <p>Yes. If you like Toast's feature set but not the bill, the lever is the <em>cost structure</em>. <a href="/usa">DineOpen</a> offers the same essentials — POS, KDS, online ordering, inventory, AI ordering, delivery-app sales tracking (DoorDash/Uber Eats/Grubhub), US sales tax and tip reporting — at a flat <strong>$10/month with zero transaction-fee markup and no contract</strong>. You keep the swipe fees you were paying anyway and drop the per-transaction premium on top. Compare directly on the <a href="/vs/dineopen-vs-toast">DineOpen vs Toast</a> page, see the full <a href="/blog/square-vs-toast-vs-clover-2026">Square vs Toast vs Clover comparison</a>, or read the <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">founder cost breakdown</a>.</p>
+        <p>Yes. If you like Toast's feature set but not the bill, the lever is the <em>cost structure</em>. <a href="/usa">DineOpen</a> offers the same essentials — POS, KDS, online ordering, inventory, AI ordering, delivery-app sales tracking (DoorDash/Uber Eats/Grubhub), US sales tax and tip reporting — from <strong>$20/month (KDS and online ordering on the $50 Growth plan) with zero transaction-fee markup and no contract</strong>. You keep the swipe fees you were paying anyway and drop the per-transaction premium on top. Compare directly on the <a href="/vs/dineopen-vs-toast">DineOpen vs Toast</a> page, see the full <a href="/blog/square-vs-toast-vs-clover-2026">Square vs Toast vs Clover comparison</a>, or read the <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">founder cost breakdown</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Is Toast POS really free?</strong> There is a $0 "Starter" software tier, but it comes with a higher payment-processing rate, so you pay through fees rather than a monthly bill. For most restaurants the processing cost dwarfs the software cost.</p>
-        <p><strong>Why is Toast so expensive?</strong> The bill stacks per-terminal software, several paid add-on modules, proprietary hardware, and percentage-based processing on every sale — plus a multi-year contract. Processing fees are usually the largest component.</p>
-        <p><strong>What is a cheaper alternative to Toast?</strong> Flat-rate systems with no per-transaction markup, such as DineOpen at $10/month with no contract, are typically far cheaper all-in for a busy restaurant.</p>
+        <p><strong>Why is Toast so expensive?</strong> The bill stacks per-terminal software, several paid add-on modules, proprietary hardware, and percentage-based processing on every sale — plus a contract whose length depends on the plan. Processing fees are usually the largest component.</p>
+        <p><strong>What is a cheaper alternative to Toast?</strong> Flat-rate systems with no per-transaction markup, such as DineOpen from $20/month with no contract, are typically far cheaper all-in for a busy restaurant.</p>
     `,
     faqs: [
       { q: "Is Toast POS really free?", a: "There is a 0 dollar Starter software tier, but it comes with a higher payment-processing rate, so you pay through card fees rather than a monthly software bill. For most restaurants the processing cost is far larger than the software cost." },
-      { q: "How much does Toast POS cost per month in 2026?", a: "Paid Toast software tiers start around 69 dollars per month per terminal, and add-ons like online ordering, KDS, inventory and payroll are each 50 to 100 dollars or more. A realistic full-service setup runs over 200 dollars per month in software before processing and hardware." },
-      { q: "Why is Toast POS so expensive?", a: "The total bill stacks per-terminal software, several paid add-on modules, proprietary hardware, and percentage-based processing on every sale, plus a multi-year contract. Processing fees are usually the largest single component." },
-      { q: "What is a cheaper alternative to Toast POS?", a: "Flat-rate systems with no per-transaction markup, such as DineOpen at 10 dollars per month with no contract, are typically far cheaper all-in for a busy restaurant while offering the same core features." },
+      { q: "How much does Toast POS cost per month in 2026?", a: "Paid Toast software tiers start around 69 dollars per month per terminal, and add-ons like online ordering, KDS, inventory and payroll cost extra. Card processing and hardware come on top, so ask Toast for a written quote." },
+      { q: "Why is Toast POS so expensive?", a: "The total bill stacks per-terminal software, several paid add-on modules, proprietary hardware, and percentage-based processing on every sale, plus a contract whose length depends on the plan. Processing fees are usually the largest single component." },
+      { q: "What is a cheaper alternative to Toast POS?", a: "Flat-rate systems with no per-transaction markup, such as DineOpen from 20 dollars per month with no contract, are typically far cheaper all-in for a busy restaurant while offering the same core features." },
     ],
   },
   'square-vs-toast-vs-clover-2026': {
@@ -2574,7 +2574,7 @@ export const blogPostContent = {
     tags: ['Square', 'Toast', 'Clover', 'restaurant POS', 'POS comparison', 'best restaurant POS 2026'],
     content: `
         <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> <strong>Square</strong> is the best free, low-friction starting point (free software, ~2.6% + 10¢ per tap). <strong>Toast</strong> is the most restaurant-specific and feature-rich, but it comes with hardware costs, multi-year contracts, and ~2.49–3.5% processing. <strong>Clover</strong> sits in the middle — flexible hardware, but your price and support depend heavily on which bank or reseller you buy it through. If you want the restaurant features without the lock-in or the per-swipe markup, that's the gap a flat-rate system like DineOpen fills at $10/month.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> <strong>Square</strong> is the best free, low-friction starting point (free software, ~2.6% + 10¢ per tap). <strong>Toast</strong> is the most restaurant-specific and feature-rich, but it comes with hardware costs, multi-year contracts, and ~2.49–3.5% processing. <strong>Clover</strong> sits in the middle — flexible hardware, but your price and support depend heavily on which bank or reseller you buy it through. If you want the restaurant features without the lock-in or the per-swipe markup, that's the gap a flat-rate system like DineOpen fills, from $20/month.</p>
         </div>
 
         <p>If you're opening — or switching — a US restaurant in 2026, three names come up again and again: <strong>Square</strong>, <strong>Toast</strong>, and <strong>Clover</strong>. On a feature grid they look almost identical. In real life they're built for very different businesses, and the option that looks "cheapest" on the pricing page is rarely the cheapest once card processing kicks in.</p>
@@ -2594,7 +2594,7 @@ export const blogPostContent = {
           <tbody>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free plan; paid from ~$69/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">$0 "Starter" (higher processing) up to $69+/mo/terminal</td><td style="padding:12px;border:1px solid #e5e7eb;">~$60–$90+/mo depending on plan</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢ (in-person)</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49–3.5% + fee</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.3–2.6% + 10¢ (varies by reseller)</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Often 1–3 years</td><td style="padding:12px;border:1px solid #e5e7eb;">Varies (reseller-dependent)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Depends on plan and quote</td><td style="padding:12px;border:1px solid #e5e7eb;">Varies (reseller-dependent)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Hardware</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Buy outright, low cost</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary; buy or lease</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary Clover devices</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Best for</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Cafes, QSR, food trucks, new/low volume</td><td style="padding:12px;border:1px solid #e5e7eb;">Full-service & multi-unit restaurants</td><td style="padding:12px;border:1px solid #e5e7eb;">Retail + restaurants wanting hardware choice</td></tr>
           </tbody>
@@ -2610,7 +2610,7 @@ export const blogPostContent = {
         <p>When you compare, always calculate: <em>(monthly software) + (your card volume × processing rate)</em>. The winner on that number is almost never the winner on the pricing page. Our <a href="/tools/sales-tax-calculator">sales tax calculator</a> and the math in <a href="/blog/i-got-quoted-1200-month-for-toast-heres-what-i-built-instead">this founder cost breakdown</a> walk through a real example.</p>
 
         <h2>Do they lock you into contracts and hardware?</h2>
-        <p>Square is month-to-month with no contract and inexpensive, non-proprietary-ish hardware — the easiest to walk away from. Toast typically involves a 1–3 year commitment and proprietary hardware, so switching later is genuinely painful. Clover's terms depend on the reseller, which is why reading the agreement matters more with Clover than with anyone else.</p>
+        <p>Square is month-to-month with no contract and inexpensive, non-proprietary-ish hardware — the easiest to walk away from. Toast contract terms depend on the plan and quote (get the term in writing), with proprietary hardware, so switching later is genuinely painful. Clover's terms depend on the reseller, which is why reading the agreement matters more with Clover than with anyone else.</p>
 
         <h2>Which POS is best for small restaurants, bars, and food trucks?</h2>
         <ul>
@@ -2623,18 +2623,18 @@ export const blogPostContent = {
 
         <h2>Where does DineOpen fit in this comparison?</h2>
         <p>Honest take: Square, Toast, and Clover are all solid — the friction is <em>cost structure</em>, not capability. Toast-level features usually mean Toast-level contracts and per-swipe markup; Square-level pricing usually means fewer restaurant-specific features.</p>
-        <p><a href="/usa">DineOpen</a> was built to remove that trade-off: full restaurant features (POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub sales tracking) at a <strong>flat $10/month</strong>, with <strong>zero transaction fees</strong> (bring your own processor) and <strong>no hardware lock-in or contract</strong>. You keep the swipe fees you were paying anyway and stop paying a per-transaction markup on top. If the numbers above made you wince, that's the point — <a href="/vs/dineopen-vs-toast">compare it side by side with Toast</a>.</p>
+        <p><a href="/usa">DineOpen</a> was built to remove that trade-off: full restaurant features (POS, KDS, online ordering, inventory, AI ordering, DoorDash/Uber Eats/Grubhub sales tracking) from <strong>$20/month</strong> (KDS and online ordering on the $50 Growth plan), with <strong>zero transaction fees</strong> (bring your own processor) and <strong>no hardware lock-in or contract</strong>. You keep the swipe fees you were paying anyway and stop paying a per-transaction markup on top. If the numbers above made you wince, that's the point — <a href="/vs/dineopen-vs-toast">compare it side by side with Toast</a>.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>Is Square or Toast better for restaurants?</strong> Square is better for cafes, QSR, food trucks, and low-volume or new restaurants that want to start free with no contract. Toast is better for full-service and multi-location restaurants that need deep features like coursing, KDS, and advanced inventory — as long as you accept the contract and processing markup.</p>
         <p><strong>Is Clover good for restaurants?</strong> Clover works for restaurants, especially if you want hardware flexibility, but because it's sold through banks and resellers the price and support quality vary a lot. Always compare the specific quote and contract you're offered.</p>
-        <p><strong>What's the cheapest restaurant POS overall?</strong> Cheapest on software is Square (free) or a flat-rate system like DineOpen ($10/mo). But "cheapest" should always include processing: multiply your monthly card volume by each system's rate and add the software fee before deciding.</p>
+        <p><strong>What's the cheapest restaurant POS overall?</strong> Cheapest on software is Square (free) or a flat-rate system like DineOpen (from $20/mo). But "cheapest" should always include processing: multiply your monthly card volume by each system's rate and add the software fee before deciding.</p>
     `,
     faqs: [
       { q: 'Is Square or Toast better for restaurants?', a: 'Square is better for cafes, QSR, food trucks, and low-volume or new restaurants that want to start free with no contract. Toast is better for full-service and multi-location restaurants needing deep features like coursing, KDS, and advanced inventory — provided you accept the contract and higher processing markup.' },
       { q: 'Is Clover good for restaurants?', a: 'Clover works for restaurants and offers hardware flexibility, but because it is sold through banks and resellers the price, terms, and support quality vary widely. Always compare the specific quote and contract you are offered before signing.' },
-      { q: 'What is the cheapest restaurant POS in 2026?', a: 'Square is free on software and flat-rate systems like DineOpen are $10/month, but true cost must include card processing. Multiply your monthly card volume by the processing rate of each system and add the software fee — the cheapest on that combined number often differs from the cheapest on the pricing page.' },
-      { q: 'Do Toast and Clover require a contract?', a: 'Toast typically involves a 1–3 year contract with proprietary hardware. Clover terms depend on the reseller. Square is month-to-month with no contract, making it the easiest to leave.' },
+      { q: 'What is the cheapest restaurant POS in 2026?', a: 'Square is free on software and flat-rate systems like DineOpen start at $20/month, but true cost must include card processing. Multiply your monthly card volume by the processing rate of each system and add the software fee — the cheapest on that combined number often differs from the cheapest on the pricing page.' },
+      { q: 'Do Toast and Clover require a contract?', a: 'Toast contract terms depend on the plan and quote, and it runs on Toast hardware. Clover terms depend on the reseller. Square is month-to-month with no contract, making it the easiest to leave.' },
     ],
   },
   'how-to-open-restaurant-usa-2026': {
@@ -2708,7 +2708,7 @@ export const blogPostContent = {
         </ol>
 
         <h2>What's the smartest way to save money opening a restaurant?</h2>
-        <p>Three levers save the most without hurting quality: <strong>(1) a second-generation space</strong> (biggest single saving), <strong>(2) used equipment</strong> for the expensive items, and <strong>(3) a POS with no contract and zero transaction-fee markup</strong> — because a per-swipe markup compounds every single day you're open. On $40k/month in card sales, a modern flat-rate POS like <a href="/usa">DineOpen</a> ($10/month, zero transaction fees, no lock-in) can save thousands a year versus contract-based systems.</p>
+        <p>Three levers save the most without hurting quality: <strong>(1) a second-generation space</strong> (biggest single saving), <strong>(2) used equipment</strong> for the expensive items, and <strong>(3) a POS with no contract and zero transaction-fee markup</strong> — because a per-swipe markup compounds every single day you're open. On $40k/month in card sales, a modern flat-rate POS like <a href="/usa">DineOpen</a> (from $20/month, zero transaction fees, no lock-in) can save thousands a year versus contract-based systems.</p>
 
         <h2>Frequently asked questions</h2>
         <p><strong>How much money do you need to open a small restaurant in the US?</strong> A small cafe or QSR typically needs $95,000–$300,000 all-in, including build-out, equipment, licenses, initial inventory, and a few months of working capital. A food truck can start lower, around $50,000–$175,000.</p>
