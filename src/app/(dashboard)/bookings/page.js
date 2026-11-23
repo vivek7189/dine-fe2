@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../../../lib/api';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -12,6 +12,8 @@ import BookingDetail from '../../../components/bookings/BookingDetail';
 import BookingInvoice from '../../../components/bookings/BookingInvoice';
 import VenueManager from '../../../components/bookings/VenueManager';
 import PaymentForm from '../../../components/bookings/PaymentForm';
+import useRestaurantPosSettings from '../../../hooks/useRestaurantPosSettings';
+import { moneyMethodOptions } from '../../../utils/paymentMethodOptions';
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -273,6 +275,10 @@ export default function BookingsPage() {
       setSelectedBooking(resp.booking);
     }
   }
+
+  // Payment methods = the restaurant's POS methods (M-PESA, UPI …) + Bank Transfer
+  const posSettings = useRestaurantPosSettings(restaurantId);
+  const paymentMethods = useMemo(() => moneyMethodOptions(posSettings), [posSettings]);
 
   async function handleComplete(booking) {
     try {
@@ -594,6 +600,7 @@ export default function BookingsPage() {
         onComplete={handleComplete}
         onShareInvoice={handleShareInvoice}
         formatCurrency={formatCurrency}
+        methods={paymentMethods}
         isMobile={isMobile}
       />
 
@@ -602,6 +609,8 @@ export default function BookingsPage() {
         onClose={function() { setShowPayment(false); setPaymentBooking(null); }}
         onSave={handlePaymentSave}
         booking={paymentBooking}
+        methods={paymentMethods}
+        formatCurrency={formatCurrency}
         isMobile={isMobile}
       />
 
@@ -609,6 +618,7 @@ export default function BookingsPage() {
         invoice={invoiceData}
         isOpen={showInvoice}
         onClose={function() { setShowInvoice(false); setInvoiceData(null); }}
+        formatCurrency={formatCurrency}
         isMobile={isMobile}
       />
     </div>

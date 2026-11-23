@@ -1,14 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaCalendarAlt, FaClock, FaUsers, FaMapMarkerAlt, FaPhone, FaEnvelope, FaMoneyBill, FaCheck, FaFileInvoice } from 'react-icons/fa';
+import { paymentMethodLabel } from '../../utils/paymentMethodOptions';
 
 const TYPE_LABELS = { catering: 'Catering', advance_order: 'Advance Order', venue: 'Venue Booking' };
 const TYPE_COLORS = { catering: '#10b981', advance_order: '#3b82f6', venue: '#ef4444' };
 const STATUS_COLORS = { confirmed: '#3b82f6', in_progress: '#f59e0b', completed: '#10b981', cancelled: '#ef4444' };
 
-export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, onComplete, onShareInvoice, formatCurrency, isMobile }) {
+export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, onComplete, onShareInvoice, formatCurrency, methods, isMobile }) {
+  const [dueAsk, setDueAsk] = useState(null); // booking id whose Complete is waiting on "still due"
   if (!isOpen || !booking || typeof document === 'undefined') return null;
 
   const fc = formatCurrency || function(v) { return '₹' + (v || 0).toLocaleString(); };
@@ -121,7 +123,7 @@ export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, 
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f9fafb', borderRadius: '6px', fontSize: '13px' }}>
                       <div>
                         <span style={{ fontWeight: '600', color: '#059669' }}>{fc(p.amount)}</span>
-                        <span style={{ marginLeft: '8px', color: '#6b7280' }}>{p.method}</span>
+                        <span style={{ marginLeft: '8px', color: '#6b7280' }}>{paymentMethodLabel(p.method, methods)}</span>
                         {p.note && <span style={{ marginLeft: '8px', color: '#9ca3af', fontSize: '11px' }}>({p.note})</span>}
                       </div>
                       <span style={{ fontSize: '11px', color: '#9ca3af' }}>{p.date ? new Date(p.date).toLocaleDateString() : ''}</span>
@@ -144,12 +146,22 @@ export default function BookingDetail({ booking, isOpen, onClose, onAddPayment, 
               <button onClick={function() { onAddPayment(booking); }} style={{ padding: '9px 14px', borderRadius: '7px', border: '1px solid #d1d5db', background: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', color: '#374151' }}>
                 <FaMoneyBill size={11} /> Add Payment
               </button>
-              <button onClick={function() { onComplete(booking); }} style={{ padding: '9px 14px', borderRadius: '7px', border: 'none', background: '#059669', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <button onClick={function() { if ((Number(booking.balanceAmount) || 0) > 0) setDueAsk(booking.id); else onComplete(booking); }} style={{ padding: '9px 14px', borderRadius: '7px', border: 'none', background: '#059669', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <FaCheck size={11} /> Complete
               </button>
               <button onClick={function() { onShareInvoice(booking); }} style={{ padding: '9px 14px', borderRadius: '7px', border: '1px solid #d1d5db', background: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', color: '#374151' }}>
                 <FaFileInvoice size={11} /> Invoice
               </button>
+            </div>
+          )}
+          {dueAsk === booking.id && booking.status !== 'completed' && (
+            <div style={{ marginTop: '12px', padding: '12px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '13px', color: '#991b1b' }}>
+              <div style={{ marginBottom: '10px' }}><b>{fc(booking.balanceAmount)}</b> is still due — no payment recorded for it. Add the payment first, or complete it anyway?</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <button onClick={function() { setDueAsk(null); onAddPayment(booking); }} style={{ padding: '8px 14px', borderRadius: '7px', border: 'none', background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Add payment</button>
+                <button onClick={function() { setDueAsk(null); onComplete(booking); }} style={{ padding: '8px 14px', borderRadius: '7px', border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>Complete anyway</button>
+                <button onClick={function() { setDueAsk(null); }} style={{ padding: '8px 14px', borderRadius: '7px', border: 'none', background: 'none', color: '#6b7280', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+              </div>
             </div>
           )}
         </div>

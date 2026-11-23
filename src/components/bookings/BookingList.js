@@ -112,7 +112,7 @@ function ActionMenu({ booking, onView, onEdit, onAddPayment, onComplete, onCance
 }
 
 // ─── Confirmation Modal ───
-function ConfirmModal({ isOpen, title, message, confirmLabel, confirmColor, onConfirm, onClose, showReason, loading }) {
+function ConfirmModal({ isOpen, title, message, confirmLabel, confirmColor, onConfirm, onClose, showReason, loading, extraAction }) {
   const [reason, setReason] = useState('');
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -163,6 +163,19 @@ function ConfirmModal({ isOpen, title, message, confirmLabel, confirmColor, onCo
             >
               Cancel
             </button>
+            {extraAction && (
+              <button
+                onClick={extraAction.onClick}
+                disabled={loading}
+                style={{
+                  padding: '8px 20px', borderRadius: '8px', border: 'none',
+                  background: '#2563eb', color: 'white', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                {extraAction.label}
+              </button>
+            )}
             <button
               onClick={() => onConfirm(reason)}
               disabled={loading || (showReason === 'required' && !reason.trim())}
@@ -320,13 +333,18 @@ export default function BookingList({
   );
 
   // ─── Modals ───
+  // money still due on the booking being completed (> 0 → offer "Add payment" first)
+  const completeDue = confirmModal?.type === 'complete' ? (Number(confirmModal.booking?.balance_amount ?? confirmModal.booking?.balanceAmount) || 0) : 0;
   const modals = (
     <>
       <ConfirmModal
         isOpen={confirmModal?.type === 'complete'}
         title="Complete Booking"
-        message={`Mark booking #${confirmModal?.booking?.booking_number || ''} as completed?`}
-        confirmLabel="Mark Complete"
+        message={completeDue > 0
+          ? `${formatCurrency(completeDue)} is still due on booking #${confirmModal?.booking?.booking_number || ''} — no payment recorded for it. Add the payment first, or complete it anyway?`
+          : `Mark booking #${confirmModal?.booking?.booking_number || ''} as completed?`}
+        confirmLabel={completeDue > 0 ? 'Complete anyway' : 'Mark Complete'}
+        extraAction={completeDue > 0 && onAddPayment ? { label: 'Add payment', onClick: () => { const b = confirmModal.booking; setConfirmModal(null); onAddPayment(b); } } : null}
         confirmColor="#16a34a"
         onConfirm={handleConfirm}
         onClose={() => setConfirmModal(null)}

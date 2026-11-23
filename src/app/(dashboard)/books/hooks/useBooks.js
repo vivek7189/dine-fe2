@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import apiClient from '../../../../lib/api';
+import useRestaurantPosSettings from '../../../../hooks/useRestaurantPosSettings';
+import { moneyMethodOptions } from '../../../../utils/paymentMethodOptions';
 
 const DEFAULT_SUB_CATEGORIES = {
   rent: ['Office Rent', 'Kitchen Rent', 'Storage Rent'],
@@ -27,13 +29,6 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { value: 'licenses', label: 'Licenses & Permits', subCategories: DEFAULT_SUB_CATEGORIES.licenses },
   { value: 'equipment', label: 'Equipment', subCategories: DEFAULT_SUB_CATEGORIES.equipment },
   { value: 'miscellaneous', label: 'Miscellaneous', subCategories: DEFAULT_SUB_CATEGORIES.miscellaneous },
-];
-
-const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'upi', label: 'UPI' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
 ];
 
 const PERIODS = [
@@ -112,6 +107,10 @@ export default function useBooks() {
     window.addEventListener('restaurantChanged', read);
     return () => window.removeEventListener('restaurantChanged', read);
   }, []);
+
+  // Expense "Payment method": the restaurant's own POS methods (M-PESA, UPI …) + Bank Transfer
+  const posSettings = useRestaurantPosSettings(restaurantId);
+  const PAYMENT_METHODS = useMemo(() => moneyMethodOptions(posSettings).map(m => ({ value: m.id, label: m.label })), [posSettings]);
 
   useEffect(() => {
     // Electron is always a desktop POS terminal — never use mobile layout

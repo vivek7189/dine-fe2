@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaSave, FaReceipt, FaPlus, FaTrash, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { paymentMethodLabel } from '../../../../utils/paymentMethodOptions';
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #e8ecf1',
@@ -495,7 +496,7 @@ function ExpenseFormModal(props) {
             </div>
             <div>
               <label style={labelStyle}>Payment Method</label>
-              <CustomSelect value={expenseFormData.paymentMethod} onChange={v => update('paymentMethod', v)} options={PAYMENT_METHODS} placeholder="Select method" />
+              <CustomSelect value={expenseFormData.paymentMethod} onChange={v => update('paymentMethod', v)} options={expenseFormData.paymentMethod && !PAYMENT_METHODS.some(o => o.value === expenseFormData.paymentMethod) ? [...PAYMENT_METHODS, { value: expenseFormData.paymentMethod, label: paymentMethodLabel(expenseFormData.paymentMethod) }] : PAYMENT_METHODS} placeholder="Select method" />
             </div>
             <div>
               <label style={labelStyle}>Vendor</label>

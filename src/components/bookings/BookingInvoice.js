@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaWhatsapp, FaEnvelope, FaDownload, FaPrint } from 'react-icons/fa';
 
-export default function BookingInvoice({ invoice, isOpen, onClose, isMobile }) {
+export default function BookingInvoice({ invoice, isOpen, onClose, formatCurrency, isMobile }) {
   const [sharing, setSharing] = useState(false);
 
   if (!isOpen || !invoice || typeof document === 'undefined') return null;
+
+  const money = (v) => (formatCurrency ? formatCurrency(Number(v) || 0) : '₹' + (Number(v) || 0));
 
   function generateInvoiceText() {
     const lines = [];
@@ -39,21 +41,21 @@ export default function BookingInvoice({ invoice, isOpen, onClose, isMobile }) {
     if (invoice.items && invoice.items.length > 0) {
       lines.push('ITEMS:');
       invoice.items.forEach(function(item, i) {
-        lines.push((i + 1) + '. ' + item.name + ' x' + item.quantity + '  ₹' + (item.price * item.quantity));
+        lines.push((i + 1) + '. ' + item.name + ' x' + item.quantity + '  ' + money(item.price * item.quantity));
       });
       lines.push('-'.repeat(40));
     }
 
-    lines.push('Subtotal: ₹' + (invoice.subtotal || 0));
+    lines.push('Subtotal: ' + money(invoice.subtotal));
     if (invoice.discount && invoice.discount.amount > 0) {
-      lines.push('Discount: -₹' + invoice.discount.amount);
+      lines.push('Discount: -' + money(invoice.discount.amount));
     }
-    if (invoice.taxAmount > 0) lines.push('Tax: ₹' + invoice.taxAmount);
-    if (invoice.serviceCharge > 0) lines.push('Service Charge: ₹' + invoice.serviceCharge);
+    if (invoice.taxAmount > 0) lines.push('Tax: ' + money(invoice.taxAmount));
+    if (invoice.serviceCharge > 0) lines.push('Service Charge: ' + money(invoice.serviceCharge));
     lines.push('='.repeat(40));
-    lines.push('TOTAL: ₹' + (invoice.totalAmount || 0));
-    lines.push('Paid: ₹' + (invoice.paidAmount || 0));
-    lines.push('Balance: ₹' + (invoice.balanceAmount || 0));
+    lines.push('TOTAL: ' + money(invoice.totalAmount));
+    lines.push('Paid: ' + money(invoice.paidAmount));
+    lines.push('Balance: ' + money(invoice.balanceAmount));
     lines.push('='.repeat(40));
     if (invoice.specialInstructions) lines.push('Note: ' + invoice.specialInstructions);
     lines.push('Thank you for your business!');

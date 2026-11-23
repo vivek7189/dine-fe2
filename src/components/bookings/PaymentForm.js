@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FaTimes, FaMoneyBill } from 'react-icons/fa';
+import { posPaymentMethodOptions } from '../../utils/paymentMethodOptions';
 
-export default function PaymentForm({ isOpen, onClose, onSave, booking, isMobile }) {
+export default function PaymentForm({ isOpen, onClose, onSave, booking, methods, formatCurrency, isMobile }) {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('cash');
   const [type, setType] = useState('partial');
@@ -14,6 +15,8 @@ export default function PaymentForm({ isOpen, onClose, onSave, booking, isMobile
   if (!isOpen || typeof document === 'undefined') return null;
 
   const balance = booking?.balanceAmount || 0;
+  const money = (v) => (formatCurrency ? formatCurrency(Number(v) || 0) : '₹' + (Number(v) || 0).toLocaleString());
+  const methodList = (methods && methods.length) ? methods : [...posPaymentMethodOptions({}), { id: 'bank_transfer', label: 'Bank Transfer' }];
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -52,32 +55,29 @@ export default function PaymentForm({ isOpen, onClose, onSave, booking, isMobile
             <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span style={{ color: '#6b7280' }}>Total Amount:</span>
-                <span style={{ fontWeight: '600', color: '#1f2937' }}>₹{(booking.totalAmount || 0).toLocaleString()}</span>
+                <span style={{ fontWeight: '600', color: '#1f2937' }}>{money(booking.totalAmount)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span style={{ color: '#6b7280' }}>Paid:</span>
-                <span style={{ fontWeight: '600', color: '#059669' }}>₹{(booking.paidAmount || 0).toLocaleString()}</span>
+                <span style={{ fontWeight: '600', color: '#059669' }}>{money(booking.paidAmount)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#6b7280' }}>Balance:</span>
-                <span style={{ fontWeight: '700', color: '#dc2626' }}>₹{balance.toLocaleString()}</span>
+                <span style={{ fontWeight: '700', color: '#dc2626' }}>{money(balance)}</span>
               </div>
             </div>
           )}
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Amount *</label>
-            <input type="number" value={amount} onChange={function(e) { setAmount(e.target.value); }} placeholder={balance > 0 ? `Max ₹${balance}` : 'Enter amount'} style={{ width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1px solid #d1d5db', fontSize: '15px', fontWeight: '600' }} min="1" step="0.01" />
+            <input type="number" value={amount} onChange={function(e) { setAmount(e.target.value); }} placeholder={balance > 0 ? `Max ${money(balance)}` : 'Enter amount'} style={{ width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1px solid #d1d5db', fontSize: '15px', fontWeight: '600' }} min="1" step="0.01" />
             {balance > 0 && <button type="button" onClick={function() { setAmount(String(balance)); }} style={{ marginTop: '4px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #e5e7eb', background: '#f9fafb', fontSize: '11px', color: '#6b7280', cursor: 'pointer' }}>Pay full balance</button>}
           </div>
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Payment Method</label>
             <select value={method} onChange={function(e) { setMethod(e.target.value); }} style={{ width: '100%', padding: '9px 12px', borderRadius: '7px', border: '1px solid #d1d5db', fontSize: '14px' }}>
-              <option value="cash">Cash</option>
-              <option value="upi">UPI</option>
-              <option value="card">Card</option>
-              <option value="bank_transfer">Bank Transfer</option>
+              {methodList.map(function(m) { return <option key={m.id} value={m.id}>{m.label}</option>; })}
             </select>
           </div>
 

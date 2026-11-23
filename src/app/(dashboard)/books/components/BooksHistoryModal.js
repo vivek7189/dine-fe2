@@ -5,6 +5,7 @@
 // on (owner) only starts keeping the record; expenses work exactly as before.
 import { useCallback, useEffect, useState } from 'react';
 import { FaTimes, FaHistory } from 'react-icons/fa';
+import { paymentMethodLabel } from '../../../../utils/paymentMethodOptions';
 
 const ACTION = {
   add: { label: 'Added', color: '#059669', bg: '#ecfdf5' },
@@ -18,7 +19,7 @@ const show = (k, v, formatCurrency, catLabel) => {
   if (k === 'amount') return formatCurrency(Number(v) || 0);
   if (k === 'date') { const d = new Date(v); return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
   if (k === 'category') return catLabel(v);
-  if (k === 'paymentMethod' && v === 'petty_cash') return 'Petty cash';
+  if (k === 'paymentMethod') return paymentMethodLabel(v);
   return String(v);
 };
 

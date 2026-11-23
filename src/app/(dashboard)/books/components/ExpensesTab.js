@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FaPlus, FaReceipt, FaEdit, FaTrash, FaSync, FaCog, FaWallet, FaHistory } from 'react-icons/fa';
 import BooksHistoryModal from './BooksHistoryModal';
+import { paymentMethodLabel } from '../../../../utils/paymentMethodOptions';
 
 const cardStyle = {
   backgroundColor: 'white', borderRadius: '14px', padding: '20px',
@@ -219,7 +220,7 @@ export default function ExpensesTab({
                         <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
                           {expense.vendor && <span>{expense.vendor}</span>}
                           {expense.vendor && expense.paymentMethod && <span> {'\u00B7'} </span>}
-                          {expense.paymentMethod && <span style={{ textTransform: 'capitalize' }}>{expense.paymentMethod === 'petty_cash' ? 'Petty cash' : expense.paymentMethod}</span>}
+                          {expense.paymentMethod && <span>{paymentMethodLabel(expense.paymentMethod)}</span>}
                         </div>
                       )}
                     </div>
