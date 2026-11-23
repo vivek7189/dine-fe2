@@ -71,13 +71,15 @@ export function buildGroupsByDay(data) {
   const groupOfKey = {};
   cats.forEach((c) => { groupOfKey[c.key] = c.group || NONE; });
   const bills = data.bills || null;
+  // bill discount + bill total per day (newer servers) → Discount and Net sales columns; Net sales = Order History
+  const billTotals = data.billTotals || null;
   const rows = [];
   const months = [];
-  const grand = { by: {}, total: 0, bills: 0 };
+  const grand = { by: {}, total: 0, bills: 0, discount: 0, net: 0 };
   let month = null;
   for (const d of data.dates || []) {
     const ym = d.slice(0, 7);
-    if (!month || month.ym !== ym) { month = { ym, label: monthLabel(ym), by: {}, total: 0, bills: 0 }; months.push(month); }
+    if (!month || month.ym !== ym) { month = { ym, label: monthLabel(ym), by: {}, total: 0, bills: 0, discount: 0, net: 0 }; months.push(month); }
     const by = {};
     let total = 0;
     Object.entries((data.days || {})[d] || {}).forEach(([k, v]) => {
@@ -87,14 +89,19 @@ export function buildGroupsByDay(data) {
       total += rev;
     });
     const b = bills ? Number(bills[d]) || 0 : null;
-    rows.push({ day: d, ym, by, total, bills: b });
+    const bt = (billTotals && billTotals[d]) || {};
+    const discount = Number(bt.discount) || 0;
+    const net = Number(bt.net) || 0;
+    rows.push({ day: d, ym, by, total, bills: b, discount, net });
     [month, grand].forEach((t) => {
       Object.entries(by).forEach(([g, v]) => { t.by[g] = (t.by[g] || 0) + v; });
       t.total += total;
       if (b != null) t.bills += b;
+      t.discount += discount;
+      t.net += net;
     });
   }
-  return { cols, rows, months, grand, hasBills: !!bills };
+  return { cols, rows, months, grand, hasBills: !!bills, hasNet: !!billTotals };
 }
 
 // Excel: Groups by day / Monthly / Categories by month (the layout Mwikoo checked)
@@ -103,9 +110,11 @@ export async function downloadGroupsByDayExcel(data, fileSuffix) {
   if (!r || !r.rows.length) return false;
   const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
-  const { cols, rows, months, grand, hasBills } = r;
-  const head = ['Date', 'Day', ...cols.map((c) => c.name), 'Total', ...(hasBills ? ['Bills'] : [])];
-  const line = (a, b, t) => [a, b, ...cols.map((c) => r0(t.by[c.id])), r0(t.total), ...(hasBills ? [t.bills] : [])];
+  const { cols, rows, months, grand, hasBills, hasNet } = r;
+  const netHead = hasNet ? ['Discount', 'Net sales'] : [];
+  const netCells = (t) => (hasNet ? [r0(t.discount), r0(t.net)] : []);
+  const head = ['Date', 'Day', ...cols.map((c) => c.name), 'Total', ...netHead, ...(hasBills ? ['Bills'] : [])];
+  const line = (a, b, t) => [a, b, ...cols.map((c) => r0(t.by[c.id])), r0(t.total), ...netCells(t), ...(hasBills ? [t.bills] : [])];
   const aoa = [head];
   months.forEach((m) => {
     rows.filter((x) => x.ym === m.ym).forEach((x) => aoa.push(line(dayLabel(x.day), weekday(x.day), x)));
@@ -113,15 +122,19 @@ export async function downloadGroupsByDayExcel(data, fileSuffix) {
   });
   aoa.push(line('Grand total', '', grand));
   const ws1 = XLSX.utils.aoa_to_sheet(aoa);
-  ws1['!cols'] = [{ wch: 16 }, { wch: 6 }, ...cols.map(() => ({ wch: 15 })), { wch: 15 }, { wch: 8 }];
+  ws1['!cols'] = [{ wch: 16 }, { wch: 6 }, ...cols.map(() => ({ wch: 15 })), { wch: 15 }, ...netHead.map(() => ({ wch: 14 })), { wch: 8 }];
   XLSX.utils.book_append_sheet(wb, ws1, 'Groups by day');
 
   const pct = (v, t) => (t ? `${((v / t) * 100).toFixed(1)}%` : '');
-  const aoa2 = [['Month', ...cols.map((c) => c.name), 'Total', ...cols.map((c) => `${c.name} %`)]];
-  months.forEach((m) => aoa2.push([m.label, ...cols.map((c) => r0(m.by[c.id])), r0(m.total), ...cols.map((c) => pct(m.by[c.id] || 0, m.total))]));
-  aoa2.push(['Total', ...cols.map((c) => r0(grand.by[c.id])), r0(grand.total), ...cols.map((c) => pct(grand.by[c.id] || 0, grand.total))]);
+  const aoa2 = [['Month', ...cols.map((c) => c.name), 'Total', ...netHead, ...cols.map((c) => `${c.name} %`)]];
+  months.forEach((m) => aoa2.push([m.label, ...cols.map((c) => r0(m.by[c.id])), r0(m.total), ...netCells(m), ...cols.map((c) => pct(m.by[c.id] || 0, m.total))]));
+  aoa2.push(['Total', ...cols.map((c) => r0(grand.by[c.id])), r0(grand.total), ...netCells(grand), ...cols.map((c) => pct(grand.by[c.id] || 0, grand.total))]);
+  if (hasNet) {
+    aoa2.push([]);
+    aoa2.push(['Total = item price × qty (before bill discount). Net sales = bill totals after discount — the same as Order History.']);
+  }
   const ws2 = XLSX.utils.aoa_to_sheet(aoa2);
-  ws2['!cols'] = [{ wch: 12 }, ...cols.map(() => ({ wch: 15 })), { wch: 15 }, ...cols.map(() => ({ wch: 12 }))];
+  ws2['!cols'] = [{ wch: 12 }, ...cols.map(() => ({ wch: 15 })), { wch: 15 }, ...netHead.map(() => ({ wch: 14 })), ...cols.map(() => ({ wch: 12 }))];
   XLSX.utils.book_append_sheet(wb, ws2, 'Monthly');
 
   // every category under its group, month by month
@@ -151,9 +164,9 @@ export async function downloadGroupsByDayExcel(data, fileSuffix) {
 export function groupsByDayCsv(data) {
   const r = buildGroupsByDay(data);
   if (!r || !r.rows.length) return null;
-  const { cols, rows, months, grand, hasBills } = r;
-  const out = [['Date', 'Day', ...cols.map((c) => c.name), 'Total', ...(hasBills ? ['Bills'] : [])]];
-  const line = (a, b, t) => [a, b, ...cols.map((c) => r0(t.by[c.id])), r0(t.total), ...(hasBills ? [t.bills] : [])];
+  const { cols, rows, months, grand, hasBills, hasNet } = r;
+  const out = [['Date', 'Day', ...cols.map((c) => c.name), 'Total', ...(hasNet ? ['Discount', 'Net sales'] : []), ...(hasBills ? ['Bills'] : [])]];
+  const line = (a, b, t) => [a, b, ...cols.map((c) => r0(t.by[c.id])), r0(t.total), ...(hasNet ? [r0(t.discount), r0(t.net)] : []), ...(hasBills ? [t.bills] : [])];
   months.forEach((m) => {
     rows.filter((x) => x.ym === m.ym).forEach((x) => out.push(line(x.day, weekday(x.day), x)));
     out.push(line(`${m.label} total`, '', m));
@@ -167,13 +180,15 @@ export function GroupsByDayTable({ data, loading, error, formatCurrency, onEditG
   if (loading || (!data && !error)) return <div className="text-center py-12 text-gray-400 text-sm">Loading sales by group…</div>;
   if (error) return <div className="text-center py-10 px-4 text-sm text-amber-700" data-testid="groups-byday-error">{error}</div>;
   if (!r || !r.rows.length || !r.grand.total) return <div className="text-center py-12 text-gray-400">No sales in this date range.</div>;
-  const { cols, rows, months, grand, hasBills } = r;
+  const { cols, rows, months, grand, hasBills, hasNet } = r;
   const ungrouped = (data.categories || []).filter((c) => !c.group).map((c) => c.name || c.key);
   const money = (v) => (v ? formatCurrency(Math.round(v)) : <span className="text-gray-300">0</span>);
   const cells = (t, cls) => (
     <>
       {cols.map((c) => <td key={c.id} className={`px-3 py-2 text-right text-sm whitespace-nowrap ${cls}`}>{money(t.by[c.id])}</td>)}
       <td className={`px-3 py-2 text-right text-sm whitespace-nowrap font-bold ${cls}`}>{money(t.total)}</td>
+      {hasNet && <td className={`px-3 py-2 text-right text-sm whitespace-nowrap text-rose-600 ${cls}`}>{t.discount ? <>−{formatCurrency(Math.round(t.discount))}</> : <span className="text-gray-300">0</span>}</td>}
+      {hasNet && <td className={`px-3 py-2 text-right text-sm whitespace-nowrap font-bold ${cls}`} data-testid="groups-byday-net">{money(t.net)}</td>}
       {hasBills && <td className={`px-3 py-2 text-center text-sm ${cls}`}>{t.bills}</td>}
     </>
   );
@@ -181,7 +196,7 @@ export function GroupsByDayTable({ data, loading, error, formatCurrency, onEditG
     <div data-testid="groups-byday">
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-start gap-2">
         <p className="flex-1 text-xs text-gray-500" data-testid="groups-byday-help">
-          Each day&apos;s sales split by your groups ({cols.filter((c) => c.id !== NONE).map((c) => c.name).join(', ')}). Amount = item price × qty on paid bills, before bill discount, service charge and tax — same as Category Sales. Excel has 3 sheets: Groups by day, Monthly, Categories by month.
+          Each day&apos;s sales split by your groups ({cols.filter((c) => c.id !== NONE).map((c) => c.name).join(', ')}). Amount = item price × qty on paid bills, before bill discount, service charge and tax — same as Category Sales.{hasNet && <> <b>Net sales</b> = bill totals after discount — the same figure as Order History.</>} Excel has 3 sheets: Groups by day, Monthly, Categories by month.
           {' '}A new category is <b>not in a group</b> until you add it with <b>Edit groups</b>.
         </p>
         {onEditGroups && (
@@ -203,6 +218,8 @@ export function GroupsByDayTable({ data, loading, error, formatCurrency, onEditG
               <th className="px-3 py-2.5 font-semibold text-left">Date</th>
               {cols.map((c) => <th key={c.id} className="px-3 py-2.5 font-semibold text-right">{c.name}</th>)}
               <th className="px-3 py-2.5 font-semibold text-right">Total</th>
+              {hasNet && <th className="px-3 py-2.5 font-semibold text-right">Discount</th>}
+              {hasNet && <th className="px-3 py-2.5 font-semibold text-right" title="Bill totals after discount — the same as Order History">Net sales</th>}
               {hasBills && <th className="px-3 py-2.5 font-semibold text-center">Bills</th>}
             </tr>
           </thead>
@@ -229,6 +246,7 @@ export function GroupsByDayTable({ data, loading, error, formatCurrency, onEditG
               <td className="px-3 pb-3">Share</td>
               {cols.map((c) => <td key={c.id} className="px-3 pb-3 text-right">{grand.total ? `${(((grand.by[c.id] || 0) / grand.total) * 100).toFixed(1)}%` : ''}</td>)}
               <td className="px-3 pb-3 text-right">100%</td>
+              {hasNet && <><td /><td /></>}
               {hasBills && <td />}
             </tr>
           </tfoot>
