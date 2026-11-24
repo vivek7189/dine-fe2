@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('electron:getVersion'),
   getVersionInfo: () =>
     ipcRenderer.invoke('electron:getVersionInfo'),
+  // Windows print queue: printers with waiting jobs / remove jobs older than N minutes from one printer
+  getPrintQueue: () => ipcRenderer.invoke('electron:getPrintQueue'),
+  clearPrintQueue: (opts) => ipcRenderer.invoke('electron:clearPrintQueue', opts),
 
   // Offline local-first proxy — ALL API calls route through this
   apiRequest: (request) =>

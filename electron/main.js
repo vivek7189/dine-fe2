@@ -1791,6 +1791,41 @@ ipcMain.handle('electron:restartApp', async () => {
   return { restarting: true };
 });
 
+// ──── IPC: Windows print queue (remote terminal support, utils/remoteTerminal in the renderer) ────
+// Read-only list of printers that have jobs waiting, and removing jobs OLDER than N minutes from ONE
+// printer (old bills Windows kept while the printer was off). Windows only; never touches jobs that
+// are newer than the cut-off, and the printer name goes in through an env var (no shell quoting).
+function runPowerShell(script, env) {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') return resolve({ ok: false, error: 'windows only' });
+    const { execFile } = require('child_process');
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      { timeout: 20000, windowsHide: true, env: { ...process.env, ...(env || {}) } },
+      (err, stdout) => {
+        if (err) return resolve({ ok: false, error: String(err.message || err).slice(0, 300) });
+        try { resolve({ ok: true, data: stdout && stdout.trim() ? JSON.parse(stdout.trim()) : null }); }
+        catch { resolve({ ok: false, error: 'unreadable output' }); }
+      });
+  });
+}
+
+ipcMain.handle('electron:getPrintQueue', async () => {
+  const r = await runPowerShell("$ErrorActionPreference='SilentlyContinue'; @(Get-Printer | ForEach-Object { $j = @(Get-PrintJob -PrinterName $_.Name); if ($j.Count -gt 0) { [pscustomobject]@{ printer = $_.Name; jobs = $j.Count; oldest = (($j | Sort-Object SubmittedTime | Select-Object -First 1).SubmittedTime).ToString('o') } } }) | ConvertTo-Json -Compress");
+  if (!r.ok) return r;
+  return { ok: true, queue: r.data == null ? [] : (Array.isArray(r.data) ? r.data : [r.data]) };
+});
+
+ipcMain.handle('electron:clearPrintQueue', async (event, opts = {}) => {
+  const printer = String(opts.printer || '').slice(0, 96);
+  const minutes = Math.max(0, Math.min(Number(opts.olderThanMinutes) || 60, 60 * 24 * 30));
+  if (!printer) return { ok: false, error: 'printer required' };
+  const r = await runPowerShell("$ErrorActionPreference='Stop'; $cut = (Get-Date).AddMinutes(-[int]$env:DO_MINUTES); $j = @(Get-PrintJob -PrinterName $env:DO_PRINTER | Where-Object { $_.SubmittedTime -lt $cut }); $j | Remove-PrintJob; [pscustomobject]@{ removed = $j.Count } | ConvertTo-Json -Compress",
+    { DO_PRINTER: printer, DO_MINUTES: String(Math.round(minutes)) });
+  if (!r.ok) return r;
+  console.log(`[PrintQueue] removed ${r.data?.removed || 0} job(s) older than ${minutes} min from "${printer}"`);
+  return { ok: true, removed: Number(r.data?.removed) || 0 };
+});
+
 ipcMain.handle('electron:getVersion', async () => {
   return app.getVersion();
 });

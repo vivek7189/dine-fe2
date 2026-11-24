@@ -15,6 +15,7 @@ import QrApprovalPanel from '../../components/QrApprovalPanel';
 import { useIdlePrefetch } from '../../hooks/useIdlePrefetch';
 import { useAutoPrint } from '../../hooks/useAutoPrint';
 import useRealtimeConnection from '../../hooks/useRealtimeConnection';
+import useRemoteTerminal from '../../hooks/useRemoteTerminal';
 import { useOrderNotifications } from '../../hooks/useOrderNotifications';
 import PrintEventToast from '../../components/PrintEventToast';
 import SyncStatus from '../../components/SyncStatus';
@@ -193,6 +194,10 @@ function DashboardLayoutContent({ children }) {
   // Keep the Firebase realtime socket alive + auto-reconnect if it drops (the pipeline that
   // feeds auto-print). Critical on long-running Electron/Windows POS terminals.
   useRealtimeConnection(selectedRestaurantId);
+
+  // Desktop check-in for remote support: PC name, version, printers → a change support queued for
+  // this PC (printers, update, restart, clear old Windows print jobs). Electron only; never on the print path.
+  const remoteTerminal = useRemoteTerminal(selectedRestaurantId);
 
   // Auto-update check on Tauri desktop — runs once on mount after 5s delay
   const [updateReady, setUpdateReady] = useState(null);
@@ -510,6 +515,20 @@ function DashboardLayoutContent({ children }) {
                 paddingTop: isMobile ? 'var(--sat, 0px)' : '0',
               }}
             >
+              {/* Remote support asked this desktop to update / restart */}
+              {remoteTerminal.notice && (
+                <div data-testid="remote-terminal-notice" style={{ background: '#fef3c7', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f59e0b' }}>
+                  <span style={{ fontSize: '13px', color: '#78350f', fontWeight: '600', flex: 1 }}>
+                    {remoteTerminal.notice.text} Restart when you are free — open bills are kept.
+                  </span>
+                  <button onClick={() => remoteTerminal.restartNow()} style={{ padding: '6px 14px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}>
+                    Restart Now
+                  </button>
+                  <button onClick={() => remoteTerminal.dismiss()} style={{ padding: '6px 14px', backgroundColor: 'transparent', color: '#b45309', border: '1px solid #d97706', borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>
+                    Later
+                  </button>
+                </div>
+              )}
               {/* Auto-update ready banner (Tauri only) */}
               {updateReady && (
                 <div style={{
