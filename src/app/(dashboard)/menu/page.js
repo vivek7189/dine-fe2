@@ -15,7 +15,7 @@ const QRCodeModal = dynamic(() => import('../../../components/QRCodeModal'), { s
 const BarcodeTab = dynamic(() => import('./components/BarcodeTab'), { ssr: false });
 const HiddenItemsModal = dynamic(() => import('./components/HiddenItemsModal'), { ssr: false });
 import apiClient from '../../../lib/api';
-import ReportGroupPicker, { useReportGroups, setCategoryGroup, addReportGroup } from '../../../components/ReportGroupPicker';
+import ReportGroupPicker, { useReportGroups, setCategoryGroup, addReportGroup, groupOfCategory } from '../../../components/ReportGroupPicker';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import { t } from '../../../lib/i18n';
 import { getDisplayImage } from '../../../utils/placeholderImages';
@@ -3826,6 +3826,10 @@ const MenuManagement = () => {
       const catMap = {};
       (categories || []).forEach(c => { catMap[c.id || c.name] = c.name; });
 
+      // Report group of each item's category (only for restaurants that use groups)
+      const groupName = {};
+      (reportGroups || []).forEach(g => { groupName[g.id] = g.name; });
+
       // Build export rows with all details
       const rows = activeItems.map(item => {
         const recipe = menuItemRecipes[item.id];
@@ -3840,6 +3844,7 @@ const MenuManagement = () => {
           'Short Code': item.shortCode || '',
           'Name': item.name || '',
           'Category': catMap[item.category] || item.category || '',
+          ...(reportGroups.length > 0 ? { 'Report Group': groupName[groupOfCategory(reportGroups, { id: item.category, name: catMap[item.category] })] || '' } : {}),
           'Price': item.price || 0,
           'Cost Price': item.costPrice != null ? item.costPrice : '',
           'Description': item.description || '',
@@ -3943,7 +3948,7 @@ const MenuManagement = () => {
     } finally {
       setExportLoading(false);
     }
-  }, [menuItems, categories, menuItemRecipes, currentRestaurant, isBarMode, isBakeryMode]);
+  }, [menuItems, categories, menuItemRecipes, currentRestaurant, isBarMode, isBakeryMode, reportGroups]);
 
   const handleBulkDeleteClick = () => {
     if (!isOnline) { setError('You are offline. Go online to make changes.'); return; }
