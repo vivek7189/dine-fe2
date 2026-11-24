@@ -1819,7 +1819,7 @@ ipcMain.handle('electron:clearPrintQueue', async (event, opts = {}) => {
   const printer = String(opts.printer || '').slice(0, 96);
   const minutes = Math.max(0, Math.min(Number(opts.olderThanMinutes) || 60, 60 * 24 * 30));
   if (!printer) return { ok: false, error: 'printer required' };
-  const r = await runPowerShell("$ErrorActionPreference='Stop'; $cut = (Get-Date).AddMinutes(-[int]$env:DO_MINUTES); $j = @(Get-PrintJob -PrinterName $env:DO_PRINTER | Where-Object { $_.SubmittedTime -lt $cut }); $j | Remove-PrintJob; [pscustomobject]@{ removed = $j.Count } | ConvertTo-Json -Compress",
+  const r = await runPowerShell("$ErrorActionPreference='Stop'; $cut = (Get-Date).AddMinutes(-[int]$env:DO_MINUTES); $j = @(Get-PrintJob -PrinterName $env:DO_PRINTER | Where-Object { $_.SubmittedTime -and $_.SubmittedTime -lt $cut }); $j | Remove-PrintJob; [pscustomobject]@{ removed = $j.Count } | ConvertTo-Json -Compress",
     { DO_PRINTER: printer, DO_MINUTES: String(Math.round(minutes)) });
   if (!r.ok) return r;
   console.log(`[PrintQueue] removed ${r.data?.removed || 0} job(s) older than ${minutes} min from "${printer}"`);

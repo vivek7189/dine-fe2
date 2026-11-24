@@ -519,7 +519,7 @@ function DashboardLayoutContent({ children }) {
               {remoteTerminal.notice && (
                 <div data-testid="remote-terminal-notice" style={{ background: '#fef3c7', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f59e0b' }}>
                   <span style={{ fontSize: '13px', color: '#78350f', fontWeight: '600', flex: 1 }}>
-                    {remoteTerminal.notice.text} Restart when you are free — open bills are kept.
+                    {remoteTerminal.notice.text} Finish the bill you are on, then restart — saved orders stay.
                   </span>
                   <button onClick={() => remoteTerminal.restartNow()} style={{ padding: '6px 14px', backgroundColor: '#d97706', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}>
                     Restart Now

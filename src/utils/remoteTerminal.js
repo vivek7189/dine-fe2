@@ -20,13 +20,18 @@ export function matchPrinter(wanted, osNames) {
   return sq.length === 1 ? sq[0] : undefined;
 }
 
-// What this desktop reports at check-in.
-export async function readTerminalState(api, { withQueue = false } = {}) {
+let machine = null; // { hostname, os } — read once per app start
+
+// What this desktop reports at check-in. The Windows printer list and print queue are slower to read,
+// so only when asked (the server keeps the last ones it got).
+export async function readTerminalState(api, { withPrinters = false, withQueue = false } = {}) {
   const out = { printers: null, config: null, printQueue: null, hostname: null, os: null };
-  try {
-    const list = await api.getPrinters();
-    if (Array.isArray(list)) out.printers = list.map((p) => ({ name: p?.name, status: p?.status, isDefault: p?.isDefault === true })).filter((p) => p.name);
-  } catch { /* report without */ }
+  if (withPrinters) {
+    try {
+      const list = await api.getPrinters();
+      if (Array.isArray(list)) out.printers = list.map((p) => ({ name: p?.name, status: p?.status, isDefault: p?.isDefault === true })).filter((p) => p.name);
+    } catch { /* report without */ }
+  }
   try {
     const cfg = (await api.getPrinterConfig()) || {};
     out.config = {
@@ -35,12 +40,12 @@ export async function readTerminalState(api, { withQueue = false } = {}) {
     };
   } catch { /* report without */ }
   try {
-    if (typeof api.getPrintDiagnostics === 'function') {
+    if (!machine && typeof api.getPrintDiagnostics === 'function') {
       const d = await api.getPrintDiagnostics({ limit: 1 });
-      out.hostname = d?.machine?.hostname || null;
-      out.os = d?.machine?.os || null;
+      if (d?.machine) machine = { hostname: d.machine.hostname || null, os: d.machine.os || null };
     }
   } catch { /* report without */ }
+  if (machine) { out.hostname = machine.hostname; out.os = machine.os; }
   if (withQueue && typeof api.getPrintQueue === 'function') {
     try { const q = await api.getPrintQueue(); if (q?.ok) out.printQueue = q.queue || []; } catch { /* report without */ }
   }

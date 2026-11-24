@@ -11,7 +11,8 @@ import { getAppVersion, checkForUpdates, restartApp } from '../utils/autoUpdater
 import { readTerminalState, applyPending } from '../utils/remoteTerminal';
 
 const EVERY_MS = 90 * 1000;
-const QUEUE_EVERY = 10; // Windows print queue read every 10th check-in (~15 min) — it starts PowerShell
+const PRINTERS_EVERY = 10; // Windows printer list every 10th check-in (~15 min)
+const QUEUE_EVERY = 40;    // Windows print queue every 40th (~1 h) — it starts PowerShell
 
 function userLabel() {
   try {
@@ -34,8 +35,8 @@ export default function useRemoteTerminal(restaurantId) {
     const read = (k) => { try { return window.localStorage.getItem(k); } catch { return null; } };
     const write = (k, v) => { try { window.localStorage.setItem(k, v); } catch { /* ignore */ } };
 
-    const send = async (terminalId, extra = {}) => {
-      const state = await readTerminalState(api, { withQueue: count % QUEUE_EVERY === 0 });
+    const send = async (terminalId, full = false) => {
+      const state = await readTerminalState(api, { withPrinters: full || count % PRINTERS_EVERY === 0, withQueue: full || count % QUEUE_EVERY === 0 });
       const appliedRev = parseInt(read(revKey(terminalId)), 10);
       let applyResult = null;
       try { applyResult = JSON.parse(read(resultKey(terminalId)) || 'null'); } catch { /* none */ }
@@ -43,7 +44,7 @@ export default function useRemoteTerminal(restaurantId) {
         method: 'POST',
         body: {
           terminalId, appVersion: await getAppVersion(), userLabel: userLabel(), ...state,
-          appliedRev: Number.isInteger(appliedRev) ? appliedRev : null, applyResult, ...extra,
+          appliedRev: Number.isInteger(appliedRev) ? appliedRev : null, applyResult,
         },
       });
     };
@@ -73,7 +74,7 @@ export default function useRemoteTerminal(restaurantId) {
         // Save + report BEFORE any restart, so the same change is never applied twice.
         write(revKey(terminalId), String(res.rev));
         write(resultKey(terminalId), JSON.stringify(report));
-        await send(terminalId).catch(() => {});
+        await send(terminalId, true).catch(() => {}); // with the printers / queue as they are now
         if (!follow) return;
         if (result.force) { await restartApp(); return; }
         const note = res.pending.note ? `${res.pending.note} ` : '';
