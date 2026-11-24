@@ -2569,6 +2569,7 @@ const MenuManagement = () => {
   const [currentRestaurant, setCurrentRestaurant] = useState(null); // Will be loaded from user data
   const isBarMode = currentRestaurant?.businessType === 'bar';
   const isBakeryMode = currentRestaurant?.businessType === 'bakery';
+  const reportGroups = useReportGroups(currentRestaurant?.id); // [] unless the restaurant uses report groups (menu export column)
   const isIceCreamMode = currentRestaurant?.businessType === 'ice_cream';
 
   // Business-type-aware labels
