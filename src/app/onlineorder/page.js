@@ -954,6 +954,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     }
     const limit = Number(ps.onlinePay?.requireAbove) || 0;
     let total = 0; try { total = getFinalTotal(); } catch (_) { total = 0; }
+    // Only free (complimentary) dishes → nothing to pay: no online payment step.
+    if (cart.length > 0 && total <= 0) return { gateway, offered: false, required: false, overLimit: false, freeOrder: true, defaultChoice: 'online' };
     const overLimit = rule === 'optional' && limit > 0 && total >= limit;
     return { gateway, offered: rule !== 'off', required: rule === 'required' || overLimit, overLimit, limit, defaultChoice: ps.onlinePay?.defaultChoice === 'later' ? 'later' : 'online' };
   };
@@ -1755,7 +1757,10 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
     const payOnline = op.offered && (op.required || payChoice === 'online');
     const upiEnabled = customerAppSettings?.paymentSettings?.upiEnabled;
 
-    if (payOnline && op.gateway === 'paytm') {
+    if (op.freeOrder || (cart.length > 0 && getFinalTotal() <= 0)) {
+      // ₹0 order (complimentary dishes only) — nothing to pay, no Razorpay / Paytm / UPI step
+      await placeOrderDirect();
+    } else if (payOnline && op.gateway === 'paytm') {
       // Paytm payment — order placed only after Paytm confirms
       await handlePaytmPayment();
     } else if (payOnline && op.gateway === 'razorpay') {
@@ -3344,7 +3349,7 @@ const FeaturedCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
           {item.name}
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-          <span style={{ fontSize: '15px', fontWeight: 800, color: '#1f2937' }}>{item.fromPrice ? <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>from </span> : null}{cs}{Number(item.price || 0).toFixed(0)}</span>
+          <span style={{ fontSize: '15px', fontWeight: 800, color: '#1f2937' }}>{item.fromPrice ? <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>from </span> : null}{(item.complimentary === true && Number(item.price || 0) === 0) ? 'FREE' : <>{cs}{Number(item.price || 0).toFixed(0)}</>}</span>
           {cartQuantity > 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', borderRadius: '8px', overflow: 'hidden', height: '30px', background: '#22c55e' }}>
               <button onClick={() => onRemoveFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#fff', width: '26px', height: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaMinus size={9} /></button>
@@ -3492,7 +3497,7 @@ const MenuItemCard = ({ item, onAddToCart, onRemoveFromCart, cartQuantity, getCa
         {/* Price + ADD button row — pushed to bottom */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
           <span style={{ fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>
-            {item.fromPrice ? <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>from </span> : null}{cs}{Number(item.price || 0).toFixed(2)}
+            {item.fromPrice ? <span style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>from </span> : null}{(item.complimentary === true && Number(item.price || 0) === 0) ? 'FREE' : <>{cs}{Number(item.price || 0).toFixed(2)}</>}
           </span>
 
           {cartQuantity > 0 ? (
@@ -3826,7 +3831,7 @@ const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTo
               }}>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px 0' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {sizeLabel(item.name, item.selectedVariant.name)}</span> : null}</h4>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{cs}{Number(item.price || 0).toFixed(2)} each</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{(item.complimentary === true && Number(item.price || 0) === 0) ? 'FREE' : <>{cs}{Number(item.price || 0).toFixed(2)} each</>}</p>
                   {notesAllowed(customerAppSettings) && <ItemNoteField item={item} setCart={setCart} />}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -5081,7 +5086,7 @@ const CheckoutView = ({
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{item.name}{item.selectedVariant ? <span style={{ color: '#6b7280', fontWeight: 500 }}> · {sizeLabel(item.name, item.selectedVariant.name)}</span> : null}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{cs}{Number(item.price || 0).toFixed(2)} x {item.quantity}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{(item.complimentary === true && Number(item.price || 0) === 0) ? 'FREE' : <>{cs}{Number(item.price || 0).toFixed(2)}</>} x {item.quantity}</div>
                       {notesAllowed(customerAppSettings) && <ItemNoteField item={item} setCart={setCart} />}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

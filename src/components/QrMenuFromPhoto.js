@@ -98,7 +98,7 @@ export default function QrMenuFromPhoto({ restaurant, menuName, rows: startRows 
       if (it) {
         p.pick.push(String(it.id));
         if (it.isAvailable === false && r.switchOn) p.switchOn.push(it);
-      } else if (r.add && r.name && Number(r.price) > 0 && r.category) p.create.push(r);
+      } else if (r.add && r.name && String(r.price).trim() !== '' && Number(r.price) >= 0 && r.category) p.create.push(r);
       else if (r.add && !r.category) p.noCat += 1;
       else p.skipped += 1;
     });
@@ -117,7 +117,7 @@ export default function QrMenuFromPhoto({ restaurant, menuName, rows: startRows 
     }
     for (const r of plan.create) {
       try {
-        const res = await apiClient.createMenuItem(restaurant.id, { name: r.name.trim(), price: Number(r.price), category: r.category, isVeg: r.isVeg, description: r.description });
+        const res = await apiClient.createMenuItem(restaurant.id, { name: r.name.trim(), price: Number(r.price), category: r.category, isVeg: r.isVeg, description: r.description, ...(Number(r.price) === 0 ? { complimentary: true } : {}) });
         if (res?.menuItem?.id) { ids.push(String(res.menuItem.id)); added += 1; } else failed.push(r.name);
       } catch (_) { failed.push(r.name); }
     }
@@ -205,7 +205,7 @@ export default function QrMenuFromPhoto({ restaurant, menuName, rows: startRows 
                             </select>
                           </div>
                         )}
-                        {r.add && !(Number(r.price) > 0) && <div style={{ fontSize: 11.5, color: '#b91c1c', marginTop: 4 }}>Enter the price to add it.</div>}
+                        {r.add && !(String(r.price).trim() !== '' && Number(r.price) >= 0) && <div style={{ fontSize: 11.5, color: '#b91c1c', marginTop: 4 }}>Enter the price to add it.</div>}
                       </div>
                     )}
                   </div>

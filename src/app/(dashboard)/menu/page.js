@@ -2677,6 +2677,7 @@ const MenuManagement = () => {
     featured: false,
     badge: '',
     hideOnQr: false, // not on the QR / online menu (POS only)
+    complimentary: false, // free dish (₹0) — FREE on the QR page, counted in the Comp report
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [multiPricingEnabled, setMultiPricingEnabled] = useState(false);
@@ -3421,7 +3422,9 @@ const MenuManagement = () => {
 
       const itemData = {
         ...formData,
-        price: effectivePrice || parseFloat(formData.price) || 0,
+        price: formData.complimentary === true ? 0 : (effectivePrice || parseFloat(formData.price) || 0),
+        // Sent only when on, or when switching a free dish back to paid — other dishes' saves stay as before.
+        complimentary: formData.complimentary === true ? true : (editingItem?.complimentary === true ? false : undefined),
         restaurantId: currentRestaurant.id,
         variants: cleanedVariants,
         customizations: cleanedCustomizations,
@@ -3459,6 +3462,7 @@ const MenuManagement = () => {
             featured: itemData.featured || false,
             badge: itemData.badge || '',
             hideOnQr: itemData.hideOnQr === true,
+            ...(itemData.complimentary !== undefined ? { complimentary: itemData.complimentary } : {}),
           };
           await queueOfflineOrder({
             restaurantId: currentRestaurant.id,
@@ -3774,6 +3778,7 @@ const MenuManagement = () => {
       featured: item.featured || false,
       badge: item.badge || '',
       hideOnQr: item.hideOnQr === true,
+      complimentary: item.complimentary === true,
       // Pre-populate channel prices from pricing rules
       dineInPrice: (() => {
         const rule = activePricingRules.find(r => DINEIN_NAMES.includes((r.name || '').toLowerCase().trim()));
@@ -6114,7 +6119,8 @@ const MenuManagement = () => {
                       <input
                         type="text"
                         required
-                        value={formData.price}
+                        disabled={formData.complimentary === true}
+                        value={formData.complimentary === true ? '0' : formData.price}
                         onChange={(e) => setFormData({...formData, price: e.target.value})}
                         style={{
                           width: '100%',
@@ -7607,6 +7613,18 @@ const MenuManagement = () => {
               </div>
               </div>{/* END RIGHT COLUMN */}
               </div>{/* END TWO-COLUMN GRID */}
+
+              {/* ── Complimentary (free) dish: price 0, FREE on the QR page, counted in the Comp report ── */}
+              <div style={{ marginTop: '4px', marginBottom: '10px', padding: '14px 18px', borderRadius: '16px', background: formData.complimentary ? '#ecfdf5' : '#f8fafc', border: `1px solid ${formData.complimentary ? '#a7f3d0' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: formData.complimentary ? '#047857' : '#374151' }}>Complimentary (free)</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Price is 0 and it shows as FREE. Stock is still used, and the Comp report shows how many were given and their cost.</div>
+                </div>
+                <button type="button" aria-label="Complimentary dish" onClick={() => setFormData({ ...formData, complimentary: !formData.complimentary, ...(formData.complimentary ? {} : { price: '0' }) })}
+                  style={{ position: 'relative', width: '48px', height: '27px', borderRadius: '999px', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, background: formData.complimentary ? '#059669' : '#e5e7eb', transition: 'background 0.2s ease' }}>
+                  <span style={{ position: 'absolute', top: '3px', left: formData.complimentary ? '24px' : '3px', width: '21px', height: '21px', borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.2s ease' }} />
+                </button>
+              </div>
 
               {/* ── Hide from the QR / online menu (staff still sell it at the POS) ── */}
               <div style={{ marginTop: '4px', marginBottom: '10px', padding: '14px 18px', borderRadius: '16px', background: formData.hideOnQr ? '#fef2f2' : '#f8fafc', border: `1px solid ${formData.hideOnQr ? '#fecaca' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>

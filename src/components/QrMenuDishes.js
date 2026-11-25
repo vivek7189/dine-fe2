@@ -75,8 +75,9 @@ export default function QrMenuDishes({ restaurant, menu, menuItems, categories, 
   };
   const savePrice = () => {
     const { id, value } = editPrice; setEditPrice(null);
-    if (!(Number(value) > 0)) return;
-    return run(id, async () => { await apiClient.updateMenuItem(id, { price: Number(value) }, restaurant.id); await onReload(); });
+    if (value === '' || value == null || !(Number(value) >= 0)) return;
+    // 0 = a complimentary (free) dish; any other price makes it a normal dish again.
+    return run(id, async () => { await apiClient.updateMenuItem(id, { price: Number(value), complimentary: Number(value) === 0 }, restaurant.id); await onReload(); });
   };
   const deleteOwn = async (i) => {
     setBusyId(i.id); setConfirmDel(null);
@@ -235,7 +236,7 @@ function NewDish({ restaurant, menu, categories, sym, onClose, onSaved }) {
   const [err, setErr] = useState('');
   const set = (p) => setF((x) => ({ ...x, ...p }));
   const newCatMode = f.category === '__new' || cats.length === 0;
-  const ok = f.name.trim() && Number(f.price) > 0 && (newCatMode ? f.newCat.trim() : f.category);
+  const ok = f.name.trim() && String(f.price).trim() !== '' && Number(f.price) >= 0 && (newCatMode ? f.newCat.trim() : f.category);
 
   const pick = (e) => {
     const fl = e.target.files && e.target.files[0];
@@ -248,7 +249,7 @@ function NewDish({ restaurant, menu, categories, sym, onClose, onSaved }) {
   const save = async () => {
     setBusy(true); setErr('');
     try {
-      const dish = { name: f.name.trim(), price: Number(f.price), isVeg: f.isVeg, description: f.description.trim() };
+      const dish = { name: f.name.trim(), price: Number(f.price), isVeg: f.isVeg, description: f.description.trim(), ...(Number(f.price) === 0 ? { complimentary: true } : {}) };
       let item;
       if (menu.ownMenu) {
         // this QR's own menu: the server files it under the QR menu's own category

@@ -671,6 +671,9 @@ export default function SalesSummaryPage() {
                                   </span>
                                 )}
                                 <span className="font-medium text-gray-800 text-sm">{item.name}</span>
+                                {Number(item.quantity) > 0 && Number(item.revenue) === 0 && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Free</span>
+                                )}
                               </div>
                             </td>
                             <td className="px-4 py-3 text-center">

@@ -20,6 +20,7 @@ import {
 const CLASSIFICATION_STYLES = {
   Star: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' },
   'No cost': { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-200' },
+  Complimentary: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' }, // free dish — not ranked
   'Plow Horse': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
   Puzzle: { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200' },
   Dog: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },

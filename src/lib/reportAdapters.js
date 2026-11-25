@@ -78,6 +78,10 @@ export function adaptCompReport(res) {
       percentOfOrders: num(d.percentOfOrders),
       totalOrdersInPeriod: num(d.totalOrders),
     },
+    // Complimentary (₹0) dishes given on normal orders, valued at cost
+    complimentary: d.complimentary && typeof d.complimentary === 'object'
+      ? { totalQty: num(d.complimentary.totalQty), totalCost: num(d.complimentary.totalCost), orders: num(d.complimentary.orders), items: arr(d.complimentary.items) }
+      : { totalQty: 0, totalCost: 0, orders: 0, items: [] },
   };
 }
 

@@ -400,6 +400,41 @@ export default function CompReportPage() {
               </div>
             </div>
 
+            {/* Complimentary (free) dishes given on normal orders — valued at what they cost to make */}
+            {(data.complimentary?.items || []).length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-4" data-testid="complimentary-dishes">
+                <div className="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <h3 className="text-base font-bold text-gray-800">Complimentary dishes</h3>
+                  <span className="text-sm text-gray-500">
+                    {data.complimentary.totalQty} given · {data.complimentary.orders} orders · cost {formatCurrency(data.complimentary.totalCost || 0)}
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Dish</th>
+                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Given</th>
+                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Cost each</th>
+                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Total cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {data.complimentary.items.map((it, i) => (
+                        <tr key={i}>
+                          <td className="px-4 py-2 text-sm text-gray-800">{it.name}</td>
+                          <td className="px-4 py-2 text-sm text-gray-800 text-right">{it.qty}</td>
+                          <td className="px-4 py-2 text-sm text-gray-600 text-right">{it.costSource === 'none' ? 'No cost set' : formatCurrency(it.unitCost || 0)}</td>
+                          <td className="px-4 py-2 text-sm text-gray-800 text-right">{it.costSource === 'none' ? '—' : formatCurrency(it.cost || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">Selling value is 0 (no revenue). Cost = recipe cost, or the dish&apos;s cost price. Stock used is already in your stock reports and Books.</div>
+              </div>
+            )}
+
             {/* Comp Orders Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
