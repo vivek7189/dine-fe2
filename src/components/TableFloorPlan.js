@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaSave, FaTimes, FaUndo, FaSquare, FaCircle, FaChair, FaUsers } from 'react-icons/fa';
+import { tableLabel } from '../utils/tableLabel';
 
 // Drag-and-drop floor plan. Presentational + self-contained: clicking a table
 // in VIEW mode fires onTableClick (host wires it to the same take-order flow),
@@ -176,7 +177,7 @@ export default function TableFloorPlan({
       {/* Selected-table controls (edit mode) */}
       {mode === 'edit' && sel && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', padding: '8px 12px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0369a1' }}>{tables.find(t => t.id === selectedId)?.name}</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0369a1' }}>{tableLabel(tables.find(t => t.id === selectedId))}</span>
           <span style={{ fontSize: '11px', color: '#64748b' }}>Shape:</span>
           {[{ k: 'rect', I: FaSquare }, { k: 'square', I: FaSquare }, { k: 'round', I: FaCircle }].map(({ k, I }, i) => (
             <button key={k + i} onClick={() => updateSel({ shape: k, ...(k === 'square' ? { height: sel.width } : {}) })} title={k}
@@ -223,7 +224,7 @@ export default function TableFloorPlan({
                   padding: '4px', textAlign: 'center', userSelect: 'none', touchAction: 'none',
                   transition: dragRef.current ? 'none' : 'box-shadow 0.15s',
                 }}>
-                <div style={{ fontSize: '12px', fontWeight: 800, color: info.text, lineHeight: 1.1, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: info.text, lineHeight: 1.1, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tableLabel(t)}</div>
                 <div style={{ fontSize: '9px', color: info.text, opacity: 0.75, display: 'flex', alignItems: 'center', gap: '3px' }}>
                   <FaChair size={7} /> {t.capacity || '-'}
                   {t.currentOrderCovers > 0 && <><FaUsers size={7} style={{ marginLeft: '2px' }} /> {t.currentOrderCovers}</>}

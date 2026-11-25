@@ -5,6 +5,7 @@ import {
   FaEdit, FaTrash, FaBan, FaTools, FaCheck, FaReceipt, FaPrint, FaExchangeAlt,
   FaUtensils, FaPlus, FaColumns, FaEllipsisV, FaCog,
 } from 'react-icons/fa';
+import { tableLabel } from '../utils/tableLabel';
 
 /**
  * Presentational card for a single table on the Tables page grid.
@@ -196,7 +197,7 @@ export default function TableCard({
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: isMobileEmbed ? '3px' : '6px' }}>
               <span style={{ fontSize: isMobileEmbed ? '12px' : tiny ? '14px' : compact ? '15px' : large ? '19px' : '16px', fontWeight: 800, color: '#111827', lineHeight: 1.1, wordBreak: 'break-word' }}>
-                {table.name}
+                {tableLabel(table)}
               </span>
               {table.mergePrimary && table.mergedTableNames?.length > 0 && (
                 <span title={`Merged with ${table.mergedTableNames.join(', ')}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: isMobileEmbed ? '8px' : '10px', fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: '5px', whiteSpace: 'nowrap' }}>

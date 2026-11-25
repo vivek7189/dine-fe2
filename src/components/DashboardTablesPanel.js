@@ -21,6 +21,7 @@ import { printHtmlInHiddenFrame, printDocument, supportsNativeAutoPrint } from '
 import { useEtimsBillPrint } from '../hooks/useEtimsBillPrint';
 import { printKOTByStations } from '../utils/printKotStations';
 import { seatLabel } from '../utils/orderItemKey';
+import { tableLabel } from '../utils/tableLabel';
 import { lineTaxFlags, savedLineBasePrice } from '../utils/taxEngine';
 
 export default function DashboardTablesPanel({
@@ -966,7 +967,7 @@ export default function DashboardTablesPanel({
                     overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
-                      <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{t.name}</span>
+                      <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{tableLabel(t)}</span>
                       <span style={{ fontSize: '9px', fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '999px' }}>{translate('tables.split') || 'Split'} · {subs.length}</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '8px', flex: 1 }}>

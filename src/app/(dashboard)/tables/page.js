@@ -15,6 +15,7 @@ import { getCachedData, setCachedData } from '../../../lib/offlineDb';
 import OfflineBanner from '../../../components/OfflineBanner';
 import TableFloorPlan from '../../../components/TableFloorPlan';
 import TableCard from '../../../components/TableCard';
+import { tableLabel } from '../../../utils/tableLabel';
 import { useTableCardSize, tableGridColumns, tableGridGap, TableCardSizeToggle, useHideFloatingButtons, useTablesFocus } from '../../../hooks/useTableCardSize';
 import ChairCluster from '../../../components/ChairCluster';
 import TableActionsSheet from '../../../components/TableActionsSheet';
@@ -1956,7 +1957,7 @@ const TableManagement = () => {
       showError('You can only edit a table when it is free (not occupied or reserved).');
       return;
     }
-    setEditTableModal({ id: table.id, name: table.name || '', capacity: table.capacity || 4 });
+    setEditTableModal({ id: table.id, name: table.name || '', capacity: table.capacity || 4, displayNo: table.displayNo || '', origDisplayNo: table.displayNo || '' });
     setActiveDropdown(null);
   };
   const saveTableEdit = async () => {
@@ -1965,8 +1966,11 @@ const TableManagement = () => {
     try {
       const name = String(editTableModal.name).trim();
       const capacity = Math.max(1, parseInt(editTableModal.capacity) || 1);
-      await apiClient.updateTable(editTableModal.id, { name, capacity }, selectedRestaurant?.id);
-      setFloors(prev => prev.map(f => ({ ...f, tables: (f.tables || []).map(t => t.id === editTableModal.id ? { ...t, name, capacity } : t) })));
+      // Display no. is sent only when changed, so a plain name/seat edit stays exactly as before.
+      const displayNo = String(editTableModal.displayNo || '').trim().slice(0, 10);
+      const noChanged = displayNo !== String(editTableModal.origDisplayNo || '').trim();
+      await apiClient.updateTable(editTableModal.id, { name, capacity, ...(noChanged ? { displayNo } : {}) }, selectedRestaurant?.id);
+      setFloors(prev => prev.map(f => ({ ...f, tables: (f.tables || []).map(t => t.id === editTableModal.id ? { ...t, name, capacity, ...(noChanged ? { displayNo: displayNo || null } : {}) } : t) })));
       setEditTableModal(null);
     } catch (err) { showError(`Failed: ${err.message}`); }
     finally { setTableCfgSaving(false); }
@@ -3008,7 +3012,7 @@ const TableManagement = () => {
                             {/* Header */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', gap: '6px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                                <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{table.name}</span>
+                                <span style={{ fontWeight: 800, color: '#111827', fontSize: '14px' }}>{tableLabel(table)}</span>
                                 <span style={{ fontSize: '9px', fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '1px 6px', borderRadius: '999px' }}>{t('tables.split') || 'Split'} · {subs.length}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
@@ -3355,8 +3359,20 @@ const TableManagement = () => {
               type="number" min="1"
               value={editTableModal.capacity}
               onChange={(e) => setEditTableModal(m => ({ ...m, capacity: e.target.value }))}
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', marginBottom: '20px', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', marginBottom: '16px', boxSizing: 'border-box' }}
             />
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Display no. (optional)</label>
+            <input
+              value={editTableModal.displayNo}
+              maxLength={10}
+              onChange={(e) => setEditTableModal(m => ({ ...m, displayNo: e.target.value }))}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveTableEdit(); }}
+              placeholder="e.g. 1"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '10px', fontSize: '14px', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }}
+            />
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.4 }}>
+              Shown before the name on table screens, e.g. &quot;1 · BAR&quot;. The table name, QR codes and orders do not change.
+            </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setEditTableModal(null)} disabled={tableCfgSaving} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '2px solid #e5e7eb', backgroundColor: 'white', color: '#6b7280', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>{t('tables.cancel') || 'Cancel'}</button>
               <button onClick={saveTableEdit} disabled={tableCfgSaving || !String(editTableModal.name).trim()} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: '600', fontSize: '14px', cursor: (tableCfgSaving || !String(editTableModal.name).trim()) ? 'not-allowed' : 'pointer', opacity: (tableCfgSaving || !String(editTableModal.name).trim()) ? 0.6 : 1 }}>{tableCfgSaving ? (t('tables.saving') || 'Saving...') : (t('common.save') || 'Save')}</button>
@@ -3716,7 +3732,7 @@ const TableManagement = () => {
                               <FaCheck size={9} />
                             </div>
                           )}
-                          <div style={{ fontSize: '18px', fontWeight: 800, color: sel ? '#dc2626' : '#1f2937', lineHeight: 1 }}>{table.name || table.number}</div>
+                          <div style={{ fontSize: '18px', fontWeight: 800, color: sel ? '#dc2626' : '#1f2937', lineHeight: 1 }}>{tableLabel(table)}</div>
                           <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                             <FaChair size={9} /> {table.capacity} {t('tables.seats').toLowerCase()}
                           </div>
