@@ -35,7 +35,7 @@ export default function FreeBillingClient() {
   ];
 
   const comparisonData = [
-    { feature: 'Monthly Cost', dineopen: 'Free for 7 days', square: '2.6% + 10¢ per transaction', zomato: 'Free but commission-locked', spreadsheet: 'Free but manual' },
+    { feature: 'Monthly Cost', dineopen: 'Free for 7 days', square: '2.6% + 15¢ per transaction', zomato: 'Free but commission-locked', spreadsheet: 'Free but manual' },
     { feature: 'Transaction Fees', dineopen: 'None', square: 'Yes, on every sale', zomato: 'Yes, platform commission', spreadsheet: 'None' },
     { feature: 'GST Billing', dineopen: 'Full compliance', square: 'Limited', zomato: 'Basic', spreadsheet: 'Manual calculation' },
     { feature: 'AI Ordering', dineopen: 'Included', square: 'Not available', zomato: 'Not available', spreadsheet: 'Not available' },

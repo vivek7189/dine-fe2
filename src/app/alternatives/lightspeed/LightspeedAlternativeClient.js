@@ -11,7 +11,7 @@ const comparisonData = [
   { feature: 'Transaction Fees', dineopen: '0%', competitor: '2.6% + 10¢', winner: 'dineopen' },
   { feature: 'AI Voice Ordering', dineopen: '✓', competitor: '✗', winner: 'dineopen' },
   { feature: 'QR Code Menus', dineopen: '✓ Free', competitor: '✓ Extra cost', winner: 'dineopen' },
-  { feature: 'Multi-Location', dineopen: 'Unlimited ($10/outlet)', competitor: 'Per location pricing', winner: 'dineopen' },
+  { feature: 'Multi-Location', dineopen: 'Pro plan (2 outlets), custom for 3+', competitor: 'Per location pricing', winner: 'tie' },
   { feature: 'Kitchen Display (KDS)', dineopen: '✓ Included', competitor: '✓ Extra module', winner: 'dineopen' },
   { feature: 'Inventory Management', dineopen: '✓ Included', competitor: '✓ Included', winner: 'tie' },
   { feature: 'Delivery Integration', dineopen: 'Talabat (auto); others via manual entry + reports', competitor: '✓ Available', winner: 'competitor' },
@@ -60,13 +60,13 @@ export default function LightspeedAlternativeClient() {
                   <p style={{ fontSize: '12px', color: '#9ca3af' }}>($299/month)</p>
                 </div>
                 <div>
-                  <p style={{ color: '#6b7280', fontSize: '14px' }}>DineOpen Complete</p>
-                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#059669' }}>$120/year</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>($10/month)</p>
+                  <p style={{ color: '#6b7280', fontSize: '14px' }}>DineOpen Growth</p>
+                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#059669' }}>$600/year</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>($50/month, KDS + online ordering included)</p>
                 </div>
               </div>
               <div style={{ padding: '16px', backgroundColor: '#d1fae5', borderRadius: '8px' }}>
-                <p style={{ fontSize: '24px', fontWeight: '800', color: '#065f46' }}>Save $3,468+ per year!</p>
+                <p style={{ fontSize: '24px', fontWeight: '800', color: '#065f46' }}>$2,988 a year less on software (card fees extra with both)</p>
               </div>
             </div>
           </div>
@@ -129,8 +129,8 @@ export default function LightspeedAlternativeClient() {
               </div>
               <div style={{ padding: '32px', backgroundColor: '#f9fafb', borderRadius: '16px' }}>
                 <FaStore size={32} style={{ color: '#f59e0b', marginBottom: '16px' }} />
-                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>Unlimited Locations</h3>
-                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>Add unlimited restaurant locations at just $10/outlet. Lightspeed charges per-location fees.</p>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>Multi-Location</h3>
+                <p style={{ color: '#6b7280', lineHeight: 1.7 }}>Pro ($99/month) includes 2 outlets with a central dashboard; chains with 3+ outlets get custom pricing. Lightspeed charges per location.</p>
               </div>
             </div>
           </div>

@@ -14,7 +14,7 @@ const comparisonData = [
   { feature: 'Biryani Portion Sizes', dineopen: 'Half/Full/Family', generic: 'Basic S/M/L', winner: 'dineopen' },
   { feature: 'Delivery Platform Integration', dineopen: 'Talabat (auto); others via manual entry + reports', generic: 'Limited', winner: 'tie' },
   { feature: 'Items with 5+ Modifiers', dineopen: 'Handles seamlessly', generic: 'Slows down / crashes', winner: 'dineopen' },
-  { feature: 'Monthly Price', dineopen: 'From $10/mo', generic: '$50-150/mo', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: 'From $20/mo', generic: '$50-150/mo', winner: 'dineopen' },
   { feature: 'Global Tax Support', dineopen: 'GST, VAT, Sales Tax', generic: 'Single region only', winner: 'dineopen' },
 ];
 
@@ -215,7 +215,7 @@ export default function IndianRestaurantPOSClient() {
               <div className="text-sm text-gray-600">Avg. Modifiers Per Dish</div>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md text-center">
-              <div className="text-3xl font-bold text-orange-600 mb-1">$10/mo</div>
+              <div className="text-3xl font-bold text-orange-600 mb-1">$20/mo</div>
               <div className="text-sm text-gray-600">DineOpen Starting Price</div>
             </div>
           </div>

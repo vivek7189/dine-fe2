@@ -1817,7 +1817,7 @@ export const blogPostContent = {
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free</td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">from $20/mo</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Hardware</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Cheap reader</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary handheld</td><td style="padding:12px;border:1px solid #e5e7eb;">Your tablet/phone</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Offline mode</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 15¢</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Often 1-3 yrs</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
           </tbody>
         </table>
@@ -2082,7 +2082,7 @@ export const blogPostContent = {
           <tbody>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Tabs &amp; pre-auth</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Strong</td><td style="padding:12px;border:1px solid #e5e7eb;">Good</td><td style="padding:12px;border:1px solid #e5e7eb;">Yes</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software from</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">$0-$69+/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">Free/paid</td><td style="padding:12px;border:1px solid #e5e7eb;">from $20/mo</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49-3.5%</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 15¢</td><td style="padding:12px;border:1px solid #e5e7eb;">0% markup (BYO)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">1-3 yrs</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">None</td></tr>
           </tbody>
         </table>
@@ -2344,7 +2344,7 @@ export const blogPostContent = {
             <th style="padding:12px;border:1px solid #e5e7eb;text-align:left;">Best for</th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Flat-rate</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">One blended rate, e.g. 2.6% + 10¢</td><td style="padding:12px;border:1px solid #e5e7eb;">Low volume, simplicity</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Flat-rate</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">One blended rate, e.g. 2.6% + 15¢</td><td style="padding:12px;border:1px solid #e5e7eb;">Low volume, simplicity</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Interchange-plus</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Interchange + fixed processor margin (e.g. +0.30%)</td><td style="padding:12px;border:1px solid #e5e7eb;">Busy restaurants; most transparent</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Tiered</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">"Qualified/mid/non-qualified" buckets</td><td style="padding:12px;border:1px solid #e5e7eb;">Usually avoid — least transparent</td></tr>
           </tbody>
@@ -2574,7 +2574,7 @@ export const blogPostContent = {
     tags: ['Square', 'Toast', 'Clover', 'restaurant POS', 'POS comparison', 'best restaurant POS 2026'],
     content: `
         <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> <strong>Square</strong> is the best free, low-friction starting point (free software, ~2.6% + 10¢ per tap). <strong>Toast</strong> is the most restaurant-specific and feature-rich, but it comes with hardware costs, multi-year contracts, and ~2.49–3.5% processing. <strong>Clover</strong> sits in the middle — flexible hardware, but your price and support depend heavily on which bank or reseller you buy it through. If you want the restaurant features without the lock-in or the per-swipe markup, that's the gap a flat-rate system like DineOpen fills, from $20/month.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#1e3a8a;"><strong>Quick answer:</strong> <strong>Square</strong> is the best free, low-friction starting point (free software, ~2.6% + 15¢ per tap). <strong>Toast</strong> is the most restaurant-specific and feature-rich, but it comes with hardware costs, multi-year contracts, and ~2.49–3.5% processing. <strong>Clover</strong> sits in the middle — flexible hardware, but your price and support depend heavily on which bank or reseller you buy it through. If you want the restaurant features without the lock-in or the per-swipe markup, that's the gap a flat-rate system like DineOpen fills, from $20/month.</p>
         </div>
 
         <p>If you're opening — or switching — a US restaurant in 2026, three names come up again and again: <strong>Square</strong>, <strong>Toast</strong>, and <strong>Clover</strong>. On a feature grid they look almost identical. In real life they're built for very different businesses, and the option that looks "cheapest" on the pricing page is rarely the cheapest once card processing kicks in.</p>
@@ -2593,7 +2593,7 @@ export const blogPostContent = {
           </tr></thead>
           <tbody>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Software</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Free plan; paid from ~$69/mo</td><td style="padding:12px;border:1px solid #e5e7eb;">$0 "Starter" (higher processing) up to $69+/mo/terminal</td><td style="padding:12px;border:1px solid #e5e7eb;">~$60–$90+/mo depending on plan</td></tr>
-            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 10¢ (in-person)</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49–3.5% + fee</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.3–2.6% + 10¢ (varies by reseller)</td></tr>
+            <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Processing</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">~2.6% + 15¢ (in-person)</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.49–3.5% + fee</td><td style="padding:12px;border:1px solid #e5e7eb;">~2.3–2.6% + 10¢ (varies by reseller)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Contract</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">None</td><td style="padding:12px;border:1px solid #e5e7eb;">Depends on plan and quote</td><td style="padding:12px;border:1px solid #e5e7eb;">Varies (reseller-dependent)</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Hardware</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Buy outright, low cost</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary; buy or lease</td><td style="padding:12px;border:1px solid #e5e7eb;">Proprietary Clover devices</td></tr>
             <tr><td style="padding:12px;border:1px solid #e5e7eb;"><strong>Best for</strong></td><td style="padding:12px;border:1px solid #e5e7eb;">Cafes, QSR, food trucks, new/low volume</td><td style="padding:12px;border:1px solid #e5e7eb;">Full-service & multi-unit restaurants</td><td style="padding:12px;border:1px solid #e5e7eb;">Retail + restaurants wanting hardware choice</td></tr>
@@ -5749,7 +5749,7 @@ export const blogPostContent = {
                   <td style="padding: 12px; font-weight: 600;">Transaction Fees</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">✅ Zero Fees</td>
                   <td style="padding: 12px; text-align: center; color: #6b7280;">None listed on pricing page</td>
-                  <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.6% + $0.10</td>
+                  <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.6% + $0.15</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.99% + $0.15</td>
                   <td style="padding: 12px; text-align: center; color: #ef4444;">❌ 2.3% + $0.10</td>
                 </tr>
@@ -8723,10 +8723,10 @@ export const blogPostContent = {
             <tbody>
               <tr style="background: #fef2f2;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #991b1b;">Square</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b;">2.6% + $0.10</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b;">2.6% + $0.15</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb;">$0–$60/mo</td>
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b; font-weight: 700;">₹78,000+</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b; font-weight: 700;">$13,500/year</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #991b1b; font-weight: 700;">~$13,750/year</td>
               </tr>
               <tr style="background: #fef2f2;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #991b1b;">Toast</td>
@@ -10226,7 +10226,7 @@ export const blogPostContent = {
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Expiry tracking</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">AI alerts</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Ask Petpooja</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">QR ordering for queues</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Loyalty / birthday club</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Built-in</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Marketing Manager plan</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Square Loyalty</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Transaction fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; color: #10b981; font-weight: 600;">0%</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">None listed</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">2.6% + 10c</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Transaction fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; color: #10b981; font-weight: 600;">0%</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">None listed</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">2.6% + 15c</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Starting price</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600;">$9.99/mo</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes (Base plan)</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">$0 + fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
             </tbody>
           </table>

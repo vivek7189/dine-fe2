@@ -47,7 +47,7 @@ const faqSchema = {
       name: 'Which is the cheapest restaurant POS overall — Toast, Square, or Lightspeed?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Square has the cheapest entry point with a genuinely free plan, but its 2.6% + $0.10 transaction fee adds up quickly. On $30,000/month in card sales, Square costs about $9,360/year in processing fees alone. Toast Essentials is $69/month plus 2.49% + $0.15 per swipe, totaling roughly $9,792/year. Lightspeed is the most expensive at approximately $10,188/year. DineOpen is the cheapest overall at $10/month flat with zero per-transaction fees — just $120/year for the software.',
+        text: 'Square has the cheapest entry point with a free plan, but in-person card payments cost 2.6% + 15¢. On $30,000/month in card sales, the 2.6% alone is about $9,360/year. Toast Point of Sale is $69/month plus 2.49% + 15¢ per in-person payment. With all three, card fees are the biggest cost. DineOpen software is from $20/month ($240/year); DineOpen adds nothing to your card payments, and you pay whichever processor you choose at the rate it gives you.',
       },
     },
     {
@@ -63,7 +63,7 @@ const faqSchema = {
       name: 'Which restaurant POS works internationally — Toast, Square, or Lightspeed?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Toast is US-only. Square operates in the US, Canada, UK, Australia, Japan, France, Spain, and Ireland. Lightspeed operates in the US, Canada, UK, Australia, Germany, France, Belgium, and the Netherlands. DineOpen works in 20+ countries worldwide with multi-currency and multi-tax support built in, making it the most globally accessible option.',
+        text: 'Toast sells in the US, Canada, the UK, Ireland and Australia. Square operates in the US, Canada, UK, Australia, Japan, France, Spain, and Ireland. Lightspeed operates in the US, Canada, UK, Australia, Germany, France, Belgium, and the Netherlands. DineOpen works in 20+ countries worldwide with multi-currency and multi-tax support built in, making it the most globally accessible option.',
       },
     },
     {
@@ -79,7 +79,7 @@ const faqSchema = {
       name: 'Is there a free restaurant POS option?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Square offers a genuinely free POS plan with no monthly fee, but you pay 2.6% + $0.10 on every transaction. Toast has a $0/month Starter plan, but it charges higher processing fees (2.49% + $0.15) and limits features. These "free" plans can cost $9,000-$10,000+ per year in processing fees for a typical restaurant. DineOpen offers a 7-day free trial with all features, then $10/month with zero transaction fees — making it effectively the cheapest option long-term.',
+        text: 'Square offers a free POS plan with no monthly fee, but you pay 2.6% + 15¢ on every in-person card payment. Toast has a $0/month Starter Kit with a higher card rate than its $69/month Point of Sale plan (2.49% + 15¢). On $30,000/month in card sales, card fees of around 2.5–2.6% are $9,000+ a year, so compare total cost, not the monthly price. DineOpen has a 7-day free trial, then from $20/month, and adds no fee to your card payments.',
       },
     },
   ],
@@ -130,8 +130,8 @@ const tdHighlight = {
 
 const comparisonRows = [
   { feature: 'Monthly Price', toast: '$0 (Starter) / $69 (Essentials)', square: '$0 (Free) / $60 (Plus)', lightspeed: '$69 (Essentials) / $189 (Premium)', dineopen: '$20 (Starter) / $99 (Pro)' },
-  { feature: 'Transaction Fees', toast: '2.49% + $0.15', square: '2.6% + $0.10', lightspeed: '2.6% + $0.10', dineopen: '0% from us' },
-  { feature: 'Annual Cost ($30K/mo revenue)', toast: '~$9,792', square: '~$9,360', lightspeed: '~$10,188', dineopen: '$120' },
+  { feature: 'Transaction Fees', toast: '2.49% + $0.15', square: '2.6% + $0.15', lightspeed: '2.6% + $0.10', dineopen: '0% from us (your processor’s rate applies)' },
+  { feature: 'Annual Cost ($30K/mo revenue)', toast: '~$9,792 + 15¢ per payment', square: '~$9,360 + 15¢ per payment', lightspeed: '~$10,188', dineopen: '$240 software + your processor’s fees' },
   { feature: 'Hardware', toast: 'Toast hardware required ($799+)', square: 'Square Reader/Terminal or any iPad', lightspeed: 'iPad + Lightspeed hardware', dineopen: 'Any device with a browser' },
   { feature: 'Contract', toast: '2-year (hardware deals)', square: 'Month-to-month', lightspeed: 'Annual contract', dineopen: 'Month-to-month' },
   { feature: 'AI Features', toast: 'None built-in', square: 'Basic AI for marketing', lightspeed: 'None built-in', dineopen: 'Voice ordering, menu extraction, AI chat' },
@@ -178,8 +178,8 @@ export default function ToastVsSquareVsLightspeedPage() {
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#dc2626', letterSpacing: '.04em', marginBottom: '4px' }}>TOAST</div>
                 <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '6px 0' }}>$69<span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>/mo</span></div>
                 <div style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6 }}>
-                  + 2.49% per swipe<br />
-                  US-only<br />
+                  + 2.49% + 15¢ per swipe<br />
+                  US, CA, UK, IE, AU<br />
                   Toast hardware required
                 </div>
               </div>
@@ -323,7 +323,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '20px', border: '1px solid #bbf7d0' }}>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: '#16a34a', marginBottom: '8px' }}>LIGHTSPEED ADVANTAGE</div>
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.8 }}>
-                  <li>Available in 8 countries (Toast is US-only)</li>
+                  <li>Available in more countries than Toast</li>
                   <li>Superior analytics and custom reporting</li>
                   <li>Best-in-class raw ingredient inventory</li>
                   <li>Better multi-location management tools</li>
@@ -332,7 +332,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               </div>
             </div>
             <p style={p}>
-              <strong>Bottom line:</strong> Toast for US-only, single-location, full-service restaurants that want payroll included. Lightspeed for multi-location groups, international operations, or restaurants that live and die by food cost analytics.
+              <strong>Bottom line:</strong> Toast for single-location, full-service restaurants that want payroll included. Lightspeed for multi-location groups, international operations, or restaurants that live and die by food cost analytics.
             </p>
 
             <h2 style={{ ...h2, marginTop: '48px' }}>Head-to-Head: Square vs Lightspeed</h2>
@@ -399,7 +399,7 @@ export default function ToastVsSquareVsLightspeedPage() {
 
             <h3 style={h3}>DineOpen: What You Actually Pay</h3>
             <p style={p}>
-              $10/month. All features included. No per-device charges. No add-on modules. No KDS fees. No hardware requirements. No annual contract. Bring your own payment processor. Cancel anytime. That&rsquo;s it. We make this transparent because the POS industry has trained restaurant owners to expect hidden fees &mdash; we don&rsquo;t have them.
+              Starter is $20/month (POS, KOT printing, QR ordering, basic inventory). Growth is $50/month and adds the kitchen display, online ordering website, AI voice ordering and advanced inventory. No per-device charges, no hardware requirements, no annual contract. Bring your own payment processor: DineOpen adds nothing to your card payments, but you still pay your processor&rsquo;s rate. Cancel anytime.
             </p>
           </div>
         </section>
@@ -429,7 +429,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               <h3 style={{ ...h3, margin: '0 0 12px', color: '#0f172a' }}>Where Square Wins</h3>
               <p style={{ ...p, fontWeight: 600, margin: '0 0 8px' }}>Best for: Small cafes, food trucks, and quick-service spots that want a free start</p>
               <ul style={{ ...p, paddingLeft: '20px', margin: 0 }}>
-                <li><strong>Genuinely free plan.</strong> No monthly fee, no contract. You only pay the 2.6% + $0.10 per swipe. For a brand-new restaurant testing the waters, this is hard to beat as a starting point.</li>
+                <li><strong>Genuinely free plan.</strong> No monthly fee, no contract. You only pay 2.6% + 15¢ per in-person card payment. For a brand-new restaurant testing the waters, this is hard to beat as a starting point.</li>
                 <li><strong>Ecosystem versatility.</strong> Square is not just a restaurant POS — it has retail, appointments, invoicing, online store, payroll, banking, and loans. If you run a cafe that also sells packaged goods, this cross-business flexibility matters.</li>
                 <li><strong>Easy setup.</strong> Download the app, plug in a reader, start selling. Square has the lowest learning curve of any system in this comparison.</li>
                 <li><strong>Great hardware design.</strong> The Square Terminal ($299) and Square Stand are well-designed, affordable, and don&rsquo;t lock you into long-term contracts.</li>
@@ -453,9 +453,9 @@ export default function ToastVsSquareVsLightspeedPage() {
               <h3 style={{ ...h3, margin: '0 0 12px', color: '#2563eb' }}>Where DineOpen Wins</h3>
               <p style={{ ...p, fontWeight: 600, margin: '0 0 8px' }}>Best for: Cost-conscious restaurants worldwide that want modern AI features without the fees</p>
               <ul style={{ ...p, paddingLeft: '20px', margin: 0 }}>
-                <li><strong>Lowest cost, period.</strong> $10/month with zero per-transaction fees. A restaurant doing $30,000/month saves $9,000-$10,000/year compared to any of the three systems above. That&rsquo;s not a rounding error — that&rsquo;s a new walk-in cooler.</li>
+                <li><strong>Low fixed cost.</strong> From $20/month, and DineOpen adds no fee to your card payments. You still pay your own processor, so your saving is the software price difference plus whatever lower rate you can get by choosing your processor.</li>
                 <li><strong>AI features included.</strong> Voice ordering in English and Spanish, AI menu extraction from a photo, and AI-powered chat support. None of the big three offer anything close to this in their base plans.</li>
-                <li><strong>True global coverage.</strong> 20+ countries, multi-currency, multi-tax (GST, VAT, sales tax), and multi-language. Toast is US-only. Square and Lightspeed cover 8 countries each. DineOpen works everywhere.</li>
+                <li><strong>True global coverage.</strong> 20+ countries, multi-currency, multi-tax (GST, VAT, sales tax), and multi-language. Toast sells in the US, Canada, the UK, Ireland and Australia. Square and Lightspeed also cover a limited list of countries. DineOpen works worldwide.</li>
                 <li><strong>Zero hardware lock-in.</strong> Runs in any browser on any device. No proprietary terminals, no hardware financing, no &ldquo;you must buy our reader.&rdquo; Use the iPad, Android tablet, or laptop you already own.</li>
                 <li><strong>Month-to-month, cancel anytime.</strong> No annual contract, no early termination fee. Unlike Lightspeed&rsquo;s annual lock-in or Toast&rsquo;s hardware financing agreements.</li>
               </ul>
@@ -488,21 +488,21 @@ export default function ToastVsSquareVsLightspeedPage() {
                     <td style={tdStyle}>$69/mo</td>
                     <td style={tdStyle}>$0/mo</td>
                     <td style={tdStyle}>$69/mo</td>
-                    <td style={tdHighlight}>$10/mo</td>
+                    <td style={tdHighlight}>$20/mo</td>
                   </tr>
                   <tr style={{ background: '#fafbfc' }}>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>Annual Subscription</td>
                     <td style={tdStyle}>$828</td>
                     <td style={tdStyle}>$0</td>
                     <td style={tdStyle}>$828</td>
-                    <td style={tdHighlight}>$120</td>
+                    <td style={tdHighlight}>$240</td>
                   </tr>
                   <tr>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>Transaction Fee Rate</td>
                     <td style={tdStyle}>2.49%</td>
                     <td style={tdStyle}>2.6%</td>
                     <td style={tdStyle}>2.6%</td>
-                    <td style={tdHighlight}>0%</td>
+                    <td style={tdHighlight}>Your processor</td>
                   </tr>
                   <tr style={{ background: '#fafbfc' }}>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>Annual Card Revenue</td>
@@ -512,31 +512,31 @@ export default function ToastVsSquareVsLightspeedPage() {
                     <td style={tdHighlight}>$360,000</td>
                   </tr>
                   <tr>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>Annual Transaction Fees</td>
+                    <td style={{ ...tdStyle, fontWeight: 700 }}>Annual Card Fees (percentage part)</td>
                     <td style={tdStyle}>$8,964</td>
                     <td style={tdStyle}>$9,360</td>
                     <td style={tdStyle}>$9,360</td>
-                    <td style={tdHighlight}>$0</td>
+                    <td style={tdHighlight}>Your processor&rsquo;s fees</td>
                   </tr>
                   <tr style={{ background: '#fef2f2' }}>
                     <td style={{ ...tdStyle, fontWeight: 800, fontSize: '15px' }}>Total Annual Cost</td>
                     <td style={{ ...tdStyle, fontWeight: 800, fontSize: '15px', color: '#dc2626' }}>$9,792</td>
                     <td style={{ ...tdStyle, fontWeight: 800, fontSize: '15px', color: '#dc2626' }}>$9,360</td>
                     <td style={{ ...tdStyle, fontWeight: 800, fontSize: '15px', color: '#dc2626' }}>$10,188</td>
-                    <td style={{ ...tdHighlight, fontWeight: 800, fontSize: '15px', color: '#16a34a', background: '#f0fdf4' }}>$120</td>
+                    <td style={{ ...tdHighlight, fontWeight: 800, fontSize: '15px', color: '#16a34a', background: '#f0fdf4' }}>$240 + processor</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div style={{ background: '#f0fdf4', border: '2px solid #16a34a', borderRadius: '14px', padding: '24px', margin: '24px 0', textAlign: 'center' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#16a34a', letterSpacing: '.04em', marginBottom: '8px' }}>ANNUAL SAVINGS WITH DINEOPEN</div>
-              <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a', margin: '8px 0' }}>$9,240 &ndash; $10,068</div>
-              <div style={{ fontSize: '15px', color: '#475569' }}>per year compared to Toast, Square, or Lightspeed</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#16a34a', letterSpacing: '.04em', marginBottom: '8px' }}>WHAT DINEOPEN CHANGES</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a', margin: '8px 0' }}>From $240/year software</div>
+              <div style={{ fontSize: '15px', color: '#475569' }}>plus your own card processor&rsquo;s fees, at a rate you choose and can shop around for. With Toast, Square and Lightspeed the POS company sets the card rate.</div>
             </div>
 
             <p style={p}>
-              <strong>Important note:</strong> DineOpen charges zero POS transaction fees, but you still need a payment processor (Stripe, Razorpay, etc.) to accept cards. Those processor fees are separate and identical regardless of which POS you use. The difference is that Toast, Square, and Lightspeed add their own percentage <em>on top of</em> standard processing &mdash; DineOpen does not.
+              <strong>Important note:</strong> DineOpen charges zero POS transaction fees, but you still need a payment processor (Stripe, Razorpay, etc.) to accept cards. Those processor fees are separate. Toast, Square and Lightspeed bundle processing into their own card rate (for example 2.6% + 15¢ in person on Square); with DineOpen you pick the processor, and DineOpen adds nothing on top.
             </p>
           </div>
         </section>
@@ -552,14 +552,14 @@ export default function ToastVsSquareVsLightspeedPage() {
             <div style={{ borderLeft: '4px solid #dc2626', paddingLeft: '20px', margin: '24px 0' }}>
               <h3 style={{ ...h3, margin: '0 0 8px' }}>Scenario 1: Upscale US Bistro, 80 Seats, $60K/Month Revenue</h3>
               <p style={{ ...p, margin: '0 0 4px' }}>
-                <strong>Best fit: Toast or DineOpen.</strong> You need full table management, course firing, split checks, and tip pooling. Toast gives you on-site installation and integrated payroll. DineOpen gives you all the same POS features for $10/month instead of ~$15,000/year. If you value self-serve setup and saving $14,880/year, go DineOpen. If you want someone to physically install everything, go Toast.
+                <strong>Best fit: Toast or DineOpen.</strong> You need full table management, course firing, split checks, and tip pooling. Toast gives you on-site installation and integrated payroll. DineOpen Growth ($50/month) covers table management, kitchen display and split bills on your own devices, with the card processor of your choice. If you value self-serve setup and lower fixed costs, go DineOpen. If you want someone to physically install everything, go Toast.
               </p>
             </div>
 
             <div style={{ borderLeft: '4px solid #0f172a', paddingLeft: '20px', margin: '24px 0' }}>
               <h3 style={{ ...h3, margin: '0 0 8px' }}>Scenario 2: Coffee Shop, 1 Counter, $12K/Month Revenue</h3>
               <p style={{ ...p, margin: '0 0 4px' }}>
-                <strong>Best fit: Square or DineOpen.</strong> You don&rsquo;t need table management or complex kitchen routing. Square&rsquo;s free plan gets you selling in 10 minutes. DineOpen at $10/month gives you QR ordering and AI features that Square doesn&rsquo;t have. At $12K/month, Square&rsquo;s 2.6% fee costs $3,744/year vs DineOpen&rsquo;s $120/year. Long-term, DineOpen saves you $3,624/year.
+                <strong>Best fit: Square or DineOpen.</strong> You don&rsquo;t need table management or complex kitchen routing. Square&rsquo;s free plan gets you selling in 10 minutes. DineOpen Starter at $20/month gives you QR ordering and KOT printing. At $12K/month in card sales, Square&rsquo;s 2.6% is about $3,744/year; with DineOpen you pay $240/year plus your own processor&rsquo;s fees, so the saving depends on the rate you get.
               </p>
             </div>
 
@@ -580,7 +580,7 @@ export default function ToastVsSquareVsLightspeedPage() {
             <div style={{ borderLeft: '4px solid #7c3aed', paddingLeft: '20px', margin: '24px 0' }}>
               <h3 style={{ ...h3, margin: '0 0 8px' }}>Scenario 5: Restaurant in Dubai, London, or Mumbai</h3>
               <p style={{ ...p, margin: '0 0 4px' }}>
-                <strong>Best fit: DineOpen.</strong> Toast is US-only, so it&rsquo;s out immediately. Square operates in 8 countries and Lightspeed in 8, but neither covers the Middle East or South Asia. DineOpen works in 20+ countries with local currency, local tax compliance (VAT, GST), and multi-language menus. For international operators, DineOpen is the clear choice.
+                <strong>Best fit: DineOpen.</strong> Toast sells only in the US, Canada, the UK, Ireland and Australia, so it&rsquo;s out for most other markets. Square operates in 8 countries and Lightspeed in 8, but neither covers the Middle East or South Asia. DineOpen works in 20+ countries with local currency, local tax compliance (VAT, GST), and multi-language menus. For international operators, DineOpen is the clear choice.
               </p>
             </div>
           </div>
@@ -616,7 +616,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '20px', border: '2px solid #2563eb' }}>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: '#2563eb', marginBottom: '8px' }}>Choose DineOpen if...</div>
                 <p style={{ ...p, margin: 0, fontSize: '15px' }}>
-                  You want the lowest possible cost without sacrificing modern features. You&rsquo;re an independent restaurant or small chain (1&ndash;10 locations) that wants AI voice ordering, QR menus, and a full POS for $10/month with no transaction fees. You operate internationally or want a no-contract, no-hardware-lock-in solution.
+                  You want the lowest possible cost without sacrificing modern features. You&rsquo;re an independent restaurant or small chain (1&ndash;10 locations) that wants AI voice ordering, QR menus, and a full POS from $20/month, with no fee added to your card payments. You operate internationally or want a no-contract, no-hardware-lock-in solution.
                 </p>
               </div>
             </div>
@@ -727,7 +727,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               Square has the lowest entry price (free plan), but its 2.6% transaction fee means a restaurant doing $30,000/month in card sales pays about $9,360/year in processing fees alone. Toast Essentials costs roughly $9,792/year when you add the $69/month subscription to its 2.49% transaction fees. Lightspeed is the most expensive at approximately $10,188/year with its $69/month plan plus 2.6% processing.
             </p>
             <p style={p}>
-              DineOpen is the cheapest at $120/year total &mdash; $10/month with zero transaction fees from us. You still pay your own payment processor (Stripe, etc.), but that cost is the same regardless of which POS you use. The difference is that the big three add their own percentage on top.
+              DineOpen software is $240/year on Starter ($20/month), with no fee from us on card payments. You still pay your own payment processor (Stripe or your bank), so compare that processor&rsquo;s rate with the 2.49&ndash;2.6% + 15¢ the big three charge.
             </p>
 
             <h3 style={{ ...h3, margin: '28px 0 8px' }}>Which has the best features for restaurants?</h3>
@@ -737,7 +737,7 @@ export default function ToastVsSquareVsLightspeedPage() {
 
             <h3 style={{ ...h3, margin: '28px 0 8px' }}>Which POS works internationally?</h3>
             <p style={p}>
-              Toast is US-only. Square operates in 8 countries (US, Canada, UK, Australia, Japan, France, Spain, Ireland). Lightspeed operates in 8 countries (US, Canada, UK, Australia, Germany, France, Belgium, Netherlands). DineOpen works in 20+ countries with multi-currency and multi-tax support, making it the most globally accessible option.
+              Toast sells in the US, Canada, the UK, Ireland and Australia. Square operates in 8 countries (US, Canada, UK, Australia, Japan, France, Spain, Ireland). Lightspeed operates in 8 countries (US, Canada, UK, Australia, Germany, France, Belgium, Netherlands). DineOpen works in 20+ countries with multi-currency and multi-tax support, making it the most globally accessible option.
             </p>
 
             <h3 style={{ ...h3, margin: '28px 0 8px' }}>Can I switch between these POS systems?</h3>
@@ -750,7 +750,7 @@ export default function ToastVsSquareVsLightspeedPage() {
               Square and Toast both offer $0/month plans, but they charge 2.5&ndash;2.6% on every transaction. On $30K/month in sales, that &ldquo;free&rdquo; plan costs $9,000&ndash;$10,000/year in processing fees. The word &ldquo;free&rdquo; is doing a lot of heavy lifting in those marketing pages.
             </p>
             <p style={p}>
-              DineOpen offers a 7-day free trial with all features unlocked, then $10/month with zero transaction fees &mdash; making it the cheapest option long-term at $120/year for POS software. If you&rsquo;re looking for the lowest total cost of ownership, DineOpen is the answer.
+              DineOpen offers a 7-day free trial, then from $20/month ($240/year for POS software) with no fee added to your card payments. Add your processor&rsquo;s fees to get your total.
             </p>
           </div>
         </section>

@@ -38,7 +38,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'What is the cheapest restaurant POS in the USA?',
-      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen Starter at $20/month flat is the cheapest full-featured restaurant POS in 2026. Square has a $0/month tier but charges 2.6% + $0.10 per card swipe, which on a $40,000/month restaurant is roughly $1,120/month — more expensive than every other option. The "free" Square plan is the most expensive POS in this guide.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen Starter at $20/month flat is the cheapest full-featured restaurant POS in 2026. Square has a $0/month tier but charges 2.6% + $0.15 per in-person card payment, which on $40,000/month in card sales (about 800 payments) is roughly $1,160/month. Card fees are usually the biggest POS cost, so compare total cost, not the monthly price.' }
     },
     {
       '@type': 'Question',
@@ -105,7 +105,7 @@ const linkStyle = { color: '#2563eb', textDecoration: 'underline', fontWeight: 5
 const SYSTEMS = [
   {
     rank: 1, name: 'DineOpen', tagline: 'Best for independents that want flat pricing', price: '$20/mo flat',
-    color: '#2563eb', verdict: 'Pick this if you want everything included for a flat $20/month and you\'re willing to bring your own payment processor.',
+    color: '#2563eb', verdict: 'Pick this if you want low fixed costs (Starter $20/month; Growth $50/month adds KDS, online ordering and AI voice) and you\'re willing to bring your own payment processor.',
     bestFor: 'Independent and small-chain restaurants (1–10 locations) doing $15k+/month in card sales',
     link: '/pricing', linkText: 'See DineOpen pricing →',
     real: [
@@ -150,7 +150,7 @@ const SYSTEMS = [
       'Solid retail + restaurant hybrid (good for cafés selling beans)',
       'Massive US brand recognition',
     ],
-    catch: 'The 2.6% + $0.10 swipe fee is non-negotiable. You cannot bring your own payment processor. Above $15k/month in card sales the math gets ugly fast.',
+    catch: 'The 2.6% + $0.15 swipe fee is non-negotiable. You cannot bring your own payment processor. Above $15k/month in card sales the math gets ugly fast.',
   },
   {
     rank: 4, name: 'Lightspeed Restaurant', tagline: 'Best for 20+ location chains & hotel F&B', price: '$89–$289/mo per location',
@@ -358,7 +358,7 @@ export default function BestRestaurantPosUsa2026Page() {
             <div style={{ background: '#fef2f2', border: '2px solid #fecaca', borderRadius: '12px', padding: '20px 24px', margin: '20px 0' }}>
               <ul style={{ ...p, margin: 0, paddingLeft: '20px' }}>
                 <li><strong>Toast 2.49% + $0.15 × 800 swipes:</strong> ~$13,000/year in swipe fees</li>
-                <li><strong>Square 2.6% + $0.10 × 800 swipes:</strong> ~$13,440/year</li>
+                <li><strong>Square 2.6% + $0.15 × 800 swipes:</strong> ~$13,920/year</li>
                 <li><strong>Clover 2.3% + $0.10 × 800 swipes:</strong> ~$12,000/year</li>
                 <li><strong>DineOpen 0% (you bring Stripe at ~2.7%):</strong> ~$13,920/year — but you can negotiate Stripe down to 2.2% at volume, saving ~$2,400/year</li>
               </ul>

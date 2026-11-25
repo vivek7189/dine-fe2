@@ -4,12 +4,12 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Best Square POS Alternative 2026 | DineOpen - Save 80% on Fees',
-  description: 'Looking for a Square alternative? DineOpen offers AI voice ordering, QR menus, zero transaction fees vs Square\'s 2.6%. Save $5,000+/year. Free 7-day trial. Perfect for restaurants, cafes & bars.',
+  title: 'Square POS Alternative 2026: From $20/month, Your Own Card Processor | DineOpen',
+  description: 'Square charges 2.6% + 15¢ per in-person card payment (Plus is $60/month per location). DineOpen is from $20/month, adds nothing to your card payments and runs on your own devices. 7-day free trial.',
   keywords: 'Square alternative, Square POS alternative, better than Square, Square competitor, Square replacement, affordable POS system, restaurant POS without fees, AI restaurant POS, Square for restaurants alternative, cheap Square alternative',
   openGraph: {
-    title: 'Best Square POS Alternative | DineOpen - AI-Powered, Zero Fees',
-    description: 'Switch from Square to DineOpen. Get AI voice ordering, zero transaction fees, and save thousands yearly. Free 7-day trial.',
+    title: 'Square POS Alternative | DineOpen, from $20/month',
+    description: 'Square vs DineOpen: card fees, monthly price and features compared. DineOpen adds no fee to your card payments. Free 7-day trial.',
     url: 'https://www.dineopen.com/alternatives/square',
     siteName: 'DineOpen',
     images: [
@@ -24,7 +24,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best Square POS Alternative | DineOpen - Save 80% on Fees',
+    title: 'Square POS Alternative | DineOpen, from $20/month',
     description: 'Switch from Square to DineOpen. AI voice ordering, zero transaction fees. Free 7-day trial.',
   },
   alternates: {
@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "Is DineOpen better than Square for restaurants?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is purpose-built for restaurants with AI voice ordering and zero transaction fees, compared to Square's 2.6% + $0.10 per transaction. DineOpen includes restaurant-specific features that Square charges extra for."
+        "text": "DineOpen is purpose-built for restaurants with AI voice ordering and zero transaction fees, compared to Square's 2.6% + $0.15 per in-person transaction. DineOpen runs on devices you already own and lets you keep the card processor you choose."
       }
     },
     {
@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs Square?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen costs $20/month compared to Square's $60/month for restaurants. DineOpen also charges zero transaction fees versus Square's 2.6% + $0.10, saving restaurants thousands per year."
+        "text": "DineOpen starts at $20/month; Square for Restaurants has a free plan and a Plus plan at $60/month per location. DineOpen also charges zero transaction fees versus Square's 2.6% + $0.15 per in-person payment; you choose your own processor and rate."
       }
     },
     {
@@ -57,7 +57,7 @@ const faqSchema = {
       "name": "Does DineOpen have a free plan like Square?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 7-day free trial with all features included. The Starter plan at $20/month includes AI voice ordering and features that Square charges extra for on top of their transaction fees."
+        "text": "DineOpen offers a 7-day free trial with all features included. The Starter plan is $20/month (POS, KOT printing, QR ordering, basic inventory). AI voice ordering, the kitchen display and the online ordering website are on Growth at $50/month."
       }
     },
     {

@@ -6,7 +6,7 @@ const competitors = [
   {
     name: 'DineOpen',
     logo: '/favicon.png',
-    price: '$10/mo',
+    price: '$20/mo',
     priceINR: '₹899/mo',
     transactionFee: '0%',
     aiFeatures: true,
@@ -22,7 +22,7 @@ const competitors = [
     logo: '/competitors/square.svg',
     price: '$60/mo',
     priceINR: '₹5,000/mo',
-    transactionFee: '2.6% + 10¢',
+    transactionFee: '2.6% + 15¢',
     aiFeatures: false,
     voiceOrdering: false,
     qrOrdering: true,
@@ -187,15 +187,15 @@ export default function CompareClient() {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">What is the best restaurant POS system in 2026?</h3>
-              <p className="text-gray-600">DineOpen is rated the best value restaurant POS with AI features, zero transaction fees, and affordable pricing starting at $10/month.</p>
+              <p className="text-gray-600">DineOpen is rated the best value restaurant POS with AI features, zero transaction fees, and affordable pricing starting at $20/month.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Which POS system has the lowest fees?</h3>
-              <p className="text-gray-600">DineOpen has 0% transaction fees. Square charges 2.6% + 10¢, Toast charges 2.49% + 15¢ (their card processing rates). Petpooja&apos;s pricing page lists no per-order fee. With any POS, online payments carry your payment gateway&apos;s own charges.</p>
+              <p className="text-gray-600">DineOpen has 0% transaction fees. Square charges 2.6% + 15¢, Toast charges 2.49% + 15¢ (their card processing rates). Petpooja&apos;s pricing page lists no per-order fee. With any POS, online payments carry your payment gateway&apos;s own charges.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Is there a free restaurant POS system?</h3>
-              <p className="text-gray-600">DineOpen offers a free 7-day trial with all features. After that, plans start at just $10/month with no hidden fees.</p>
+              <p className="text-gray-600">DineOpen offers a free 7-day trial with all features. After that, plans start at $20/month with no hidden fees.</p>
             </div>
           </div>
         </div>

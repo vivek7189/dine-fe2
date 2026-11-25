@@ -30,7 +30,7 @@ export default function SmallRestaurantsClient() {
     { title: 'Small Restaurants (1-20 tables)', desc: 'Full dine-in POS with table selection, order management, and kitchen sync. Everything a small sit-down restaurant needs without the enterprise price tag.' },
     { title: 'Neighbourhood Cafes', desc: 'Quick counter service with fast checkout. Category browsing and quick search make building orders fast during the morning rush.' },
     { title: 'Food Trucks', desc: 'Runs on your phone. Takeaway order flow, fast payment processing, and receipt printing. No counter space wasted on bulky hardware.' },
-    { title: 'Home Bakeries & Cloud Kitchens', desc: 'Start taking orders professionally from day one. Menu management, order tracking, and payment recording - all from your phone for under $10/mo.' },
+    { title: 'Home Bakeries & Cloud Kitchens', desc: 'Start taking orders professionally from day one. Menu management, order tracking, and payment recording - all from your phone, from $20/mo.' },
     { title: 'New Restaurant Openings', desc: 'Get operational immediately without a large upfront investment. Start with Starter and upgrade to Pro as your business grows. All data migrates seamlessly.' },
     { title: 'Seasonal & Pop-Up Restaurants', desc: 'No contracts, no hardware purchases. Pay monthly, use on any device, and cancel if you need to. Perfect for seasonal or event-based operations.' },
   ];

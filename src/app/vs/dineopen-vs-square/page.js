@@ -9,7 +9,7 @@ export const revalidate = false;
 
 const TITLE = 'DineOpen vs Square for Restaurants 2026: Honest Comparison';
 const DESCRIPTION =
-  'Square for Restaurants charges 2.6% + 10¢ on every swipe forever. DineOpen is $20/mo flat with zero per-transaction fees. Real feature list, real math, honest concessions.';
+  'Square for Restaurants charges 2.6% + 15¢ on every in-person swipe. DineOpen is $20/mo flat with zero per-transaction fees. Real feature list, real math, honest concessions.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-square';
 
 export const metadata = {
@@ -33,7 +33,7 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'Is DineOpen cheaper than Square for Restaurants?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes, significantly. Square for Restaurants Free plan is $0/month but charges 2.6% + $0.10 on every card swipe. The Plus plan is $60/month per location plus the same swipe fee. DineOpen Starter is $20/month flat with zero per-transaction fees — you only pay your own payment processor. A restaurant doing $40,000/month in card sales pays Square roughly $1,120/month on the Plus plan and saves ~$13,200/year by switching to DineOpen.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes, significantly. Square for Restaurants Free plan is $0/month but charges 2.6% + $0.15 on every in-person card swipe. The Plus plan is $60/month per location plus the same swipe fee. DineOpen Starter is $20/month flat with zero per-transaction fees — you only pay your own payment processor. A restaurant doing $40,000/month in card sales (about 800 payments) pays Square roughly $1,220/month on the Plus plan including the $60 fee. With DineOpen your saving is the software difference plus whatever lower card rate your own processor gives you.' }
     },
     {
       '@type': 'Question',
@@ -114,7 +114,7 @@ export default function DineOpenVsSquarePage() {
             <div style={{ background: '#fff', border: '2px solid #10b981', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(16,185,129,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#047857', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                <strong>DineOpen</strong> is better for restaurants that want to keep software and payment processing separate — $20/month flat, zero per-swipe markup, and you bring your own processor (Stripe, or any other). <strong>Square</strong> is better if you want one vendor handling everything and you&rsquo;re OK paying <strong>2.6% + $0.10</strong> per swipe forever for that convenience. On $40k/month in card sales, the difference is <strong>~$13,000 a year</strong>.
+                <strong>DineOpen</strong> is better for restaurants that want to keep software and payment processing separate — $20/month flat, zero per-swipe markup, and you bring your own processor (Stripe, or any other). <strong>Square</strong> is better if you want one vendor handling everything and you&rsquo;re OK paying <strong>2.6% + $0.15</strong> per swipe forever for that convenience. On $40k/month in card sales, the difference is <strong>~$13,000 a year</strong>.
               </p>
             </div>
           </div>
@@ -129,7 +129,7 @@ export default function DineOpenVsSquarePage() {
               This page covers what DineOpen actually ships (with real features, not a checklist), the 12-month math on a real restaurant, and the honest cases where Square is still the right pick.
             </p>
             <p style={p}>
-              The thing nobody writes about Square: <strong>the 2.6% + 10¢ swipe fee is non-negotiable.</strong> You can&rsquo;t bring your own processor. You can&rsquo;t negotiate rates at volume like you can with Stripe or Adyen. That fee is how Square funds the &ldquo;free&rdquo; software.
+              The thing nobody writes about Square: <strong>the 2.6% + 15¢ swipe fee is non-negotiable.</strong> You can&rsquo;t bring your own processor. You can&rsquo;t negotiate rates at volume like you can with Stripe or Adyen. That fee is how Square funds the &ldquo;free&rdquo; software.
             </p>
           </div>
         </section>
@@ -201,7 +201,7 @@ export default function DineOpenVsSquarePage() {
                   <div style={{ fontSize: '14px', fontWeight: 800, color: '#047857' }}>DINEOPEN</div>
                   <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Starter plan, everything included</li>
+                    <li>Starter plan (KDS, online ordering, AI voice on Growth $50)</li>
                     <li>Unlimited devices on 1 location</li>
                     <li>0% from us on swipes</li>
                     <li>Bring your own processor (Stripe ~2.7%)</li>
@@ -213,15 +213,15 @@ export default function DineOpenVsSquarePage() {
                   <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$60<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo/loc</span></div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
                     <li>$60/month per location</li>
-                    <li>+ 2.6% + $0.10 per swipe</li>
+                    <li>+ 2.6% + $0.15 per swipe</li>
                     <li>+ paid add-ons (loyalty, marketing)</li>
                     <li>Processing locked to Square</li>
                   </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#991b1b' }}>12-month all-in: <strong>~$13,440</strong></div>
+                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#991b1b' }}>12-month all-in: <strong>~$14,640</strong></div>
                 </div>
               </div>
               <p style={{ ...small, marginTop: '20px', textAlign: 'center' }}>
-                Math: Square Plus $60 × 12 = $720. Swipe fees ($40k × 2.6% + 800 × $0.10) × 12 = ~$12,720. Total ~$13,440. Square pricing per <a href="https://squareup.com/us/en/pricing" rel="nofollow noopener" target="_blank" style={linkStyle}>squareup.com/pricing</a>.
+                Math: Square Plus $60 × 12 = $720. Swipe fees ($40k × 2.6% + 800 × $0.15) × 12 = ~$13,920. Total ~$14,640. Square pricing per <a href="https://squareup.com/us/en/pricing" rel="nofollow noopener" target="_blank" style={linkStyle}>squareup.com/pricing</a>.
               </p>
             </div>
 

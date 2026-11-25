@@ -60,13 +60,13 @@ export default function TouchBistroAlternativeClient() {
                   <p style={{ fontSize: '12px', color: '#9ca3af' }}>($69 + $19 + $50 + $229/month)</p>
                 </div>
                 <div>
-                  <p style={{ color: '#6b7280', fontSize: '14px' }}>DineOpen (All Included)</p>
-                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#059669' }}>$120/year</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>($10/month, everything included)</p>
+                  <p style={{ color: '#6b7280', fontSize: '14px' }}>DineOpen Growth</p>
+                  <p style={{ fontSize: '32px', fontWeight: '800', color: '#059669' }}>$600/year</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af' }}>($50/month, KDS + online ordering included)</p>
                 </div>
               </div>
               <div style={{ padding: '16px', backgroundColor: '#d1fae5', borderRadius: '8px' }}>
-                <p style={{ fontSize: '24px', fontWeight: '800', color: '#065f46' }}>Save $4,428+ per year!</p>
+                <p style={{ fontSize: '24px', fontWeight: '800', color: '#065f46' }}>$3,948 a year less on software (card fees extra with both)</p>
               </div>
             </div>
           </div>

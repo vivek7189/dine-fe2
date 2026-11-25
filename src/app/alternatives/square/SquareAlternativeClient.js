@@ -4,15 +4,15 @@ import Link from 'next/link';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Monthly Price', dineopen: '$20/month', square: '$60+/month', winner: 'dineopen' },
-  { feature: 'Transaction Fees', dineopen: '0%', square: '2.6% + 10¢', winner: 'dineopen' },
-  { feature: 'AI Voice Ordering', dineopen: '✓', square: '✗', winner: 'dineopen' },
+  { feature: 'Monthly Price', dineopen: 'From $20/month', square: '$0 (Free) or $60/location (Plus)', winner: 'tie' },
+  { feature: 'Transaction Fees', dineopen: '0% added (your processor’s rate)', square: '2.6% + 15¢ in person', winner: 'dineopen' },
+  { feature: 'AI Voice Ordering', dineopen: '✓ (Growth)', square: '✗', winner: 'dineopen' },
   { feature: 'QR Code Menus', dineopen: '✓', square: '✓', winner: 'tie' },
-  { feature: 'Multi-Location', dineopen: 'Unlimited (included)', square: 'Extra cost', winner: 'dineopen' },
-  { feature: 'Kitchen Display (KDS)', dineopen: '✓', square: '✓ (extra cost)', winner: 'dineopen' },
+  { feature: 'Multi-Location', dineopen: 'Pro plan (2 outlets), custom for 3+', square: 'Per-location pricing', winner: 'tie' },
+  { feature: 'Kitchen Display (KDS)', dineopen: '✓ (Growth)', square: '✓', winner: 'tie' },
   { feature: 'GST Billing (India)', dineopen: '✓', square: '✗', winner: 'dineopen' },
-  { feature: 'Free Trial', dineopen: '7 days', square: '30 days', winner: 'tie' },
-  { feature: 'Hardware Required', dineopen: 'No (works on any device)', square: 'Square hardware', winner: 'dineopen' },
+  { feature: 'Free Trial', dineopen: '7 days', square: 'Free plan', winner: 'tie' },
+  { feature: 'Hardware Required', dineopen: 'No (works on any device)', square: 'Square hardware or iPad', winner: 'dineopen' },
 ];
 
 export default function SquareAlternativeClient() {
@@ -28,7 +28,7 @@ export default function SquareAlternativeClient() {
             Looking for a <span className="text-blue-600">Square Alternative</span>?
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            DineOpen gives you everything Square offers plus AI voice ordering, zero transaction fees, and unlimited multi-location support. Save $5,000+ per year.
+            DineOpen is a restaurant POS from $20/month that runs on your own phones, tablets and PCs, adds nothing to your card payments, and lets you keep the card processor with the best rate.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
@@ -55,18 +55,18 @@ export default function SquareAlternativeClient() {
             <p className="text-gray-600 mb-4">Based on $20,000/month in card transactions:</p>
             <div className="grid md:grid-cols-2 gap-8">
               <div className="text-center">
-                <p className="text-gray-500">With Square (2.6% + $0.10)</p>
-                <p className="text-3xl font-bold text-red-600">-$6,240/year</p>
-                <p className="text-sm text-gray-500">in transaction fees</p>
+                <p className="text-gray-500">With Square (2.6% + $0.15 in person)</p>
+                <p className="text-3xl font-bold text-red-600">$6,240+/year</p>
+                <p className="text-sm text-gray-500">from the 2.6% alone, plus 15¢ per payment</p>
               </div>
               <div className="text-center">
-                <p className="text-gray-500">With DineOpen (0%)</p>
-                <p className="text-3xl font-bold text-green-600">$0/year</p>
-                <p className="text-sm text-gray-500">in transaction fees</p>
+                <p className="text-gray-500">With DineOpen (adds 0%)</p>
+                <p className="text-3xl font-bold text-green-600">Your processor&apos;s rate</p>
+                <p className="text-sm text-gray-500">you choose the processor and can shop for a lower rate</p>
               </div>
             </div>
             <div className="mt-6 p-4 bg-green-100 rounded-lg">
-              <p className="text-2xl font-bold text-green-700">Save $6,240+ per year!</p>
+              <p className="text-xl font-bold text-green-700">Every 0.5% you save on card fees is $1,200 a year at $20,000/month.</p>
             </div>
           </div>
         </div>
@@ -109,7 +109,7 @@ export default function SquareAlternativeClient() {
             <div className="bg-white p-6 rounded-xl shadow-md">
               <div className="text-4xl mb-4">💸</div>
               <h3 className="font-bold text-xl mb-2">Eliminate Transaction Fees</h3>
-              <p className="text-gray-600">Square charges 2.6% + 10¢ per transaction. DineOpen charges 0%. Keep more of your revenue.</p>
+              <p className="text-gray-600">Square charges 2.6% + 15¢ per in-person transaction. DineOpen adds 0%; you use your own processor. Keep more of your revenue.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <div className="text-4xl mb-4">🎤</div>

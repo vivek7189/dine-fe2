@@ -44,7 +44,7 @@ export default function PosLandingClient() {
   const comparisons = [
     { name: 'DineOpen POS', price: 'From $20/mo', txFee: '0%', cloud: 'Yes', multiLoc: 'Yes', hardware: 'None required', highlight: true },
     { name: 'Petpooja', price: '₹12,000 + taxes (Base plan)', txFee: 'None listed', cloud: 'Yes', multiLoc: 'Ask Petpooja', hardware: 'iOS, Windows, Android' },
-    { name: 'Square POS', price: 'Free + fees', txFee: '2.6% + 10c', cloud: 'Yes', multiLoc: 'Yes', hardware: 'Square terminal' },
+    { name: 'Square POS', price: 'Free + fees', txFee: '2.6% + 15c', cloud: 'Yes', multiLoc: 'Yes', hardware: 'Square terminal' },
     { name: 'Toast POS', price: 'From $69/mo', txFee: '2.49% + 15c', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Toast terminal' },
     { name: 'POSist', price: 'Custom quote', txFee: 'Varies', cloud: 'Yes', multiLoc: 'Add-on', hardware: 'Optional' },
   ];
@@ -57,7 +57,7 @@ export default function PosLandingClient() {
     { q: 'Can I manage multiple restaurant locations?', a: 'Yes. DineOpen POS includes built-in multi-location support. Switch between locations from the POS interface, manage separate menus and staff for each, and view consolidated reports.' },
     { q: 'How do real-time updates work?', a: 'DineOpen uses Pusher for real-time websocket connections. When an order is placed, the kitchen sees it instantly. When the kitchen marks an order ready, the waiter gets notified immediately. No page refreshing needed.' },
     { q: 'Is there a demo mode?', a: 'Yes. DineOpen POS includes a built-in demo mode with sample menu items. Explore the full interface, create test orders, and experience the workflow before setting up your own restaurant.' },
-    { q: 'How does DineOpen compare to Square or Toast?', a: 'DineOpen offers zero transaction fees (Square charges 2.6%+10c, Toast 2.49%+15c per transaction), no hardware lock-in, and plans starting at just $20/mo versus Toast at $69/mo. Multi-location support is included on all plans.' },
+    { q: 'How does DineOpen compare to Square or Toast?', a: 'DineOpen offers zero transaction fees (Square charges 2.6%+15c, Toast 2.49%+15c per transaction), no hardware lock-in, and plans starting at just $20/mo versus Toast at $69/mo. Multi-location support is included on all plans.' },
   ];
 
   return (
