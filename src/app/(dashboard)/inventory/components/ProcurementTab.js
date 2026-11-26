@@ -9,6 +9,7 @@ import SupplierPayModal from '../../../../components/suppliers/SupplierPayModal'
 import SupplierLedgerModal from '../../../../components/suppliers/SupplierLedgerModal';
 import SupplierOpeningModal from '../../../../components/suppliers/SupplierOpeningModal';
 import ReceiptVarianceModal, { poReceiptSummary } from './ReceiptVarianceModal';
+import InvoiceDetailModal from './InvoiceDetailModal';
 
 const BASE_SUB_TABS = [
   { key: 'suppliers', label: 'Suppliers' },
@@ -147,6 +148,7 @@ export default function ProcurementTab({
   }, [currentRestaurant?.id]);
   useEffect(() => { loadBalances(); }, [loadBalances, suppliers.length, supplierInvoices]);
   const [receiptView, setReceiptView] = useState(null); // { po, grn } ordered-vs-received
+  const [invoiceView, setInvoiceView] = useState(null); // supplier invoice open in the detail view
   const findPO = (id) => purchaseOrders.find(p => (p.id || p._id) === id) || null;
   const supplierNameOf = (id) => suppliers.find(s => (s.id || s._id) === id)?.name || '';
 
@@ -608,6 +610,9 @@ export default function ProcurementTab({
                     {inv.isOpeningBalance && <div style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>from old book</div>}
                     {inv.kraInvoiceNumber && <div style={{ fontSize: '11.5px', fontWeight: 500, color: '#64748b', wordBreak: 'break-all' }}>KRA: {inv.kraInvoiceNumber}</div>}
                     {inv.stockAdded && <div style={{ fontSize: '11px', fontWeight: 600, color: '#15803d' }}>Stock added</div>}
+                    <button type="button" data-testid="invoice-view" style={{ ...btnSmall('#eff6ff', '#1d4ed8'), marginTop: 4 }} onClick={() => setInvoiceView(inv)}>
+                      <FaFileInvoice size={10} /> View
+                    </button>
                   </td>
                   <td style={td}>{inv.supplierName || inv.supplier || (suppliers.find(s => (s.id || s._id) === (inv.supplierId || inv.supplier_id))?.name) || '-'}</td>
                   <td style={td}>{fmtDate(inv.invoiceDate || inv.date || inv.invoice_date || inv.receivedDate || inv.createdAt)}</td>
@@ -1088,6 +1093,11 @@ export default function ProcurementTab({
         <SupplierOpeningModal restaurantId={currentRestaurant?.id} supplier={openingFor}
           onClose={() => setOpeningFor(null)}
           onSaved={() => { showToast(`Opening balance for ${openingFor.name} saved`); loadBalances(); reloadProcurement && reloadProcurement(); }} />
+      )}
+      {invoiceView && (
+        <InvoiceDetailModal invoice={invoiceView} payState={invoicePayState(invoiceView)} formatCurrency={formatCurrency}
+          supplierName={invoiceView.supplierName || invoiceView.supplier || supplierNameOf(invoiceView.supplierId || invoiceView.supplier_id)}
+          onClose={() => setInvoiceView(null)} />
       )}
       {receiptView && (
         <ReceiptVarianceModal po={receiptView.po} grn={receiptView.grn} grns={grns} formatCurrency={formatCurrency}
