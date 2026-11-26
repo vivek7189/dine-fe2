@@ -110,6 +110,7 @@ import {
   FaFileExcel,
 } from 'react-icons/fa';
 import useTimedMenu from '../../../hooks/useTimedMenu';
+import { isComplimentaryOrder, complimentaryReason } from '../../../utils/complimentaryBill';
 import { useSummaryGroups, GroupsByDayTable, downloadGroupsByDayExcel, groupsByDayCsv, GROUP_PREFIX } from '../../../components/GroupsByDayReport';
 import { GroupSetup } from '../../../components/CategoryGroupsReport';
 
@@ -1581,7 +1582,7 @@ const OrderHistory = () => {
       couponDiscount, couponCode, couponId,
       walletRedeemAmount, walletCustomerId,
       deliveryInfo: deliveryInfoData, deliveryAddress: deliveryAddrData,
-      managerPin, taxInclusiveMode,
+      managerPin, taxInclusiveMode, discountReason,
     } = taxData;
 
     try {
@@ -1629,6 +1630,7 @@ const OrderHistory = () => {
         offerIds: offerIds && offerIds.length > 0 ? offerIds : [],
         selectedOfferName: selectedOfferName || null,
         totalDiscountAmount: totalDiscountAmount || 0,
+        ...(discountReason !== undefined && { discountReason: discountReason || null }),
         specialInstructions: specialInstructions || null,
         redeemLoyaltyPoints: redeemLoyaltyPoints || 0,
         loyaltyDiscount: loyaltyDiscount || 0,
@@ -2056,6 +2058,7 @@ const OrderHistory = () => {
     const items = order.items || [];
     const subtotal = items.reduce((sum, item) => sum + (Number(item.total) || (Number(item.price) * Number(item.quantity)) || 0), 0);
     const isPreBill = order.status !== 'completed';
+    const compBill = isComplimentaryOrder(order); // saved total is 0 on purpose — don't fall back
 
     return {
       // Real bill times → bills print the FIRST bill time (helpers.billDateOf), not the print time.
@@ -2081,7 +2084,7 @@ const OrderHistory = () => {
       taxBreakdown: order.taxBreakdown || [],
       taxAmount: order.taxAmount || 0,
       showInclusiveTaxOnBill: order.showInclusiveTaxOnBill,
-      finalAmount: Number(order.finalAmount) || subtotal + (Number(order.taxAmount) || 0),
+      finalAmount: compBill ? 0 : (Number(order.finalAmount) || subtotal + (Number(order.taxAmount) || 0)),
       tableNumber: order.tableNumber || order.customerDisplay?.tableNumber || order.customerInfo?.tableNumber || '',
       floorName: order.floorName || '',
       roomNumber: order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || '',
@@ -2106,10 +2109,11 @@ const OrderHistory = () => {
       // breakdown and the charged total. grandTotal is set from the authoritative
       // saved finalAmount so the printed TOTAL is always correct regardless of
       // how the individual lines are reconstructed.
-      grandTotal: Number(order.finalAmount) || (subtotal + (Number(order.taxAmount) || 0)),
+      grandTotal: compBill ? 0 : (Number(order.finalAmount) || (subtotal + (Number(order.taxAmount) || 0))),
       discountAmount: Number(order.discountAmount) || 0,
       appliedOffer: order.appliedOffer || order.offerName || '',
       manualDiscount: Number(order.manualDiscount) || 0,
+      discountReason: order.discountReason || '',
       loyaltyDiscount: Number(order.loyaltyDiscount) || 0,
       couponDiscount: Number(order.couponDiscount) || 0,
       couponCode: order.couponCode || '',
@@ -3610,6 +3614,19 @@ const OrderHistory = () => {
     }
   };
 
+  // Fully free bill (100% discount) — green COMPLIMENTARY tag with the reason. Only when the
+  // restaurant turned on printSettings.complimentaryTag (off by default).
+  const renderCompChip = (order, compact) => {
+    if (printSettings?.complimentaryTag !== true || !isComplimentaryOrder(order)) return null;
+    const why = complimentaryReason(order);
+    return (
+      <span data-testid="comp-chip" title={why ? `Complimentary: ${why}` : 'Complimentary bill'} className={`inline-flex items-center gap-1 rounded-full font-bold uppercase tracking-wide w-fit ${compact ? 'px-1.5 py-px text-[9px]' : 'px-2 py-px text-[10px]'}`}
+        style={{ background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', whiteSpace: 'nowrap' }}>
+        Complimentary{why ? ` · ${why}` : ''}
+      </span>
+    );
+  };
+
   // Refund visibility chip: a PARTIAL refund keeps status 'completed' (order still counts) so nothing
   // on the card otherwise shows it happened; a FULL refund shows the "Refunded" status badge but not
   // the amount. This chip surfaces the refunded amount for BOTH, with reason/date/by in the tooltip.
@@ -4584,6 +4601,7 @@ const OrderHistory = () => {
                                   {statusStyle.label}
                                 </span>
                                 {renderRefundChip(order, true)}
+                                {renderCompChip(order, true)}
                                 {sourceChip && (
                                   <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium border w-fit ${sourceChip.className}`}>
                                     {sourceChip.label}
@@ -5007,6 +5025,7 @@ const OrderHistory = () => {
                               {statusStyle.label}
                             </span>
                             {renderRefundChip(order, isMobile)}
+                            {renderCompChip(order, isMobile)}
                             {isMobile && (
                               <span className={`text-[10px] text-gray-400 flex items-center gap-0.5`}>
                                 <FaClock className="text-[8px]" />

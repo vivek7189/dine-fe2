@@ -1577,6 +1577,8 @@ const OrderSummary = ({
           ...invoice,
           items: invoice?.items || orderSuccess?.kotData?.items || [],
           currencySymbol,
+          // Reason typed with the discount — named on a complimentary bill (printSettings.complimentaryTag)
+          discountReason: invoice?.discountReason || (discountReason || '').trim() || '',
         };
 
         // Split Bill: print one receipt per guest

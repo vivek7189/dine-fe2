@@ -472,6 +472,15 @@ export function calcGrandTotal(invoice) {
   );
 }
 
+// Fully free bill: a manual discount takes it to nothing (see utils/complimentaryBill).
+export function isComplimentaryBill(invoice) {
+  const subtotal = Number(invoice?.subtotal) || 0;
+  const manual = Number(invoice?.manualDiscount) || 0;
+  const saved = invoice?.grandTotal;
+  const total = saved !== undefined && saved !== null && saved !== '' ? Number(saved) : calcGrandTotal(invoice);
+  return subtotal > 0 && manual > 0 && total <= 0.005 && calcGrandTotal(invoice) <= 0.005;
+}
+
 // Standard HTML document wrapper
 export function wrapInDocument(title, cssString, bodyHtml) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${cssString}</style></head><body>${bodyHtml}</body></html>`;

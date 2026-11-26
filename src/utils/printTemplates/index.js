@@ -14,7 +14,7 @@ import * as billElegant from './bill/elegant';
 import * as billMinimal from './bill/minimal';
 import * as billProfessional from './bill/professional';
 
-import { pickNameLang } from './helpers';
+import { pickNameLang, isComplimentaryBill, esc } from './helpers';
 
 const KOT_TEMPLATES = {
   classic: kotClassic,
@@ -77,6 +77,12 @@ export function renderBill(invoice, printSettings = {}, labels = {}) {
   const isNonDineIn = /take\s*-?\s*away|delivery|pick\s*-?\s*up|parcel|to\s*-?\s*go|togo/.test(ot);
   if (isNonDineIn && labels.footer == null) {
     labels = { ...labels, footer: 'Thank you for your order!' };
+  }
+  // Complimentary bill (restaurant setting, off by default): title COMPLIMENTARY and the discount
+  // line names the reason. Labels only — the amounts and layout are unchanged.
+  if (printSettings.complimentaryTag === true && isComplimentaryBill(invoice)) {
+    const why = String(invoice.discountReason || '').trim().slice(0, 40);
+    labels = { ...labels, billTitle: 'COMPLIMENTARY', manualDiscount: why ? `Complimentary (${esc(why)})` : 'Complimentary' };
   }
   return template.render(invoice, printSettings, labels);
 }
