@@ -7,29 +7,31 @@ import InternalLinks from '../../../components/InternalLinks';
 export const dynamic = 'force-static';
 export const revalidate = false;
 
-const TITLE = 'DineOpen vs Lightspeed Restaurant 2026: Honest Comparison';
+const TITLE = 'DineOpen vs Lightspeed Restaurant 2026: Price and Features Compared';
 const DESCRIPTION =
-  'Lightspeed Restaurant starts at $89/month and adds up fast with paid modules. DineOpen is $20/month flat with everything included. Real features, real math, honest concessions.';
+  'Lightspeed Restaurant is priced from $189/month on its own pages. DineOpen is $20 or $50/month for one outlet, $99 for two, on devices you own. What each includes and when Lightspeed wins.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-lightspeed';
 
 export const metadata = {
   title: TITLE, description: DESCRIPTION,
-  keywords: 'dineopen vs lightspeed, lightspeed restaurant alternative, cheap lightspeed alternative, lightspeed k series alternative, lightspeed vs dineopen',
+  keywords: 'dineopen vs lightspeed, lightspeed restaurant alternative, lightspeed restaurant pricing, lightspeed k series alternative, lightspeed vs dineopen',
   openGraph: { title: TITLE, description: DESCRIPTION, url: URL, siteName: 'DineOpen', images: [{ url: 'https://www.dineopen.com/billing-app-screenshot.png', width: 1200, height: 630, alt: 'DineOpen vs Lightspeed comparison' }], locale: 'en_US', type: 'article' },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
   alternates: { canonical: URL },
 };
 
+// Lightspeed: "from $189/month" as stated on lightspeedhq.com restaurant pages (QSR / fine dining), seen 26 Nov 2026;
+// their pricing page blocks automated checks, so no other Lightspeed figures are stated here.
+// DineOpen figures must match src/app/pricing/PricingClient.js (USD Starter $20, Growth $50, Pro $99 for 2 outlets, 3+ custom).
 const faqSchema = {
   '@context': 'https://schema.org', '@type': 'FAQPage',
   mainEntity: [
-    { '@type': 'Question', name: 'How much cheaper is DineOpen than Lightspeed?', acceptedAnswer: { '@type': 'Answer', text: 'Lightspeed Restaurant Essential starts at $89/month per location. The Plus tier that most multi-location operators need is $189/month. Advanced features like self-ordering, advanced inventory, and loyalty are sold as paid modules that can push the bill past $300/month. DineOpen Starter is $20/month flat with everything included, or $99/month Pro for unlimited locations. A 3-location chain pays Lightspeed ~$567/month vs DineOpen Pro at $99/month total.' } },
-    { '@type': 'Question', name: 'Does Lightspeed charge transaction fees?', acceptedAnswer: { '@type': 'Answer', text: 'Lightspeed Payments (their built-in processor) charges 2.6% + $0.10 per swipe in the US, close to Square’s 2.6% + $0.15. You can bring your own processor on some plans but it often requires integration fees. DineOpen takes zero percent on swipes — you bring your own processor freely (Stripe, Adyen, Razorpay, anything) and negotiate your own rates.' } },
-    { '@type': 'Question', name: 'Is DineOpen as feature-rich as Lightspeed for full-service?', acceptedAnswer: { '@type': 'Answer', text: 'For independent and small-chain full-service restaurants, yes. DineOpen ships table layouts, course management, modifiers, split bills, tips, loyalty, inventory with recipe deduction, bar pour tracking, KDS, waiter app, QR ordering, and analytics. Lightspeed has more depth in enterprise reporting and franchise-level multi-property management — if you run 20+ locations with complex cross-property inventory, Lightspeed is the more mature choice.' } },
-    { '@type': 'Question', name: 'Where does Lightspeed still win?', acceptedAnswer: { '@type': 'Answer', text: 'Large chains (20+ locations), restaurants that need deep retail + restaurant hybrid features, hotel F&B operations, and operators who want a public company with audited financials as their vendor. Lightspeed is listed on NYSE and has enterprise support SLAs that DineOpen does not match. For single-location or small chain (up to 10 locations), DineOpen is the better fit.' } },
-    { '@type': 'Question', name: 'Can I migrate from Lightspeed to DineOpen?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Export your Lightspeed menu as CSV, or skip the export entirely — just take a photo of a printed menu and DineOpen AI extraction creates the digital menu in about 2 minutes. Customer data and past sales can be imported via CSV. Most operators are fully migrated in under 2 hours.' } },
-    { '@type': 'Question', name: 'Does DineOpen work outside the US?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, DineOpen serves 20+ countries including the US, UK, Canada, India, UAE, Singapore, and Australia. Multi-currency, multi-tax, multi-language labels for bars, bakeries, cafés, QSR, and full-service restaurants. Lightspeed also has wide global reach — this is one area where they match up well.' } },
-    { '@type': 'Question', name: 'Free trial?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, 7 days, full features, no credit card. Lightspeed also offers a trial but typically requires a sales call first. DineOpen signup is self-serve.' } }
+    { '@type': 'Question', name: 'How much does Lightspeed Restaurant cost?', acceptedAnswer: { '@type': 'Answer', text: 'Lightspeed’s restaurant pages state pricing from $189/month for Lightspeed Hospitality. Plan details, add-ons and payments are on Lightspeed’s pricing page or by quote, so confirm the full cost with Lightspeed before you sign.' } },
+    { '@type': 'Question', name: 'How much cheaper is DineOpen than Lightspeed?', acceptedAnswer: { '@type': 'Answer', text: 'For one restaurant, DineOpen Growth is $50/month ($600 a year) with KDS, online ordering, WhatsApp ordering, loyalty, recipe inventory and AI voice ordering. Lightspeed from $189/month is $2,268 a year. DineOpen Starter is $20/month ($240 a year) if you only need billing, KOT printing, QR ordering and basic inventory. Pro is $99/month for 2 outlets; 3 or more outlets are a custom quote.' } },
+    { '@type': 'Question', name: 'Does DineOpen take a cut of card payments?', acceptedAnswer: { '@type': 'Answer', text: 'No. DineOpen adds no percentage to your card payments. You use the card processor you choose and pay its rate.' } },
+    { '@type': 'Question', name: 'Where does Lightspeed still win?', acceptedAnswer: { '@type': 'Answer', text: 'Larger groups and franchises that need deep multi-location reporting, hotel F&B teams that need property-system integrations, retail plus restaurant businesses, and buyers who need a publicly listed vendor. For one or two outlets, DineOpen covers the daily work for less.' } },
+    { '@type': 'Question', name: 'Can I move my menu from Lightspeed to DineOpen?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Import your menu from a spreadsheet, or upload a photo or PDF of your menu and DineOpen builds the digital menu for you to check.' } },
+    { '@type': 'Question', name: 'Free trial?', acceptedAnswer: { '@type': 'Answer', text: 'DineOpen has a 7-day free trial with self sign-up and no contract.' } }
   ]
 };
 
@@ -38,7 +40,7 @@ const softwareSchemas = [{
   name: 'DineOpen', applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android, Windows, macOS',
   offers: { '@type': 'Offer', price: '20', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
-  description: 'Cloud restaurant POS with AI voice ordering, KDS, inventory, and $99/mo unlimited-location plan.'
+  description: 'Cloud restaurant POS. Starter $20/month; Growth $50/month adds KDS, online ordering and AI voice ordering; Pro $99/month for 2 outlets.'
 }];
 
 const articleSchema = {
@@ -47,9 +49,11 @@ const articleSchema = {
   description: DESCRIPTION,
   author: { '@type': 'Person', name: 'Vivek Sharma', jobTitle: 'Founder, DineOpen', url: 'https://www.dineopen.com/about' },
   publisher: { '@type': 'Organization', name: 'DineOpen', logo: { '@type': 'ImageObject', url: 'https://www.dineopen.com/favicon.png' } },
-  datePublished: '2026-04-07', dateModified: '2026-04-07', mainEntityOfPage: URL,
+  datePublished: '2026-04-07', dateModified: '2026-11-26', mainEntityOfPage: URL,
   image: 'https://www.dineopen.com/billing-app-screenshot.png',
 };
+
+const CELL = { padding: '10px 12px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' };
 
 const wrap = { maxWidth: '780px', margin: '0 auto', padding: '0 20px' };
 const h2 = { fontSize: '32px', fontWeight: '800', lineHeight: '1.2', margin: '56px 0 16px', color: '#0f172a' };
@@ -69,129 +73,68 @@ export default function DineOpenVsLightspeedPage() {
 
         <header style={{ background: 'linear-gradient(135deg,#fef3f2 0%,#fff7ed 100%)', padding: '64px 20px 48px', borderBottom: '1px solid #fecaca' }}>
           <div style={wrap}>
-            <div style={{ display: 'inline-block', background: '#fee2e2', color: '#991b1b', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.02em' }}>HONEST COMPARISON · APRIL 2026</div>
+            <div style={{ display: 'inline-block', background: '#fee2e2', color: '#991b1b', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.02em' }}>COMPARISON · UPDATED 26 NOV 2026</div>
             <h1 style={{ fontSize: '44px', lineHeight: '1.1', fontWeight: '900', margin: '20px 0 16px', letterSpacing: '-0.02em' }}>
-              DineOpen vs Lightspeed Restaurant — Enterprise POS at an Indie Price
+              DineOpen vs Lightspeed Restaurant: price, features and fit
             </h1>
             <p style={{ fontSize: '19px', lineHeight: '1.6', color: '#475569', margin: '0 0 28px' }}>
-              Lightspeed is genuinely good software — it&rsquo;s the POS equivalent of a 12-seat boardroom table. The problem is most independent restaurants don&rsquo;t need a boardroom. Here&rsquo;s what DineOpen does, the 12-month math, and when Lightspeed is still the right call.
+              Lightspeed Restaurant (formerly K-Series) is strong software built for bigger operations. Here is what each costs, what is included, and when Lightspeed is still the right call.
             </p>
             <div style={{ background: '#fff', border: '2px solid #ef4444', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(239,68,68,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b91c1c', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                <strong>DineOpen</strong> is better for 1–10 location independents that want AI voice ordering, QR menus, KDS, inventory, and loyalty for <strong>$20/month</strong> flat. <strong>Lightspeed</strong> is better for 20+ location chains and hotel F&amp;B that need enterprise-grade multi-property reporting. For mid-size, DineOpen&rsquo;s <strong>$99/month Pro</strong> covers unlimited locations — roughly the price of a single Lightspeed seat.
+                <strong>Lightspeed</strong> states pricing from <strong>$189/month</strong>. <strong>DineOpen</strong> is <strong>$20/month</strong> (Starter) or <strong>$50/month</strong> (Growth, with KDS, online ordering, WhatsApp ordering, loyalty and AI voice ordering) for one outlet, and <strong>$99/month</strong> (Pro) for two. It runs on devices you already own and adds nothing to card payments. Lightspeed suits larger groups, hotels and retail-plus-restaurant businesses.
               </p>
             </div>
           </div>
         </header>
 
-        <section style={{ padding: '40px 0 0' }}>
+        <section>
           <div style={wrap}>
-            <p style={p}>
-              I&rsquo;ll start with the compliment: Lightspeed Restaurant (formerly K-Series / iKentoo) is legitimately good software. The table management is polished, the reporting is deep, and they&rsquo;ve got real enterprise customers. I have no interest in pretending otherwise.
-            </p>
-            <p style={p}>
-              What I do want to push back on: the idea that you need to pay $189/month per location plus paid modules to run a 3-location indie group. You don&rsquo;t.
-            </p>
-            <p style={p}>
-              This page covers what DineOpen ships, where the money actually goes on Lightspeed, and the cases where Lightspeed is still the smarter choice.
+            <h2 style={h2}>12-month software cost</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', minWidth: '520px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                    <th style={CELL}>Setup</th><th style={CELL}>DineOpen</th><th style={CELL}>Lightspeed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style={{ ...CELL, fontWeight: 600 }}>1 restaurant, basic POS</td><td style={CELL}>Starter $20 × 12 = <strong>$240</strong></td><td style={CELL}>From $189 × 12 = <strong>$2,268</strong></td></tr>
+                  <tr><td style={{ ...CELL, fontWeight: 600 }}>1 restaurant with KDS + online ordering</td><td style={CELL}>Growth $50 × 12 = <strong>$600</strong></td><td style={CELL}>From $2,268, plus any add-ons in your quote</td></tr>
+                  <tr><td style={{ ...CELL, fontWeight: 600 }}>2 outlets</td><td style={CELL}>Pro $99 × 12 = <strong>$1,188</strong></td><td style={CELL}>Ask Lightspeed for a multi-location quote</td></tr>
+                  <tr><td style={{ ...CELL, fontWeight: 600 }}>3+ outlets</td><td style={CELL}>Custom quote</td><td style={CELL}>Quote</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style={small}>
+              Lightspeed: &ldquo;from $189/month&rdquo; as stated on <a href="https://www.lightspeedhq.com/pos/restaurant/quick-service-restaurant-pos/" rel="nofollow noopener" target="_blank" style={linkStyle}>lightspeedhq.com</a>, seen 26 Nov 2026; full plans on their <a href="https://www.lightspeedhq.com/pos/restaurant/pricing/" rel="nofollow noopener" target="_blank" style={linkStyle}>pricing page</a>. DineOpen: <Link href="/pricing" style={linkStyle}>dineopen.com/pricing</Link>. Card fees come on top with either; DineOpen adds no percentage to yours. Prices change; confirm before you sign.
             </p>
           </div>
         </section>
 
         <section>
           <div style={wrap}>
-            <h2 style={h2}>What DineOpen actually ships</h2>
-            <p style={p}>All features below are on the $20 Starter plan (up to 3 locations) or the $99 Pro plan (unlimited locations). No paid modules. No &ldquo;upgrade to unlock.&rdquo;</p>
-
-            <h3 style={h3}>Cloud POS with table layouts &amp; real-time sync</h3>
+            <h2 style={h2}>What DineOpen includes</h2>
+            <h3 style={h3}>Starter, $20/month</h3>
             <p style={p}>
-              Runs in any browser on any device. Drag-and-drop floor plan, table-level order tracking, course management, real-time sync across multiple devices. Two servers on two tablets see the same table state in real time with no per-device fee.
+              Billing with split bills, tips, service charge and multi-rate tax; KOT printing to ordinary thermal printers; table layout; QR menu and QR ordering; basic inventory; unlimited staff accounts. Runs in the browser on iPads, Android tablets, Windows PCs and Macs, with no per-device fee.
             </p>
             <figure style={{ margin: '24px 0' }}>
-              <Image src="/billing-app-screenshot.png" alt="DineOpen billing screen with items, split payment, and course-level ordering" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
-              <figcaption style={small}>Table-level order tracking, split bills, course management — all in one screen.</figcaption>
+              <Image src="/billing-app-screenshot.png" alt="DineOpen billing screen with items and split payment" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+              <figcaption style={small}>The DineOpen billing screen.</figcaption>
             </figure>
-
-            <h3 style={h3}>AI voice ordering (English + Spanish)</h3>
+            <h3 style={h3}>Growth, $50/month</h3>
             <p style={p}>
-              Unique to DineOpen at this price point. Speak the order, AI parses it against your menu, cart fills in seconds. Order entry drops from <strong>~47s to ~11s</strong>. Lightspeed has no built-in voice ordering — you&rsquo;d need a third-party integration.
+              Everything in Starter plus Kitchen Display System, a branded online ordering website, WhatsApp ordering, customer loyalty and credit ledger, recipe-based inventory with vendors and stock alerts, a captain app for waiters, and AI voice ordering, where a waiter speaks the order and it fills the cart.
             </p>
-
-            <h3 style={h3}>AI menu extraction</h3>
+            <h3 style={h3}>Pro, $99/month for 2 outlets</h3>
             <p style={p}>
-              Photo of a printed menu → full digital menu in about 2 minutes. Lightspeed onboarding is manual entry or CSV import, typically 2–4 hours for a 60-item menu or a paid onboarding service.
+              Everything in Growth plus a chain dashboard: central menu, inventory and staff, cross-outlet reports and outlet-wise profit and loss. For 3 or more outlets, DineOpen gives a custom quote.
             </p>
-
-            <h3 style={h3}>KDS + Android KOT printer app</h3>
+            <h3 style={h3}>Prices per item by order type</h3>
             <p style={p}>
-              Kitchen Display System in a browser. Native Android app drives generic USB/Bluetooth thermal printers with offline queueing, auto-print, custom font scale, multi-copy printing, FCM push backup. Orders print in under 2 seconds from tap.
-            </p>
-
-            <h3 style={h3}>Inventory with recipe deduction + bar pour tracking</h3>
-            <p style={p}>
-              Recipe-level deduction on every sale. Bar pour tracking for cocktails. Batch production for bakeries. Supplier purchase orders. Low-stock alerts. On Lightspeed, advanced inventory is a paid module. On DineOpen, it&rsquo;s the base plan.
-            </p>
-
-            <h3 style={h3}>Multi-tier pricing per item</h3>
-            <p style={p}>
-              Same burger, different prices for Dine-in / AC seating / Takeaway / Delivery. First-class field. Common in international markets, and Lightspeed handles this only through service modifier workarounds.
-            </p>
-
-            <h3 style={h3}>QR ordering, WhatsApp ordering, online ordering</h3>
-            <p style={p}>
-              Three direct-ordering channels included. No third-party app fees, no aggregator commissions. You own the customer.
-            </p>
-
-            <h3 style={h3}>Loyalty, khata, tips, split bills — all included</h3>
-            <p style={p}>
-              On Lightspeed, loyalty is Lightspeed Loyalty as a paid add-on. On DineOpen, it&rsquo;s built in. Same with advanced analytics, customer profiles, and gift cards.
-            </p>
-
-            <h3 style={h3}>Pro plan: $99/month unlimited locations</h3>
-            <p style={p}>
-              This is where DineOpen gets really hard to beat for mid-size groups. 5 locations on Lightspeed Plus = $189 × 5 = <strong>$945/month</strong>. 5 locations on DineOpen Pro = <strong>$99/month total</strong>.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <div style={wrap}>
-            <h2 style={h2}>The real 12-month math</h2>
-            <p style={p}>Scenario: 3-location casual dining group, ~$40k/month card sales per location, 6 tablets total, 3 KDS screens.</p>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px', margin: '20px 0' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ background: '#fff', border: '2px solid #ef4444', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#b91c1c' }}>DINEOPEN (Pro)</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$99<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo total</span></div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Unlimited locations</li>
-                    <li>Centralized menu + analytics</li>
-                    <li>0% per-swipe from us</li>
-                    <li>Bring your own processor</li>
-                  </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#991b1b' }}>12-month software: <strong>$1,188</strong></div>
-                </div>
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>LIGHTSPEED (Plus)</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$189<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo × 3</span></div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>$189/mo × 3 locations = $567/mo</li>
-                    <li>+ Advanced inventory add-on</li>
-                    <li>+ Loyalty add-on</li>
-                    <li>+ 2.6% + $0.10 Lightspeed Payments</li>
-                  </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#991b1b' }}>12-month software: <strong>~$7,400</strong></div>
-                </div>
-              </div>
-              <p style={{ ...small, marginTop: '20px', textAlign: 'center' }}>
-                Math: Lightspeed Plus $189 × 3 locations × 12 = $6,804. Add ~$600 in module fees. Pricing per <a href="https://www.lightspeedhq.com/pos/restaurant/pricing/" rel="nofollow noopener" target="_blank" style={linkStyle}>lightspeedhq.com</a> as of April 2026.
-              </p>
-            </div>
-
-            <p style={p}>
-              Software-only savings for a 3-location group: <strong>~$6,200/year</strong>. That&rsquo;s a part-time manager&rsquo;s salary.
+              One dish can have different prices for dine-in, takeaway and delivery, set once on the item.
             </p>
           </div>
         </section>
@@ -200,12 +143,11 @@ export default function DineOpenVsLightspeedPage() {
           <div style={wrap}>
             <h2 style={h2}>Where Lightspeed still wins</h2>
             <ul style={{ ...p, paddingLeft: '20px' }}>
-              <li><strong>20+ location chains and franchises.</strong> Lightspeed&rsquo;s multi-property reporting, franchise royalty tracking, and consolidated P&amp;L are enterprise-grade.</li>
-              <li><strong>Hotel F&amp;B operations.</strong> Lightspeed has mature PMS integrations (Opera, Mews, Cloudbeds). DineOpen doesn&rsquo;t have these yet.</li>
-              <li><strong>Retail + restaurant hybrid.</strong> If you run a bakery that also sells packaged goods, or a winery with a tasting room, Lightspeed Retail + Restaurant is a genuine edge.</li>
-              <li><strong>Public company vendor requirement.</strong> Some enterprise procurement teams require a publicly traded vendor. Lightspeed is NYSE-listed; DineOpen is private.</li>
+              <li><strong>Large groups and franchises.</strong> Lightspeed has deeper multi-location reporting and enterprise support.</li>
+              <li><strong>Hotel F&amp;B.</strong> Lightspeed integrates with hotel property-management systems. DineOpen does not offer these yet.</li>
+              <li><strong>Retail plus restaurant.</strong> If you also run a shop, Lightspeed Retail alongside Restaurant is a real advantage.</li>
+              <li><strong>Listed vendor.</strong> Some procurement teams require a publicly traded vendor. Lightspeed is listed; DineOpen is private.</li>
             </ul>
-            <p style={p}>For 1–10 location independents, none of these apply. DineOpen&rsquo;s the better fit.</p>
           </div>
         </section>
 
@@ -213,14 +155,13 @@ export default function DineOpenVsLightspeedPage() {
           <div style={wrap}>
             <h2 style={h2}>Who should switch</h2>
             <ul style={{ ...p, paddingLeft: '20px' }}>
-              <li>Independent or small-chain restaurants (1–10 locations)</li>
-              <li>Tired of paying per-location licenses</li>
-              <li>Want AI features without module fees</li>
-              <li>Want to own your payment processor relationship</li>
-              <li>Value month-to-month over annual contracts</li>
+              <li>One or two outlets that don&rsquo;t need enterprise reporting</li>
+              <li>You want KDS, online ordering and loyalty in a $50 plan</li>
+              <li>You want to choose your own card processor</li>
+              <li>You prefer month to month with self sign-up</li>
             </ul>
             <p style={p}>
-              Next step: <Link href="/pricing" style={linkStyle}>see full pricing</Link>, or <Link href="/vs/dineopen-vs-toast" style={linkStyle}>compare us against Toast</Link>.
+              Next step: <Link href="/pricing" style={linkStyle}>see full pricing</Link>, or <Link href="/alternatives/toast" style={linkStyle}>compare us against Toast</Link>.
             </p>
           </div>
         </section>
@@ -240,8 +181,8 @@ export default function DineOpenVsLightspeedPage() {
         <section style={{ background: 'linear-gradient(135deg,#b91c1c 0%,#ef4444 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
             <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
-            <p style={{ ...p, color: '#fecaca', fontSize: '18px' }}>Enterprise features. Indie price. No sales call required.</p>
-            <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fff', color: '#b91c1c', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
+            <p style={{ ...p, color: '#fecaca', fontSize: '18px' }}>7-day free trial. No contract. No sales call required.</p>
+            <Link href="/login?utm_source=dineopen&utm_medium=vs&utm_campaign=lightspeed" style={{ display: 'inline-block', background: '#fff', color: '#b91c1c', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
           </div>
         </section>
 
@@ -251,8 +192,8 @@ export default function DineOpenVsLightspeedPage() {
               <div style={{ width: '64px', height: '64px', borderRadius: '999px', background: 'linear-gradient(135deg,#ef4444,#f97316)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, flexShrink: 0 }}>VS</div>
               <div>
                 <div style={{ fontSize: '16px', fontWeight: 800 }}>Vivek Sharma</div>
-                <div style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>Founder of DineOpen. 4 years building restaurant software, 50+ live deployments across India and the US.</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Published April 7, 2026 · Last updated April 7, 2026</div>
+                <div style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>Founder of DineOpen.</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Published April 7, 2026 · Last updated 26 Nov 2026</div>
               </div>
             </div>
           </div>
