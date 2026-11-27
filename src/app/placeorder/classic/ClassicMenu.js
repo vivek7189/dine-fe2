@@ -3,6 +3,7 @@ import { FaSearch, FaPlus, FaMinus, FaStar, FaLeaf, FaDrumstickBite } from 'reac
 import { getDisplayImage } from '../../../utils/placeholderImages';
 import PublicMenuBadge from '../../../components/PublicMenuBadge';
 import QrTodaySpecial from '../../../components/QrTodaySpecial';
+import QuickMenu from './QuickMenu';
 
 // Liquor items: the menu's liquor flag / ABV / spirit category, else a liquor-type category name.
 const LIQUOR_CATEGORY = /(whisk(e)?y|scotch|bourbon|\bgin\b|vodka|\brum\b|tequila|mezcal|beer|lager|\bale\b|wine|champagne|prosecco|liquor|liqueur|brandy|cognac|cocktail|spirit|alcohol|sake|cider|\bshots?\b)/i;
@@ -20,7 +21,7 @@ const DIET_MATCH = {
   liquor: (i) => isLiquorItem(i),
 };
 
-const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null, foodFilter = false, todaySpecial = null, qtyOf = null }) => {
+const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFromCart, currencySymbol = '₹', dark = false, look = null, logoUrl = null, foodFilter = false, todaySpecial = null, qtyOf = null, quick = null, searching = false }) => {
   // Menu look (Customer App → Branding): 'standard' (exactly the classes used before) | 'dark' |
   // 'green' (racing green + white + gold). `dark` is the older switch for 'dark'.
   const style = look || (dark ? 'dark' : 'standard');
@@ -98,6 +99,15 @@ const ClassicMenu = ({ menu, categories, restaurant, addToCart, cart, removeFrom
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [categories]);
+
+  // Quick menu (Customer App → Branding, off by default): its own short layout; the page header has the search.
+  if (quick?.enabled === true) {
+    return (
+      <QuickMenu menu={menu} categories={categories} restaurant={restaurant} addToCart={addToCart} cart={cart}
+        removeFromCart={removeFromCart} currencySymbol={currencySymbol} t={t} style={style} catLabel={catLabel}
+        isLiquorItem={isLiquorItem} quick={quick} searching={searching} todaySpecial={todaySpecial} qtyOf={qtyOf} />
+    );
+  }
 
   const scrollToCategory = (category) => {
     setSelectedCategory(category);

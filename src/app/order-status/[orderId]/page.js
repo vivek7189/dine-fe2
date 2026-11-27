@@ -262,6 +262,45 @@ export default function OrderStatusPage() {
               {data.total ? <span style={{ fontWeight: 700, color: 'var(--fg)' }}>{data.restaurant?.currencySymbol || ''}{Number(data.total).toLocaleString()}</span> : null}
             </div>
 
+            {/* Full bill — only when the restaurant shows it to guests (Customer App → Show bill to guest) */}
+            {data.bill && Array.isArray(data.bill.lines) && data.bill.lines.length > 0 && !isCancelled ? (() => {
+              const b = data.bill;
+              const cur = data.restaurant?.currencySymbol || '';
+              const m = (v) => `${cur}${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              const row = (label, value, opts = {}) => (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: opts.big ? 16 : 13, fontWeight: opts.big ? 800 : 500, color: opts.big ? 'var(--fg)' : 'var(--muted)', padding: '3px 0' }}>
+                  <span>{label}</span><span>{value}</span>
+                </div>
+              );
+              return (
+                <div data-testid="guest-bill" style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '14px 18px', marginTop: 14 }}>
+                  <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 8 }}>Your bill</div>
+                  {b.lines.map((l, i) => (
+                    <div key={i} data-testid="guest-bill-line" style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--line)', fontSize: 14 }}>
+                      <span style={{ fontWeight: 700, minWidth: 26, color: 'var(--muted)' }}>{l.qty}×</span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: 600 }}>{l.name}</span>
+                        {l.variant ? <span style={{ color: 'var(--muted)' }}> ({l.variant})</span> : null}
+                        {l.extras?.length ? <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)' }}>+ {l.extras.join(', ')}</span> : null}
+                        <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)' }}>{l.complimentary ? 'Complimentary' : `${m(l.price)} each`}</span>
+                      </span>
+                      <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{m(l.total)}</span>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 8 }}>
+                    {row('Subtotal', m(b.subtotal))}
+                    {b.discount ? row(b.discountReason ? `Discount (${b.discountReason})` : 'Discount', `−${m(b.discount)}`) : null}
+                    {b.taxLines?.length
+                      ? b.taxLines.map((t, i) => <div key={i}>{row(`${t.name}${t.rate ? ` ${t.rate}%` : ''}${b.taxIncluded ? ' (included)' : ''}`, m(t.amount))}</div>)
+                      : (b.tax ? row(b.taxIncluded ? 'Tax (included)' : 'Tax', m(b.tax)) : null)}
+                    {(b.extra || []).map((x, i) => <div key={i}>{row(x.label, m(x.amount))}</div>)}
+                    <div style={{ borderTop: '1px solid var(--line)', marginTop: 6, paddingTop: 6 }}>{row('Total', m(b.total), { big: true })}</div>
+                    {b.paid ? row(b.paid >= b.total ? 'Paid' : 'Paid so far', m(b.paid)) : null}
+                  </div>
+                </div>
+              );
+            })() : null}
+
             {backTo ? (
               <a href={backTo} data-testid="order-more" style={{ display: 'block', marginTop: 16, textAlign: 'center', padding: '12px 16px', borderRadius: 12, border: '2px solid var(--accent)', color: 'var(--accent)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                 Order more

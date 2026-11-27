@@ -33,6 +33,7 @@ import apiClient from '../../../lib/api';
 import OnlinePayRules from '../../../components/OnlinePayRules';
 import PaytmConnectSection from '../../../components/PaytmConnectSection';
 import TodaySpecialEditor from '../../../components/TodaySpecialEditor';
+import QuickMenuSettings from '../../../components/qr/QuickMenuSettings';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // Helper function to determine if text should be light or dark based on background color
@@ -137,6 +138,7 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
       collectEmail: false,
       allowOrderNotes: false, // guests may add a note per item + one for the whole order
       separateBillsPerGuest: false, // another guest scanning a busy table gets their own bill (party "5-B")
+      showBillToGuest: false, // the guest's order page lists every item + total
     },
     billingSettings: {
       tipsEnabled: false,
@@ -1461,6 +1463,18 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
             />
             <p style={{ fontSize: '12px', color: '#6b7280', margin: '-4px 0 0' }}>
               Off: a second QR order on a busy table is added to the running bill. On: the same guest (same phone) keeps adding to their own bill; another guest gets their own bill on the same table (shown as e.g. 5-B on Tables, KOT and bills). Seat QRs: another guest on the same seat gets their own order. A billed order is never added to — the next order starts a new bill.
+            </p>
+
+            <Toggle
+              value={settings.pageSettings?.showBillToGuest === true}
+              onChange={(v) => setSettings(prev => ({
+                ...prev,
+                pageSettings: { ...prev.pageSettings, showBillToGuest: v }
+              }))}
+              label="Show the full bill to the guest (QR)"
+            />
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '-4px 0 0' }}>
+              On: the guest&apos;s order page (after ordering by QR, or from &quot;My orders&quot;) lists every item with price, tax and the total — including items your staff add to their table.
             </p>
 
           </div>
@@ -2963,6 +2977,10 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
                     style={{ width: '18px', height: '18px', accentColor: '#111827', flexShrink: 0 }} />
                 </label>
               </div>
+
+              {/* Quick menu (Classic design) — off by default */}
+              <QuickMenuSettings restaurantId={restaurantId} value={settings.quickMenu}
+                onChange={(quickMenu) => setSettings(prev => ({ ...prev, quickMenu }))} />
             </div>
 
             {/* Right Column - Live Preview */}

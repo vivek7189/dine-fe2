@@ -382,6 +382,21 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
   // Theme state
   const [themeId, setThemeId] = useState(themeOverride || 'default');
   const [themeSheetIndex, setThemeSheetIndex] = useState(0);
+  // Quick menu (Customer App → Branding, Classic design only, off by default): slim header with the
+  // search in it, short dish cards, Food / Drinks + Veg only, cursor phone → name in the cart.
+  const quickMenuOn = themeId === 'classic' && customerAppSettings?.quickMenu?.enabled === true;
+  const qrHeadRef = useRef(null);
+  useEffect(() => {
+    // the Quick menu's filter bar sticks right under this header (its height changes on scroll)
+    const el = qrHeadRef.current;
+    if (!quickMenuOn || !el || typeof ResizeObserver === 'undefined') return undefined;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty('--qr-head-h', `${el.offsetHeight}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => { ro.disconnect(); root.style.removeProperty('--qr-head-h'); };
+  }, [quickMenuOn]);
 
   // UI State for post-OTP experience
   const [currentView, setCurrentView] = useState('menu'); // 'menu', 'checkout', 'profile', 'history'
@@ -2145,7 +2160,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
         const brandColorDark = getDarkerShade(brandColor);
 
         return (
-          <div style={{
+          <div ref={qrHeadRef} style={{
             position: 'sticky',
             top: 0,
             background: headerStyle === 'gradient'
@@ -2234,7 +2249,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                   }}>
                     {restaurant?.name || 'Restaurant'}
                   </h1>
-                  {tagline && (
+                  {tagline && !quickMenuOn && (
                     <p style={{
                       fontSize: '12px',
                       color: ['gradient', 'solid'].includes(headerStyle) ? textColor : '#6b7280',
@@ -2351,8 +2366,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
                 )}
               </div>
             </div>
-            {themeId !== 'classic' && (<>
-            {/* Search */}
+            {(themeId !== 'classic' || quickMenuOn) && (<>
+            {/* Search (Classic draws its own — except the Quick menu, whose search sits here in the header) */}
             <div style={{
               position: 'relative',
               marginBottom: isScrolled ? '8px' : '12px',
@@ -2638,6 +2653,8 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
             themeProps.foodFilter = customerAppSettings?.branding?.foodFilter === true;
             themeProps.todaySpecial = todaySpecial;
             themeProps.qtyOf = qtyOf;
+            themeProps.quick = quickMenuOn ? customerAppSettings.quickMenu : null;
+            themeProps.searching = quickMenuOn && searchTerm.trim() !== '';
           }
         }
         if (themeId === 'bistro') {
@@ -2915,6 +2932,7 @@ const OnlineOrderContent = ({ restaurantIdProp = null, themeOverride = null, tab
           chairParam={chairParam}
           selectedCountry={selectedCountry}
           setSelectedCountry={setSelectedCountry}
+          quickFocus={quickMenuOn}
         />
       )}
 
@@ -3675,7 +3693,7 @@ const StickyCartBar = ({ cartItemCount, cartSubtotal, onViewCart, publicMenuOnly
 };
 
 // Cart Modal Component
-const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '', selectedCountry, setSelectedCountry }) => {
+const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTotal, getCartItemCount, customerInfo, setCustomerInfo, orderType, setOrderType, onClose, onCheckout, sendingOtp, setCart, customerVerified, customerAppSettings, cs = '₹', chairParam = '', selectedCountry, setSelectedCountry, quickFocus = false }) => {
   // Order types the restaurant offers on its QR (Customer App settings): Takeaway + Dine-in on unless
   // switched off, Delivery only when switched on. Same rule the server checks.
   // A takeaway QR menu (e.g. an event with token numbers) takes takeaway orders only — no table.
@@ -3685,6 +3703,11 @@ const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTo
     customerAppSettings?.allowDelivery === true && 'delivery',
   ].filter(Boolean);
   const [addrMissing, setAddrMissing] = useState(false);
+  const nameInputRef = useRef(null);
+  useEffect(() => {
+    // Quick menu: phone already filled (returning guest) → cursor starts in the name box
+    if (quickFocus && !customerVerified && customerInfo.phone && !customerInfo.name) nameInputRef.current?.focus();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     // a type the restaurant switched off → move to the first one offered
     if (cartOrderTypes.length && ['takeaway', 'table', 'delivery'].includes(orderType) && !cartOrderTypes.includes(orderType)) setOrderType(cartOrderTypes[0]);
@@ -3758,19 +3781,26 @@ const CartModal = ({ qrMenuOrderType, cart, addToCart, removeFromCart, getCartTo
                     country={selectedCountry}
                     onCountryChange={setSelectedCountry}
                     value={customerInfo.phone}
-                    onChange={(digits) => setCustomerInfo({ ...customerInfo, phone: digits })}
+                    onChange={(digits) => {
+                      setCustomerInfo({ ...customerInfo, phone: digits });
+                      // Quick menu: a full Indian number moves the cursor to the name box
+                      if (quickFocus && selectedCountry?.code === 'IN' && digits.length === 10 && !customerInfo.name) nameInputRef.current?.focus();
+                    }}
                     placeholder="Phone number"
                     size="sm"
+                    autoFocus={quickFocus && !customerInfo.phone}
                   />
                 </div>
               )}
               {customerAppSettings?.pageSettings?.collectName !== false && (
                 <div style={{ marginBottom: '8px' }}>
                   <input
+                    ref={nameInputRef}
                     type="text"
                     value={customerInfo.name}
                     onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
                     placeholder="Your name"
+                    autoComplete={quickFocus ? 'name' : undefined}
                     style={{
                       width: '100%', padding: '10px 12px',
                       border: '2px solid #f3f4f6', borderRadius: '10px',
