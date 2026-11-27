@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '../../../lib/api';
+import useTableLabels from '../../../hooks/useTableLabels';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 import TableBillingModal from '../../../components/TableBillingModal';
 import { FaSpinner, FaExclamationTriangle, FaCheck, FaBan, FaTrash, FaClock, FaChair, FaUser, FaReceipt, FaSearch, FaChevronDown, FaChevronUp, FaTimes, FaSyncAlt } from 'react-icons/fa';
@@ -157,6 +158,7 @@ function OpenOrdersContent() {
   const [billOrder, setBillOrder] = useState(null);
   const [billData, setBillData] = useState({ taxSettings: null, menuItems: null, printSettings: null });
   const restaurantId = restaurant?.id || null;
+  const tableLabel = useTableLabels(restaurantId); // "BAR" → "1 · BAR" (only tables with a number)
   // Delete is a per-restaurant switch (super admin) — same rule as Order History.
   const canDelete = restaurant?.orderSettings?.allowOrderDelete === true;
   const tz = restaurant?.posSettings?.timezone || restaurant?.timezone || (apiClient.getRestaurantTimezone ? apiClient.getRestaurantTimezone() : null) || undefined;
@@ -407,7 +409,7 @@ function OpenOrdersContent() {
                         </div>
                         <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-500 flex-wrap">
                           <span>{placed(o.createdAt)}</span>
-                          {o.tableNumber && <span className="inline-flex items-center gap-1"><FaChair size={10} /> Table {o.tableNumber}{o.chairNumber ? ` · chair ${o.chairNumber}` : ''}</span>}
+                          {o.tableNumber && <span className="inline-flex items-center gap-1"><FaChair size={10} /> Table {tableLabel(o.tableNumber)}{o.chairNumber ? ` · chair ${o.chairNumber}` : ''}</span>}
                           {o.customerName && <span className="inline-flex items-center gap-1"><FaUser size={10} /> {o.customerName}</span>}
                           {o.orderType && <span className="capitalize">{String(o.orderType).replace(/[_-]+/g, ' ')}</span>}
                           {o.createdBy && <span>by {o.createdBy}</span>}

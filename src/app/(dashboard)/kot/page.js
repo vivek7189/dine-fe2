@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { orderDisplayNumber } from '../../../utils/orderNumber';
+import useTableLabels from '../../../hooks/useTableLabels';
 import { useRouter } from 'next/navigation';
 // import Pusher from 'pusher-js'; // COMMENTED OUT — replaced by Firebase RTDB
 import { ref, onChildAdded, off, query, orderByChild, startAt } from 'firebase/database';
@@ -168,6 +169,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [currentRestaurant, setCurrentRestaurant] = useState(null);
+  const tableLabel = useTableLabels(currentRestaurant?.id); // "BAR" → "1 · BAR" (only tables with a number)
   const [timers, setTimers] = useState({});
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -1418,7 +1420,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                             fontSize: '15px', fontWeight: '800', color: 'white', whiteSpace: 'nowrap',
                             backgroundColor: '#1f2937', padding: '3px 10px', borderRadius: '8px', lineHeight: 1.2
                           }}>
-                            {t('kot.table')} {kot.tableNumber}{kotChair(kot) ? ` · ${kotChair(kot)}` : ''}
+                            {t('kot.table')} {tableLabel(kot.tableNumber)}{kotChair(kot) ? ` · ${kotChair(kot)}` : ''}
                           </span>
                         )}
 
@@ -2032,7 +2034,7 @@ const KitchenOrderTicket = ({ kdsMode = null } = {}) => {
                     </h2>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
                       ID: {selectedKot.id.slice(-6).toUpperCase()} · {getOrderTypeInfo(selectedKot.orderType).label}
-                      {selectedKot.tableNumber && ` · ${t('kot.table')} ${selectedKot.tableNumber}`}
+                      {selectedKot.tableNumber && ` · ${t('kot.table')} ${tableLabel(selectedKot.tableNumber)}`}
                       {selectedKot.waiterName && ` · ${selectedKot.waiterName}`}
                     </p>
                   </div>

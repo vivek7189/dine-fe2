@@ -10,6 +10,7 @@ import { database } from '../../../../firebase';
 import { subscribeRestaurantEvents } from '../../../lib/realtimeSubscribe';
 import { isLocalServerMode } from '../../../lib/localServer';
 import apiClient from '../../../lib/api';
+import useTableLabels from '../../../hooks/useTableLabels';
 import DeliveryRiderChip from '../../../components/delivery/DeliveryRiderChip';
 import PaidOnlineNote from '../../../components/PaidOnlineNote';
 import ScheduledOrderActions from '../../../components/ScheduledOrderActions';
@@ -304,6 +305,7 @@ const OrderHistory = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [restaurantId, setRestaurantId] = useState(null);
+  const tableLabel = useTableLabels(restaurantId); // "BAR" → "1 · BAR" (only tables with a number)
   const [restaurant, setRestaurant] = useState(null);
   // Admin → Billing Settings → reprintAfterBillRoles, read on its own: for some staff roles the
   // `restaurant` above is only { id, name } (no billingSettings), so a rule read from it never applies.
@@ -3044,7 +3046,7 @@ const OrderHistory = () => {
                   {roomVal ? t('orderHistory.room') : t('orderHistory.table')}
                 </div>
                 <div className="text-sm font-semibold text-gray-900">
-                  {roomVal || order.customerDisplay?.tableNumber || order.tableNumber || '—'}
+                  {roomVal || tableLabel(order.customerDisplay?.tableNumber || order.tableNumber) || '—'}
                 </div>
                 <div className="text-xs text-gray-400 capitalize truncate">
                   {roomVal ? t('orderHistory.hotelRoom') : (order.customerDisplay?.floorName || '—')}
@@ -4523,7 +4525,7 @@ const OrderHistory = () => {
                       const itemCount = Array.isArray(order.items) ? order.items.length : 0;
                       const sourceChip = getOrderSourceChip(order);
                       const isExpanded = expandedOrders.has(order.id);
-                      const tableOrRoom = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || '—';
+                      const tableOrRoom = order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || tableLabel(order.customerDisplay?.tableNumber || order.tableNumber) || '—';
                       const isRoom = !!(order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber);
 
                       return (
@@ -5136,7 +5138,7 @@ const OrderHistory = () => {
                             ) : (
                             <span className="flex items-center gap-1 flex-shrink-0">
                               {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? <FaBed className="text-gray-400 text-[9px]" /> : <FaTable className="text-gray-400 text-[9px]" />}
-                              {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}
+                              {order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || tableLabel(order.customerDisplay?.tableNumber || order.tableNumber) || 'N/A'}
                             </span>
                             )}
                             <span className="text-gray-300">|</span>
@@ -5174,7 +5176,7 @@ const OrderHistory = () => {
                             )}
                             <div>
                               <div className="text-xs text-gray-500">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber ? t('orderHistory.room') : t('orderHistory.table')}</div>
-                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || order.customerDisplay?.tableNumber || order.tableNumber || 'N/A'}{!order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && order.customerDisplay?.floorName ? ` · ${order.customerDisplay.floorName}` : ''}{order.chairNumber ? ` · Seat ${order.chairNumber}` : ''}</div>
+                              <div className="text-sm font-medium text-gray-900">{order.roomNumber || order.customerDisplay?.roomNumber || order.customerInfo?.roomNumber || tableLabel(order.customerDisplay?.tableNumber || order.tableNumber) || 'N/A'}{!order.roomNumber && !order.customerDisplay?.roomNumber && !order.customerInfo?.roomNumber && order.customerDisplay?.floorName ? ` · ${order.customerDisplay.floorName}` : ''}{order.chairNumber ? ` · Seat ${order.chairNumber}` : ''}</div>
                             </div>
                           </div>
                           )}
