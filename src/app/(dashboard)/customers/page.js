@@ -968,6 +968,44 @@ const Customers = () => {
   const [reportsCustomTo, setReportsCustomTo] = useState('');
   const [reportsRestaurantFilter, setReportsRestaurantFilter] = useState('current');
   const [exportDropdown, setExportDropdown] = useState(null); // which section's export dropdown is open
+  // Download every customer of this restaurant (owner only — the server checks too)
+  const [custDownload, setCustDownload] = useState({ busy: false, msg: '' });
+  useEffect(() => {
+    if (!custDownload.msg) return undefined;
+    const id = setTimeout(() => setCustDownload(d => ({ ...d, msg: '' })), 6000);
+    return () => clearTimeout(id);
+  }, [custDownload.msg]);
+  const downloadAllCustomers = async (format) => {
+    setExportDropdown(null);
+    if (custDownload.busy || !restaurantId) return;
+    setCustDownload({ busy: true, msg: '' });
+    try {
+      const resp = await apiClient.request(`/api/customers-export/${restaurantId}`);
+      const list = Array.isArray(resp?.customers) ? resp.customers : [];
+      if (!list.length) { setCustDownload({ busy: false, msg: 'No customers to download yet.' }); return; }
+      // A cell starting with = + - @ could run as a formula in Excel — keep it as text (phone numbers stay as they are).
+      const safe = (v) => (typeof v === 'string' && /^[=+\-@\t\r]/.test(v) && !/^\+?[\d\s()-]+$/.test(v) ? `'${v}` : v);
+      const day = (v) => { if (!v) return ''; const d = new Date(v); return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-CA'); };
+      const cols = [
+        ['Name', c => c.name, true], ['Phone', c => c.phone, true], ['Email', c => c.email, true],
+        ['City', c => c.city], ['Address', c => c.address], ['Birthday', c => c.dob], ['Anniversary', c => c.anniversary],
+        ['GST number', c => c.gstNumber], ['Orders', c => c.totalOrders, true], ['Total spent', c => c.totalSpent, true],
+        ['Last order', c => day(c.lastOrderDate), true], ['Customer since', c => day(c.createdAt), true],
+        ['Loyalty points', c => c.loyaltyPoints], ['Due', c => c.due], ['Wallet', c => c.wallet],
+        ['Source', c => c.source], ['Do not contact', c => (c.doNotContact ? 'Yes' : '')],
+      ].filter(([, get, always]) => always || list.some(c => { const v = get(c); return v !== '' && v !== 0 && v != null; }));
+      const rows = list.map(c => { const o = {}; cols.forEach(([label, get]) => { o[label] = safe(get(c) ?? ''); }); return o; });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+      const name = `customers_${new Date().toLocaleDateString('en-CA')}`;
+      if (format === 'csv') XLSX.writeFile(wb, `${name}.csv`, { bookType: 'csv' });
+      else XLSX.writeFile(wb, `${name}.xlsx`);
+      setCustDownload({ busy: false, msg: `Downloaded ${list.length} customer${list.length === 1 ? '' : 's'}${resp.truncated ? ' (first 20,000)' : ''}.` });
+    } catch (e) {
+      setCustDownload({ busy: false, msg: e?.message || 'Could not download customers.' });
+    }
+  };
 
   // Export helper: supports xlsx, csv, pdf
   var exportReportData = function(data, cols, filename, format) {
@@ -2339,6 +2377,41 @@ const Customers = () => {
                 >
                   {isMobile ? 'Stmt' : 'Statements'}
                 </button>
+              )}
+              {String(custUserData.role || '').toLowerCase() === 'owner' && !isMobileEmbed && (
+                <div style={{ position: 'relative' }} data-export-dropdown>
+                  <button
+                    onClick={() => isOnline && !custDownload.busy && setExportDropdown(exportDropdown === 'allCustomers' ? null : 'allCustomers')}
+                    disabled={!isOnline || custDownload.busy}
+                    title={!isOnline ? 'Go online to download' : 'Download all customers (Excel / CSV)'}
+                    data-testid="download-customers"
+                    style={{
+                      backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px',
+                      padding: isMobile ? '8px 12px' : '10px 14px', fontSize: isMobile ? '12px' : '14px', fontWeight: '600',
+                      cursor: !isOnline || custDownload.busy ? 'not-allowed' : 'pointer', opacity: !isOnline ? 0.5 : 1,
+                      display: 'flex', alignItems: 'center', gap: '6px', height: '100%'
+                    }}
+                  >
+                    <FaDownload size={isMobile ? 11 : 12} />
+                    {!isMobile && (custDownload.busy ? 'Downloading…' : 'Download')}
+                  </button>
+                  {exportDropdown === 'allCustomers' && (
+                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, minWidth: '190px', overflow: 'hidden' }}>
+                      <div style={{ padding: '8px 12px', fontSize: '11px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>All customers — name, phone, email…</div>
+                      {[{ fmt: 'xlsx', label: 'Excel (.xlsx)', icon: FaFileExcel, color: '#16a34a' }, { fmt: 'csv', label: 'CSV', icon: FaFileCsv, color: '#2563eb' }].map(opt => (
+                        <button key={opt.fmt} type="button" data-testid={`download-customers-${opt.fmt}`} onClick={() => downloadAllCustomers(opt.fmt)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '10px 12px', border: 'none', background: 'white', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}>
+                          <opt.icon size={14} color={opt.color} /> {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {custDownload.msg && exportDropdown !== 'allCustomers' && (
+                    <div data-testid="download-customers-msg" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', background: '#111827', color: 'white', fontSize: '12px', padding: '6px 10px', borderRadius: '8px', whiteSpace: 'nowrap', zIndex: 50 }}>
+                      {custDownload.msg}
+                    </div>
+                  )}
+                </div>
               )}
               <button
                 onClick={() => isOnline && setShowBulkImportModal(true)}
