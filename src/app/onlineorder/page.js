@@ -78,6 +78,7 @@ import { detectCountry } from '../../lib/detectCountry';
 import { openPaytmCheckout } from '../../utils/paytmCheckout';
 import MyOrdersSheet, { readMyOrders, rememberMyOrder, guestDeviceKey } from '../../components/qr/MyOrders';
 import { readPendingRzp, writePendingRzp, clearPendingRzp } from '../../components/qr/rzpPending';
+import UpiViewCard from '../../components/qr/UpiViewCard';
 
 // Order the public menu's category tabs by the SAME saved order as the dashboard/menu page.
 // IMPORTANT: the sidebar entries must stay equal to the ACTUAL item.category values (that's what
@@ -5506,6 +5507,16 @@ const CheckoutView = ({
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Restaurant's UPI QR + ID to look at, when the guest pays at the counter (Customer App → Show UPI to guests) */}
+            {cart.length > 0 && (() => {
+              const upi = customerAppSettings?.upiView;
+              if (!upi || upi.where === 'bill') return false;
+              const op = getOnlinePay();
+              return !op.freeOrder && (!op.offered || (!op.required && payChoice === 'later'));
+            })() && (
+              <UpiViewCard upi={customerAppSettings.upiView} style={{ marginBottom: '16px' }} />
             )}
 
             {/* Place Order Button */}

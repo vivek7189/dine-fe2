@@ -34,6 +34,7 @@ import OnlinePayRules from '../../../components/OnlinePayRules';
 import PaytmConnectSection from '../../../components/PaytmConnectSection';
 import TodaySpecialEditor from '../../../components/TodaySpecialEditor';
 import QuickMenuSettings from '../../../components/qr/QuickMenuSettings';
+import UpiViewSettings from '../../../components/qr/UpiViewSettings';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
 // Helper function to determine if text should be light or dark based on background color
@@ -1936,6 +1937,9 @@ const CustomerAppSettings = ({ embedded = false, restaurantId: propRestaurantId 
               </div>
             </div>
           )}
+
+          {/* Show UPI to guests, view only — off by default; changes no payment flow */}
+          <UpiViewSettings value={settings.upiView} onChange={(upiView) => setSettings(prev => ({ ...prev, upiView }))} />
         </div>
 
         {/* Razorpay Payment Gateway Section */}

@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { openPaytmCheckout } from '../../../utils/paytmCheckout';
+import UpiViewCard from '../../../components/qr/UpiViewCard';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -299,6 +300,13 @@ export default function OrderStatusPage() {
                   </div>
                 </div>
               );
+            })() : null}
+
+            {/* Restaurant's UPI QR + ID to look at (view only) — sent only while the order is open and not paid */}
+            {data.upiView && !isCancelled ? (() => {
+              const cur = data.restaurant?.currencySymbol || '';
+              const due = data.bill ? Math.max(0, Number(data.bill.total || 0) - Number(data.bill.paid || 0)) : Number(data.total || 0);
+              return <UpiViewCard upi={data.upiView} amountText={due > 0 ? `${cur}${due.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : ''} style={{ marginTop: 14 }} />;
             })() : null}
 
             {backTo ? (
