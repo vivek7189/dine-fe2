@@ -514,7 +514,7 @@ export default function useInventory() {
       formSaving.current = true; setSavingForm(true); setLoading(true); setError(null);
       const response = await apiClient.updateInventoryItem(currentRestaurant.id, editingItem.id, formData);
       if (response.item) {
-        setSuccess('Item updated successfully!');
+        setSuccess(response.unitChange?.converted ? (response.message || 'Item updated — stock converted to the new unit') : 'Item updated successfully!');
         setShowEditModal(false);
         setEditingItem(null);
         loadInventoryData();
@@ -570,7 +570,8 @@ export default function useInventory() {
       const response = await apiClient.getItemStockHistory(currentRestaurant.id, item.id);
       setStockHistoryData({
         transactions: response.transactions || [],
-        batches: response.batches || []
+        batches: response.batches || [],
+        unlogged: response.unlogged || [],
       });
     } catch (error) {
       console.error('Error loading stock history:', error);

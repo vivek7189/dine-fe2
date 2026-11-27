@@ -379,7 +379,7 @@ function ExistingItemSuggestions({ name, inventoryItems, onAddStock, onEdit }) {
   );
 }
 
-function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false, inventoryItems, onAddStock, onEditExisting, invSettings = null, isEdit = false }) {
+function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false, inventoryItems, onAddStock, onEditExisting, invSettings = null, isEdit = false, originalUnit = '', originalStock = null }) {
   // Fixed units (Inventory → Categories & units): on an existing item only the owner / admin change the unit.
   const lockUnits = isEdit && invSettings?.fixedUnits === true && invSettings?.canEdit !== true;
   const catDefault = (name) => ((invSettings?.categories || []).find(c => String(c.name).toLowerCase() === String(name || '').toLowerCase())?.defaultUnit || '');
@@ -431,6 +431,23 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
           <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="kg, L, pcs…" />
         )}
         <span style={{ fontSize: 11, color: '#6b7280' }}>{lockUnits ? 'Units are fixed — only the owner or admin can change them.' : 'How you measure it: kg, L, pcs, bottle…'}</span>
+        {(() => {
+          // Editing an item's unit: say what happens to the stock before saving (the server converts it).
+          const from = String(originalUnit || '').trim(), to = String(formData.unit || '').trim();
+          if (!isEdit || !from || !to || from.toLowerCase() === to.toLowerCase()) return null;
+          const a = UNIT_CONVERSIONS[from.toLowerCase()], b = UNIT_CONVERSIONS[to.toLowerCase()];
+          const st = Number(originalStock) || 0;
+          const f = (n) => Math.round(n * 10000) / 10000;
+          return a && b && a.dimension === b.dimension ? (
+            <span data-testid="unit-change-note" style={{ fontSize: 11.5, color: '#047857', fontWeight: 600 }}>
+              Stock will be converted: {f(st)} {from} = {f(convertUnits(st, from, to))} {to}. Cost and low-stock level follow.
+            </span>
+          ) : (
+            <span data-testid="unit-change-note" style={{ fontSize: 11.5, color: '#b45309', fontWeight: 600 }}>
+              {from} and {to} are different kinds of unit — the stock number stays {f(st)}. Correct it after saving if needed.
+            </span>
+          );
+        })()}
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>How much you have now</label>
@@ -612,7 +629,8 @@ function AddEditItemModal(props) {
             </button>
           </div>
         }>
-        <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} invSettings={props.invSettings} isEdit />
+        <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} invSettings={props.invSettings} isEdit
+          originalUnit={editingItem?.unit} originalStock={editingItem?.currentStock} />
       </ModalShell>
     );
   }
@@ -2954,9 +2972,39 @@ function UsedInSection({ restaurantId, itemId }) {
   );
 }
 
+// Where a stock movement came from, in words (source codes from the server).
+const TX_SOURCE_LABEL = {
+  ORDER: 'Sale', ORDER_SHORTFALL: 'Sold more than was in stock — set back to 0', ORDER_RETURNED: 'Sale cancelled / returned',
+  SUPPLIER_INVOICE: 'Supplier invoice', RECEIVE: 'Received', PURCHASE: 'Purchase', INDENT_RECEIVED: 'Received from central kitchen',
+  MANUAL: 'Edited by hand', UNIT_CHANGE: 'Unit changed', MENU_TRACK: 'Stock set on the menu item', AUDIT: 'Stock count',
+  BAR_COUNT: 'Bar count', WASTE: 'Waste', DISH_WASTE: 'Dish waste', EXPIRY: 'Expired', LEFTOVER: 'Leftover',
+  PRODUCTION: 'Production', CK_PRODUCTION: 'Central kitchen production', CK_DISTRIBUTION: 'Sent to outlets',
+  SUPPLIER_RETURN: 'Returned to supplier', STOCK_TRANSFER: 'Moved', SMART_IMPORT: 'Imported', INITIAL: 'Opening stock',
+  KITCHEN_DISPLAY: 'Used on kitchen screen',
+};
+const txSourceLabel = (src) => TX_SOURCE_LABEL[src] || (src ? String(src).replace(/_/g, ' ').toLowerCase() : '');
+
 function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, stockHistoryItem, stockHistoryData, getModalStyles, getModalContentStyles, formatCurrency, currentRestaurant }) {
   const transactions = stockHistoryData?.transactions || [];
   const batches = stockHistoryData?.batches || [];
+  const unlogged = stockHistoryData?.unlogged || [];
+  // Excel / CSV of every movement — date, what, how much, stock before → after, who
+  const exportHistory = () => {
+    const esc = (v) => { const t = String(v ?? ''); const safe = /^[=+\-@]/.test(t) && !/^[-+]?[\d.,\s]+$/.test(t) ? `'${t}` : t; return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe; };
+    const rows = [['Date', 'What', 'Where from', 'Quantity', 'Unit', 'Stock before', 'Stock after', 'Cost per unit', 'By', 'Notes']];
+    transactions.forEach(tx => rows.push([
+      new Date(tx.date || tx.createdAt).toLocaleString(), tx.type, txSourceLabel(tx.source), tx.quantityChange ?? tx.quantity ?? '',
+      tx.unit || stockHistoryItem?.unit || '', tx.previousStock ?? '', tx.newStock ?? '', tx.costPerUnit ?? '',
+      tx.performedByName || tx.performedBy || '', tx.notes || tx.reason || '',
+    ]));
+    unlogged.forEach(u => rows.push([u.before ? new Date(u.before).toLocaleString() : 'now', 'NOT IN HISTORY', 'Changed outside the history', '', stockHistoryItem?.unit || '', u.from, u.to, '', '', '']));
+    const blob = new Blob(['\uFEFF' + rows.map(r => r.map(esc).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `stock-history-${String(stockHistoryItem?.name || 'item').replace(/[^\w-]+/g, '_')}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
 
   const typeBadge = (type) => {
     const map = {
@@ -3110,7 +3158,26 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
 
       {/* ── Transaction Timeline ── */}
       <div style={{ marginBottom: '24px' }}>
-        <label style={{ ...labelStyle, fontSize: '13px', marginBottom: '12px' }}>Transaction Timeline</label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: 8 }}>
+          <label style={{ ...labelStyle, fontSize: '13px', marginBottom: 0 }}>Transaction Timeline</label>
+          {transactions.length > 0 && (
+            <button type="button" onClick={exportHistory} data-testid="stock-history-export"
+              style={{ border: '1px solid #d1d5db', background: 'white', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Download (Excel / CSV)
+            </button>
+          )}
+        </div>
+        {unlogged.length > 0 && (
+          <div data-testid="stock-history-unlogged" style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 12.5, color: '#92400e' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Changed outside this history</div>
+            {unlogged.map((u, k) => (
+              <div key={k}>
+                Stock went {fmtQty(u.from)} → {fmtQty(u.to)} {stockHistoryItem?.unit || ''}
+                {u.before ? ` between ${fmtDate(u.after)} and ${fmtDate(u.before)}` : ` after ${fmtDate(u.after)} (now)`} with no record — e.g. an edit from an older app or desktop.
+              </div>
+            ))}
+          </div>
+        )}
         {transactions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af', fontSize: '13px' }}>No stock movements recorded yet.</div>
         ) : (
@@ -3140,10 +3207,14 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                   }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>{fmtDate(tx.date || tx.createdAt)}</span>
-                    {typeBadge(tx.type)}
-                    <span style={{ fontWeight: 700, fontSize: '13px', color: qtyColor }}>
-                      {qtyPrefix}{qty} {tx.unit || stockHistoryItem?.unit || ''}
-                    </span>
+                    {tx.source === 'UNIT_CHANGE'
+                      ? <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, backgroundColor: '#e0e7ff', color: '#3730a3' }}>Unit changed</span>
+                      : typeBadge(tx.type)}
+                    {tx.source !== 'UNIT_CHANGE' && (
+                      <span style={{ fontWeight: 700, fontSize: '13px', color: qtyColor }}>
+                        {qtyPrefix}{qty} {tx.unit || stockHistoryItem?.unit || ''}
+                      </span>
+                    )}
                   </div>
                   {(tx.previousStock != null && tx.newStock != null) && (
                     <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>
@@ -3163,7 +3234,7 @@ function StockHistoryModal({ showStockHistoryModal, setShowStockHistoryModal, st
                   )}
                   {(tx.performedBy || tx.source) && (
                     <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
-                      {tx.performedBy ? `By: ${tx.performedBy}` : ''}{tx.performedBy && tx.source ? ' · ' : ''}{tx.source ? `Source: ${tx.source}` : ''}
+                      {tx.source ? txSourceLabel(tx.source) : ''}{(tx.performedByName || tx.performedBy) && tx.source ? ' · ' : ''}{(tx.performedByName || tx.performedBy) ? `By: ${tx.performedByName || tx.performedBy}` : ''}
                     </div>
                   )}
                 </div>
