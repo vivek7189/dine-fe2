@@ -28,6 +28,7 @@ import SoldAsIsTab from './components/SoldAsIsTab';
 import LiquorTab from './components/LiquorTab';
 import apiClient from '../../../lib/api';
 import ReceiveStockModal from './components/ReceiveStockModal';
+import CategoriesUnitsModal from './components/CategoriesUnitsModal';
 
 // Always-visible 3-step explainer: what inventory is, how dishes connect, what happens on a sale.
 function HowItWorks({ isMobile, onAddItem, onLinkDish, onSoldAsIs, canAdd }) {
@@ -86,6 +87,7 @@ export default function InventoryManagement() {
   // "Link a dish" flow (pick menu item → ingredients → linked); used by the guide, Recipes and Link dishes tabs.
   const [linkDish, setLinkDish] = useState({ open: false, menuItemId: null });
   const [mappingRefresh, setMappingRefresh] = useState(0);
+  const [showCatsUnits, setShowCatsUnits] = useState(false); // Categories & units (owner / admin)
   const openLinkDish = (menuItemId = null) => setLinkDish({ open: true, menuItemId: typeof menuItemId === 'string' ? menuItemId : null });
   const searchParams = useSearchParams();
   // Deep link from the Menu page (?link=<menuItemId>) opens "Link a dish" straight on that dish.
@@ -269,6 +271,16 @@ export default function InventoryManagement() {
               >
                 <FaClipboardList size={14} />
                 Log External Order
+              </button>}
+              {inventory.invSettings?.canEdit && <button
+                onClick={() => setShowCatsUnits(true)}
+                data-testid="open-categories-units"
+                style={{
+                  padding: '10px 14px', background: 'white', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: '10px',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
+                }}
+              >
+                Categories &amp; units
               </button>}
             </div>
           )}
@@ -580,6 +592,9 @@ export default function InventoryManagement() {
 
       {/* All Modals */}
       <InventoryModals {...inventory} formatCurrency={formatCurrency} onReceiveExisting={(item) => openReceive({ kind: 'stock', item })} />
+      <CategoriesUnitsModal open={showCatsUnits} onClose={() => setShowCatsUnits(false)} restaurantId={inventory.currentRestaurant?.id}
+        settings={inventory.invSettings}
+        onSaved={(next) => { inventory.setInvSettings(next); inventory.loadInventoryData && inventory.loadInventoryData(); }} />
       <ReceiveStockModal
         open={receive.open}
         preset={receive.preset}

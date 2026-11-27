@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
-import { convertUnits, UNIT_CONVERSIONS, billLineUnit, convertForItem, isPackUnit, isPackLine, packBaseUnit, billLineStockQty } from '../utils/unitConversion';
+import { convertUnits, UNIT_CONVERSIONS, billLineUnit, convertForItem, isPackUnit, isPackLine, packBaseUnit, billLineStockQty, itemPackSizeOf, fixedBillUnit } from '../utils/unitConversion';
 
 // Supplier bills are in kg / litres even when the stock item is kept in g / ml. The invoice line offers
 // the bigger unit and converts on save (12 kg cumin → 12000 g), so stock never shows "12 g".
@@ -19,11 +19,7 @@ export function invoiceBuyUnits(itemUnit) {
   return itemUnit ? [itemUnit, ...packs] : [];
 }
 // Pack size the item already has (Edit item → purchase unit bag, 1 bag = 26 kg), in kg / L / stock unit.
-export function itemPackSize(inv, packUnit) {
-  const cf = Number(inv?.conversionFactor);
-  if (!inv || !(cf > 1) || String(inv.purchaseUnit || '').toLowerCase().trim() !== String(packUnit || '').toLowerCase().trim()) return '';
-  return Math.round(convertUnits(cf, inv.unit, packBaseUnit(inv.unit)) * 1000) / 1000;
-}
+export const itemPackSize = (inv, packUnit) => itemPackSizeOf(inv, packUnit);
 export const defaultInvoiceBuyUnit = (itemUnit) => invoiceBuyUnits(itemUnit)[0] || itemUnit || '';
 // Line amount: what the user typed in Amount, else qty × rate.
 export const invoiceLineAmount = (it) => {
@@ -383,7 +379,10 @@ function ExistingItemSuggestions({ name, inventoryItems, onAddStock, onEdit }) {
   );
 }
 
-function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false, inventoryItems, onAddStock, onEditExisting }) {
+function ManualItemForm({ formData, setFormData, categories, suppliers, simple = false, inventoryItems, onAddStock, onEditExisting, invSettings = null, isEdit = false }) {
+  // Fixed units (Inventory → Categories & units): on an existing item only the owner / admin change the unit.
+  const lockUnits = isEdit && invSettings?.fixedUnits === true && invSettings?.canEdit !== true;
+  const catDefault = (name) => ((invSettings?.categories || []).find(c => String(c.name).toLowerCase() === String(name || '').toLowerCase())?.defaultUnit || '');
   // Add form shows only what is needed to start; the rest sits under "More options".
   const [more, setMore] = useState(!simple);
   const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
@@ -426,8 +425,12 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Counted in (unit) *</label>
-        <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="kg, L, pcs…" />
-        <span style={{ fontSize: 11, color: '#6b7280' }}>How you measure it: kg, L, pcs, bottle…</span>
+        {lockUnits ? (
+          <div data-testid="item-unit-locked" style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#f9fafb', fontWeight: 600 }}>{formData.unit || '—'}</div>
+        ) : (
+          <CustomSelect value={formData.unit} onChange={v => updateUnitField('unit', v)} options={unitOptions} placeholder="kg, L, pcs…" />
+        )}
+        <span style={{ fontSize: 11, color: '#6b7280' }}>{lockUnits ? 'Units are fixed — only the owner or admin can change them.' : 'How you measure it: kg, L, pcs, bottle…'}</span>
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>How much you have now</label>
@@ -451,7 +454,13 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
       {more && (<>
       <div style={fieldWrap}>
         <label style={labelStyle}>Category</label>
-        <CustomSelect value={formData.category} onChange={v => update('category', v)} options={categoryOptions} placeholder="Select category" creatable />
+        <CustomSelect value={formData.category} options={categoryOptions} placeholder="Select category" creatable
+          onChange={v => {
+            // A new item starts in its category's unit (Inventory → Categories & units), unless a unit was already picked.
+            const d = !isEdit ? catDefault(v) : '';
+            if (d && (!formData.unit || formData.unit === catDefault(formData.category))) updateMulti({ category: v, unit: d });
+            else update('category', v);
+          }} />
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Max Stock</label>
@@ -459,13 +468,21 @@ function ManualItemForm({ formData, setFormData, categories, suppliers, simple =
       </div>
       <div style={fieldWrap}>
         <label style={labelStyle}>Purchase Unit (optional)</label>
-        <CustomSelect value={formData.purchaseUnit || ''} onChange={v => updateUnitField('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
+        {lockUnits ? (
+          <div style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#f9fafb', fontWeight: 600 }}>{formData.purchaseUnit || 'Same as stock unit'}</div>
+        ) : (
+          <CustomSelect value={formData.purchaseUnit || ''} onChange={v => updateUnitField('purchaseUnit', v)} options={unitOptions} placeholder="Same as stock unit" />
+        )}
         <span style={{ fontSize: 11, color: '#6b7280' }}>Buy in this unit (e.g. bottle, case), track/deduct in the stock unit.</span>
       </div>
       {formData.purchaseUnit && formData.purchaseUnit !== formData.unit && (
         <div style={fieldWrap}>
           <label style={labelStyle}>1 {formData.purchaseUnit} = ? {formData.unit || 'stock units'}</label>
-          <FocusInput type="number" step="any" value={formData.conversionFactor || ''} onChange={e => update('conversionFactor', parseFloat(e.target.value) || 1)} placeholder="e.g. 750" />
+          {lockUnits ? (
+            <div style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#f9fafb', fontWeight: 600 }}>{formData.conversionFactor || 1}</div>
+          ) : (
+            <FocusInput type="number" step="any" value={formData.conversionFactor || ''} onChange={e => update('conversionFactor', parseFloat(e.target.value) || 1)} placeholder="e.g. 750" />
+          )}
           <span style={{ fontSize: 11, color: '#6b7280' }}>
             {convertUnits(1, formData.purchaseUnit, formData.unit) !== 1
               ? 'Auto-filled for standard units — edit only if needed.'
@@ -595,7 +612,7 @@ function AddEditItemModal(props) {
             </button>
           </div>
         }>
-        <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} />
+        <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} invSettings={props.invSettings} isEdit />
       </ModalShell>
     );
   }
@@ -659,7 +676,7 @@ function AddEditItemModal(props) {
 
         {/* Tab content */}
         {addTab === 'manual' && (
-          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} simple
+          <ManualItemForm formData={formData} setFormData={setFormData} categories={categories} suppliers={suppliers} invSettings={props.invSettings} simple
             inventoryItems={inventoryItems}
             onAddStock={onReceiveExisting ? (it) => { close(); onReceiveExisting(it); } : null}
             onEditExisting={handleEditItem ? (it) => { close(); handleEditItem(it); } : null} />
@@ -1695,8 +1712,9 @@ function AddInvoiceModal(props) {
     invoiceFormData, setInvoiceFormData,
     handleInvoiceOCR, processingInvoiceOCR, invoiceFileInputRef,
     handleSaveInvoice, savingInvoice, invoiceError, setInvoiceError, currentRestaurant, createStockFromScan, creatingStockLine,
-    suppliers, inventoryItems, getModalStyles, getModalContentStyles
+    suppliers, inventoryItems, getModalStyles, getModalContentStyles, invSettings
   } = props;
+  const fixedUnits = invSettings?.fixedUnits === true; // Inventory → Categories & units: one fixed unit per item
 
   const update = (field, value) => { setInvoiceFormData({ ...invoiceFormData, [field]: value }); if (invoiceError && setInvoiceError) setInvoiceError(null); };
   // Kenya restaurants record the KRA (eTIMS) invoice number printed on the supplier's invoice.
@@ -1830,14 +1848,19 @@ function AddInvoiceModal(props) {
         )}
         {invoiceFormData.items.length > 0 && (
           <div data-testid="invoice-qty-help" style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 8px' }}>
-            Qty = how much came (e.g. 9.5 kg, 12 L, 24 pcs) — not 1. Rate = price of ONE kg / L / pc. Bought in bags? Pick “bag”, type the bags and the bag price, and how many kg are in 1 bag — the cost per kg is worked out.
+            {fixedUnits
+              ? 'Type how much came in the unit shown next to it (kg, L, pcs or bags) — units are fixed for each item. Rate = price of ONE of that unit.'
+              : 'Qty = how much came (e.g. 9.5 kg, 12 L, 24 pcs) — not 1. Rate = price of ONE kg / L / pc. Bought in bags? Pick “bag”, type the bags and the bag price, and how many kg are in 1 bag — the cost per kg is worked out.'}
           </div>
         )}
         {invoiceFormData.items.map((item, index) => {
           const inv = inventoryItems.find(i => i.id === item.inventoryItemId);
           const needsPick = !item.inventoryItemId;
-          const units = invoiceBuyUnits(inv?.unit);
-          const buyUnit = inv ? billLineUnit(item.buyUnit, inv.unit) : (item.buyUnit || '');
+          // Fixed units: the item's own unit (kg / L / pcs, or its bag) — no kg / g choice for staff.
+          const fx = fixedUnits && inv ? fixedBillUnit(inv) : null;
+          const units = fx ? [] : invoiceBuyUnits(inv?.unit);
+          const buyUnit = fx ? fx.unit : (inv ? billLineUnit(item.buyUnit, inv.unit) : (item.buyUnit || ''));
+          const linePackSize = fx ? fx.packSize : item.packSize;
           const amt = invoiceLineAmount(item);
           return (
           <div key={index} style={{ marginBottom: '10px' }}>
@@ -1855,7 +1878,7 @@ function AddInvoiceModal(props) {
                     onChange={e => { const u = e.target.value; patchItem(index, { buyUnit: u, ...(isPackLine(u, inv?.unit) && !(parseFloat(item.packSize) > 0) ? { packSize: itemPackSize(inv, u) } : {}) }); }}>
                     {units.map(u => <option key={u} value={u}>{u === 'l' ? 'L' : u}</option>)}
                   </FocusSelect>
-                ) : (buyUnit ? <span style={{ alignSelf: 'center', fontSize: '12px', color: '#64748b' }}>{buyUnit}</span> : null)}
+                ) : (buyUnit ? <span data-testid="invoice-line-unit-fixed" style={{ alignSelf: 'center', fontSize: '12px', color: '#64748b', fontWeight: fx ? 700 : 400 }}>{buyUnit === 'l' ? 'L' : buyUnit}</span> : null)}
               </div>
               <FocusInput style={{ ...inputStyle, flex: 1 }} type="number" step="0.01" placeholder={buyUnit ? `per ${buyUnit === 'l' ? 'L' : buyUnit}` : 'Rate'}
                 value={item.unitPrice} onChange={e => setRate(index, item, e.target.value)} />
@@ -1869,14 +1892,17 @@ function AddInvoiceModal(props) {
               const base = packBaseUnit(inv.unit);
               const baseLabel = base === 'l' ? 'L' : base;
               const q = parseFloat(item.quantity) || 0;
-              const stockQty = billLineStockQty(q, buyUnit, inv.unit, item.packSize);
+              const stockQty = billLineStockQty(q, buyUnit, inv.unit, linePackSize);
               const showStock = q > 0 && stockQty != null && buyUnit && inv.unit && buyUnit.toLowerCase() !== String(inv.unit).toLowerCase();
               const costPer = stockQty > 0 && amt > 0 ? amt / convertUnits(stockQty, inv.unit, base) : 0;
               if (!pack && !showStock && !(costPer > 0)) return null;
               const f = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });
               return (
                 <div data-testid="invoice-line-cost" style={{ fontSize: '11.5px', marginTop: '3px', color: '#64748b', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
-                  {pack && (
+                  {pack && fx && (
+                    <span data-testid="invoice-pack-fixed" style={{ color: '#0f172a', fontWeight: 600 }}>1 {buyUnit} = {linePackSize} {baseLabel}</span>
+                  )}
+                  {pack && !fx && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0f172a', fontWeight: 600 }}>
                       1 {buyUnit} =
                       <FocusInput data-testid="invoice-pack-size" type="number" min="0" step="any" placeholder=""
@@ -1906,7 +1932,7 @@ function AddInvoiceModal(props) {
               // The whole bill typed as quantity 1 → a price per unit far above what this item costs.
               const q = parseFloat(item.quantity) || 0, old = Number(inv?.costPerUnit) || 0;
               if (!inv || !(q > 0) || !(amt > 0) || !(old > 0)) return null;
-              const stockQty = billLineStockQty(q, buyUnit, inv.unit, item.packSize) || 0;
+              const stockQty = billLineStockQty(q, buyUnit, inv.unit, linePackSize) || 0;
               const per = stockQty > 0 ? amt / stockQty : 0;
               if (!(per > old * 5)) return null;
               const f = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });

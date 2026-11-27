@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
-import { convertUnits, billLineUnit, isPackLine, packBaseUnit, billLineStockQty } from '../utils/unitConversion';
+import { convertUnits, billLineUnit, isPackLine, packBaseUnit, billLineStockQty, fixedBillUnit } from '../utils/unitConversion';
 import { restaurantToday, ymd } from '../../../../lib/restaurantTime';
 import { emptyOpening } from '../../../../components/suppliers/SupplierOpeningModal';
 
@@ -109,6 +109,8 @@ export default function useInventory() {
   // Data arrays
   const [inventoryItems, setInventoryItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  // Inventory → Categories & units: { fixedUnits, categories: [{ name, defaultUnit, items }], canEdit } (off / empty by default)
+  const [invSettings, setInvSettings] = useState({ fixedUnits: false, categories: [], canEdit: false });
   const [suppliers, setSuppliers] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -343,6 +345,16 @@ export default function useInventory() {
       hasLoadedOnce.current = true;
     }
   }, [currentRestaurant, searchTerm, selectedCategory]);
+
+  // Categories & units settings — loaded on their own; a failure just leaves today's behaviour.
+  const reloadInvSettings = useCallback(async () => {
+    if (!currentRestaurant?.id) return;
+    try {
+      const r = await apiClient.getInventorySettings(currentRestaurant.id);
+      setInvSettings({ fixedUnits: r?.fixedUnits === true, categories: Array.isArray(r?.categories) ? r.categories : [], canEdit: r?.canEdit === true });
+    } catch (_) { /* keep defaults */ }
+  }, [currentRestaurant?.id]);
+  useEffect(() => { reloadInvSettings(); }, [reloadInvSettings]);
 
   // Init effects
   useEffect(() => {
@@ -1379,10 +1391,15 @@ export default function useInventory() {
     if (invalidItem) { fail(invalidItem.scannedName ? `Pick the stock item for "${invalidItem.scannedName}"` : 'Pick the stock item on every line'); return; }
     if (invoiceFormData.items.some(it => !((parseFloat(it.quantity) || 0) > 0))) { fail('Every line needs a quantity above 0'); return; }
     // Bought in bags / boxes: the size of one is needed to put the right kg / L into stock.
+    // One fixed unit per item: the line uses the item's own unit (and its bag size) whatever was picked or scanned.
+    const lineUnit = (it, inv) => {
+      if (invSettings.fixedUnits && inv) { const f = fixedBillUnit(inv); return { buyUnit: f.unit, packSize: f.packSize }; }
+      return { buyUnit: inv ? billLineUnit(it.buyUnit, inv.unit) : (it.buyUnit || ''), packSize: it.packSize };
+    };
     for (const it of invoiceFormData.items) {
       const inv = inventoryItems.find(x => x.id === it.inventoryItemId);
-      const bu = inv ? billLineUnit(it.buyUnit, inv.unit) : (it.buyUnit || '');
-      if (inv && isPackLine(bu, inv.unit) && !((parseFloat(it.packSize) || 0) > 0)) {
+      const bu = lineUnit(it, inv).buyUnit;
+      if (inv && isPackLine(bu, inv.unit) && !((parseFloat(lineUnit(it, inv).packSize) || 0) > 0)) {
         const base = packBaseUnit(inv.unit);
         fail(`${inv.name}: how many ${base === 'l' ? 'L' : base} are in 1 ${bu}? Type it under the line (e.g. 1 bag = 26 kg).`);
         return;
@@ -1407,8 +1424,8 @@ export default function useInventory() {
         const inv = inventoryItems.find(x => x.id === it.inventoryItemId);
         const oldCost = Number(inv?.costPerUnit) || 0;
         const qty = parseFloat(it.quantity) || 0;
-        const buyUnit = inv ? billLineUnit(it.buyUnit, inv.unit) : (it.buyUnit || '');
-        const stockQty = billLineStockQty(qty, buyUnit, inv?.unit, it.packSize) || 0;
+        const { buyUnit, packSize } = lineUnit(it, inv);
+        const stockQty = billLineStockQty(qty, buyUnit, inv?.unit, packSize) || 0;
         const newCost = stockQty > 0 ? lineAmount(it) / stockQty : 0;
         if (oldCost > 0 && newCost > oldCost * 5) {
           jumps.push(`${inv.name}: ${m(qty)} ${buyUnit} for ${m(lineAmount(it))} = ${m(newCost)} per ${inv.unit} (now ${m(oldCost)} per ${inv.unit})`);
@@ -1433,9 +1450,9 @@ export default function useInventory() {
         const amount = Math.round(lineAmount(it) * 100) / 100;
         // Bought in kg / L, stocked in g / ml → convert the quantity; bought in bags (1 bag = 26 kg) →
         // bags × kg per bag. The rate follows (per stock unit) — that is the food cost.
-        const buyUnit = invItem ? billLineUnit(it.buyUnit, invItem.unit) : (it.buyUnit || '');
+        const { buyUnit, packSize } = lineUnit(it, invItem);
         const pack = isPackLine(buyUnit, invItem?.unit);
-        const stockQty = billLineStockQty(qty, buyUnit, invItem?.unit, it.packSize) || 0;
+        const stockQty = billLineStockQty(qty, buyUnit, invItem?.unit, packSize) || 0;
         const q = Math.round(stockQty * 1000) / 1000;
         return {
           inventoryItemId: it.inventoryItemId,
@@ -1447,7 +1464,7 @@ export default function useInventory() {
           ...(invItem?.unit ? { unit: invItem.unit } : {}),
           ...(buyUnit && invItem?.unit && buyUnit.toLowerCase() !== String(invItem.unit).toLowerCase()
             ? { purchaseQty: qty, purchaseUnit: buyUnit, purchaseRate: qty > 0 ? Math.round((amount / qty) * 100) / 100 : 0,
-                ...(pack ? { packSize: parseFloat(it.packSize), packUnit: packBaseUnit(invItem.unit) } : {}) } : {}),
+                ...(pack ? { packSize: parseFloat(packSize), packUnit: packBaseUnit(invItem.unit) } : {}) } : {}),
         };
       });
       const subtotal = enrichedItems.reduce((sum, it) => sum + it.total, 0);
@@ -1754,6 +1771,7 @@ export default function useInventory() {
 
     // Data
     inventoryItems, categories, suppliers, recipes, purchaseOrders, reportData, setReportData,
+    invSettings, setInvSettings, reloadInvSettings,
     grns, purchaseRequisitions, supplierInvoices, supplierPerformance,
     aiReorderSuggestions, wastePredictions, wasteSummary,
     supplierReturns, stockTransfers, sortedItems, filteredItems,

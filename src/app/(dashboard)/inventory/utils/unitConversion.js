@@ -155,3 +155,22 @@ export function billLineStockQty(qty, buyUnit, stockUnit, packSize) {
   }
   return stockUnit && buyUnit ? convertUnits(q, buyUnit, stockUnit) : q;
 }
+
+// Pack size the item already has (Edit item → purchase unit bag, 1 bag = 26 kg), in kg / L / its stock unit.
+// '' when the item has no pack of that name (or no pack at all).
+export function itemPackSizeOf(inv, packUnit) {
+  const cf = Number(inv?.conversionFactor);
+  const pu = String(inv?.purchaseUnit || '').toLowerCase().trim();
+  if (!inv || !(cf > 1) || !isPackUnit(pu) || (packUnit && pu !== String(packUnit).toLowerCase().trim())) return '';
+  return Math.round(convertUnits(cf, inv.unit, packBaseUnit(inv.unit)) * 1000) / 1000;
+}
+
+// "One fixed unit per item" (Inventory → Categories & units): the only unit a bill line may use for this item.
+// Bought in bags (purchase unit bag, 1 bag = 26 kg) → bag + its size; kept by weight → kg; by volume → L;
+// anything else → its own stock unit (pcs, can, bottle…). Staff never pick kg vs g.
+export function fixedBillUnit(inv) {
+  if (!inv) return { unit: '', packSize: '' };
+  const pack = itemPackSizeOf(inv);
+  if (pack && isPackLine(inv.purchaseUnit, inv.unit)) return { unit: String(inv.purchaseUnit).trim(), packSize: pack };
+  return { unit: billLineUnit('', inv.unit), packSize: '' };
+}

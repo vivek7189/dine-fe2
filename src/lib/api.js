@@ -3151,6 +3151,24 @@ class ApiClient {
     return this.cachedGet(`/api/inventory/${restaurantId}/categories`, 10 * 60 * 1000); // 10 min
   }
 
+  // Inventory → Categories & units (one fixed unit per item + stock categories). Change = owner / admin.
+  async getInventorySettings(restaurantId) {
+    return this.request(`/api/inventory-settings/${restaurantId}`);
+  }
+
+  async saveInventorySettings(restaurantId, settings) {
+    const r = await this.request(`/api/inventory-settings/${restaurantId}`, { method: 'PUT', body: settings });
+    this.invalidateCache(`/api/inventory/${restaurantId}/categories`);
+    return r;
+  }
+
+  async renameInventoryCategory(restaurantId, from, to) {
+    const r = await this.request(`/api/inventory-settings/${restaurantId}/rename-category`, { method: 'POST', body: { from, to } });
+    this.invalidateCache(`/api/inventory/${restaurantId}/categories`);
+    this.invalidateCache(`/api/inventory/${restaurantId}`);
+    return r;
+  }
+
   async getInventoryDashboard(restaurantId) {
     return this.request(`/api/inventory/${restaurantId}/dashboard`);
   }
