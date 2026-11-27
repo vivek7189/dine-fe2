@@ -9,8 +9,8 @@ import QrTodaySpecial from '../../../components/QrTodaySpecial';
 // cards, Food / Drinks tabs, a "Veg only" switch, categories merged into sections (QR page only) and
 // add-on dishes shown right after the dishes they go with.
 
-// A section is "Drinks" when its name or one of its categories reads like a drink, or every dish in it is liquor.
-const DRINK_WORDS = /(drink|beverage|juice|coffee|\btea\b|chai|smoothie|shake|soda|cooler|mocktail|latte|lemonade|water|cola|liquor|beer|lager|wine|whisk(e)?y|scotch|\bgin\b|vodka|\brum\b|tequila|cocktail|\bshots?\b|spirit|liqueur|brew|espresso|cappuccino|mocha|americano|bar special)/i;
+// A section is "Drinks" when its name or one of its categories reads like a drink, or most of its dishes are drinks.
+const DRINK_WORDS = /(drink|beverage|juice|coffee|\btea\b|chai|smoothie|shake|soda|cooler|mocktail|latte|lemonade|\bwater\b|\bcola\b|liquor|beer|lager|wine|whisk(e)?y|scotch|\bgin\b|vodka|\brum\b|tequila|cocktail|\bshots?\b|spirit|liqueur|brew|espresso|cappuccino|mocha|americano|bar special)/i;
 const words = (s) => String(s || '').replace(/[-_]+/g, ' ');
 
 export default function QuickMenu({
@@ -45,8 +45,10 @@ export default function QuickMenu({
       if (s) s.items.push(item);
     }
     for (const s of sec.values()) {
+      // …or most of its dishes are drinks by name / liquor (e.g. "Hot Classics": Espresso, Cappuccino, Mocha)
+      const drinkish = s.items.filter(i => isLiquorItem(i) || DRINK_WORDS.test(words(i.name))).length;
       const guess = DRINK_WORDS.test(words(s.name)) || s.cats.some(c => DRINK_WORDS.test(words(c)))
-        || (s.items.length > 0 && s.items.every(isLiquorItem));
+        || (s.items.length > 0 && drinkish * 2 > s.items.length);
       s.tab = tabsMap[s.name] || tabsMap[s.cats[0]] || (guess ? 'drinks' : 'food');
     }
     // Add-on links: which add-on dishes follow which dishes.
