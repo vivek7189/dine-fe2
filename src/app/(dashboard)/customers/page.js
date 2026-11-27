@@ -968,7 +968,7 @@ const Customers = () => {
   const [reportsCustomTo, setReportsCustomTo] = useState('');
   const [reportsRestaurantFilter, setReportsRestaurantFilter] = useState('current');
   const [exportDropdown, setExportDropdown] = useState(null); // which section's export dropdown is open
-  // Download every customer of this restaurant (owner only — the server checks too)
+  // Download every customer of this restaurant (owner / admin only — the server checks too)
   const [custDownload, setCustDownload] = useState({ busy: false, msg: '' });
   useEffect(() => {
     if (!custDownload.msg) return undefined;
@@ -2378,7 +2378,7 @@ const Customers = () => {
                   {isMobile ? 'Stmt' : 'Statements'}
                 </button>
               )}
-              {String(custUserData.role || '').toLowerCase() === 'owner' && !isMobileEmbed && (
+              {['owner', 'admin'].includes(String(custUserData.role || '').toLowerCase()) && !isMobileEmbed && (
                 <div style={{ position: 'relative' }} data-export-dropdown>
                   <button
                     onClick={() => isOnline && !custDownload.busy && setExportDropdown(exportDropdown === 'allCustomers' ? null : 'allCustomers')}
