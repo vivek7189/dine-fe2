@@ -7,27 +7,36 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaFileInvoice } from 'react-icons/fa';
 import { toJsDate } from '../../../../utils/dateParse';
 import { fmtQty } from '../utils/formatQty';
+import { convertUnits, packBaseUnit } from '../utils/unitConversion';
 
 const n = (v) => { const x = parseFloat(v); return Number.isFinite(x) ? x : 0; };
 const fmtDay = (v) => { const d = toJsDate(v); return d ? d.toLocaleDateString() : ''; };
 const METHOD_LABEL = { cash: 'Cash', bank_transfer: 'Bank transfer', mpesa: 'M-Pesa', upi: 'UPI', cheque: 'Cheque', card: 'Card', other: 'Other' };
 
-export default function InvoiceDetailModal({ invoice, supplierName, payState, onClose, formatCurrency }) {
+// stockUnitOf(inventoryItemId) → the stock item's unit, for older lines saved without one.
+export default function InvoiceDetailModal({ invoice, supplierName, payState, onClose, formatCurrency, stockUnitOf = () => '' }) {
   if (typeof document === 'undefined' || !invoice) return null;
   const fmt = formatCurrency || ((v) => (Number(v) || 0).toFixed(2));
   const inv = invoice;
   const lines = (inv.items || []).map((it, i) => {
-    // As bought (e.g. 2 kg at 2,075) when saved; else the stock-unit qty and price (e.g. 2000 g).
+    // As bought (e.g. 7 bag at 1,150, or 2 kg at 2,075) when saved; else the stock-unit qty and price.
     const asBought = it.purchaseQty != null && n(it.purchaseQty) > 0;
+    const stockUnit = it.unit || stockUnitOf(it.inventoryItemId) || '';
     const qty = asBought ? n(it.purchaseQty) : n(it.quantity);
     const price = asBought ? n(it.purchaseRate) : n(it.unitPrice);
     const tax = n(it.tax);
+    const total = n(it.total) > 0 ? n(it.total) : Math.round((qty * price + tax) * 100) / 100;
+    // Food cost: price of ONE kg / L / pc (g / ml stock shown per kg / L).
+    const base = packBaseUnit(stockUnit);
+    const baseQty = stockUnit ? convertUnits(n(it.quantity), stockUnit, base) : n(it.quantity);
+    const costPer = baseQty > 0 ? (total - tax) / baseQty : 0;
     return {
       key: `${it.inventoryItemId || it.inventoryItemName || 'line'}-${i}`,
       name: it.inventoryItemName || it.name || 'Item',
-      unit: asBought ? (it.purchaseUnit || '') : (it.unit || ''),
-      qty, price, tax,
-      total: n(it.total) > 0 ? n(it.total) : Math.round((qty * price + tax) * 100) / 100,
+      unit: asBought ? (it.purchaseUnit || '') : stockUnit,
+      pack: asBought && n(it.packSize) > 0 ? `1 ${it.purchaseUnit} = ${fmtQty(n(it.packSize))} ${it.packUnit === 'l' ? 'L' : (it.packUnit || base)}` : '',
+      qty, price, tax, total, costPer,
+      costUnit: base === 'l' ? 'L' : base,
     };
   });
   const total = n(inv.totalAmount || inv.amount || inv.total);
@@ -79,16 +88,22 @@ export default function InvoiceDetailModal({ invoice, supplierName, payState, on
             <div style={{ fontSize: 13, color: '#6b7280', padding: '12px 0' }}>No item lines on this invoice.</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
                 <thead><tr style={{ background: '#f9fafb' }}>
-                  <th style={{ ...th, textAlign: 'left' }}>Item</th><th style={th}>Qty</th><th style={th}>Unit price</th><th style={th}>Tax</th><th style={th}>Total</th>
+                  <th style={{ ...th, textAlign: 'left' }}>Item</th><th style={th}>Qty</th><th style={th}>Price</th><th style={th}>Cost per unit</th><th style={th}>Tax</th><th style={th}>Total</th>
                 </tr></thead>
                 <tbody>
                   {lines.map(l => (
                     <tr key={l.key} data-testid="invoice-detail-line">
                       <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal', fontWeight: 600 }}>{l.name}</td>
-                      <td style={td}>{fmtQty(l.qty)}{l.unit ? ` ${l.unit}` : ''}</td>
-                      <td style={td}>{fmt(l.price)}</td>
+                      <td style={td}>
+                        {fmtQty(l.qty)}{l.unit ? ` ${l.unit === 'l' ? 'L' : l.unit}` : ''}
+                        {l.pack ? <div style={{ fontSize: 11, color: '#6b7280' }}>{l.pack}</div> : null}
+                      </td>
+                      <td style={td}>{fmt(l.price)}{l.unit ? <span style={{ color: '#9ca3af', fontSize: 11 }}> / {l.unit === 'l' ? 'L' : l.unit}</span> : null}</td>
+                      <td style={{ ...td, color: '#047857', fontWeight: 600 }} data-testid="invoice-detail-cost">
+                        {l.costPer > 0 ? <>{fmt(l.costPer)}{l.costUnit ? <span style={{ fontSize: 11 }}> / {l.costUnit}</span> : null}</> : '-'}
+                      </td>
                       <td style={{ ...td, color: l.tax > 0 ? '#374151' : '#9ca3af' }}>{l.tax > 0 ? fmt(l.tax) : '-'}</td>
                       <td style={{ ...td, fontWeight: 600 }}>{fmt(l.total)}</td>
                     </tr>

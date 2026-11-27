@@ -5,16 +5,24 @@ import { createPortal } from 'react-dom';
 import { FaTimes, FaPlus, FaTrash, FaSave, FaCamera, FaMinus, FaClipboardList, FaImage, FaCheckCircle, FaExclamationTriangle, FaSearch, FaMagic, FaEye, FaBoxes, FaArrowDown, FaKeyboard, FaPaste, FaReceipt, FaHistory, FaChevronDown, FaCheck, FaFileImage, FaCloudUploadAlt, FaLink } from 'react-icons/fa';
 import SmartImportModalInline from './SmartImportModal';
 import apiClient from '@/lib/api';
-import { convertUnits, UNIT_CONVERSIONS, billLineUnit, convertForItem } from '../utils/unitConversion';
+import { convertUnits, UNIT_CONVERSIONS, billLineUnit, convertForItem, isPackUnit, isPackLine, packBaseUnit, billLineStockQty } from '../utils/unitConversion';
 
 // Supplier bills are in kg / litres even when the stock item is kept in g / ml. The invoice line offers
 // the bigger unit and converts on save (12 kg cumin → 12000 g), so stock never shows "12 g".
 export function invoiceBuyUnits(itemUnit) {
   const u = String(itemUnit || '').toLowerCase().trim();
   const dim = UNIT_CONVERSIONS[u]?.dimension;
-  if (dim === 'mass') return ['kg', 'g'];
-  if (dim === 'volume') return ['l', 'ml'];
-  return itemUnit ? [itemUnit] : [];
+  // + bag / box: bought in packs ("7 bag, 1 bag = 26 kg") — not for items already kept in bags / boxes
+  const packs = isPackUnit(u) ? [] : ['bag', 'box'];
+  if (dim === 'mass') return ['kg', 'g', ...packs];
+  if (dim === 'volume') return ['l', 'ml', ...packs];
+  return itemUnit ? [itemUnit, ...packs] : [];
+}
+// Pack size the item already has (Edit item → purchase unit bag, 1 bag = 26 kg), in kg / L / stock unit.
+export function itemPackSize(inv, packUnit) {
+  const cf = Number(inv?.conversionFactor);
+  if (!inv || !(cf > 1) || String(inv.purchaseUnit || '').toLowerCase().trim() !== String(packUnit || '').toLowerCase().trim()) return '';
+  return Math.round(convertUnits(cf, inv.unit, packBaseUnit(inv.unit)) * 1000) / 1000;
 }
 export const defaultInvoiceBuyUnit = (itemUnit) => invoiceBuyUnits(itemUnit)[0] || itemUnit || '';
 // Line amount: what the user typed in Amount, else qty × rate.
@@ -1822,7 +1830,7 @@ function AddInvoiceModal(props) {
         )}
         {invoiceFormData.items.length > 0 && (
           <div data-testid="invoice-qty-help" style={{ fontSize: '11.5px', color: '#64748b', margin: '0 0 8px' }}>
-            Qty = how much came (e.g. 9.5 kg, 12 L, 24 pcs) — not 1. Rate = price of ONE kg / L / pc. Stock value uses Amount ÷ Qty.
+            Qty = how much came (e.g. 9.5 kg, 12 L, 24 pcs) — not 1. Rate = price of ONE kg / L / pc. Bought in bags? Pick “bag”, type the bags and the bag price, and how many kg are in 1 bag — the cost per kg is worked out.
           </div>
         )}
         {invoiceFormData.items.map((item, index) => {
@@ -1843,7 +1851,8 @@ function AddInvoiceModal(props) {
                 <FocusInput style={{ ...inputStyle, flex: 1, minWidth: 0 }} type="number" min="0" step="any" placeholder="Qty"
                   value={item.quantity} onChange={e => setQty(index, item, e.target.value)} />
                 {units.length > 1 ? (
-                  <FocusSelect style={{ ...inputStyle, width: '62px', padding: '8px 4px' }} value={buyUnit} onChange={e => patchItem(index, { buyUnit: e.target.value })}>
+                  <FocusSelect style={{ ...inputStyle, width: '62px', padding: '8px 4px' }} value={buyUnit} data-testid="invoice-line-unit"
+                    onChange={e => { const u = e.target.value; patchItem(index, { buyUnit: u, ...(isPackLine(u, inv?.unit) && !(parseFloat(item.packSize) > 0) ? { packSize: itemPackSize(inv, u) } : {}) }); }}>
                     {units.map(u => <option key={u} value={u}>{u === 'l' ? 'L' : u}</option>)}
                   </FocusSelect>
                 ) : (buyUnit ? <span style={{ alignSelf: 'center', fontSize: '12px', color: '#64748b' }}>{buyUnit}</span> : null)}
@@ -1854,15 +1863,38 @@ function AddInvoiceModal(props) {
                 value={item.amount !== undefined ? item.amount : (amt ? Math.round(amt * 100) / 100 : '')} onChange={e => setAmount(index, item, e.target.value)} />
               <button style={dangerBtn} onClick={() => removeItem(index)}><FaTrash /></button>
             </div>
-            {inv && (parseFloat(item.quantity) > 0) && buyUnit && inv.unit && buyUnit.toLowerCase() !== String(inv.unit).toLowerCase() && (
-              <div style={{ fontSize: '11.5px', marginTop: '3px', color: '#64748b' }}>
-                Adds {Math.round(convertUnits(parseFloat(item.quantity), buyUnit, inv.unit) * 1000) / 1000} {inv.unit} to stock
-              </div>
-            )}
+            {inv && (() => {
+              // Bought in bags / boxes: how much is in one, then what goes to stock and the cost per kg / L / pc.
+              const pack = isPackLine(buyUnit, inv.unit);
+              const base = packBaseUnit(inv.unit);
+              const baseLabel = base === 'l' ? 'L' : base;
+              const q = parseFloat(item.quantity) || 0;
+              const stockQty = billLineStockQty(q, buyUnit, inv.unit, item.packSize);
+              const showStock = q > 0 && stockQty != null && buyUnit && inv.unit && buyUnit.toLowerCase() !== String(inv.unit).toLowerCase();
+              const costPer = stockQty > 0 && amt > 0 ? amt / convertUnits(stockQty, inv.unit, base) : 0;
+              if (!pack && !showStock && !(costPer > 0)) return null;
+              const f = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });
+              return (
+                <div data-testid="invoice-line-cost" style={{ fontSize: '11.5px', marginTop: '3px', color: '#64748b', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                  {pack && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0f172a', fontWeight: 600 }}>
+                      1 {buyUnit} =
+                      <FocusInput data-testid="invoice-pack-size" type="number" min="0" step="any" placeholder=""
+                        style={{ ...inputStyle, width: '70px', padding: '4px 6px', fontSize: '12px' }}
+                        value={item.packSize ?? ''} onChange={e => patchItem(index, { packSize: e.target.value })} />
+                      {baseLabel}
+                    </span>
+                  )}
+                  {pack && stockQty == null && <span style={{ color: '#b45309', fontWeight: 600 }}>how many {baseLabel} in 1 {buyUnit}?</span>}
+                  {showStock && <span>Adds {f(Math.round(stockQty * 1000) / 1000)} {inv.unit} to stock</span>}
+                  {costPer > 0 && <span style={{ color: '#047857', fontWeight: 700 }}>= {f(costPer)} per {baseLabel}</span>}
+                </div>
+              );
+            })()}
             {(() => {
               // An item with no cost yet: quantity 1 with a big amount is usually the whole bill typed as 1.
               const q = parseFloat(item.quantity) || 0, old = Number(inv?.costPerUnit) || 0;
-              if (!inv || old > 0 || q !== 1 || !(amt >= 300) || !buyUnit || ['pcs', 'pc', 'piece', 'nos'].includes(String(buyUnit).toLowerCase())) return null;
+              if (!inv || old > 0 || q !== 1 || !(amt >= 300) || !buyUnit || isPackLine(buyUnit, inv.unit) || ['pcs', 'pc', 'piece', 'nos'].includes(String(buyUnit).toLowerCase())) return null;
               const u = buyUnit === 'l' ? 'L' : buyUnit;
               return (
                 <div data-testid="invoice-qty-one" style={{ fontSize: '11.5px', marginTop: '3px', color: '#b45309', fontWeight: 600 }}>
@@ -1874,7 +1906,7 @@ function AddInvoiceModal(props) {
               // The whole bill typed as quantity 1 → a price per unit far above what this item costs.
               const q = parseFloat(item.quantity) || 0, old = Number(inv?.costPerUnit) || 0;
               if (!inv || !(q > 0) || !(amt > 0) || !(old > 0)) return null;
-              const stockQty = inv.unit && buyUnit ? convertUnits(q, buyUnit, inv.unit) : q;
+              const stockQty = billLineStockQty(q, buyUnit, inv.unit, item.packSize) || 0;
               const per = stockQty > 0 ? amt / stockQty : 0;
               if (!(per > old * 5)) return null;
               const f = (n) => n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });

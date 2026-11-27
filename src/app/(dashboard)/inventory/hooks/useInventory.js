@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import apiClient from '../../../../lib/api';
-import { convertUnits, billLineUnit } from '../utils/unitConversion';
+import { convertUnits, billLineUnit, isPackLine, packBaseUnit, billLineStockQty } from '../utils/unitConversion';
 import { restaurantToday, ymd } from '../../../../lib/restaurantTime';
 import { emptyOpening } from '../../../../components/suppliers/SupplierOpeningModal';
 
@@ -1378,6 +1378,16 @@ export default function useInventory() {
     const invalidItem = invoiceFormData.items.find(it => !it.inventoryItemId);
     if (invalidItem) { fail(invalidItem.scannedName ? `Pick the stock item for "${invalidItem.scannedName}"` : 'Pick the stock item on every line'); return; }
     if (invoiceFormData.items.some(it => !((parseFloat(it.quantity) || 0) > 0))) { fail('Every line needs a quantity above 0'); return; }
+    // Bought in bags / boxes: the size of one is needed to put the right kg / L into stock.
+    for (const it of invoiceFormData.items) {
+      const inv = inventoryItems.find(x => x.id === it.inventoryItemId);
+      const bu = inv ? billLineUnit(it.buyUnit, inv.unit) : (it.buyUnit || '');
+      if (inv && isPackLine(bu, inv.unit) && !((parseFloat(it.packSize) || 0) > 0)) {
+        const base = packBaseUnit(inv.unit);
+        fail(`${inv.name}: how many ${base === 'l' ? 'L' : base} are in 1 ${bu}? Type it under the line (e.g. 1 bag = 26 kg).`);
+        return;
+      }
+    }
     // Bill total typed into a line's rate (MFC: 9 kg × 5145 for a 5145 bill) used to set a cost of 5145/kg.
     const lineAmount = (it) => (it.amount !== undefined && it.amount !== '' && it.amount !== null) ? (parseFloat(it.amount) || 0) : (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0);
     const linesTotalCheck = invoiceFormData.items.reduce((s, it) => s + lineAmount(it), 0);
@@ -1398,7 +1408,7 @@ export default function useInventory() {
         const oldCost = Number(inv?.costPerUnit) || 0;
         const qty = parseFloat(it.quantity) || 0;
         const buyUnit = inv ? billLineUnit(it.buyUnit, inv.unit) : (it.buyUnit || '');
-        const stockQty = inv?.unit && buyUnit ? convertUnits(qty, buyUnit, inv.unit) : qty;
+        const stockQty = billLineStockQty(qty, buyUnit, inv?.unit, it.packSize) || 0;
         const newCost = stockQty > 0 ? lineAmount(it) / stockQty : 0;
         if (oldCost > 0 && newCost > oldCost * 5) {
           jumps.push(`${inv.name}: ${m(qty)} ${buyUnit} for ${m(lineAmount(it))} = ${m(newCost)} per ${inv.unit} (now ${m(oldCost)} per ${inv.unit})`);
@@ -1421,9 +1431,11 @@ export default function useInventory() {
         const invItem = inventoryItems.find(inv => inv.id === it.inventoryItemId);
         const qty = parseFloat(it.quantity) || 0;
         const amount = Math.round(lineAmount(it) * 100) / 100;
-        // Bought in kg / L, stocked in g / ml → convert the quantity; the rate follows (per stock unit).
+        // Bought in kg / L, stocked in g / ml → convert the quantity; bought in bags (1 bag = 26 kg) →
+        // bags × kg per bag. The rate follows (per stock unit) — that is the food cost.
         const buyUnit = invItem ? billLineUnit(it.buyUnit, invItem.unit) : (it.buyUnit || '');
-        const stockQty = invItem?.unit && buyUnit ? convertUnits(qty, buyUnit, invItem.unit) : qty;
+        const pack = isPackLine(buyUnit, invItem?.unit);
+        const stockQty = billLineStockQty(qty, buyUnit, invItem?.unit, it.packSize) || 0;
         const q = Math.round(stockQty * 1000) / 1000;
         return {
           inventoryItemId: it.inventoryItemId,
@@ -1432,8 +1444,10 @@ export default function useInventory() {
           unitPrice: q > 0 ? Math.round((amount / q) * 10000) / 10000 : 0,
           tax: 0,
           total: amount,
+          ...(invItem?.unit ? { unit: invItem.unit } : {}),
           ...(buyUnit && invItem?.unit && buyUnit.toLowerCase() !== String(invItem.unit).toLowerCase()
-            ? { purchaseQty: qty, purchaseUnit: buyUnit, purchaseRate: qty > 0 ? Math.round((amount / qty) * 100) / 100 : 0 } : {}),
+            ? { purchaseQty: qty, purchaseUnit: buyUnit, purchaseRate: qty > 0 ? Math.round((amount / qty) * 100) / 100 : 0,
+                ...(pack ? { packSize: parseFloat(it.packSize), packUnit: packBaseUnit(invItem.unit) } : {}) } : {}),
         };
       });
       const subtotal = enrichedItems.reduce((sum, it) => sum + it.total, 0);

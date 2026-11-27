@@ -121,6 +121,7 @@ export default function ProcurementTab({
   permissions = { read: true, add: true, update: true, delete: true },
   currentRestaurant = null,
   reloadProcurement = null, openLowStockPO = null, lowStockCount = 0,
+  inventoryItems = [],
 }) {
   // === Enterprise: Org detection + indent/delivery state ===
   const [orgSettings, setOrgSettings] = useState(null);
@@ -1096,6 +1097,7 @@ export default function ProcurementTab({
       )}
       {invoiceView && (
         <InvoiceDetailModal invoice={invoiceView} payState={invoicePayState(invoiceView)} formatCurrency={formatCurrency}
+          stockUnitOf={(id) => (inventoryItems.find(x => x.id === id) || {}).unit || ''}
           supplierName={invoiceView.supplierName || invoiceView.supplier || supplierNameOf(invoiceView.supplierId || invoiceView.supplier_id)}
           onClose={() => setInvoiceView(null)} />
       )}

@@ -130,3 +130,28 @@ export function billLineUnit(chosen, stockUnit) {
   if (dim === 'volume') return 'l';
   return stockUnit || '';
 }
+
+// Supplier bill bought in packs (MFC: rice in 26 kg bags). The line is "7 bag at 1,150, 1 bag = 26 kg":
+// stock gets 7 × 26 = 182 kg and the cost is per kg (8,050 ÷ 182 = 44.23). The pack size is in kg / L
+// for items kept by weight / volume (any g / ml stock unit converts), else in the stock unit (pcs).
+export const PACK_UNITS = ['bag', 'box', 'case', 'pack', 'tin', 'tray', 'crate', 'carton'];
+export const isPackUnit = (u) => PACK_UNITS.includes(String(u || '').toLowerCase().trim());
+export function packBaseUnit(stockUnit) {
+  const dim = UNIT_CONVERSIONS[String(stockUnit || '').toLowerCase().trim()]?.dimension;
+  if (dim === 'mass') return 'kg';
+  if (dim === 'volume') return 'l';
+  return stockUnit || '';
+}
+// A bought-in-pack line: the buy unit is a pack and not the item's own stock unit.
+export const isPackLine = (buyUnit, stockUnit) => isPackUnit(buyUnit)
+  && String(buyUnit || '').toLowerCase().trim() !== String(stockUnit || '').toLowerCase().trim();
+// Bill line quantity → stock-unit quantity (null = a pack line with no pack size yet).
+export function billLineStockQty(qty, buyUnit, stockUnit, packSize) {
+  const q = Number(qty) || 0;
+  if (isPackLine(buyUnit, stockUnit)) {
+    const ps = Number(packSize);
+    if (!(ps > 0)) return null;
+    return convertUnits(q * ps, packBaseUnit(stockUnit), stockUnit);
+  }
+  return stockUnit && buyUnit ? convertUnits(q, buyUnit, stockUnit) : q;
+}

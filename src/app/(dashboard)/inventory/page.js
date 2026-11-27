@@ -477,6 +477,7 @@ export default function InventoryManagement() {
 
         {activeTab === 'procurement' && (
           <ProcurementTab
+            inventoryItems={inventory.inventoryItems}
             procurementSubTab={inventory.procurementSubTab}
             setProcurementSubTab={inventory.setProcurementSubTab}
             suppliers={inventory.suppliers}
