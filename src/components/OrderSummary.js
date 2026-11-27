@@ -95,6 +95,7 @@ function defaultSplitMethod(billingSettings, posSettings) {
   return opts.some(m => m.id === 'cash') ? 'cash' : (opts[0]?.id || 'cash');
 }
 import UpiPaymentModal from './UpiPaymentModal';
+import { posUpiFor, showPosUpiAfterBill } from '../utils/posUpiAfterBill';
 import EcrStatusModal from './EcrStatusModal';
 import useEcr from '../services/ecr/useEcr';
 import { ECR_STATUS, ECR_RESPONSE_CODES } from '../services/ecr/ecrConstants';
@@ -3315,6 +3316,10 @@ const OrderSummary = ({
         if (result && result.orderId) {
           console.log('Generating invoice for order:', result.orderId);
           const invoiceGenerated = await generateInvoice(result.orderId, null, result);
+          // "Scan to pay" screen with the restaurant's UPI QR (upiView.posAfterBill, off unless set). View only.
+          const afterBillUpi = posUpiFor(upiSettings?.upiView, paymentMethod);
+          // In the mobile app's billing page the app shows it natively (mobile/billing sends it along).
+          if (afterBillUpi && !(typeof window !== 'undefined' && window.ReactNativeWebView)) showPosUpiAfterBill(afterBillUpi, Number(taxData?.finalAmount) > 0 ? formatCurrency(taxData.finalAmount) : '');
           // Redeem coupon after successful order
           if (appliedCoupon?.id) {
             apiClient.redeemCoupon(restaurantId, appliedCoupon.id, result.orderId).catch(err => console.warn('Coupon redeem (non-blocking):', err));

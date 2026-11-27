@@ -3,6 +3,7 @@
 // Customer App → "Show UPI to guests (view only)" (customerAppSettings.upiView, backend utils/qrUpiView.js).
 // Off by default. Guests see the restaurant's UPI QR picture + UPI ID to pay with their own UPI app —
 // nothing about ordering, Razorpay / Paytm or the POS changes (unlike "Enable UPI Payment" above).
+// posAfterBill: the same QR on a "Scan to pay" screen on the POS (web, desktop, app) after a bill is completed.
 import { useState } from 'react';
 import apiClient from '../../lib/api';
 
@@ -10,7 +11,8 @@ const input = { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db',
 const label = { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', margin: '10px 0 4px' };
 
 export default function UpiViewSettings({ value, onChange }) {
-  const u = { enabled: false, upiId: '', name: '', qrUrl: '', where: 'both', ...(value || {}) };
+  const u = { enabled: false, upiId: '', name: '', qrUrl: '', where: 'both', posAfterBill: 'off', ...(value || {}) };
+  const anyOn = u.enabled || (u.posAfterBill && u.posAfterBill !== 'off');
   const set = (patch) => onChange({ ...u, ...patch });
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState('');
@@ -45,7 +47,19 @@ export default function UpiViewSettings({ value, onChange }) {
           style={{ width: 18, height: 18, accentColor: '#059669', flexShrink: 0, marginTop: 2 }} />
       </label>
 
-      {u.enabled && (
+      <label style={{ display: 'block', marginTop: 12 }}>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#1f2937' }}>On the POS after a bill is completed</span>
+        <span style={{ display: 'block', fontSize: 12, color: '#6b7280', margin: '2px 0 6px' }}>
+          A &quot;Scan to pay&quot; screen with this QR to turn towards the guest, on the web POS, desktop app and mobile app. Staff tap Close — the bill itself doesn&apos;t change.
+        </span>
+        <select style={input} value={u.posAfterBill || 'off'} onChange={(e) => set({ posAfterBill: e.target.value })} data-testid="upi-view-pos">
+          <option value="off">Off</option>
+          <option value="upi">Only bills paid by UPI</option>
+          <option value="all">Every bill</option>
+        </select>
+      </label>
+
+      {anyOn && (
         <div>
           <span style={label}>UPI ID</span>
           <input style={{ ...input, borderColor: idOk ? '#d1d5db' : '#ef4444' }} value={u.upiId} placeholder="e.g. yourbusiness@icici" maxLength={100}
@@ -70,12 +84,14 @@ export default function UpiViewSettings({ value, onChange }) {
           </div>
           {err && <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 4 }}>{err}</div>}
 
-          <span style={label}>Where guests see it</span>
-          <select style={input} value={u.where} onChange={(e) => set({ where: e.target.value })}>
-            <option value="both">Their order page and the cart (when paying at the counter)</option>
-            <option value="bill">Only their order page (with the bill)</option>
-            <option value="cart">Only the cart (when paying at the counter)</option>
-          </select>
+          {u.enabled && (<>
+            <span style={label}>Where guests see it</span>
+            <select style={input} value={u.where} onChange={(e) => set({ where: e.target.value })}>
+              <option value="both">Their order page and the cart (when paying at the counter)</option>
+              <option value="bill">Only their order page (with the bill)</option>
+              <option value="cart">Only the cart (when paying at the counter)</option>
+            </select>
+          </>)}
         </div>
       )}
     </div>

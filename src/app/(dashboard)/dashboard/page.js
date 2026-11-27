@@ -1490,6 +1490,8 @@ function RestaurantPOSContent() {
         const csRes = await apiClient.getCustomerAppSettings(selectedRestaurant.id);
         if (csRes?.paymentSettings) setUpiSettings(csRes.paymentSettings);
         else setUpiSettings({});
+        // + "Scan to pay" after a bill (upiView.posAfterBill, off unless set) — paymentSettings handling unchanged
+        { const uv = csRes?.settings?.upiView || csRes?.upiView; if (uv) setUpiSettings(prev => ({ ...prev, upiView: uv })); }
       } catch (e) {
         console.log('Customer app settings fetch error:', e);
         setUpiSettings({});

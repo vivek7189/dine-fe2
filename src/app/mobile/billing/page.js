@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import apiClient from '../../../lib/api';
 import { getCartSubtotal, getEffectiveItemPrice } from '../../../utils/billingPrice';
 import useTimedMenu from '../../../hooks/useTimedMenu';
+import { posUpiFor } from '../../../utils/posUpiAfterBill';
 
 // Force mobile embed + billing mode flags before anything renders
 if (typeof window !== 'undefined') {
@@ -337,6 +338,8 @@ export default function MobileBillingPage() {
       if (storedRestaurant) setRestaurant(storedRestaurant);
       if (menuRes.status === 'fulfilled') setMenuItems(menuRes.value?.menuItems || []);
       if (upiRes.status === 'fulfilled' && upiRes.value?.paymentSettings) setUpiSettings(upiRes.value.paymentSettings);
+      // + "Scan to pay" after a bill (upiView.posAfterBill, off unless set)
+      if (upiRes.status === 'fulfilled') { const uv = upiRes.value?.settings?.upiView || upiRes.value?.upiView; if (uv) setUpiSettings(prev => ({ ...prev, upiView: uv })); }
       if (printRes.status === 'fulfilled' && printRes.value) setPrintSettings(printRes.value?.printSettings || printRes.value || {});
 
       const items = orderData.items || [];
@@ -495,8 +498,12 @@ export default function MobileBillingPage() {
       });
 
       if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+        // "Scan to pay" UPI screen (upiView.posAfterBill, off unless set) — the app shows it natively,
+        // as it leaves this page right after billing.
+        const afterBillUpi = !(d.splitPay && d.splitPay.length > 1) ? posUpiFor(upiSettings?.upiView, paymentMethod) : null;
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'BILLING_COMPLETE', orderId: order.id, status: 'completed',
+          ...(afterBillUpi ? { afterBillUpi: { ...afterBillUpi, amount: Number(computedFinal) || 0 } } : {}),
         }));
       }
       return { orderId: order.id };
