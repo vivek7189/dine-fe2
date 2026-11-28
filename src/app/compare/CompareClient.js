@@ -12,7 +12,7 @@ const competitors = [
     aiFeatures: true,
     voiceOrdering: true,
     qrOrdering: true,
-    multiLocation: 'Unlimited',
+    multiLocation: 'Pro $99: 2 outlets; 3+ custom quote',
     freeTrial: '7 days',
     gstBilling: true,
     highlight: true,
@@ -20,8 +20,8 @@ const competitors = [
   {
     name: 'Square',
     logo: '/competitors/square.svg',
-    price: '$60/mo',
-    priceINR: '₹5,000/mo',
+    price: '$0 / $49 / $149 per location',
+    priceINR: 'N/A in India',
     transactionFee: '2.6% + 15¢',
     aiFeatures: false,
     voiceOrdering: false,
@@ -156,12 +156,12 @@ export default function CompareClient() {
             <div className="bg-white p-6 rounded-xl shadow-md">
               <div className="text-4xl mb-4">💰</div>
               <h3 className="font-bold text-xl mb-2">Zero Transaction Fees</h3>
-              <p className="text-gray-600">Save thousands annually with 0% transaction fees unlike Square (2.6%) or Toast (2.49%).</p>
+              <p className="text-gray-600">DineOpen adds 0% to card payments; you use your own processor. Square (2.4–2.6% + 15¢) and Toast (2.49% + 15¢ on Point of Sale) process payments themselves.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <div className="text-4xl mb-4">🤖</div>
               <h3 className="font-bold text-xl mb-2">AI Voice Ordering</h3>
-              <p className="text-gray-600">Only POS with AI that takes orders via voice. Reduce staff workload, increase efficiency.</p>
+              <p className="text-gray-600">On the Growth plan, a waiter speaks the order and it fills the cart. Less typing at the busiest times.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <div className="text-4xl mb-4">🌍</div>
@@ -187,7 +187,7 @@ export default function CompareClient() {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">What is the best restaurant POS system in 2026?</h3>
-              <p className="text-gray-600">DineOpen is rated the best value restaurant POS with AI features, zero transaction fees, and affordable pricing starting at $20/month.</p>
+              <p className="text-gray-600">It depends on your size and how you take payments. DineOpen suits independents who want low fixed costs ($20/month Starter, $50/month Growth with KDS and online ordering) and their own card processor.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Which POS system has the lowest fees?</h3>
@@ -195,7 +195,7 @@ export default function CompareClient() {
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-bold text-lg mb-2">Is there a free restaurant POS system?</h3>
-              <p className="text-gray-600">DineOpen offers a free 7-day trial with all features. After that, plans start at $20/month with no hidden fees.</p>
+              <p className="text-gray-600">Square for Restaurants has a $0/month Free plan and Toast has a $0/month Starter Kit; both earn from card processing. DineOpen has a 7-day free trial, then plans start at $20/month.</p>
             </div>
           </div>
         </div>

@@ -2932,10 +2932,10 @@ export const blogPostContent = {
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 20px 0;">
           <h3 style="color: #1f2937; margin-bottom: 15px;">Cost Comparison</h3>
           <div style="display: grid; gap: 10px;">
-            <div><strong>Square:</strong> $60-120/month + 2.6% transaction fees</div>
-            <div><strong>Toast:</strong> $165-300/month + hardware costs</div>
-            <div><strong>Clover:</strong> $95-200/month + processing fees</div>
-            <div><strong>DineOpen:</strong> $29-79/month, no transaction fees, includes AI features</div>
+            <div><strong>Square for Restaurants (US):</strong> $0, $49 or $149/month per location + 2.4–2.6% + 15¢ per in-person card payment</div>
+            <div><strong>Toast:</strong> $0 (Starter Kit) or $69/month (Point of Sale, 2.49% + 15¢) + Toast hardware</div>
+            <div><strong>Clover:</strong> ask for a written quote (hardware + processing)</div>
+            <div><strong>DineOpen:</strong> from $20/month (Growth $50 with KDS and online ordering), 0% added to card payments</div>
           </div>
         </div>
 
@@ -5757,9 +5757,9 @@ export const blogPostContent = {
                   <td style="padding: 12px; font-weight: 600;">Monthly Pricing</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">₹799/month</td>
                   <td style="padding: 12px; text-align: center; color: #6b7280;">₹12,000 + taxes (Base plan)</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">$60-120/month</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">$165-300/month</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">$95-200/month</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">$0–$149/month per location</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">$0–$69/month</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">Quote</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Free Trial</td>
@@ -8921,7 +8921,7 @@ export const blogPostContent = {
                 <th style="padding: 14px 18px; text-align: left; color: white; font-weight: 700;">Feature</th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">DineOpen<br/><span style="font-weight: 400; font-size: 12px;">₹799/mo + 0% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Toast<br/><span style="font-weight: 400; font-size: 12px;">$69/mo + 2.49% fees</span></th>
-                <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Square<br/><span style="font-weight: 400; font-size: 12px;">$60/mo + 2.6% fees</span></th>
+                <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Square<br/><span style="font-weight: 400; font-size: 12px;">$0–$149/mo + 2.4–2.6% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Petpooja<br/><span style="font-weight: 400; font-size: 12px;">₹12,000 + taxes (Base), no per-order fee listed</span></th>
               </tr>
             </thead>

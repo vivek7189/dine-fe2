@@ -7,85 +7,103 @@ import InternalLinks from '../../../components/InternalLinks';
 export const dynamic = 'force-static';
 export const revalidate = false;
 
-const TITLE = 'DineOpen vs Square for Restaurants 2026: Honest Comparison';
+const TITLE = 'DineOpen vs Square for Restaurants 2026: Plans, Card Fees, KDS Cost';
 const DESCRIPTION =
-  'Square for Restaurants charges 2.6% + 15¢ on every in-person swipe. DineOpen is $20/mo flat with zero per-transaction fees. Real feature list, real math, honest concessions.';
+  'Square for Restaurants: Free $0, Plus $49 or Premium $149 per location, 2.4–2.6% + 15¢ in person, KDS $20–30 per device. DineOpen: $20 or $50/month with KDS, your own processor. Sourced comparison.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-square';
 
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords:
-    'dineopen vs square, square for restaurants alternative, square pos alternative, cheap square alternative, restaurant pos under $20, square vs dineopen',
+    'dineopen vs square, square for restaurants alternative, square for restaurants pricing 2026, square kds cost, square plus price, square pos alternative',
   openGraph: {
-    title: TITLE, description: DESCRIPTION, url: URL, siteName: 'DineOpen',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: URL,
+    siteName: 'DineOpen',
     images: [{ url: 'https://www.dineopen.com/billing-app-screenshot.png', width: 1200, height: 630, alt: 'DineOpen vs Square comparison' }],
-    locale: 'en_US', type: 'article',
+    locale: 'en_US',
+    type: 'article',
   },
-  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+  },
   alternates: { canonical: URL },
 };
 
+// Square figures from squareup.com/us/en/point-of-sale/restaurants/pricing (US, per location), checked 28 Nov 2026.
+// DineOpen figures must match src/app/pricing/PricingClient.js (USD Starter $20, Growth $50, Pro $99 for 2 outlets, 3+ custom).
+const FAQ = [
+  ['How much does Square for Restaurants cost?', 'In the US, Square for Restaurants has three published plans per location: Free at $0/month (2.6% + 15¢ per in-person card payment, 3.3% + 30¢ online), Plus at $49/month (2.5% + 15¢ in person, 2.9% + 30¢ online) and Premium at $149/month (2.4% + 15¢ in person, 2.9% + 30¢ online). Square Pro is custom pricing for businesses processing over $250,000 a year.'],
+  ['How much does a Square kitchen display cost?', 'Square lists the Square KDS app at $30/month per device on Plus and $20/month per device on Premium. DineOpen includes the Kitchen Display System in the Growth plan at $50/month, with no per-screen charge.'],
+  ['Is DineOpen cheaper than Square?', 'It depends on what you need. Square Free costs $0 for software, so if you only need a basic POS and are happy with Square Payments, Square Free is cheaper on software. With a kitchen display, Square Plus plus one KDS screen is $79/month ($948 a year); DineOpen Growth, with KDS, online ordering and AI voice ordering, is $50/month ($600 a year). DineOpen adds no percentage to card payments; you pay only your own processor.'],
+  ['What is in each DineOpen plan?', 'Starter ($20): billing, KOT printing, table layout, QR menu and QR ordering, basic inventory, unlimited staff accounts. Growth ($50): adds Kitchen Display System, an online ordering website, WhatsApp ordering, loyalty and credit ledger, recipe-based inventory, a captain app and AI voice ordering. Pro ($99): 2 outlets with central menu, stock and reports. 3 or more outlets: custom quote.'],
+  ['Can I keep my Square card reader with DineOpen?', 'No. Square readers work with Square payment processing. With DineOpen you use the card terminal from your own processor, or let guests pay by QR code.'],
+  ['Where does Square still win?', 'Square Free has no monthly software fee, sign-up is instant, and payments, hardware, payroll and loans come from one company. For a very small cafe or food truck that only needs to take cards, Square Free is hard to beat.'],
+  ['Is there a contract or free trial?', 'DineOpen is month to month with a 7-day free trial and self sign-up. Square Plus and Premium show a 30-day free trial on Square’s pricing page.'],
+];
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Is DineOpen cheaper than Square for Restaurants?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes, significantly. Square for Restaurants Free plan is $0/month but charges 2.6% + $0.15 on every in-person card swipe. The Plus plan is $60/month per location plus the same swipe fee. DineOpen Starter is $20/month flat with zero per-transaction fees — you only pay your own payment processor. A restaurant doing $40,000/month in card sales (about 800 payments) pays Square roughly $1,220/month on the Plus plan including the $60 fee. With DineOpen your saving is the software difference plus whatever lower card rate your own processor gives you.' }
-    },
-    {
-      '@type': 'Question',
-      name: 'Does DineOpen work for food trucks and pop-ups like Square does?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen runs in any modern browser on any phone, tablet, or laptop, plus native Android apps. There is no hardware lock-in. Food trucks commonly run DineOpen on a $200 Android tablet with a Bluetooth thermal printer and accept payments through a Stripe Terminal or any compatible card reader. Square is still marginally simpler if you want one branded card reader in the mail, but you pay 2.6% forever for that convenience.' }
-    },
-    {
-      '@type': 'Question',
-      name: 'What does DineOpen do that Square for Restaurants does not?',
-      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen includes AI voice ordering in English and Spanish, AI menu extraction from a photo, WhatsApp ordering, multi-tier pricing (AC / Non-AC / Takeaway / Delivery), recipe-level inventory deduction, and customer khata/credit — all on the base $20 plan. Square offers some of these only on higher tiers or through paid third-party integrations.' }
-    },
-    {
-      '@type': 'Question',
-      name: 'Where does Square still win?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Square has a massive US retail presence, same-day card reader delivery, next-day bank deposits, Square Capital lending, and a larger app marketplace. If you want a single vendor for payments + POS + payroll + loans and you are OK paying 2.6% on every swipe for that convenience, Square is a legitimate choice. DineOpen is for operators who want to separate software from payment processing so they can negotiate processor rates independently.' }
-    },
-    {
-      '@type': 'Question',
-      name: 'Can I keep my Square card reader with DineOpen?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Square card readers are locked to Square payment processing — you cannot use them with DineOpen or any other software. However, DineOpen supports Stripe Terminal readers, generic EMV readers via your payment processor, and pay-at-table via QR code so customers can pay from their phones. Most operators who switch either use Stripe or keep Square purely as a backup processor.' }
-    },
-    {
-      '@type': 'Question',
-      name: 'Does DineOpen support US sales tax?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen supports multiple tax rates per item, state-specific sales tax, prepared-food vs retail rates, and tax-inclusive or tax-exclusive pricing. You can configure different tax rates for dine-in vs takeaway where state law allows, and export full tax reports for your accountant.' }
-    },
-    {
-      '@type': 'Question',
-      name: 'Is there a free trial?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes. DineOpen offers a 7-day free trial with full features, no credit card required. You can run your entire restaurant on it for a month before deciding. Most operators are fully onboarded and taking real orders within an hour because of AI menu extraction.' }
-    }
-  ]
+  mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
 };
 
-const softwareSchemas = [{
-  '@context': 'https://schema.org', '@type': 'SoftwareApplication',
-  name: 'DineOpen', applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web, iOS, Android, Windows, macOS',
-  offers: { '@type': 'Offer', price: '20', priceCurrency: 'USD', priceValidUntil: '2027-12-31' },
-  description: 'AI-powered cloud restaurant POS with voice ordering, QR menus, KDS, and zero per-transaction fees.'
-}];
+const CELL = { padding: '10px 12px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' };
+const ROWS = [
+  ['Software, per month', 'Starter $20 · Growth $50 · Pro $99 (2 outlets)', 'Free $0 · Plus $49 · Premium $149 (per location) · Pro custom'],
+  ['In-person card payments', 'Your own processor; DineOpen adds 0%', 'Square Payments: 2.6% + 15¢ (Free), 2.5% + 15¢ (Plus), 2.4% + 15¢ (Premium)'],
+  ['Online card payments', 'Your own gateway; DineOpen adds 0%', '3.3% + 30¢ (Free), 2.9% + 30¢ (Plus, Premium)'],
+  ['Kitchen display (KDS)', 'Included in Growth, any number of screens', '$30/month per device (Plus), $20/month per device (Premium)'],
+  ['Online ordering', 'Growth plan, 0% commission', 'Available'],
+  ['AI voice ordering', 'Growth plan', 'Check with Square'],
+  ['Hardware', 'iPads, Android tablets, PCs you already own', 'Square hardware or supported devices'],
+  ['Payroll, loans', 'Not offered', 'Square Payroll, Square Loans'],
+  ['Contract / trial', 'Month to month, 7-day free trial', '30-day free trial on Plus and Premium'],
+];
+
+const softwareSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'DineOpen',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web, iOS, Android, Windows, macOS',
+    offers: {
+      '@type': 'Offer',
+      price: '20',
+      priceCurrency: 'USD',
+      priceValidUntil: '2027-12-31',
+    },
+    description: 'Cloud restaurant POS. Starter $20/month; Growth $50/month adds KDS (no per-screen fee), online ordering and AI voice ordering. No percentage added to card payments.',
+  },
+];
 
 const articleSchema = {
-  '@context': 'https://schema.org', '@type': 'Article',
-  headline: 'DineOpen vs Square for Restaurants — Honest 2026 Comparison',
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: TITLE,
   description: DESCRIPTION,
-  author: { '@type': 'Person', name: 'Vivek Sharma', jobTitle: 'Founder, DineOpen', url: 'https://www.dineopen.com/about' },
-  publisher: { '@type': 'Organization', name: 'DineOpen', logo: { '@type': 'ImageObject', url: 'https://www.dineopen.com/favicon.png' } },
-  datePublished: '2026-04-07', dateModified: '2026-04-07', mainEntityOfPage: URL,
+  author: {
+    '@type': 'Person',
+    name: 'Vivek Sharma',
+    jobTitle: 'Founder, DineOpen',
+    url: 'https://www.dineopen.com/about',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'DineOpen',
+    logo: { '@type': 'ImageObject', url: 'https://www.dineopen.com/favicon.png' },
+  },
+  datePublished: '2026-04-07',
+  dateModified: '2026-11-28',
+  mainEntityOfPage: URL,
   image: 'https://www.dineopen.com/billing-app-screenshot.png',
 };
 
+// ---------- Tiny inline style helpers (server component, no CSS module) ------
 const wrap = { maxWidth: '780px', margin: '0 auto', padding: '0 20px' };
 const h2 = { fontSize: '32px', fontWeight: '800', lineHeight: '1.2', margin: '56px 0 16px', color: '#0f172a' };
 const h3 = { fontSize: '22px', fontWeight: '700', margin: '32px 0 12px', color: '#0f172a' };
@@ -99,134 +117,93 @@ export default function DineOpenVsSquarePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchemas) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <CommonHeader />
-      <main style={{ background: '#fff', color: '#0f172a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
 
-        <header style={{ background: 'linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%)', padding: '64px 20px 48px', borderBottom: '1px solid #bbf7d0' }}>
+      <CommonHeader />
+
+      <main style={{ background: '#fff', color: '#0f172a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+        {/* ============ HERO ============ */}
+        <header style={{ background: 'linear-gradient(135deg,#fff7ed 0%,#fef2f2 100%)', padding: '64px 20px 48px', borderBottom: '1px solid #fde68a' }}>
           <div style={wrap}>
-            <div style={{ display: 'inline-block', background: '#dcfce7', color: '#166534', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.02em' }}>HONEST COMPARISON · APRIL 2026</div>
+            <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.02em' }}>
+              COMPARISON · UPDATED 28 NOV 2026
+            </div>
             <h1 style={{ fontSize: '44px', lineHeight: '1.1', fontWeight: '900', margin: '20px 0 16px', letterSpacing: '-0.02em' }}>
-              DineOpen vs Square for Restaurants — The 2.6% Tax You Didn&rsquo;t Know You Were Paying
+              DineOpen vs Square for Restaurants: what you pay and what you get
             </h1>
             <p style={{ fontSize: '19px', lineHeight: '1.6', color: '#475569', margin: '0 0 28px' }}>
-              Square&rsquo;s $0/month plan is the best-marketed POS in America. It&rsquo;s also the most expensive one once you do the actual math. Here&rsquo;s what you&rsquo;re really paying, what DineOpen does differently, and where Square still wins.
+              Square is easy to start with and its Free plan has no monthly fee. DineOpen is software only, with a kitchen display included in Growth and the card processor you choose. Here are the prices from both companies&rsquo; own pages, and when Square is still the better pick.
             </p>
-            <div style={{ background: '#fff', border: '2px solid #10b981', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(16,185,129,.12)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#047857', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
-              <p style={{ ...p, margin: 0 }}>
-                <strong>DineOpen</strong> is better for restaurants that want to keep software and payment processing separate — $20/month flat, zero per-swipe markup, and you bring your own processor (Stripe, or any other). <strong>Square</strong> is better if you want one vendor handling everything and you&rsquo;re OK paying <strong>2.6% + $0.15</strong> per swipe forever for that convenience. On $40k/month in card sales, the difference is <strong>~$13,000 a year</strong>.
+
+            {/* QUICK ANSWER BOX */}
+            <div style={{ background: '#fff', border: '2px solid #f59e0b', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(245,158,11,.12)' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
+              <p style={{ ...p, margin: 0, fontSize: '17px' }}>
+                <strong>Square for Restaurants</strong> (US) is <strong>$0</strong> (Free), <strong>$49</strong> (Plus) or <strong>$149</strong> (Premium) per location each month, with Square Payments at <strong>2.4%–2.6% + 15¢</strong> per in-person card payment and the KDS app at <strong>$20–$30 per screen</strong> each month. <strong>DineOpen</strong> is <strong>$20/month</strong> (Starter) or <strong>$50/month</strong> (Growth, with KDS on any number of screens, online ordering and AI voice ordering), and adds nothing to your card payments. Choose Square Free if you only need to take cards and want no software fee.
               </p>
             </div>
           </div>
         </header>
 
-        <section style={{ padding: '40px 0 0' }}>
+        <section>
           <div style={wrap}>
-            <p style={p}>
-              Square is brilliant at marketing. Free plan, free card reader in the mail, one-click signup, great branding. I almost used them for my own restaurant in 2022 before I sat down with a calculator and realized the &ldquo;free&rdquo; plan was going to cost me almost $14,000 in my first year.
-            </p>
-            <p style={p}>
-              This page covers what DineOpen actually ships (with real features, not a checklist), the 12-month math on a real restaurant, and the honest cases where Square is still the right pick.
-            </p>
-            <p style={p}>
-              The thing nobody writes about Square: <strong>the 2.6% + 15¢ swipe fee is non-negotiable.</strong> You can&rsquo;t bring your own processor. You can&rsquo;t negotiate rates at volume like you can with Stripe or Adyen. That fee is how Square funds the &ldquo;free&rdquo; software.
+            <h2 style={h2}>Side by side</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', minWidth: '560px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                    <th style={CELL}>&nbsp;</th><th style={CELL}>DineOpen</th><th style={CELL}>Square for Restaurants</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ROWS.map((r) => (
+                    <tr key={r[0]}><td style={{ ...CELL, fontWeight: 600 }}>{r[0]}</td><td style={CELL}>{r[1]}</td><td style={CELL}>{r[2]}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p style={small}>
+              Square: <a href="https://squareup.com/us/en/point-of-sale/restaurants/pricing" rel="nofollow noopener" target="_blank" style={linkStyle}>Square for Restaurants pricing (US)</a>, checked 28 Nov 2026. DineOpen: <Link href="/pricing" style={linkStyle}>dineopen.com/pricing</Link>. Prices change; confirm before you sign.
             </p>
           </div>
         </section>
 
         <section>
           <div style={wrap}>
-            <h2 style={h2}>What DineOpen actually ships</h2>
-            <p style={p}>Here&rsquo;s the real list — everything below is on the $20 Starter plan, not locked behind upgrades:</p>
-
-            <h3 style={h3}>Cloud POS on any device you already own</h3>
+            <h2 style={h2}>12-month software cost, one restaurant with a kitchen display</h2>
+            <ul style={{ ...p, paddingLeft: '20px' }}>
+              <li><strong>Square Plus + 1 KDS screen:</strong> ($49 + $30) × 12 = <strong>$948</strong>. Each extra KDS screen adds $360 a year.</li>
+              <li><strong>Square Premium + 1 KDS screen:</strong> ($149 + $20) × 12 = <strong>$2,028</strong>.</li>
+              <li><strong>DineOpen Growth:</strong> $50 × 12 = <strong>$600</strong>, any number of KDS screens, plus online ordering, WhatsApp ordering, loyalty and AI voice ordering.</li>
+              <li><strong>No kitchen display needed?</strong> Square Free is $0 and DineOpen Starter is $240 a year.</li>
+            </ul>
             <p style={p}>
-              Open a browser, log in, take orders. Runs on iPad, Android, Windows, Mac. The order + billing screen loads in under <strong>2 seconds</strong> on 4G. You can have 2 servers on 2 different tablets sharing the same table layout with real-time sync — no per-device license fee.
+              <strong>Card fees come on top with both.</strong> With Square, the rate is set by your Square plan (2.6% + 15¢ in person on Free). With DineOpen you keep whichever processor gives you the best rate, and DineOpen adds no percentage to it. At $40,000 a month in card sales, every 0.1% you save on your rate is $40 a month.
+            </p>
+            <h3 style={h3}>Two or more outlets</h3>
+            <p style={p}>
+              DineOpen Pro is $99/month for 2 outlets, with central menu, stock, staff and outlet-wise profit and loss. For 3 or more outlets, DineOpen gives a custom quote. Square prices each location separately.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <div style={wrap}>
+            <h2 style={h2}>What DineOpen includes</h2>
+            <h3 style={h3}>Starter, $20/month</h3>
+            <p style={p}>
+              Billing with split bills, tips, service charge, discounts and multi-rate sales tax; refunds and voids; KOT printing to ordinary USB, network or Bluetooth thermal printers; table layout; QR menu and QR ordering from the table; basic inventory; unlimited staff accounts. It runs in the browser on iPads, Android tablets, Windows PCs and Macs.
             </p>
             <figure style={{ margin: '24px 0' }}>
-              <Image src="/billing-app-screenshot.png" alt="DineOpen billing screen with items, split payment, and tax breakdown" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
-              <figcaption style={small}>The live billing screen. Split bills, partial payments, tips, round-off, tax breakdown — all in one view.</figcaption>
+              <Image src="/billing-app-screenshot.png" alt="DineOpen billing screen with items, taxes and split payment" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+              <figcaption style={small}>The DineOpen billing screen.</figcaption>
             </figure>
-
-            <h3 style={h3}>AI voice ordering (English + Spanish)</h3>
+            <h3 style={h3}>Growth, $50/month</h3>
             <p style={p}>
-              Press a button, speak the order naturally — &ldquo;two burgers no onion, one large fries, two Cokes&rdquo; — DineOpen parses it against your live menu and fills the cart in 1–2 seconds. Bilingual, which matters in a lot of US kitchens. <strong>Order entry time drops from ~47 seconds to ~11 seconds</strong> in our internal tests on a 60-item menu.
+              Everything in Starter plus a Kitchen Display System, a branded online ordering website (no commission), WhatsApp ordering, customer loyalty and credit ledger, recipe-based inventory with vendors and stock alerts, a captain app for waiters, and AI voice ordering, where a waiter speaks the order and it fills the cart.
             </p>
-
-            <h3 style={h3}>AI menu extraction — onboard in minutes, not hours</h3>
+            <h3 style={h3}>Quick setup</h3>
             <p style={p}>
-              Snap a photo of your printed menu, or upload a PDF. DineOpen reads every item, category, price, and modifier and creates the digital menu in about 2 minutes. Square&rsquo;s menu setup is manual entry or CSV import. This alone is why new operators finish onboarding on day one.
-            </p>
-
-            <h3 style={h3}>QR code dine-in ordering</h3>
-            <p style={p}>
-              Real QR ordering, not a static PDF menu pretending to be one. Each table has its own code; guests scan, order, pay. Orders land on KDS instantly via Pusher real-time. Typical outcome in casual dining: <strong>~30% less server load at peak lunch.</strong>
-            </p>
-
-            <h3 style={h3}>KDS + native Android KOT printer app</h3>
-            <p style={p}>
-              Kitchen Display System runs in any browser. We also ship a dedicated Android app that drives USB and Bluetooth thermal printers with offline queueing, auto-print on order, custom font scale, multi-copy printing, and FCM push as backup so prints still fire even when the device sleeps. Orders print in under <strong>2 seconds</strong> from tap.
-            </p>
-
-            <h3 style={h3}>Inventory with recipe deduction + bar pour tracking</h3>
-            <p style={p}>
-              Define a cocktail as &ldquo;60ml vodka + 20ml triple sec + 30ml lime juice&rdquo; once. Every drink sold deducts from raw stock. Bar pour tracking, batch production for bakeries, supplier purchase orders, low-stock alerts — no separate inventory add-on. Square charges extra for advanced inventory on lower tiers.
-            </p>
-
-            <h3 style={h3}>Multi-tier pricing per item</h3>
-            <p style={p}>
-              Same burger, four prices: Dine-in $12, AC seating $14, Takeaway $11, Delivery $13. First-class field on the menu item. Square handles this through service modifiers, which is clumsy in practice.
-            </p>
-
-            <h3 style={h3}>Real billing features (not just a checkout screen)</h3>
-            <p style={p}>
-              Split by item, by guest, by amount. Partial payments. Cash tendering with change calculator. Customer khata / house credit. Tips (% or flat). Round-off. Service charge. Offer / manual / loyalty discounts. Multi-rate tax per item. Voids and refunds with a full audit log. <Link href="/pricing" style={linkStyle}>All on the $20 plan.</Link>
-            </p>
-
-            <h3 style={h3}>WhatsApp + online ordering, built in</h3>
-            <p style={p}>
-              Customers order from a chat thread or your own branded online ordering link. No third-party app fee, no 15% commission. You own the channel.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <div style={wrap}>
-            <h2 style={h2}>The real 12-month math</h2>
-            <p style={p}>Same restaurant: 1 location, ~$40,000/month in card sales, 2 tablets, 1 KDS, 800 swipes/month average ticket $50.</p>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px', margin: '20px 0' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ background: '#fff', border: '2px solid #10b981', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#047857' }}>DINEOPEN</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Starter plan (KDS, online ordering, AI voice on Growth $50)</li>
-                    <li>Unlimited devices on 1 location</li>
-                    <li>0% from us on swipes</li>
-                    <li>Bring your own processor (Stripe ~2.7%)</li>
-                  </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#ecfdf5', borderRadius: '8px', fontSize: '13px', color: '#065f46' }}>12-month software: <strong>$240</strong></div>
-                </div>
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>SQUARE (Plus)</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0' }}>$60<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo/loc</span></div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>$60/month per location</li>
-                    <li>+ 2.6% + $0.15 per swipe</li>
-                    <li>+ paid add-ons (loyalty, marketing)</li>
-                    <li>Processing locked to Square</li>
-                  </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#991b1b' }}>12-month all-in: <strong>~$14,640</strong></div>
-                </div>
-              </div>
-              <p style={{ ...small, marginTop: '20px', textAlign: 'center' }}>
-                Math: Square Plus $60 × 12 = $720. Swipe fees ($40k × 2.6% + 800 × $0.15) × 12 = ~$13,920. Total ~$14,640. Square pricing per <a href="https://squareup.com/us/en/pricing" rel="nofollow noopener" target="_blank" style={linkStyle}>squareup.com/pricing</a>.
-              </p>
-            </div>
-
-            <p style={p}>
-              Fair comparison point: Stripe also charges ~2.7% if you use their Terminal readers, so swipe fees roughly wash. But with DineOpen you&rsquo;re <strong>free to negotiate</strong> — at volume you can get Stripe down to 2.2%, or use Adyen, Checkout.com, or any other processor. With Square, 2.6% is the price forever.
+              Upload your menu as a photo, PDF or spreadsheet and DineOpen builds the digital menu for you to check. Sign up yourself and try it free for 7 days.
             </p>
           </div>
         </section>
@@ -234,38 +211,35 @@ export default function DineOpenVsSquarePage() {
         <section>
           <div style={wrap}>
             <h2 style={h2}>Where Square still wins</h2>
-            <p style={p}>I&rsquo;m not going to pretend Square is bad. It&rsquo;s good software. Here&rsquo;s where I&rsquo;d honestly tell you to stick with it:</p>
             <ul style={{ ...p, paddingLeft: '20px' }}>
-              <li><strong>Pop-ups and one-person food trucks.</strong> The one-click signup and free card reader in the mail is genuinely the fastest path from zero to accepting payments.</li>
-              <li><strong>You want next-day deposits with zero setup.</strong> Square&rsquo;s banking product is tightly integrated. Bringing your own Stripe needs a proper bank connection.</li>
-              <li><strong>You want Square Capital lending.</strong> They&rsquo;ll advance you working capital against card flow. We don&rsquo;t.</li>
-              <li><strong>You&rsquo;re below $5k/month in card sales.</strong> At that volume, 2.6% on $5k is $130 — not worth switching for.</li>
+              <li><strong>No software fee to start.</strong> Square Free is $0/month. If you only need to take payments and print simple tickets, it costs nothing until you sell.</li>
+              <li><strong>One company for everything.</strong> Payments, hardware, payroll (Square Payroll) and loans (Square Loans). DineOpen does not offer payroll processing or lending.</li>
+              <li><strong>Integrations.</strong> Square has a large app marketplace. DineOpen covers the core: payments, delivery-app sync for some platforms, and report exports.</li>
             </ul>
-            <p style={p}>
-              Above $15k/month in card volume, the math flips hard toward DineOpen. That&rsquo;s roughly the point where the savings pay for a whole extra part-time employee every year.
-            </p>
           </div>
         </section>
 
         <section>
           <div style={wrap}>
-            <h2 style={h2}>Who should switch</h2>
+            <h2 style={h2}>Who should choose DineOpen</h2>
             <ul style={{ ...p, paddingLeft: '20px' }}>
-              <li>Independent full-service or casual dining, $15k+/month in card sales</li>
-              <li>You have your own banking / processor relationship or want one</li>
-              <li>You want AI features (voice, menu extraction) without upgrading tiers</li>
-              <li>You run on iPads or Android tablets you already own</li>
-              <li>You want month-to-month, cancellable, no contract</li>
+              <li>One or two outlets, or a small group happy with a custom quote</li>
+              <li>You already have iPads, Android tablets or PCs</li>
+              <li>You want to choose your own card processor</li>
+              <li>You want a kitchen display on more than one screen without a per-screen fee</li>
+              <li>You want online ordering and WhatsApp ordering for $50 a month</li>
+              <li>You&rsquo;re fine with self sign-up and chat support</li>
             </ul>
             <p style={p}>
-              Next step: <Link href="/pricing" style={linkStyle}>see full pricing</Link>, or <Link href="/pos/usa" style={linkStyle}>the US-specific page</Link> with sales tax and processor details.
+              Next: <Link href="/pricing" style={linkStyle}>see full pricing</Link>, see <Link href="/alternatives/square" style={linkStyle}>Square alternatives</Link>, or see the <Link href="/pos/usa" style={linkStyle}>US page</Link> for sales tax and tipping.
             </p>
           </div>
         </section>
 
+        {/* ============ FAQ ============ */}
         <section>
           <div style={wrap}>
-            <h2 style={h2}>FAQ</h2>
+            <h2 style={h2}>FAQ — the questions people ask before switching</h2>
             {faqSchema.mainEntity.map((q, i) => (
               <div key={i} style={{ borderTop: '1px solid #e2e8f0', padding: '18px 0' }}>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>{q.name}</div>
@@ -275,22 +249,36 @@ export default function DineOpenVsSquarePage() {
           </div>
         </section>
 
-        <section style={{ background: 'linear-gradient(135deg,#047857 0%,#10b981 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
+        {/* ============ CTA ============ */}
+        <section style={{ background: 'linear-gradient(135deg,#1e40af 0%,#2563eb 100%)', color: '#fff', padding: '60px 20px', margin: '60px 0 0' }}>
           <div style={{ ...wrap, textAlign: 'center' }}>
             <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
-            <p style={{ ...p, color: '#d1fae5', fontSize: '18px' }}>No credit card. No contract. AI menu extraction gets you live in under an hour.</p>
-            <Link href="https://app.dineopen.com/signup" style={{ display: 'inline-block', background: '#fff', color: '#047857', padding: '16px 36px', borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}>Start free trial →</Link>
+            <p style={{ ...p, color: '#dbeafe', fontSize: '18px' }}>
+              7-day free trial. No contract. Use the devices you already have.
+            </p>
+            <Link href="/login?utm_source=dineopen&utm_medium=vs&utm_campaign=square" style={{
+              display: 'inline-block', background: '#fff', color: '#1e40af', padding: '16px 36px',
+              borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px',
+              boxShadow: '0 8px 24px rgba(0,0,0,.18)'
+            }}>
+              Start free trial →
+            </Link>
           </div>
         </section>
 
+        {/* ============ AUTHOR BOX ============ */}
         <section>
           <div style={wrap}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', margin: '40px 0' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '999px', background: 'linear-gradient(135deg,#10b981,#0ea5e9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, flexShrink: 0 }}>VS</div>
+              <div style={{ width: '64px', height: '64px', borderRadius: '999px', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, flexShrink: 0 }}>VS</div>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 800 }}>Vivek Sharma</div>
-                <div style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>Founder of DineOpen. Built DineOpen after running a small restaurant. 4 years building restaurant software, 50+ live deployments across India and the US.</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Published April 7, 2026 · Last updated April 7, 2026</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>Vivek Sharma</div>
+                <div style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>
+                  Founder of DineOpen.
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>
+                  Published April 7, 2026 · Last updated 28 Nov 2026
+                </div>
               </div>
             </div>
           </div>
@@ -298,6 +286,7 @@ export default function DineOpenVsSquarePage() {
 
         <InternalLinks />
       </main>
+
       <Footer />
     </>
   );

@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Square POS Alternative 2026: From $20/month, Your Own Card Processor | DineOpen',
-  description: 'Square charges 2.6% + 15¢ per in-person card payment (Plus is $60/month per location). DineOpen is from $20/month, adds nothing to your card payments and runs on your own devices. 7-day free trial.',
+  description: 'Square charges 2.6% + 15¢ per in-person card payment (Plus is $49/month per location). DineOpen is from $20/month, adds nothing to your card payments and runs on your own devices. 7-day free trial.',
   keywords: 'Square alternative, Square POS alternative, better than Square, Square competitor, Square replacement, affordable POS system, restaurant POS without fees, AI restaurant POS, Square for restaurants alternative, cheap Square alternative',
   openGraph: {
     title: 'Square POS Alternative | DineOpen, from $20/month',
@@ -49,7 +49,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs Square?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $20/month; Square for Restaurants has a free plan and a Plus plan at $60/month per location. DineOpen also charges zero transaction fees versus Square's 2.6% + $0.15 per in-person payment; you choose your own processor and rate."
+        "text": "DineOpen starts at $20/month; Square for Restaurants has a free plan and a Plus plan at $49/month per location (Premium $149). DineOpen also charges zero transaction fees versus Square's 2.6% + $0.15 per in-person payment; you choose your own processor and rate."
       }
     },
     {

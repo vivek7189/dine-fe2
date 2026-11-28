@@ -33,12 +33,12 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'What is the best restaurant POS system in the USA in 2026?',
-      acceptedAnswer: { '@type': 'Answer', text: 'There is no single "best" POS — it depends on your size and how you want to handle payments. For independents wanting flat $20/month with zero per-swipe markup, DineOpen is the best value. For polished US-built hardware and onsite installation, Toast wins. For one-tablet pop-ups, Square is fastest to set up. For 20+ location chains, Lightspeed has the deepest enterprise features. We rank all 6 with honest math below.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'There is no single "best" POS — it depends on your size and how you want to handle payments. For independents wanting low fixed costs ($20/month Starter, $50/month Growth with KDS and online ordering) and their own card processor, DineOpen is the best value. For polished US-built hardware and onsite installation, Toast wins. For one-tablet pop-ups, Square is fastest to set up. For larger multi-location groups, Lightspeed is built for that. Prices for all 6 are below, from each company’s own pages where published.' }
     },
     {
       '@type': 'Question',
       name: 'What is the cheapest restaurant POS in the USA?',
-      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen Starter at $20/month flat is the cheapest full-featured restaurant POS in 2026. Square has a $0/month tier but charges 2.6% + $0.15 per in-person card payment, which on $40,000/month in card sales (about 800 payments) is roughly $1,160/month. Card fees are usually the biggest POS cost, so compare total cost, not the monthly price.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'On software alone, Square for Restaurants Free ($0/month) and Toast Starter Kit ($0/month) are the cheapest, because they earn from card processing: Square Free charges 2.6% + 15¢ per in-person card payment. DineOpen Starter is $20/month and adds nothing to card payments, so you pay only your own processor. Card fees are usually the biggest POS cost, so compare the card rate you will actually get, not only the monthly price.' }
     },
     {
       '@type': 'Question',
@@ -53,17 +53,17 @@ const faqSchema = {
     {
       '@type': 'Question',
       name: 'How much should a small restaurant spend on POS software per month?',
-      acceptedAnswer: { '@type': 'Answer', text: 'A reasonable budget is 0.3% to 1% of monthly revenue. For a $40,000/month restaurant that means $120 to $400/month is normal. Anything over $1,000/month all-in (which is what Toast, Square, and Clover charge once you include swipe fees) is overpaying. DineOpen at $20/month is on the very low end because we do not take a per-swipe cut.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'Software is usually the smaller cost; card processing is the bigger one. In the US, published restaurant POS software runs from $0 (Square Free, Toast Starter Kit) to about $50–$190 a month per location for fuller plans, before hardware. DineOpen is $20/month (Starter) or $50/month (Growth, with KDS and online ordering). Then add your card processing rate on total card sales.' }
     },
     {
       '@type': 'Question',
       name: 'Can I switch POS systems mid-year without losing data?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes. Every POS in this guide supports CSV export of menu, customers, and historical sales. DineOpen also offers AI menu extraction from a photo, which means you can skip the export entirely — take a picture of your printed menu and the new digital version is ready in about 2 minutes. Most operators are migrated in under 2 hours.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'Yes. Every POS in this guide supports CSV export of menu, customers, and historical sales. DineOpen can also build your menu from a photo, PDF or spreadsheet of your current menu, for you to check before going live.' }
     },
     {
       '@type': 'Question',
       name: 'Which POS works for both dine-in and food trucks?',
-      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen and Square both work well for hybrid operations. DineOpen runs in any browser on any device with offline support for the KOT printer, so you can use the same account at your brick-and-mortar and at a pop-up event. Square requires their card readers but is also genuinely good for mobile. Toast and Clover are designed for fixed locations and are clunky for trucks.' }
+      acceptedAnswer: { '@type': 'Answer', text: 'DineOpen and Square both work well for hybrid operations. DineOpen runs in any browser on any device with offline support for the KOT printer, so you can use the same account at your brick-and-mortar and at a pop-up event. Square is also good for mobile, using Square card readers. Toast and Clover sell handheld devices too.' }
     }
   ]
 };
@@ -76,7 +76,7 @@ const articleSchema = {
   author: { '@type': 'Person', name: 'Vivek Sharma', jobTitle: 'Founder, DineOpen', url: 'https://www.dineopen.com/about' },
   publisher: { '@type': 'Organization', name: 'DineOpen', logo: { '@type': 'ImageObject', url: 'https://www.dineopen.com/favicon.png' } },
   datePublished: '2026-04-08',
-  dateModified: '2026-04-08',
+  dateModified: '2026-11-28',
   mainEntityOfPage: URL,
   image: 'https://www.dineopen.com/billing-app-screenshot.png',
 };
@@ -104,19 +104,19 @@ const linkStyle = { color: '#2563eb', textDecoration: 'underline', fontWeight: 5
 // Each ranked entry
 const SYSTEMS = [
   {
-    rank: 1, name: 'DineOpen', tagline: 'Best for independents that want flat pricing', price: '$20/mo flat',
+    rank: 1, name: 'DineOpen', tagline: 'Best for independents that want flat pricing', price: '$20 or $50/mo',
     color: '#2563eb', verdict: 'Pick this if you want low fixed costs (Starter $20/month; Growth $50/month adds KDS, online ordering and AI voice) and you\'re willing to bring your own payment processor.',
-    bestFor: 'Independent and small-chain restaurants (1–10 locations) doing $15k+/month in card sales',
+    bestFor: 'Independent restaurants with 1–2 outlets (3+ outlets on a custom quote) that want their own card processor',
     link: '/pricing', linkText: 'See DineOpen pricing →',
     real: [
-      'Cloud POS in any browser, loads in <2 seconds',
-      'AI voice ordering in English & Spanish (~47s → ~11s order entry)',
-      'AI menu extraction — photo to digital menu in ~2 minutes',
+      'Cloud POS in any browser: iPad, Android tablet, Windows PC or Mac',
+      'AI voice ordering on Growth: the waiter speaks the order and it fills the cart',
+      'Menu import from a photo, PDF or spreadsheet',
       'Native Android KOT printer app (USB/BT, offline queue, FCM backup)',
       'Recipe-level inventory deduction + bar pour tracking',
       'Multi-tier pricing per item (Dine-in / AC / Takeaway / Delivery)',
       'Split bills, partial payments, customer khata, tips, round-off',
-      'WhatsApp + QR + online ordering, all built in',
+      'QR ordering (Starter); online ordering website and WhatsApp ordering (Growth)',
       'Loyalty program + analytics dashboard',
       'Month-to-month, cancel anytime, 7-day free trial',
     ],
@@ -124,7 +124,7 @@ const SYSTEMS = [
   },
   {
     rank: 2, name: 'Toast', tagline: 'Best for full-service with onsite installation', price: '$69+/mo + 2.49% per swipe',
-    color: '#f97316', verdict: 'Pick this if you want a US sales team to physically install hardware and walk you through everything, and you\'re OK paying $1,000+/month all-in.',
+    color: '#f97316', verdict: 'Pick this if you want a US sales team to install hardware and walk you through everything, with payments, payroll and lending from one company.',
     bestFor: 'Full-service restaurants doing $1M+/year that want a vendor with field staff',
     link: '/vs/dineopen-vs-toast', linkText: 'Read DineOpen vs Toast →',
     real: [
@@ -133,65 +133,62 @@ const SYSTEMS = [
       'Toast Capital lending (cash advances against future card sales)',
       'Large US sales + onsite installation team',
       'Mature integrations marketplace',
-      'Kitchen Display System with conversational order modifications',
+      'Kitchen Display System',
     ],
-    catch: 'The "$0/month Starter" plan still costs ~$1,000/month after the 2.49% + $0.15 swipe fee on a $40k restaurant. Hardware is locked to Toast software.',
+    catch: 'The $0/month Starter Kit has a higher card rate; Point of Sale is $69/month with 2.49% + 15¢ per in-person card payment. You use Toast Payments and Toast hardware.',
   },
   {
-    rank: 3, name: 'Square for Restaurants', tagline: 'Best for one-person food trucks & pop-ups', price: '$0–$60/mo + 2.6% per swipe',
+    rank: 3, name: 'Square for Restaurants', tagline: 'Best for one-person food trucks & pop-ups', price: '$0 / $49 / $149 per location + 2.4–2.6% + 15¢',
     color: '#10b981', verdict: 'Pick this if you\'re a solo operator who wants the absolute fastest setup and a free card reader in the mail today.',
     bestFor: 'Food trucks, pop-ups, single-person operations under $5k/month in card sales',
     link: '/vs/dineopen-vs-square', linkText: 'Read DineOpen vs Square →',
     real: [
-      'Free card reader shipped in 2–3 days',
-      'One-click signup, fastest onboarding in the industry',
-      'Next-day bank deposits with zero setup',
-      'Square Capital lending',
-      'Solid retail + restaurant hybrid (good for cafés selling beans)',
-      'Massive US brand recognition',
+      'Free plan with no monthly software fee',
+      'Plus $49/month and Premium $149/month per location, with lower card rates',
+      'Instant self sign-up',
+      'Payments, payroll (Square Payroll) and loans (Square Loans) from one company',
+      'Good retail + restaurant hybrid (useful for cafés selling retail goods)',
     ],
-    catch: 'The 2.6% + $0.15 swipe fee is non-negotiable. You cannot bring your own payment processor. Above $15k/month in card sales the math gets ugly fast.',
+    catch: 'You use Square Payments: 2.6% + 15¢ in person on Free, 2.5% on Plus, 2.4% on Premium (plus 15¢). The KDS app is $30/month per screen on Plus ($20 on Premium). You cannot bring your own processor.',
   },
   {
-    rank: 4, name: 'Lightspeed Restaurant', tagline: 'Best for 20+ location chains & hotel F&B', price: '$89–$289/mo per location',
-    color: '#ef4444', verdict: 'Pick this if you run a chain with 20+ locations, hotel F&B, or a retail+restaurant hybrid that needs deep enterprise reporting.',
-    bestFor: 'Multi-property chains, hotels, franchise groups, restaurants needing PMS integration',
+    rank: 4, name: 'Lightspeed Restaurant', tagline: 'Best for larger multi-location groups', price: 'from $189/mo',
+    color: '#ef4444', verdict: 'Pick this if you run several locations and want deeper multi-location reporting from an established vendor.',
+    bestFor: 'Multi-location restaurant groups',
     link: '/vs/dineopen-vs-lightspeed', linkText: 'Read DineOpen vs Lightspeed →',
     real: [
-      'Mature multi-property reporting and franchise royalty tracking',
-      'PMS integrations (Opera, Mews, Cloudbeds) for hotel F&B',
-      'Strong table management and course-level ordering',
-      'Public company (NYSE: LSPD) — meets enterprise procurement requirements',
-      'Global presence in 100+ countries',
-      'Lightspeed Payments option or BYO processor on some plans',
+      'Multi-location reporting',
+      'Table management and course-level ordering',
+      'Public company (NYSE: LSPD)',
+      'Lightspeed Payments',
     ],
-    catch: 'Per-location licensing makes mid-size chains expensive. A 5-location group pays ~$945/month vs DineOpen Pro at $99/month total. Many features are paid add-on modules.',
+    catch: 'Pricing starts from $189/month and many setups are quoted. DineOpen Pro is $99/month for 2 outlets; 3 or more outlets get a custom quote.',
   },
   {
-    rank: 5, name: 'Clover', tagline: 'Best for owners who want a single physical terminal', price: '$14.95–$84.95/mo + 2.3% + hardware',
-    color: '#6366f1', verdict: 'Pick this if you want one polished all-in-one terminal shipped to your door and you\'re fine signing a 3-year processor contract.',
+    rank: 5, name: 'Clover', tagline: 'Best for owners who want a single physical terminal', price: 'Quote: hardware + processing',
+    color: '#6366f1', verdict: 'Pick this if you want one polished all-in-one terminal and are happy to take card processing with it.',
     bestFor: 'Owners who value hardware aesthetics over software flexibility, low-volume restaurants',
     link: '/vs/dineopen-vs-clover', linkText: 'Read DineOpen vs Clover →',
     real: [
-      'Genuinely beautiful hardware (Station Duo, Mini, Flex)',
+      'All-in-one hardware (Station Duo, Mini, Flex)',
       'Built-in receipt printer and cash drawer integration',
       'Large third-party app marketplace',
       'Owned by Fiserv — established payment processor',
     ],
-    catch: 'Software is locked to Clover hardware. $1,349 Station Duo purchase or financing. 3-year Fiserv processor contract with $300–$500 early termination fees. You cannot run Clover on a generic iPad.',
+    catch: 'Clover software runs on Clover hardware, and terms vary by who sells it to you. Get the hardware cost, card rate and contract length in writing before you sign.',
   },
   {
-    rank: 6, name: 'TouchBistro', tagline: 'Best for 1-iPad full-service with reservations', price: '$69–$399/mo per license',
-    color: '#06b6d4', verdict: 'Pick this if you have exactly 1 iPad, want a strong reservation system, and prefer phone-based onboarding.',
-    bestFor: 'Single-iPad full-service restaurants that need integrated reservations',
+    rank: 6, name: 'TouchBistro', tagline: 'Best for iPad full-service with reservations', price: 'from $69/mo + add-ons',
+    color: '#06b6d4', verdict: 'Pick this if you run on iPads, want reservations from the same vendor, and prefer guided onboarding.',
+    bestFor: 'iPad-based full-service restaurants that want reservations',
     link: '/vs/dineopen-vs-touchbistro', linkText: 'Read DineOpen vs TouchBistro →',
     real: [
-      'TouchBistro Reservations — real OpenTable competitor',
-      '14+ years in market, mature US support',
+      'TouchBistro Reservations',
+      'Long-established, with US support',
       'Strong full-service-specific features (course management, modifiers)',
       'White-glove phone onboarding',
     ],
-    catch: 'iPad-only. Per-license pricing — every additional iPad is another $60–$150/month. No Android, no Windows, no Mac. No AI voice ordering or menu extraction.',
+    catch: 'iPads are core. POS starts from $69/month; the Essentials Bundle is from $119; KDS, inventory, online ordering, loyalty and reservations are add-ons priced by quote, plus hardware and processing.',
   },
 ];
 
@@ -209,7 +206,7 @@ export default function BestRestaurantPosUsa2026Page() {
         <header style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)', color: '#fff', padding: '72px 20px 56px' }}>
           <div style={wrap}>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,.1)', color: '#fbbf24', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.04em', backdropFilter: 'blur(8px)' }}>
-              UPDATED OCTOBER 2026 · 6 SYSTEMS COMPARED
+              UPDATED 28 NOV 2026 · 6 SYSTEMS COMPARED
             </div>
             <h1 style={{ fontSize: '48px', lineHeight: '1.05', fontWeight: '900', margin: '20px 0 16px', letterSpacing: '-0.02em', color: '#fff' }}>
               Best Restaurant POS Systems USA 2026: 6 Systems Compared
@@ -222,7 +219,7 @@ export default function BestRestaurantPosUsa2026Page() {
             <div style={{ background: '#fff', color: '#0f172a', border: '2px solid #fbbf24', borderRadius: '14px', padding: '24px 26px', boxShadow: '0 12px 32px rgba(0,0,0,.25)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', letterSpacing: '.08em', marginBottom: '10px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0 }}>
-                For independent US restaurants that want low, flat software pricing, <strong>DineOpen</strong> ($20/mo) is the lowest-cost option — it doesn&rsquo;t process cards, so you keep your own card terminal and processor. <strong>Toast</strong> wins if you want integrated payments and a US field team to install hardware. <strong>Square</strong> wins for one-person food trucks and all-in-one payments. <strong>Lightspeed</strong> wins for 20+ location chains.
+                For independent US restaurants that want low, flat software pricing, <strong>DineOpen</strong> ($20/mo Starter, $50/mo Growth with KDS and online ordering) keeps fixed costs low and doesn&rsquo;t process cards, so you keep your own card terminal and processor. <strong>Square</strong> and <strong>Toast</strong> have $0/month entry plans if you use their payments. <strong>Toast</strong> wins if you want integrated payments and a US field team to install hardware. <strong>Square</strong> wins for one-person food trucks and all-in-one payments. <strong>Lightspeed</strong> suits larger multi-location groups.
               </p>
             </div>
           </div>
@@ -232,10 +229,7 @@ export default function BestRestaurantPosUsa2026Page() {
         <section style={{ padding: '40px 0 0' }}>
           <div style={wrap}>
             <p style={p}>
-              Most &ldquo;best POS&rdquo; lists you&rsquo;ll find on Google are written by affiliate sites that get paid $200–$500 per signup. Every system gets 4.5 stars. The recommendation is whoever&rsquo;s paying the most that month. I know because I&rsquo;ve been pitched to be on those lists.
-            </p>
-            <p style={p}>
-              This guide is different in two ways. First, I built one of these — so I have an obvious bias and I&rsquo;m going to tell you exactly where it is. Second, I&rsquo;m going to use the same fictional restaurant for every comparison so the math is apples-to-apples: <strong>1 location, casual dining, $40,000/month in card sales, 800 swipes/month, 2 tablets, 1 KDS</strong>. That&rsquo;s the typical small US independent.
+              DineOpen publishes this guide, so we have an obvious bias, and we say where another system fits better. For the card-fee math we use one example restaurant: <strong>1 location, casual dining, $40,000/month in card sales, 800 swipes/month, 2 tablets, 1 KDS</strong>. That&rsquo;s the typical small US independent.
             </p>
             <p style={p}>
               At the end I&rsquo;ll tell you the 4 things to check before you sign anything, and the one trap that costs operators thousands every year (it&rsquo;s the swipe fee, not the monthly subscription).
@@ -246,8 +240,8 @@ export default function BestRestaurantPosUsa2026Page() {
         {/* TLDR TABLE */}
         <section>
           <div style={wrap}>
-            <h2 style={h2}>The fast version (12-month all-in cost)</h2>
-            <p style={p}>Same restaurant. Same card volume. Different total bills:</p>
+            <h2 style={h2}>The fast version (12-month software cost)</h2>
+            <p style={p}>Published software prices for one location. Card processing comes on top with every system:</p>
 
             <div style={{ overflow: 'auto', margin: '20px 0' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
@@ -256,18 +250,18 @@ export default function BestRestaurantPosUsa2026Page() {
                     <th style={{ padding: '14px 12px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>Rank</th>
                     <th style={{ padding: '14px 12px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>POS</th>
                     <th style={{ padding: '14px 12px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>Sticker Price</th>
-                    <th style={{ padding: '14px 12px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>12-mo all-in*</th>
+                    <th style={{ padding: '14px 12px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>12-mo software*</th>
                     <th style={{ padding: '14px 12px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>Best for</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    ['1','DineOpen','$20/mo','$240','Independents wanting flat pricing'],
-                    ['2','Toast (Essentials)','$69/mo + 2.49%','~$13,800','Full-service with onsite install'],
-                    ['3','Square (Plus)','$60/mo + 2.6%','~$13,440','Food trucks & pop-ups'],
-                    ['4','Lightspeed (Plus)','$189/mo + 2.6%','~$15,000','20+ location chains'],
-                    ['5','Clover (Register)','$84.95/mo + 2.3%','~$13,829','Hardware-first owners'],
-                    ['6','TouchBistro (Team)','$249/mo','~$2,988','1-iPad full-service'],
+                    ['1','DineOpen','$20 or $50/mo','$240–$600','Independents wanting low fixed costs'],
+                    ['2','Toast (Point of Sale)','$69/mo + 2.49% + 15¢','$828','Full-service with onsite install'],
+                    ['3','Square for Restaurants (Plus)','$49/mo + 2.5% + 15¢','$588 (+$360 per KDS screen)','Food trucks & pop-ups'],
+                    ['4','Lightspeed Restaurant','from $189/mo','from $2,268','Larger multi-location groups'],
+                    ['5','Clover','Ask for a written quote','Ask for a written quote','Hardware-first owners'],
+                    ['6','TouchBistro','from $69/mo','from $828 + add-ons','iPad full-service'],
                   ].map((row, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '14px 12px', fontWeight: 700, color: i === 0 ? '#2563eb' : '#475569' }}>{row[0]}</td>
@@ -280,7 +274,7 @@ export default function BestRestaurantPosUsa2026Page() {
                 </tbody>
               </table>
             </div>
-            <p style={small}>* Math: $40k/mo card sales × monthly subscription × 12 + (swipe fee % × $40k + per-swipe cents × 800 swipes) × 12. Where DineOpen has no swipe markup, the all-in is software-only since you bring your own processor.</p>
+            <p style={small}>* Software subscription only, one location, before hardware and card processing. Toast: pos.toasttab.com/shop/pricing-plan; Square: squareup.com restaurant pricing (US); TouchBistro: touchbistro.com/pricing; Lightspeed: “from $189/month” on its restaurant pages; checked Nov 2026. We could not confirm Clover’s current prices, so ask for a written quote. DineOpen: dineopen.com/pricing.</p>
           </div>
         </section>
 
@@ -325,17 +319,17 @@ export default function BestRestaurantPosUsa2026Page() {
 
             <h3 style={h3}>1. The all-in monthly cost, not the headline price</h3>
             <p style={p}>
-              Take the monthly subscription, add the swipe fee math (your monthly card volume × the swipe %), add hardware financing if any, add any &ldquo;mandatory&rdquo; add-ons like loyalty or online ordering. The number you get is what you actually pay. Toast&rsquo;s &ldquo;$0/month Starter&rdquo; becomes ~$1,000/month real-world. Square&rsquo;s &ldquo;Free&rdquo; tier is similar. <strong>Always do the math.</strong>
+              Take the monthly subscription, add the swipe fee math (your monthly card volume × the swipe %), add hardware financing if any, add any &ldquo;mandatory&rdquo; add-ons like loyalty or online ordering. The number you get is what you actually pay. A $0/month plan still costs you the card rate on every sale, so compare rates, not only subscriptions. <strong>Always do the math.</strong>
             </p>
 
             <h3 style={h3}>2. The contract length and termination fee</h3>
             <p style={p}>
-              Clover and many Toast hardware-financed deals come with 2–3 year processor contracts and $300–$500 early termination fees. DineOpen is month-to-month — so are most Square, Lightspeed, and TouchBistro plans, but always confirm in writing. <strong>If they won&rsquo;t put it in writing, walk away.</strong>
+              Some hardware-financed and processor deals come with multi-year terms and early termination fees. DineOpen is month-to-month. Whatever you choose, confirm the term in writing. <strong>If they won&rsquo;t put it in writing, walk away.</strong>
             </p>
 
             <h3 style={h3}>3. Whether you can bring your own payment processor</h3>
             <p style={p}>
-              This is the single biggest cost lever. DineOpen lets you use Stripe, Adyen, Razorpay, or any processor — you negotiate your own rates. Square locks you to Square Payments. Clover locks you to Fiserv. Toast locks you to Toast Payments. Lightspeed sometimes lets you BYO processor on higher tiers, but charges integration fees. <strong>Locking your processor is how POS companies make money — know what you&rsquo;re signing up for.</strong>
+              This is the single biggest cost lever. DineOpen lets you use Stripe, Adyen, Razorpay, or any processor — you negotiate your own rates. Square uses Square Payments. Clover uses Clover/Fiserv processing. Toast uses Toast Payments. <strong>Locking your processor is how POS companies make money — know what you&rsquo;re signing up for.</strong>
             </p>
 
             <h3 style={h3}>4. What happens to your menu and customer data if you cancel</h3>
@@ -357,14 +351,13 @@ export default function BestRestaurantPosUsa2026Page() {
             </p>
             <div style={{ background: '#fef2f2', border: '2px solid #fecaca', borderRadius: '12px', padding: '20px 24px', margin: '20px 0' }}>
               <ul style={{ ...p, margin: 0, paddingLeft: '20px' }}>
-                <li><strong>Toast 2.49% + $0.15 × 800 swipes:</strong> ~$13,000/year in swipe fees</li>
-                <li><strong>Square 2.6% + $0.15 × 800 swipes:</strong> ~$13,920/year</li>
-                <li><strong>Clover 2.3% + $0.10 × 800 swipes:</strong> ~$12,000/year</li>
-                <li><strong>DineOpen 0% (you bring Stripe at ~2.7%):</strong> ~$13,920/year — but you can negotiate Stripe down to 2.2% at volume, saving ~$2,400/year</li>
+                <li><strong>Toast 2.49% + $0.15 × 800 payments:</strong> ~$13,400/year in card fees</li>
+                <li><strong>Square Free 2.6% + $0.15 × 800 payments:</strong> ~$13,920/year</li>
+                <li><strong>DineOpen:</strong> adds 0%; you pay your own processor&rsquo;s rate. At this volume, every 0.1% you negotiate off your rate saves $480 a year.</li>
               </ul>
             </div>
             <p style={p}>
-              The DineOpen play isn&rsquo;t &ldquo;we charge less for swipes.&rdquo; It&rsquo;s &ldquo;we don&rsquo;t touch your swipes at all, so you can negotiate them yourself.&rdquo; At $40k/month volume that&rsquo;s usually a wash. At $100k/month it&rsquo;s a huge win. <strong>And you only pay us $20/month for the software.</strong>
+              The DineOpen play isn&rsquo;t &ldquo;we charge less for swipes.&rdquo; It&rsquo;s &ldquo;we don&rsquo;t touch your swipes at all, so you can negotiate them yourself.&rdquo; How much that saves depends on the rate you can get. <strong>DineOpen software is $20/month (Starter) or $50/month (Growth).</strong>
             </p>
           </div>
         </section>
@@ -375,31 +368,31 @@ export default function BestRestaurantPosUsa2026Page() {
             <h2 style={h2}>What I&rsquo;d actually pick (and when)</h2>
 
             <p style={p}>
-              <strong>Single-person food truck or pop-up under $5k/mo card volume:</strong> Square. The free card reader and one-click setup are unbeatable at that scale. The 2.6% on $5k is only $130/month — not worth switching for.
+              <strong>Single-person food truck or pop-up with low card volume:</strong> Square Free. No monthly fee and instant setup; at $5k/month in card sales, 2.6% is about $130.
             </p>
 
             <p style={p}>
-              <strong>Independent dine-in restaurant doing $20k–$80k/mo:</strong> DineOpen. This is the sweet spot. You save ~$1,000/month in swipe fees vs Toast/Square, you get AI voice ordering and menu extraction free, and you keep your processor relationship. <Link href="/vs/dineopen-vs-toast" style={linkStyle}>See the Toast comparison</Link> for the full math.
+              <strong>Independent dine-in restaurant with its own card processor:</strong> DineOpen. Starter at $20/month covers billing, KOT and QR ordering; Growth at $50/month adds KDS on any number of screens, online ordering and AI voice ordering. You keep your processor relationship. <Link href="/vs/dineopen-vs-toast" style={linkStyle}>See the Toast comparison</Link> for the full math.
             </p>
 
             <p style={p}>
-              <strong>Casual dining with 2–10 locations:</strong> DineOpen Pro ($99/mo unlimited locations). Lightspeed wants $189 × locations + add-ons, which gets to $945/month for 5 locations. DineOpen is $99/month total. <Link href="/vs/dineopen-vs-lightspeed" style={linkStyle}>See the Lightspeed comparison</Link>.
+              <strong>Two outlets:</strong> DineOpen Pro, $99/month for both, with central menu, stock and reports. For 3 or more outlets DineOpen gives a custom quote; Lightspeed starts from $189/month. <Link href="/vs/dineopen-vs-lightspeed" style={linkStyle}>See the Lightspeed comparison</Link>.
             </p>
 
             <p style={p}>
-              <strong>Full-service that needs onsite installation and US payroll:</strong> Toast. If you want a vendor who will physically come to your restaurant, install hardware, train your staff, and handle payroll, Toast is genuinely the best at this. You&rsquo;ll pay for the privilege — $1,000+/month all-in — but for some operators that&rsquo;s worth it.
+              <strong>Full-service that needs onsite installation and US payroll:</strong> Toast. If you want a vendor who will physically come to your restaurant, install hardware, train your staff, and handle payroll, Toast is genuinely the best at this. Point of Sale is $69/month plus Toast Payments; for some operators the one-vendor setup is worth it.
             </p>
 
             <p style={p}>
-              <strong>20+ location chain or hotel F&amp;B:</strong> Lightspeed. The enterprise reporting, PMS integrations, and franchise royalty tracking are real. Pay the price.
+              <strong>Larger multi-location group:</strong> Lightspeed. Deeper multi-location reporting from an established vendor.
             </p>
 
             <p style={p}>
-              <strong>Single-iPad full-service that needs reservations:</strong> TouchBistro. The reservation system is the differentiator. <Link href="/vs/dineopen-vs-touchbistro" style={linkStyle}>See the TouchBistro comparison</Link>.
+              <strong>iPad full-service that needs reservations:</strong> TouchBistro. The reservation system is the differentiator. <Link href="/vs/dineopen-vs-touchbistro" style={linkStyle}>See the TouchBistro comparison</Link>.
             </p>
 
             <p style={p}>
-              <strong>You want one polished hardware terminal and don&rsquo;t want to think about it:</strong> Clover. It&rsquo;s genuinely beautiful hardware. You&rsquo;ll pay for the lock-in. <Link href="/vs/dineopen-vs-clover" style={linkStyle}>See the Clover comparison</Link>.
+              <strong>You want one polished hardware terminal and don&rsquo;t want to think about it:</strong> Clover. Polished all-in-one hardware; get the card rate and contract in writing. <Link href="/vs/dineopen-vs-clover" style={linkStyle}>See the Clover comparison</Link>.
             </p>
           </div>
         </section>
@@ -408,7 +401,7 @@ export default function BestRestaurantPosUsa2026Page() {
         <section>
           <div style={wrap}>
             <h2 style={h2}>What the DineOpen billing screen actually looks like</h2>
-            <p style={p}>Screenshots from real production deployments — not mockups. This is the live billing screen on a tablet, showing items, split payment, and tax breakdown:</p>
+            <p style={p}>Screenshots of the live product. This is the live billing screen on a tablet, showing items, split payment, and tax breakdown:</p>
             <figure style={{ margin: '24px 0' }}>
               <Image src="/billing-app-screenshot.png" alt="DineOpen billing screen with items, split payment, tax breakdown" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
               <figcaption style={small}>Live billing screen. Same UI on iPad, Android tablet, Windows laptop, Mac.</figcaption>
