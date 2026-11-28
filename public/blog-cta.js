@@ -1,6 +1,6 @@
 /* DineOpen owner sign-up box for the static blog posts (public/blog, public/hi/blog).
    Same idea as src/components/BlogOwnerCTA.js: message matches the post topic, price matches the
-   visitor's country (prices as on /pricing; India shows ₹899, never ₹299). Inserted once, mid-article
+   visitor's country (prices as on /pricing; India shows ₹799, never ₹299). Inserted once, mid-article
    (before the 3rd <h2> in main.content), else at the end of main.content. Loaded by site-analytics.js
    on blog pages only. Any error = no box; the page is never affected. */
 (function () {
@@ -15,7 +15,7 @@
     var PRICE = {
       US: '$20/month', CA: 'US$20/month', AU: 'US$20/month', GB: '£16/month', IE: 'US$20/month',
       AE: 'AED 75/month', SA: 'SAR 75/month', QA: 'US$20/month', KW: 'KWD 6/month', BH: 'BHD 8/month',
-      OM: 'US$20/month', IN: '₹899/month', KE: 'US$20/month', NG: 'US$20/month', ZA: 'US$20/month', SG: 'US$20/month'
+      OM: 'US$20/month', IN: '₹799/month', KE: 'US$20/month', NG: 'US$20/month', ZA: 'US$20/month', SG: 'US$20/month'
     };
     var TZ = {
       'Europe/London': 'GB', 'Europe/Dublin': 'IE', 'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Qatar': 'QA',

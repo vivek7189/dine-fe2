@@ -7,7 +7,7 @@ const GROUPS = [
     title: 'About DineOpen',
     items: [
       ['What is DineOpen?',
-        'DineOpen is a restaurant POS system and management app. You take orders at the counter, at the table, by QR code and on WhatsApp, print kitchen tickets, send bills on WhatsApp, and manage your menu, table reservations, inventory, staff and reports in one place. Plans start at $20/month, or ₹899/month in India.'],
+        'DineOpen is a restaurant POS system and management app. You take orders at the counter, at the table, by QR code and on WhatsApp, print kitchen tickets, send bills on WhatsApp, and manage your menu, table reservations, inventory, staff and reports in one place. Plans start at $20/month, or ₹799/month in India.'],
       ['How does DineOpen work?',
         'Sign up with your mobile number and add your menu, or send us a photo of it and we set it up for free. Add your tables and tax, then start billing. Orders from the counter, the waiter app, QR codes and WhatsApp all land on one screen, the kitchen gets its tickets, and sales reports update in real time.'],
       ['Why choose DineOpen over a traditional POS system?',
@@ -15,7 +15,7 @@ const GROUPS = [
       ['Who uses DineOpen?',
         'Restaurants, cafes, bars, cloud kitchens, bakeries, food trucks, quick-service outlets, fine dining and hotel restaurants. It works for a single outlet and for multi-location groups, which can share one menu and see reports for every outlet together.'],
       ['Is DineOpen good for small restaurants and cafes?',
-        'Yes. You can start on a single phone with no hardware, plans start at ₹899/month in India or $20/month elsewhere, and our team sets up your menu for free. You can add a printer, a waiter app or a second outlet later as you grow.'],
+        'Yes. You can start on a single phone with no hardware, plans start at ₹799/month in India or $20/month elsewhere, and our team sets up your menu for free. You can add a printer, a waiter app or a second outlet later as you grow.'],
     ],
   },
   {
@@ -41,7 +41,7 @@ const GROUPS = [
     title: 'Pricing & trust',
     items: [
       ['How much does DineOpen cost?',
-        'Starter is $20/month, Growth $50/month and Pro $99/month (£16/£40/£79 in the UK). In India, plans start at ₹899/month. There is no setup fee and no cut of your sales, and you can cancel anytime. Larger chains can ask us for custom pricing.'],
+        'Starter is $20/month, Growth $50/month and Pro $99/month (£16/£40/£79 in the UK). In India, plans start at ₹799/month. There is no setup fee and no cut of your sales, and you can cancel anytime. Larger chains can ask us for custom pricing.'],
       ['Can I try DineOpen for free?',
         'Yes. Every new account gets a 7-day free trial with all features. No card is needed to start, and our team can set up your menu from a photo.'],
       ['What countries does DineOpen support?',

@@ -27,7 +27,7 @@ export default function BookingsPage() {
     "description": "Calendar-based hotel booking management software with reservation tracking, availability checking, and booking confirmation/cancellation.",
     "applicationCategory": "BusinessApplication",
     "url": "https://www.dineopen.com/products/hotel/bookings",
-    "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
+    "offers": { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
   };
 
   const faqSchema = {

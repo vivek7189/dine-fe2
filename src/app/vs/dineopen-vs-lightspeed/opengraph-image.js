@@ -5,8 +5,8 @@ export default function Image() {
   return makeVsImage({
     competitor: 'Lightspeed',
     color: '#ef4444',
-    dineCost: '$1,068',
-    theirCost: '~$7,400',
-    hook: 'Enterprise POS at indie price (3 locations).',
+    dineCost: '$600',
+    theirCost: 'from $2,268',
+    hook: 'Growth plan vs Lightspeed from $189/month, one restaurant.',
   });
 }

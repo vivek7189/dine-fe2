@@ -30,7 +30,7 @@ export default function KotPage() {
     "url": "https://www.dineopen.com/products/kitchen/kot",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "featureList": [

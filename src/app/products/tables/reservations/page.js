@@ -24,8 +24,8 @@ export default function ReservationsPage() {
     "description": "Online restaurant reservation system with date/time booking, automatic table allocation, WhatsApp confirmations, and customer history tracking.",
     "url": "https://www.dineopen.com/products/tables/reservations",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
-      { "@type": "Offer", "price": "899", "priceCurrency": "INR" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
+      { "@type": "Offer", "price": "799", "priceCurrency": "INR" }
     ],
   };
 

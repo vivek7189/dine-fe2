@@ -30,7 +30,7 @@ export default function ChatbotPage() {
     "url": "https://www.dineopen.com/products/ai/chatbot",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "featureList": [

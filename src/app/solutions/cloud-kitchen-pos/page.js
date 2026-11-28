@@ -40,7 +40,7 @@ const softwareSchema = {
   "operatingSystem": "Web, iOS, Android",
   "offers": {
     "@type": "Offer",
-    "price": "10",
+    "price": "20",
     "priceCurrency": "USD",
     "priceValidUntil": "2026-12-31"
   },

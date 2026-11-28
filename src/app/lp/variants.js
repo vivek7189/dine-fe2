@@ -1,6 +1,6 @@
 // Google Ads landing pages (noindex). One page per market/keyword group; ads point here so
 // the visitor sees exactly what they searched for, one price and one action (free trial).
-// Keep claims in line with /pricing: 7-day trial, ₹899/month India, AED 75 UAE.
+// Keep claims in line with /pricing: 7-day trial, ₹799/month India, AED 75 UAE.
 const COMMON_FEATURES = [
   ['receipt', 'Fast billing', 'Dine-in, takeaway and delivery bills in a few taps. Split bills and discounts.'],
   ['kitchen', 'KOT to kitchen', 'Orders print or show in the kitchen instantly, sent to the right station.'],
@@ -16,13 +16,13 @@ export const LP_VARIANTS = {
   'restaurant-billing-software': {
     market: 'IN',
     dial: 'IN',
-    title: 'Restaurant Billing Software — ₹899/month | DineOpen',
+    title: 'Restaurant Billing Software — ₹799/month | DineOpen',
     description: 'Simple restaurant billing software with GST bills, KOT, table management, inventory and reports. Works on Android, iPhone, Windows and browser. Start a 7-day free trial.',
     eyebrow: 'Restaurant billing software for India',
     h1: 'Restaurant billing software your staff learns in 10 minutes',
     sub: 'GST bills, KOT, tables, stock, QR and WhatsApp orders. Runs on the phone, tablet or computer you already have.',
     ticks: ['7-day free trial', 'No card needed', 'Free menu setup', 'GST-ready bills'],
-    price: '₹899', per: '/month', priceNote: 'or ₹8,988/year (₹749/month) · cafés, restaurants, bars, cloud kitchens',
+    price: '₹799', per: '/month', priceNote: 'or ₹7,999/year (about ₹667/month) · cafés, restaurants, bars, cloud kitchens',
     benefits: [
       ['Bill in seconds', 'Tap the dishes, GST is added for you. Print the bill or send it on WhatsApp.'],
       ['No more lost KOTs', 'Every order reaches the right kitchen printer or screen the moment it is placed.'],
@@ -47,7 +47,7 @@ export const LP_VARIANTS = {
       ['Can I print KOT and bills on my existing printer?', 'Yes. Most 58 mm and 80 mm thermal printers work. KOTs can go to different kitchen printers by station.'],
       ['Does it handle GST?', 'Yes. Bills show CGST/SGST correctly, with tax-inclusive or exclusive pricing per item, and GST reports for your accountant.'],
       ['Can you help me set up my menu?', 'Yes. Send us your menu (photo, PDF or Excel) on WhatsApp and our team helps you load it, free.'],
-      ['What happens after the trial?', 'Choose a plan from ₹899/month to keep going. Your menu, orders and reports stay as they are.'],
+      ['What happens after the trial?', 'Choose a plan from ₹799/month to keep going. Your menu, orders and reports stay as they are.'],
     ],
   },
   // Same offer for the "restaurant POS software" ad group, with the headline matching that search.
@@ -93,7 +93,7 @@ export const LP_VARIANTS = {
 
 LP_VARIANTS['restaurant-pos-software'] = {
   ...LP_VARIANTS['restaurant-billing-software'],
-  title: 'Restaurant POS Software India — ₹899/month | DineOpen',
+  title: 'Restaurant POS Software India — ₹799/month | DineOpen',
   description: 'Restaurant POS software for India: GST billing, KOT, tables, inventory, QR and WhatsApp orders and reports. Works on Android, iPhone, Windows and browser. Start a 7-day free trial.',
   eyebrow: 'Restaurant POS software for India',
   h1: 'Restaurant POS software that runs on the device you already have',

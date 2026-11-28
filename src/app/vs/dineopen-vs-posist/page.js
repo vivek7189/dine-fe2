@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "What is the main difference between DineOpen and POSist (Restroworks)?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is built for small-to-medium restaurants with AI-powered features (voice ordering, chat assistant, menu extraction) starting at Rs 899/month in India, with no per-transaction fee from DineOpen. POSist (now Restroworks) targets enterprise restaurant chains with 10+ outlets, with pricing on request, dedicated account managers and on-ground support."
+        "text": "DineOpen is built for small-to-medium restaurants with AI-powered features (voice ordering, chat assistant, menu extraction) starting at Rs 799/month in India, with no per-transaction fee from DineOpen. POSist (now Restroworks) targets enterprise restaurant chains with 10+ outlets, with pricing on request, dedicated account managers and on-ground support."
       }
     },
     {
@@ -50,7 +50,7 @@ const faqSchema = {
       "name": "Is DineOpen cheaper than POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen publishes its price: $20/month (from Rs 899/month in India) with all features included, no per-transaction fee from DineOpen and a 7-day free trial. POSist (Restroworks) shares pricing on request, so you need a quote to compare. POSist includes enterprise features like delivery aggregator integration that DineOpen does not have."
+        "text": "DineOpen publishes its price: $20/month (from Rs 799/month in India) with all features included, no per-transaction fee from DineOpen and a 7-day free trial. POSist (Restroworks) shares pricing on request, so you need a quote to compare. POSist includes enterprise features like delivery aggregator integration that DineOpen does not have."
       }
     },
     {
@@ -97,7 +97,7 @@ const softwareSchemas = [
     "operatingSystem": "Web, Android, iOS",
     "offers": {
       "@type": "Offer",
-      "price": "899",
+      "price": "799",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

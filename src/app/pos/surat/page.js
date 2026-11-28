@@ -27,7 +27,7 @@ export default function SuratPOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '899',
+    price: '799',
     highlights: [
       'GST-compliant billing for Gujarat',
       'Gujarati voice ordering & menu',

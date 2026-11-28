@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function RecipesPage() {
   const schemas = [
-    { "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DineOpen Recipe Costing", "applicationCategory": "BusinessApplication", "description": "Recipe costing with ingredient mapping, automatic cost calculation, and food cost tracking.", "url": "https://www.dineopen.com/products/inventory/recipes", "offers": [{ "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }] },
+    { "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DineOpen Recipe Costing", "applicationCategory": "BusinessApplication", "description": "Recipe costing with ingredient mapping, automatic cost calculation, and food cost tracking.", "url": "https://www.dineopen.com/products/inventory/recipes", "offers": [{ "@type": "Offer", "price": "20", "priceCurrency": "USD" }] },
     { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
       { "@type": "Question", "name": "How does recipe costing work?", "acceptedAnswer": { "@type": "Answer", "text": "Create a recipe by adding ingredients from your inventory with exact quantities. DineOpen multiplies each ingredient's quantity by its current purchase price to calculate total recipe cost. When ingredient prices change, all recipe costs update automatically." } },
       { "@type": "Question", "name": "Can I track food cost percentage?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. DineOpen calculates food cost percentage as (recipe cost / selling price) x 100. Industry standard is 28-35%. Get alerts when items exceed your target food cost percentage." } },

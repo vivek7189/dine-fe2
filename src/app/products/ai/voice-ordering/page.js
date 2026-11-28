@@ -30,7 +30,7 @@ export default function VoiceOrderingPage() {
     "url": "https://www.dineopen.com/products/ai/voice-ordering",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "featureList": [

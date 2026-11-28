@@ -41,7 +41,7 @@ const softwareSchema = {
   "description": "POS system built for Indian restaurants with spice level customization, thali combos, complex modifiers, and multi-language menus.",
   "offers": {
     "@type": "Offer",
-    "price": "10",
+    "price": "20",
     "priceCurrency": "USD",
     "priceValidUntil": "2026-12-31"
   }

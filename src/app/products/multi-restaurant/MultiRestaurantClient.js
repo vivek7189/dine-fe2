@@ -9,8 +9,8 @@ export default function MultiRestaurantClient() {
   const features = [
     {
       icon: <FaLayerGroup size={28} />,
-      title: 'Unlimited Outlets',
-      description: 'Add as many restaurant locations as you need. No limits. Scale from 2 to 200+ outlets seamlessly.',
+      title: 'Grows With Your Chain',
+      description: 'Start with 2 outlets on Pro. For 3 or more outlets, franchises or cloud-kitchen groups, get a custom quote.',
     },
     {
       icon: <FaChartBar size={28} />,
@@ -73,19 +73,19 @@ export default function MultiRestaurantClient() {
   ];
 
   const comparisonData = [
-    { feature: 'Multi-outlet support', dineopen: 'Unlimited', others: '3-5 outlets then custom pricing' },
-    { feature: 'Price per outlet', dineopen: '₹999/month ($10)', others: '₹2,500-5,000/month' },
+    { feature: 'Multi-outlet support', dineopen: 'Pro: 2 outlets · 3+: custom quote', others: 'Varies by provider' },
+    { feature: 'Price', dineopen: 'Pro $99/month for 2 outlets · India from ₹799 per outlet', others: 'Varies, often by quote' },
     { feature: 'Central dashboard', dineopen: '✓ Included', others: '✓ Extra cost' },
     { feature: 'Central menu management', dineopen: '✓ Included', others: '✓ Some providers' },
     { feature: 'AI Voice Ordering', dineopen: '✓ Included', others: '✗ Not available' },
     { feature: 'Franchise controls', dineopen: '✓ Included', others: '✓ Enterprise only' },
-    { feature: 'Setup fee', dineopen: '₹0', others: '₹25,000-1,00,000' },
+    { feature: 'Setup fee', dineopen: '₹0 / $0', others: 'Varies by provider' },
   ];
 
   const benefits = [
-    { metric: '₹999', label: 'Per outlet/month (India)', sub: '$10 for US/UK' },
+    { metric: '$99', label: 'Pro, 2 outlets/month', sub: '£79 UK · India from ₹799/outlet' },
     { metric: '0', label: 'Setup fee', sub: 'No hidden costs' },
-    { metric: '∞', label: 'Unlimited outlets', sub: 'Scale freely' },
+    { metric: '3+', label: 'Outlets', sub: 'Custom quote' },
     { metric: '1', label: 'Dashboard for all', sub: 'Central control' },
   ];
 
@@ -100,13 +100,13 @@ export default function MultiRestaurantClient() {
               <FaBuilding /> Enterprise & Chain Solution
             </div>
             <h1 style={{ fontSize: '48px', fontWeight: '800', marginBottom: '20px', lineHeight: 1.2 }}>
-              One Dashboard.<br />Unlimited Restaurants.
+              One Dashboard.<br />All Your Outlets.
             </h1>
             <p style={{ fontSize: '20px', opacity: 0.95, marginBottom: '16px', maxWidth: '700px', margin: '0 auto 16px' }}>
               Manage your entire restaurant chain from a single dashboard. Central menu, inventory, and reporting. Perfect for chains, franchises, and multi-brand operators.
             </p>
             <p style={{ fontSize: '28px', fontWeight: '700', marginBottom: '32px' }}>
-              Just ₹999/outlet/month <span style={{ opacity: 0.8, fontSize: '18px' }}>($10 for US/UK)</span>
+              Pro $99/month for 2 outlets <span style={{ opacity: 0.8, fontSize: '18px' }}>(£79 UK · India from ₹799/outlet · 3+ outlets: custom quote)</span>
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="https://dineopen.com/login" style={{ padding: '16px 32px', backgroundColor: 'white', color: '#059669', borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '18px' }}>
@@ -236,7 +236,7 @@ export default function MultiRestaurantClient() {
               ))}
             </div>
             <p style={{ textAlign: 'center', marginTop: '32px', fontSize: '16px', color: '#6b7280' }}>
-              All this for just <strong style={{ color: '#059669' }}>₹999/outlet/month</strong> (or $10 for US/UK)
+              Pro is <strong style={{ color: '#059669' }}>$99/month for 2 outlets</strong> (£79 UK). India from ₹799 per outlet per month. 3+ outlets: <Link href="/pricing" style={{ color: '#059669' }}>custom quote</Link>.
             </p>
           </div>
         </section>

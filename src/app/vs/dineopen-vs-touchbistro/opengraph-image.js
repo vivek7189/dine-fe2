@@ -5,8 +5,8 @@ export default function Image() {
   return makeVsImage({
     competitor: 'TouchBistro',
     color: '#06b6d4',
-    dineCost: '$119.88',
-    theirCost: '$2,988',
-    hook: 'The per-iPad license tax adds up fast.',
+    dineCost: '$240',
+    theirCost: 'from $828',
+    hook: 'Software cost, before hardware and add-ons.',
   });
 }

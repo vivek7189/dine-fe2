@@ -74,7 +74,7 @@ const faqSchema = {
       "name": "Are there better alternatives to both Petpooja and POSist for restaurants in India?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. DineOpen is a modern alternative offering AI-powered features (voice ordering, chat assistant, menu extraction) from ₹899/month in India, with no per-transaction fee from DineOpen and a 7-day free trial. It does not sync Swiggy/Zomato orders automatically, which both Petpooja and POSist do. Other alternatives include Square (better for international businesses) and Toast (popular in the US market)."
+        "text": "Yes. DineOpen is a modern alternative offering AI-powered features (voice ordering, chat assistant, menu extraction) from ₹799/month in India, with no per-transaction fee from DineOpen and a 7-day free trial. It does not sync Swiggy/Zomato orders automatically, which both Petpooja and POSist do. Other alternatives include Square (better for international businesses) and Toast (popular in the US market)."
       }
     }
   ]

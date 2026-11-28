@@ -9,7 +9,7 @@ import { useState } from 'react';
 // Petpooja details: petpooja.com/pricing, checked 21 October 2026. Anything not on that page says "Ask Petpooja".
 const comparisonData = [
   { category: 'Pricing & Fees', features: [
-    { feature: 'Starting Price', dineopen: '$20/month (from ₹899/month in India)', petpooja: '₹12,000 + taxes for the Base plan (billing period not stated)', winner: 'tie' },
+    { feature: 'Starting Price', dineopen: '$20/month (from ₹799/month in India)', petpooja: '₹12,000 + taxes for the Base plan (billing period not stated)', winner: 'tie' },
     { feature: 'Higher Plans', dineopen: 'None needed, all features in the plan', petpooja: 'Operations Manager ₹20,000 / ₹30,000; Marketing Manager ₹20,000 to ₹40,000 (+ taxes, Base included)', winner: 'dineopen' },
     { feature: 'Per-transaction Fee from the POS', dineopen: 'None', petpooja: 'None listed on pricing page', winner: 'tie' },
     { feature: 'Online Payment Charges', dineopen: 'Payment gateway\'s own fee', petpooja: 'Payment gateway\'s own fee', winner: 'tie' },
@@ -49,7 +49,7 @@ export default function PetpoojaAlternativeClient() {
   const faqs = [
     {
       q: 'Is DineOpen really cheaper than Petpooja?',
-      a: 'Yes. DineOpen Starter plan starts at $20/month (from ₹899/month in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja\'s pricing page lists its Base plan at ₹12,000 + taxes (it does not say for what period), with Operations Manager plans at ₹20,000 or ₹30,000 and Marketing Manager plans at ₹20,000 to ₹40,000 (each includes Base). Neither company lists a per-order fee. Card and UPI payments carry your payment gateway\'s own charges whichever POS you use. Ask Petpooja what period their price covers, then compare like for like.'
+      a: 'Yes. DineOpen Starter plan starts at $20/month (from ₹799/month in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja\'s pricing page lists its Base plan at ₹12,000 + taxes (it does not say for what period), with Operations Manager plans at ₹20,000 or ₹30,000 and Marketing Manager plans at ₹20,000 to ₹40,000 (each includes Base). Neither company lists a per-order fee. Card and UPI payments carry your payment gateway\'s own charges whichever POS you use. Ask Petpooja what period their price covers, then compare like for like.'
     },
     {
       q: 'What does DineOpen have that Petpooja doesn\'t?',
@@ -184,7 +184,7 @@ export default function PetpoojaAlternativeClient() {
         }}>
           <p style={{ fontSize: '13px', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Quick Answer</p>
           <p style={{ fontSize: '16px', color: '#1f2937', lineHeight: '1.7', margin: 0 }}>
-            <strong>The best Petpooja alternative in 2026 is DineOpen.</strong> It costs $20/month (from ₹899/month in India). Petpooja lists its Base plan at ₹12,000 + taxes, without stating the billing period, with captain app, KDS and marketing tools in its higher Operations Manager and Marketing Manager plans. DineOpen includes AI voice ordering, inventory, loyalty and QR ordering in one plan. DineOpen does not have Zomato/Swiggy integration (Petpooja does), so restaurants relying heavily on delivery aggregators should factor that in.
+            <strong>The best Petpooja alternative in 2026 is DineOpen.</strong> It costs $20/month (from ₹799/month in India). Petpooja lists its Base plan at ₹12,000 + taxes, without stating the billing period, with captain app, KDS and marketing tools in its higher Operations Manager and Marketing Manager plans. DineOpen includes AI voice ordering, inventory, loyalty and QR ordering in one plan. DineOpen does not have Zomato/Swiggy integration (Petpooja does), so restaurants relying heavily on delivery aggregators should factor that in.
           </p>
         </div>
       </section>
@@ -194,7 +194,7 @@ export default function PetpoojaAlternativeClient() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             {[
-              { stat: '$20/mo', label: 'DineOpen starting price', sublabel: 'From ₹899/mo in India · Petpooja Base ₹12,000 + taxes' },
+              { stat: '$20/mo', label: 'DineOpen starting price', sublabel: 'From ₹799/mo in India · Petpooja Base ₹12,000 + taxes' },
               { stat: '7 days', label: 'Free trial', sublabel: 'No card needed' },
               { stat: '1', label: 'Plan for everything', sublabel: 'Captain app, KDS, loyalty included' },
               { stat: '15 min', label: 'Self-setup', sublabel: 'On a phone, tablet or laptop you own' },
@@ -264,7 +264,7 @@ export default function PetpoojaAlternativeClient() {
               </div>
               <div style={{ padding: '28px', background: '#f0fdf4', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#166534', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>DineOpen</div>
-                <div style={{ fontSize: '15px', color: '#374151', marginBottom: '6px' }}>From ₹899/month in India</div>
+                <div style={{ fontSize: '15px', color: '#374151', marginBottom: '6px' }}>From ₹799/month in India</div>
                 <div style={{ fontSize: '15px', color: '#374151', marginBottom: '6px' }}>Captain app, KDS, inventory, loyalty and QR ordering included</div>
                 <div style={{ fontSize: '15px', color: '#374151', marginBottom: '6px' }}>7-day free trial, no card</div>
                 <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '12px' }}>No per-transaction fee from DineOpen. No automatic Swiggy/Zomato sync.</div>
@@ -407,7 +407,7 @@ export default function PetpoojaAlternativeClient() {
               {
                 icon: '💰',
                 title: 'Lower Cost, All-in-One',
-                desc: 'DineOpen Growth is ₹8,988/year (or ₹899/month) with captain app, KDS and QR ordering included. On Petpooja, those features come in the Operations Manager Growth plan (₹20,000 + taxes, Base included).'
+                desc: 'DineOpen Growth is ₹7,999/year (or ₹799/month) with captain app, KDS and QR ordering included. On Petpooja, those features come in the Operations Manager Growth plan (₹20,000 + taxes, Base included).'
               },
               {
                 icon: '🤖',

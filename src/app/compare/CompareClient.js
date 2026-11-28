@@ -7,7 +7,7 @@ const competitors = [
     name: 'DineOpen',
     logo: '/favicon.png',
     price: '$20/mo',
-    priceINR: '₹899/mo',
+    priceINR: '₹799/mo',
     transactionFee: '0%',
     aiFeatures: true,
     voiceOrdering: true,

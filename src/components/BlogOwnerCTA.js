@@ -9,11 +9,11 @@ import Link from 'next/link';
 import posthog from 'posthog-js';
 
 // Starting price per country — keep in line with src/app/pricing/PricingClient.js.
-// India shows Growth ₹899 (the ₹299 Starter is never shown publicly).
+// India shows "from ₹799" (the ₹299 Café Lite is never shown publicly).
 const PRICE = {
   US: '$20/month', CA: 'US$20/month', AU: 'US$20/month', GB: '£16/month', IE: 'US$20/month',
   AE: 'AED 75/month', SA: 'SAR 75/month', QA: 'US$20/month', KW: 'KWD 6/month', BH: 'BHD 8/month',
-  OM: 'US$20/month', IN: '₹899/month', KE: 'US$20/month', NG: 'US$20/month', ZA: 'US$20/month', SG: 'US$20/month',
+  OM: 'US$20/month', IN: '₹799/month', KE: 'US$20/month', NG: 'US$20/month', ZA: 'US$20/month', SG: 'US$20/month',
 };
 
 const TZ = {

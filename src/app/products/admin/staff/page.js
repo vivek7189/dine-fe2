@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function StaffPage() {
   const schemas = [
-    { "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DineOpen Staff Management", "applicationCategory": "BusinessApplication", "description": "Restaurant staff management with role-based access control, credentials management, and activity tracking.", "url": "https://www.dineopen.com/products/admin/staff", "offers": [{ "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }] },
+    { "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DineOpen Staff Management", "applicationCategory": "BusinessApplication", "description": "Restaurant staff management with role-based access control, credentials management, and activity tracking.", "url": "https://www.dineopen.com/products/admin/staff", "offers": [{ "@type": "Offer", "price": "20", "priceCurrency": "USD" }] },
     { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
       { "@type": "Question", "name": "What staff roles can I create?", "acceptedAnswer": { "@type": "Answer", "text": "DineOpen includes built-in roles: Employee (basic access), Manager (operational control), and Admin (full access). Create unlimited custom roles with granular permissions for each feature module." } },
       { "@type": "Question", "name": "How do staff credentials work?", "acceptedAnswer": { "@type": "Answer", "text": "Each staff member gets a unique username and password. Admins can generate credentials, force password resets, and revoke access instantly. Staff log in via the app to access their permitted features." } },

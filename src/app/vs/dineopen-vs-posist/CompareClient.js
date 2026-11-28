@@ -8,7 +8,7 @@ import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
   { category: 'Pricing & Fees', features: [
-    { feature: 'Starting Price', dineopen: '$20/month (₹899 in India)', posist: 'Pricing on request', winner: 'tie' },
+    { feature: 'Starting Price', dineopen: '$20/month (₹799 in India)', posist: 'Pricing on request', winner: 'tie' },
     { feature: 'Per-transaction Fee from the POS', dineopen: 'None (gateway charges still apply)', posist: 'Ask for a quote', winner: 'tie' },
     { feature: 'Setup Fee', dineopen: '₹0', posist: 'Ask for a quote', winner: 'tie' },
     { feature: 'Pricing Transparency', dineopen: 'Published on website', posist: 'Contact sales for custom quote', winner: 'dineopen' },
@@ -64,7 +64,7 @@ const faqs = [
   },
   {
     q: 'Which POS is better for a single restaurant in India?',
-    a: 'For a single-outlet restaurant, DineOpen is almost always the better choice. It starts at Rs 899/month with all features included, a published price and 15-minute self-setup. POSist shares pricing on request and is designed for chains. POSist is enterprise software — powerful, but expensive and complex for a single restaurant.'
+    a: 'For a single-outlet restaurant, DineOpen is almost always the better choice. It starts at Rs 799/month with all features included, a published price and 15-minute self-setup. POSist shares pricing on request and is designed for chains. POSist is enterprise software — powerful, but expensive and complex for a single restaurant.'
   },
 ];
 
@@ -171,7 +171,7 @@ export default function CompareClient() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             {[
-              { stat: '₹899/mo', label: 'DineOpen starting price', sublabel: 'POSist: pricing on request' },
+              { stat: '₹799/mo', label: 'DineOpen starting price', sublabel: 'POSist: pricing on request' },
               { stat: '0%', label: 'DineOpen transaction fee', sublabel: 'Gateway charges still apply' },
               { stat: '15 min', label: 'DineOpen setup time', sublabel: 'vs days/weeks with POSist' },
               { stat: '20+', label: 'Countries supported', sublabel: 'POSist: India & select markets' },
@@ -210,7 +210,7 @@ export default function CompareClient() {
               <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', fontStyle: 'italic' }}>Best for: Small-to-medium restaurants, 1-5 outlets</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '$20/month Starter plan (₹899 in India) | $99/month Pro plan',
+                  '$20/month Starter plan (₹799 in India) | $99/month Pro plan',
                   'AI voice ordering, chat assistant, menu extraction',
                   'No per-transaction fee from DineOpen',
                   '15-minute self-setup, works on any device',
@@ -328,7 +328,7 @@ export default function CompareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
             {[
               { title: 'AI-Powered Features', desc: 'Voice ordering in 10+ Indian languages, AI chat assistant, and menu extraction from photos. Built into every plan.' },
-              { title: 'Price on the Website', desc: 'From ₹899/month in India, published openly. No sales call needed to find out what it costs.' },
+              { title: 'Price on the Website', desc: 'From ₹799/month in India, published openly. No sales call needed to find out what it costs.' },
               { title: 'No Per-Transaction Fee', desc: 'DineOpen takes no cut of your sales. Online payments still carry your payment gateway\'s own charges.' },
               { title: 'Self-Setup in 15 Minutes', desc: 'No waiting for technicians, no installation appointments. Download, photograph your menu, start billing. Works on any phone or tablet.' },
               { title: 'No Annual Contracts', desc: 'Month-to-month billing, cancel anytime.' },
@@ -439,7 +439,7 @@ export default function CompareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
             <div style={{ backgroundColor: '#fff7ed', borderRadius: '10px', padding: '24px', border: '1px solid #fed7aa' }}>
               <p style={{ fontSize: '15px', color: '#111827', marginBottom: '10px', fontWeight: '700' }}>DineOpen</p>
-              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>From ₹899/month per outlet in India</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>From ₹799/month per outlet in India</p>
               <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>All features included, no setup fee</p>
               <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>7-day free trial, no card</p>
               <p style={{ fontSize: '14px', color: '#374151', margin: '4px 0' }}>No per-transaction fee from DineOpen</p>

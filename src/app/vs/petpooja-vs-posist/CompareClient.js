@@ -411,7 +411,7 @@ export default function CompareClient() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
               {[
-                { label: 'Monthly Price', value: 'From ₹899/month' },
+                { label: 'Monthly Price', value: 'From ₹799/month' },
                 { label: 'Swiggy/Zomato Sync', value: 'Not yet' },
                 { label: 'AI Features', value: 'Voice ordering, Chat assistant, Menu extraction' },
                 { label: 'Free Trial', value: '7 days, full access' },
@@ -423,7 +423,7 @@ export default function CompareClient() {
               ))}
             </div>
             <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.7', margin: '0 0 20px 0' }}>
-              DineOpen is especially worth considering if you want AI voice ordering and WhatsApp ordering without a big software bill: both are in the Growth plan, which starts at ₹899/month in India, with no per-transaction fee from DineOpen. If Swiggy and Zomato orders are a big part of your sales, note that DineOpen does not sync them automatically yet.
+              DineOpen is especially worth considering if you want AI voice ordering and WhatsApp ordering without a big software bill: both are in the Growth plan, which starts at ₹799/month in India, with no per-transaction fee from DineOpen. If Swiggy and Zomato orders are a big part of your sales, note that DineOpen does not sync them automatically yet.
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Link href="/alternatives/petpooja" style={{
@@ -495,7 +495,7 @@ export default function CompareClient() {
               },
               {
                 q: 'Are there alternatives to both Petpooja and POSist?',
-                a: 'Yes. DineOpen offers AI-powered features from ₹899/month in India, with no per-transaction fee from DineOpen and a 7-day free trial. It is a modern alternative for restaurants wanting automation at a lower price point.',
+                a: 'Yes. DineOpen offers AI-powered features from ₹799/month in India, with no per-transaction fee from DineOpen and a 7-day free trial. It is a modern alternative for restaurants wanting automation at a lower price point.',
               },
             ].map((faq, i) => (
               <div key={i} style={{

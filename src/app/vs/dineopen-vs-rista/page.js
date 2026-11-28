@@ -20,7 +20,7 @@ export const metadata = {
 const faqs = [
   {
     q: 'How much does Rista cost compared to DineOpen?',
-    a: 'Rista does not list its prices on ristaapps.com, so it is pricing on request and you will need a quote from their team. DineOpen starts from ₹899 a month in India, and you can try it free for 7 days without a card.',
+    a: 'Rista does not list its prices on ristaapps.com, so it is pricing on request and you will need a quote from their team. DineOpen starts from ₹799 a month in India, and you can try it free for 7 days without a card.',
   },
   {
     q: 'Who makes Rista?',
@@ -44,7 +44,7 @@ const faqSchema = buildFaqSchema(faqs);
 const articleSchema = buildArticleSchema({ headline: 'DineOpen vs Rista: Price & Features Compared (2026)', description: DESCRIPTION, url: URL, date: '2026-10-21' });
 
 const table = [
-  { label: 'Starting price', dine: 'From ₹899/month in India', them: 'Pricing on request (not listed on ristaapps.com)' },
+  { label: 'Starting price', dine: 'From ₹799/month in India', them: 'Pricing on request (not listed on ristaapps.com)' },
   { label: 'Free trial', dine: '7 days, no card needed', them: 'Windows app offered as a free download to try' },
   { label: 'Swiggy / Zomato orders', dine: 'Not synced automatically. Record them by platform and report on them', them: 'Two-way aggregator integration, Swiggy/Zomato payout reports' },
   { label: 'Multi-brand cloud kitchen', dine: 'Multi-outlet reports', them: 'Multi-brand invoices and shared inventory across brands' },
@@ -63,7 +63,7 @@ const sections = [
     heading: 'Which one is cheaper for a single café?',
     paragraphs: [
       'We honestly cannot give you a rupee-for-rupee answer, because Rista does not publish its prices. You fill a form and their team calls you with a quote. That is normal for POS companies in India, but it means you should ask for the full yearly number, including any add-ons, before you compare.',
-      'DineOpen starts from ₹899 a month in India and the price is on our pricing page. Take a 40-seat café in Pune. You can set it up on the Android tablet you already have, connect a Bluetooth thermal printer, and run it for a week before paying anything.',
+      'DineOpen starts from ₹799 a month in India and the price is on our pricing page. Take a 40-seat café in Pune. You can set it up on the Android tablet you already have, connect a Bluetooth thermal printer, and run it for a week before paying anything.',
     ],
   },
   {
@@ -130,7 +130,7 @@ export default function DineOpenVsRistaPage() {
         badge="HONEST COMPARISON · OCTOBER 2026"
         h1="DineOpen vs Rista: which one suits your restaurant?"
         intro="Rista is the restaurant POS from DotPe, and it is strong with delivery-heavy and multi-brand kitchens. DineOpen is simpler to start with and shows its price upfront. Here is how they actually differ, including where Rista does the job better."
-        quickAnswer="If most of your orders come from Swiggy and Zomato, or you run several brands from one kitchen, Rista is likely the better fit because it syncs aggregator orders and we do not. If you run a dine-in restaurant or café and want a clear price from ₹899 a month with a 7-day free trial, DineOpen is the easier place to start."
+        quickAnswer="If most of your orders come from Swiggy and Zomato, or you run several brands from one kitchen, Rista is likely the better fit because it syncs aggregator orders and we do not. If you run a dine-in restaurant or café and want a clear price from ₹799 a month with a 7-day free trial, DineOpen is the easier place to start."
         table={table}
         tableNote="Rista details are from ristaapps.com as checked in October 2026. Rista does not publish prices."
         sections={sections}

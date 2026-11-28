@@ -4,12 +4,12 @@ export const dynamic = 'force-static';
 export const revalidate = false;
 
 export const metadata = {
-  title: 'Multi-Restaurant POS | Chain & Franchise Management | Unlimited Outlets | DineOpen',
-  description: 'Manage unlimited restaurant outlets from one dashboard. Multi-location POS for chains, franchises & enterprise. Central menu, inventory, reports. Just ₹999/outlet/month ($10 international). Free trial.',
+  title: 'Multi-Restaurant POS for Chains & Franchises | DineOpen',
+  description: 'Manage all your restaurant outlets from one dashboard. Multi-location POS for chains, franchises & enterprise. Central menu, inventory, reports. Pro is $99/month for 2 outlets (£79 UK), 3+ outlets on a custom quote; India from ₹799 per outlet per month. Free trial.',
   keywords: 'multi restaurant POS, chain restaurant software, franchise POS system, multi location restaurant management, enterprise restaurant software, restaurant chain management, multi outlet POS India, central kitchen management, franchise management software, multi branch restaurant',
   openGraph: {
     title: 'Multi-Restaurant POS | Chain & Franchise Solution | DineOpen',
-    description: 'One dashboard for unlimited restaurants. Central control, per-outlet pricing. Perfect for chains & franchises.',
+    description: 'One dashboard for all your outlets. Central menu, stock and reports. Perfect for chains & franchises.',
     url: 'https://www.dineopen.com/products/multi-restaurant',
     siteName: 'DineOpen',
     images: [{ url: 'https://www.dineopen.com/og-multi-restaurant.jpg', width: 1200, height: 630, alt: 'DineOpen Multi-Restaurant Management' }],
@@ -18,7 +18,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Multi-Restaurant POS | Chain & Franchise Solution | DineOpen',
-    description: 'One dashboard for unlimited restaurants. Just ₹999/outlet or $10/outlet.',
+    description: 'One dashboard for all your outlets. Pro $99/month for 2 outlets, 3+ on a custom quote; India from ₹799 per outlet.',
   },
   alternates: {
     canonical: 'https://www.dineopen.com/products/multi-restaurant',
@@ -32,34 +32,31 @@ export default function MultiRestaurantPage() {
     "name": "DineOpen Multi-Restaurant Management",
     "applicationCategory": "BusinessApplication",
     "applicationSubCategory": "Enterprise Restaurant Management",
-    "description": "Manage unlimited restaurant outlets from a single dashboard. Central menu management, consolidated reporting, per-outlet pricing for chains and franchises.",
+    "description": "Manage all your restaurant outlets from a single dashboard. Central menu management and consolidated reporting for chains and franchises.",
     "operatingSystem": "Web, iOS, Android",
     "url": "https://www.dineopen.com/products/multi-restaurant",
     "offers": [
       {
         "@type": "Offer",
-        "price": "10",
+        "price": "99",
         "priceCurrency": "USD",
-        "description": "Per outlet per month",
-        "eligibleRegion": ["US", "GB"]
+        "description": "Pro plan, 2 outlets, per month (3+ outlets: custom quote)"
       },
       {
         "@type": "Offer",
-        "price": "899",
+        "price": "799",
         "priceCurrency": "INR",
-        "description": "Per outlet per month",
+        "description": "From, per outlet per month",
         "eligibleRegion": "IN"
       }
     ],
     "featureList": [
-      "Unlimited outlet support",
       "Centralized dashboard",
       "Central menu management",
       "Consolidated reporting",
       "Per-outlet analytics",
       "Role-based access control",
       "Central inventory management",
-      "Franchise royalty tracking",
       "Multi-brand support"
     ]
   };
@@ -73,7 +70,7 @@ export default function MultiRestaurantPage() {
         "name": "How much does multi-restaurant POS cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen charges just ₹999/outlet/month in India ($10/outlet in US/UK). No setup fees, no hidden charges. Manage unlimited outlets from one dashboard."
+          "text": "Outside India, the Pro plan is $99/month (£79 in the UK) for 2 outlets, with central menu, inventory, staff and outlet-wise profit and loss. For 3 or more outlets DineOpen gives a custom quote. In India, plans start from ₹799 per outlet per month. No setup fee."
         }
       },
       {
@@ -97,7 +94,7 @@ export default function MultiRestaurantPage() {
         "name": "Is there a limit on number of outlets?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No limits! DineOpen supports unlimited outlets. Whether you have 2 locations or 200+, the per-outlet pricing stays the same. Scale freely."
+          "text": "There is no fixed outlet limit. Pro covers 2 outlets; for 3 or more outlets, franchises and cloud-kitchen groups DineOpen gives a custom quote based on your size."
         }
       },
       {

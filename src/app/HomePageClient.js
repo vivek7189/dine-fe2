@@ -140,16 +140,16 @@ export default function LandingPage() {
   // Same prices as /pricing (src/app/pricing/PricingClient.js). India shows Growth + Pro only
   // (Starter isn't offered publicly in India). Currencies without their own table use USD.
   const priceTable = {
-    INR: { symbol: '₹',    growth: { monthly: 899, annual: 749 }, pro: { monthly: 1799, annual: 1499 } },
+    INR: { symbol: '₹',    growth: { monthly: 799, annual: 667, annualBilled: 7999 }, pro: { monthly: 1799, annual: 1499 } },
     USD: { symbol: '$',    starter: { monthly: 20, annual: 18 }, growth: { monthly: 50, annual: 46 }, pro: { monthly: 99, annual: 83 } },
     GBP: { symbol: '£',    starter: { monthly: 16, annual: 14 }, growth: { monthly: 40, annual: 37 }, pro: { monthly: 79, annual: 67 } },
     AED: { symbol: 'AED ', starter: { monthly: 75, annual: 66 }, growth: { monthly: 185, annual: 168 }, pro: { monthly: 365, annual: 306 } },
   };
   const priceCurrency = priceTable[currency] ? currency : 'USD';
   const fmt = (n) => priceTable[priceCurrency].symbol + n.toLocaleString('en-IN');
-  // For INR annual: show yearly total directly (₹8,988/year instead of ₹749/month)
+  // For INR annual: show yearly total directly (₹7,999/year instead of ₹667/month)
   const showYearlyTotal = priceCurrency === 'INR' && billingCycle === 'annual';
-  const getPlanPrice = (type) => showYearlyTotal ? priceTable[priceCurrency][type].annual * 12 : priceTable[priceCurrency][type][billingCycle];
+  const getPlanPrice = (type) => showYearlyTotal ? (priceTable[priceCurrency][type].annualBilled || priceTable[priceCurrency][type].annual * 12) : priceTable[priceCurrency][type][billingCycle];
   const pricePeriod = showYearlyTotal ? 'per year' : 'per month';
   const allPlans = [
     {

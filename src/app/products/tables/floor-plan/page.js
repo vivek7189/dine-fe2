@@ -24,8 +24,8 @@ export default function FloorPlanPage() {
     "description": "Restaurant floor plan design with multi-floor management, table placement, capacity configuration, and real-time occupancy visualization.",
     "url": "https://www.dineopen.com/products/tables/floor-plan",
     "offers": [
-      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
-      { "@type": "Offer", "price": "899", "priceCurrency": "INR" }
+      { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
+      { "@type": "Offer", "price": "799", "priceCurrency": "INR" }
     ],
   };
 

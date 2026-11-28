@@ -27,7 +27,7 @@ export default function RoomServicePage() {
     "description": "Room service ordering system for hotels integrated with restaurant POS. Orders sent to kitchen via KOT, charges added to guest folio automatically.",
     "applicationCategory": "BusinessApplication",
     "url": "https://www.dineopen.com/products/hotel/room-service",
-    "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
+    "offers": { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
   };
 
   const faqSchema = {

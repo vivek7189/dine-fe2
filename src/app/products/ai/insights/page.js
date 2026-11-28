@@ -30,7 +30,7 @@ export default function InsightsPage() {
     "url": "https://www.dineopen.com/products/ai/insights",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "featureList": [

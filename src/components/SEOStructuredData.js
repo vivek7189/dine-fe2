@@ -59,7 +59,7 @@ export default function SEOStructuredData() {
       {
         "@type": "Offer",
         "name": "Starter Plan (India)",
-        "price": "899",
+        "price": "799",
         "priceCurrency": "INR",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -142,7 +142,7 @@ export default function SEOStructuredData() {
       },
       {
         "@type": "Offer",
-        "price": "899",
+        "price": "799",
         "priceCurrency": "INR",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",
@@ -181,7 +181,7 @@ export default function SEOStructuredData() {
       },
       {
         "@type": "Offer",
-        "price": "899",
+        "price": "799",
         "priceCurrency": "INR",
         "availability": "https://schema.org/InStock",
         "url": "https://www.dineopen.com/pricing"
@@ -260,7 +260,7 @@ export default function SEOStructuredData() {
       },
       {
         "@type": "Offer",
-        "price": "899",
+        "price": "799",
         "priceCurrency": "INR",
         "priceValidUntil": "2027-12-31",
         "availability": "https://schema.org/InStock",

@@ -86,7 +86,7 @@ export default function USAHubPage() {
     name: 'DineOpen — Restaurant POS (USA)',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web, iOS, Android',
-    offers: { '@type': 'Offer', price: '10', priceCurrency: 'USD', availability: 'https://schema.org/InStock' },
+    offers: { '@type': 'Offer', price: '20', priceCurrency: 'USD', availability: 'https://schema.org/InStock' },
     areaServed: { '@type': 'Country', name: 'United States' },
   };
   return (

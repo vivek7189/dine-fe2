@@ -123,7 +123,7 @@ export default function ProfitCalculatorClient() {
           <ToolCTA
             tool="food-business-profit-calculator"
             title="See your real profit every day, not once a month"
-            text="DineOpen shows today’s sales, food cost and staff attendance on your phone, tablet or computer. From ₹899/month in India, with a 7-day free trial."
+            text="DineOpen shows today’s sales, food cost and staff attendance on your phone, tablet or computer. From ₹799/month in India, with a 7-day free trial."
           />
 
           <section className="sec" id="benchmarks">
@@ -174,7 +174,7 @@ export default function ProfitCalculatorClient() {
               <p>Billing, kitchen tickets, stock, staff attendance and payroll in one place, on the phone or computer you already have.</p>
               <ul>
                 <li>7-day free trial</li>
-                <li>From ₹899/month in India</li>
+                <li>From ₹799/month in India</li>
                 <li>Works on phone, tablet or computer</li>
               </ul>
             </div>

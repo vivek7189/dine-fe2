@@ -34,7 +34,7 @@ export default function OnlineMenuPage() {
     "operatingSystem": "Web",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "brand": { "@type": "Brand", "name": "DineOpen" }

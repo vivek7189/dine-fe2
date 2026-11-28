@@ -21,7 +21,7 @@ export const metadata = {
 };
 
 const PRICES = [
-  ['India', 'Growth ₹899/month (₹8,988/year) · Pro ₹1,799/month (₹17,988/year) · multi-outlet on request'],
+  ['India', 'Growth ₹799/month (₹7,999/year) · Pro ₹1,799/month (₹17,988/year) · multi-outlet on request'],
   ['USA & other countries', 'Starter $20 · Growth $50 · Pro $99 per month'],
   ['United Kingdom', 'Starter £16 · Growth £40 · Pro £79 per month'],
   ['UAE', 'Starter AED 75 · Growth AED 185 · Pro AED 365 per month'],
@@ -51,7 +51,7 @@ const INTEGRATIONS = [
 ];
 
 const FAQS = [
-  ['How much does DineOpen cost?', 'In India, DineOpen starts at ₹899 per month (Growth plan, or ₹8,988 per year). Internationally it starts at $20 per month (£16 in the UK, AED 75 in the UAE). Every plan has a 7-day free trial.'],
+  ['How much does DineOpen cost?', 'In India, DineOpen starts at ₹799 per month (Growth plan, or ₹7,999 per year). Internationally it starts at $20 per month (£16 in the UK, AED 75 in the UAE). Every plan has a 7-day free trial.'],
   ['Does DineOpen integrate with Swiggy or Zomato?', 'No. DineOpen does not sync Swiggy or Zomato orders automatically today. Restaurants record those orders on the DineOpen POS and see aggregator sales separately in reports. Talabat is integrated for the UAE and Gulf.'],
   ['Which devices does DineOpen run on?', 'Android phones and tablets, iPhone and iPad, Windows computers and any web browser, with 58mm/80mm thermal printers for bills and KOTs.'],
   ['Is there a free trial?', 'Yes, 7 days with all features.'],
@@ -69,7 +69,7 @@ export default function FactsPage() {
       applicationCategory: 'BusinessApplication', operatingSystem: 'Android, iOS, Windows, Web',
       url: 'https://www.dineopen.com', description: 'Restaurant POS and management software: billing, KOT, tables, QR ordering, inventory, loyalty and reports.',
       offers: [
-        { '@type': 'Offer', price: '899', priceCurrency: 'INR', description: 'Growth plan, per month (India)' },
+        { '@type': 'Offer', price: '799', priceCurrency: 'INR', description: 'Growth plan, per month (India)' },
         { '@type': 'Offer', price: '20', priceCurrency: 'USD', description: 'Starter plan, per month' },
         { '@type': 'Offer', price: '16', priceCurrency: 'GBP', description: 'Starter plan, per month' },
         { '@type': 'Offer', price: '75', priceCurrency: 'AED', description: 'Starter plan, per month' },
@@ -98,7 +98,7 @@ export default function FactsPage() {
               {[
                 ['Product', 'Restaurant POS, billing and restaurant management software'],
                 ['Free trial', '7 days, all features'],
-                ['Starting price', 'India from ₹899/month · international from $20/month'],
+                ['Starting price', 'India from ₹799/month · international from $20/month'],
                 ['Transaction fees', 'None charged by DineOpen'],
                 ['Devices', 'Android, iPhone/iPad, Windows, any web browser; thermal bill and KOT printers'],
                 ['Languages (app)', 'English, Hindi, Spanish, Chinese, Arabic, French, Portuguese, Japanese, German'],

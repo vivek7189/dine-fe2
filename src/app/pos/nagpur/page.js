@@ -27,7 +27,7 @@ export default function NagpurPOSPage() {
     country: 'India',
     currency: '₹',
     currencyCode: 'INR',
-    price: '899',
+    price: '799',
     highlights: [
       'GST-compliant billing for Maharashtra',
       'Marathi & Hindi voice ordering',

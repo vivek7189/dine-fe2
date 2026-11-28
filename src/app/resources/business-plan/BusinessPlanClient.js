@@ -186,7 +186,7 @@ export default function BusinessPlanClient() {
           <div style={{ maxWidth: '680px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '30px', fontWeight: 800, marginBottom: '12px' }}>Opening soon? Run it on DineOpen</h2>
             <p style={{ fontSize: '17px', opacity: 0.95, marginBottom: '24px' }}>
-              Billing, KOT, inventory and daily profit reports on the phone or tablet you already have. ₹899/month, 7 days free.
+              Billing, KOT, inventory and daily profit reports on the phone or tablet you already have. ₹799/month, 7 days free.
             </p>
             <Link href="/login?utm_source=resources&utm_medium=cta&utm_campaign=business-plan" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '15px 34px', backgroundColor: 'white', color: '#5b21b6', borderRadius: '10px', fontWeight: 700, textDecoration: 'none' }}>
               Start free trial <FaArrowRight />

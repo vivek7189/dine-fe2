@@ -20,7 +20,7 @@ export const metadata = {
 const faqs = [
   {
     q: 'How much does Gofrugal cost for a restaurant?',
-    a: 'When we checked gofrugal.com in October 2026, the pricing page said it was under maintenance and asked buyers to email presales@gofrugal.com, so it is pricing on request. The page also notes that on the yearly subscription, training and implementation are charged separately. DineOpen starts from ₹899 a month in India.',
+    a: 'When we checked gofrugal.com in October 2026, the pricing page said it was under maintenance and asked buyers to email presales@gofrugal.com, so it is pricing on request. The page also notes that on the yearly subscription, training and implementation are charged separately. DineOpen starts from ₹799 a month in India.',
   },
   {
     q: 'Which one has the longer free trial?',
@@ -44,7 +44,7 @@ const faqSchema = buildFaqSchema(faqs);
 const articleSchema = buildArticleSchema({ headline: 'DineOpen vs Gofrugal: Price & Features Compared (2026)', description: DESCRIPTION, url: URL, date: '2026-10-21' });
 
 const table = [
-  { label: 'Starting price', dine: 'From ₹899/month in India', them: 'Pricing on request (pricing page under maintenance in October 2026)' },
+  { label: 'Starting price', dine: 'From ₹799/month in India', them: 'Pricing on request (pricing page under maintenance in October 2026)' },
   { label: 'Training and setup', dine: 'Free menu setup help on WhatsApp', them: 'Included with one-time licence; extra on yearly subscription' },
   { label: 'Free trial', dine: '7 days, no card needed', them: '30 days' },
   { label: 'How it runs', dine: 'Cloud app on Android, iPhone/iPad, Windows, browser', them: 'On-premises, cloud/hybrid, or mobile and tablet' },
@@ -63,7 +63,7 @@ const sections = [
     heading: 'Which one is cheaper for a single café?',
     paragraphs: [
       'We could not get a Gofrugal price to compare. In October 2026 their pricing page showed a maintenance notice and an email address for pricing questions. One detail on that page is worth knowing: on the yearly subscription, the price covers the licence only, and online training and implementation are charged on top. On-site training also adds travel and stay costs.',
-      'DineOpen starts from ₹899 a month in India. For a 40-seat café in Pune, that is a number you can put in your budget today, and our team helps you load the menu for free.',
+      'DineOpen starts from ₹799 a month in India. For a 40-seat café in Pune, that is a number you can put in your budget today, and our team helps you load the menu for free.',
     ],
   },
   {
@@ -100,7 +100,7 @@ const whoUs = [
   'You run a dine-in restaurant, café or bar and want to set up yourself without an implementation project.',
   'You want waiter app, kitchen display and QR ordering in the base product.',
   'You want staff attendance and payroll alongside billing.',
-  'You want a clear monthly price from ₹899 in India.',
+  'You want a clear monthly price from ₹799 in India.',
 ];
 
 const sources = [
@@ -125,7 +125,7 @@ export default function DineOpenVsGofrugalPage() {
         badge="HONEST COMPARISON · OCTOBER 2026"
         h1="DineOpen vs Gofrugal: which one fits your restaurant?"
         intro="Gofrugal (its restaurant product is often called ServeEasy) is a deep, ERP-style system that also serves retail and distribution. DineOpen is a lighter restaurant app you can set up yourself. Here is how they compare, and where Gofrugal is the better choice."
-        quickAnswer="If you need heavy inventory, production planning, built-in accounting or an on-premises system that bills without internet, Gofrugal is the stronger pick. If you run a restaurant or café and want waiter app, kitchen display, QR ordering and staff payroll in one app from ₹899 a month, DineOpen is quicker to get going."
+        quickAnswer="If you need heavy inventory, production planning, built-in accounting or an on-premises system that bills without internet, Gofrugal is the stronger pick. If you run a restaurant or café and want waiter app, kitchen display, QR ordering and staff payroll in one app from ₹799 a month, DineOpen is quicker to get going."
         table={table}
         tableNote="Gofrugal details are from gofrugal.com as checked in October 2026. Gofrugal prices were not shown on its site at that time."
         sections={sections}

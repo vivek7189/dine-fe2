@@ -101,7 +101,7 @@ export default function PricingClient() {
     INR: {
       symbol: '₹',
       starter:  { monthly: 299,  annual: 250,  annualBilled: 3000 },
-      growth:   { monthly: 899,  annual: 749,  annualBilled: 8988 },
+      growth:   { monthly: 799,  annual: 667,  annualBilled: 7999 },
       pro:      { monthly: 1799, annual: 1499, annualBilled: 17988 },
     },
     USD: {
@@ -355,7 +355,7 @@ export default function PricingClient() {
           </h1>
           <p style={{ fontSize: '20px', color: '#6b7280', maxWidth: '680px', margin: '0 auto 32px' }}>
             {isIndia ? (
-              <>🇮🇳 Plans from <strong style={{ color: '#ef4444' }}>₹899/month</strong>, plus custom pricing & exclusive offers for restaurants in India. Talk to us for the best deal.</>
+              <>🇮🇳 Plans from <strong style={{ color: '#ef4444' }}>₹799/month</strong>, plus custom pricing & exclusive offers for restaurants in India. Talk to us for the best deal.</>
             ) : (
               <>Plans start from <strong style={{ color: '#ef4444' }}>{currentPrice.symbol}{fmt(showYearlyTotal ? currentPrice.starter.annualBilled : currentPrice.starter[cycle])}{getPriceSuffix()}</strong>. AI features included. Zero transaction fees. No hidden costs. Cancel anytime.</>
             )}

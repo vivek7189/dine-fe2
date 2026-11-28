@@ -20,7 +20,7 @@ export const metadata = {
 const faqs = [
   {
     q: 'How much does DotPe cost?',
-    a: 'DotPe does not publish prices. Its own FAQ says pricing depends on your needs and asks you to contact them, so it is pricing on request. DineOpen starts from ₹899 a month in India with a 7-day free trial and no card needed.',
+    a: 'DotPe does not publish prices. Its own FAQ says pricing depends on your needs and asks you to contact them, so it is pricing on request. DineOpen starts from ₹799 a month in India with a 7-day free trial and no card needed.',
   },
   {
     q: 'Is DotPe the same as Rista?',
@@ -44,7 +44,7 @@ const faqSchema = buildFaqSchema(faqs);
 const articleSchema = buildArticleSchema({ headline: 'DineOpen vs DotPe: Price & Features Compared (2026)', description: DESCRIPTION, url: URL, date: '2026-10-21' });
 
 const table = [
-  { label: 'Starting price', dine: 'From ₹899/month in India', them: 'Pricing on request (their FAQ says contact them)' },
+  { label: 'Starting price', dine: 'From ₹799/month in India', them: 'Pricing on request (their FAQ says contact them)' },
   { label: 'How you start', dine: '7-day free trial, no card needed', them: 'Free demo with a product specialist' },
   { label: 'Swiggy / Zomato orders', dine: 'Not synced automatically. Record them by platform and report on them', them: 'Two-way integrations with Swiggy, Zomato and Amazon Foods' },
   { label: 'QR ordering', dine: 'Yes, linked to tables and KOT', them: 'Yes, with contactless payment' },
@@ -62,7 +62,7 @@ const sections = [
     heading: 'Which one is cheaper for a small restaurant?',
     paragraphs: [
       'DotPe does not put prices on its website. Its FAQ says pricing depends on what you need and asks you to get in touch. So the only honest answer is: get a written yearly quote from DotPe, add any payment or add-on charges, and compare that to our number.',
-      'Our number is simple. DineOpen starts from ₹899 a month in India. A small dhaba-style restaurant with eight tables can sign up, put the menu in, and bill for a week on a free trial before deciding.',
+      'Our number is simple. DineOpen starts from ₹799 a month in India. A small dhaba-style restaurant with eight tables can sign up, put the menu in, and bill for a week on a free trial before deciding.',
     ],
   },
   {
@@ -125,7 +125,7 @@ export default function DineOpenVsDotPePage() {
         badge="HONEST COMPARISON · OCTOBER 2026"
         h1="DineOpen vs DotPe: which one should you choose?"
         intro="DotPe is known for QR ordering, online stores and payments, and its restaurant POS is called Rista. DineOpen is an all-in-one restaurant app with a public price. Here is a straight comparison, including the places where DotPe is ahead."
-        quickAnswer="Pick DotPe if digital ordering, payments and Swiggy or Zomato sync are the heart of your business, because it does those well and we do not sync aggregator orders. Pick DineOpen if you mainly serve dine-in guests and want floor, kitchen and staff in one app from ₹899 a month, with a 7-day free trial."
+        quickAnswer="Pick DotPe if digital ordering, payments and Swiggy or Zomato sync are the heart of your business, because it does those well and we do not sync aggregator orders. Pick DineOpen if you mainly serve dine-in guests and want floor, kitchen and staff in one app from ₹799 a month, with a 7-day free trial."
         table={table}
         tableNote="DotPe details are from dotpe.in as checked in October 2026. DotPe does not publish prices."
         sections={sections}

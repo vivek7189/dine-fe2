@@ -30,7 +30,7 @@ export default function QrOrderingPage() {
     "url": "https://www.dineopen.com/products/orders/qr-ordering",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "featureList": [

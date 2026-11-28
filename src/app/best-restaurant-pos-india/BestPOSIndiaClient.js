@@ -10,11 +10,11 @@ import InternalLinks from '../../components/InternalLinks';
 const posData = [
   {
     name: 'DineOpen',
-    price: '₹899/month',
+    price: '₹799/month',
     trial: '7-day free trial',
     bestFor: 'Small to mid-size restaurants wanting an affordable all-in-one with AI',
     pros: [
-      'Flat ₹899/month with zero transaction fees',
+      'Flat ₹799/month with zero transaction fees',
       'AI voice ordering in Hindi, English, Tamil, Marathi and more',
       'AI-powered menu extraction from photos — set up in minutes',
       'Cloud-based: works on any phone, tablet, or laptop',
@@ -543,7 +543,7 @@ export default function BestPOSIndiaClient() {
               </thead>
               <tbody>
                 {[
-                  { feature: 'Published Price', dineopen: '₹899/mo', petpooja: '₹12,000 + taxes (Base)', posist: 'On request', gofrugal: '₹15K-30K one-time', marg: '₹4,500/year' },
+                  { feature: 'Published Price', dineopen: '₹799/mo', petpooja: '₹12,000 + taxes (Base)', posist: 'On request', gofrugal: '₹15K-30K one-time', marg: '₹4,500/year' },
                   { feature: 'Transaction Fees', dineopen: 'None', petpooja: 'None listed', posist: 'Ask for a quote', gofrugal: 'None', marg: 'None' },
                   { feature: 'Cloud-Based', dineopen: 'Yes', petpooja: 'Yes', posist: 'Yes', gofrugal: 'Desktop + cloud add-on', marg: 'Desktop only' },
                   { feature: 'GST Billing', dineopen: 'Full', petpooja: 'Full', posist: 'Full', gofrugal: 'Full', marg: 'Strongest' },
@@ -746,7 +746,7 @@ export default function BestPOSIndiaClient() {
             marginBottom: '16px',
             lineHeight: '1.7',
           }}>
-            DineOpen starts at ₹899/month with zero transaction fees. AI voice ordering, cloud POS, GST billing,
+            DineOpen starts at ₹799/month with zero transaction fees. AI voice ordering, cloud POS, GST billing,
             inventory, KDS, and loyalty — all included. No add-on pricing. Set up in 15 minutes.
           </p>
           <p style={{

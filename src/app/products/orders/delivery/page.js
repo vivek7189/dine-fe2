@@ -30,7 +30,7 @@ export default function DeliveryPage() {
     "url": "https://www.dineopen.com/products/orders/delivery",
     "offers": {
       "@type": "Offer",
-      "price": "9.99",
+      "price": "20",
       "priceCurrency": "USD"
     },
     "featureList": [

@@ -1240,7 +1240,7 @@ export const blogPosts = [
   {
     slug: 'petpooja-alternative-free-2026',
     title: 'Free Petpooja Alternatives 2026: 5 Affordable POS Software for Restaurants',
-    excerpt: '5 Petpooja alternatives — DineOpen (₹899/mo), SlickPOS (free tier), POSist, Torqus, Zoho. Feature comparison, pricing, and migration guide from Petpooja.',
+    excerpt: '5 Petpooja alternatives — DineOpen (₹799/mo), SlickPOS (free tier), POSist, Torqus, Zoho. Feature comparison, pricing, and migration guide from Petpooja.',
     date: '2026-03-12',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -1291,7 +1291,7 @@ export const blogPosts = [
   {
     slug: 'best-catering-management-software-india',
     title: 'Best Catering Management Software in India 2026: Complete Comparison',
-    excerpt: 'Best catering management software in India 2026. Compare catering POS systems, event management tools, per-plate costing, bulk order tracking. DineOpen from Rs 899/month.',
+    excerpt: 'Best catering management software in India 2026. Compare catering POS systems, event management tools, per-plate costing, bulk order tracking. DineOpen from Rs 799/month.',
     date: '2026-03-12',
     category: 'Comparison',
     categoryColor: '#ef4444',
@@ -2728,7 +2728,7 @@ export const blogPostContent = {
     excerpt: 'In 2022 a Toast rep quoted me $1,200/month plus 2.49% on every swipe for a 2-location café. I walked out, spent 18 months building DineOpen, and now run the same setup for $20/month. Here\'s the full story — and the real math.',
     content: `
         <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
-          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> A 2-location café paying Toast $1,200/mo + 2.49% on $40k monthly card volume burns roughly <strong>$26,352/year</strong>. The same restaurant on DineOpen Starter ($20/mo) using their own merchant account pays <strong>$119.88/year</strong> in software — and keeps the swipe fees they were already paying anyway. That's a $26,232/year delta. This post shows the math, the build journey, and how to verify it yourself.</p>
+          <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;"><strong>Quick answer:</strong> A 2-location café paying Toast $1,200/mo + 2.49% on $40k monthly card volume burns roughly <strong>$26,352/year</strong>. The same restaurant on DineOpen Starter ($20/mo) using their own merchant account pays <strong>$240/year</strong> in software — and keeps the swipe fees they were already paying anyway. That's a $26,232/year delta. This post shows the math, the build journey, and how to verify it yourself.</p>
         </div>
 
         <p>It was a Tuesday in March 2022. I was running the numbers on a second café location and a Toast rep had just sent me the quote.</p>
@@ -2969,7 +2969,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">What makes DineOpen different from other restaurant POS systems?</h4>
-            <p style="color: #4b5563; margin: 0;">DineOpen is an AI-powered restaurant operating system, not just a POS. It combines billing, KDS, inventory, table management, QR menus, online ordering, customer loyalty, and AI voice/chat ordering in one platform. Most competitors offer these as separate add-ons at extra cost. DineOpen includes everything from ₹899/month.</p>
+            <p style="color: #4b5563; margin: 0;">DineOpen is an AI-powered restaurant operating system, not just a POS. It combines billing, KDS, inventory, table management, QR menus, online ordering, customer loyalty, and AI voice/chat ordering in one platform. Most competitors offer these as separate add-ons at extra cost. DineOpen includes everything from ₹799/month.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -2979,7 +2979,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">Can DineOpen work for small restaurants with limited budget?</h4>
-            <p style="color: #4b5563; margin: 0;">Absolutely. DineOpen starts at ₹899/month. There are no setup fees, no hardware requirements (works on any phone/tablet), and no long-term contracts. Small restaurants can start with basic features and scale up as they grow.</p>
+            <p style="color: #4b5563; margin: 0;">Absolutely. DineOpen starts at ₹799/month. There are no setup fees, no hardware requirements (works on any phone/tablet), and no long-term contracts. Small restaurants can start with basic features and scale up as they grow.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -3172,7 +3172,7 @@ export const blogPostContent = {
                 </tr>
                 <tr style="background: #f9fafb;">
                   <td style="padding: 12px; border: 1px solid #e5e7eb;"><strong>Pricing (Monthly)</strong></td>
-                  <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;"><strong>From ₹899</strong></td>
+                  <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;"><strong>From ₹799</strong></td>
                   <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">Contact for Pricing</td>
                   <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;"><strong>₹649-2,099</strong></td>
                 </tr>
@@ -3254,7 +3254,7 @@ export const blogPostContent = {
         </ul>
 
         <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 8px;">
-          <p style="margin: 0;"><strong>DineOpen Advantage:</strong> While Gofrugal is a solid traditional solution, DineOpen offers modern AI features, transparent pricing (₹899/month), zero transaction fees, and a more intuitive interface designed for 2026.</p>
+          <p style="margin: 0;"><strong>DineOpen Advantage:</strong> While Gofrugal is a solid traditional solution, DineOpen offers modern AI features, transparent pricing (₹799/month), zero transaction fees, and a more intuitive interface designed for 2026.</p>
         </div>
 
         <h2>💼 Zoho POS: Retail-Focused Solution</h2>
@@ -3289,7 +3289,7 @@ export const blogPostContent = {
             <div style="padding: 20px; background: white; border-radius: 8px; border: 2px solid #ef4444;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <strong style="font-size: 18px; color: #ef4444;">DineOpen</strong>
-                <span style="font-size: 24px; font-weight: 700; color: #ef4444;">From ₹899</span>
+                <span style="font-size: 24px; font-weight: 700; color: #ef4444;">From ₹799</span>
               </div>
               <p style="margin: 0; color: #6b7280;">✅ Zero transaction fees<br/>✅ 7 days free trial<br/>✅ All features included</p>
             </div>
@@ -3444,7 +3444,7 @@ export const blogPostContent = {
           <li>✅ Zero transaction fees (save ₹5-6 lakhs annually)</li>
           <li>✅ Purpose-built for cafes (not adapted from retail)</li>
           <li>✅ Modern, intuitive interface</li>
-          <li>✅ Transparent pricing (₹899/month starting)</li>
+          <li>✅ Transparent pricing (₹799/month starting)</li>
           <li>✅ 7 days free trial (longest in the market)</li>
         </ul>
 
@@ -3460,12 +3460,12 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">What is the best POS system for a cafe or coffee shop in India?</h4>
-            <p style="color: #4b5563; margin: 0;">DineOpen is the best POS for Indian cafes due to its affordable pricing (₹899/month), express billing mode for quick coffee orders, QR code menu ordering, and full GST compliance. It also includes inventory tracking for coffee beans, milk, and syrups — features that generic POS systems lack.</p>
+            <p style="color: #4b5563; margin: 0;">DineOpen is the best POS for Indian cafes due to its affordable pricing (₹799/month), express billing mode for quick coffee orders, QR code menu ordering, and full GST compliance. It also includes inventory tracking for coffee beans, milk, and syrups — features that generic POS systems lack.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How much does a cafe POS system cost?</h4>
-            <p style="color: #4b5563; margin: 0;">Cafe POS systems in India range from ₹899/month (DineOpen) to ₹3,000-8,000/month for solutions like Gofrugal or Zoho. Many cafes start on DineOpen at ₹899/month and add outlets as they grow.</p>
+            <p style="color: #4b5563; margin: 0;">Cafe POS systems in India range from ₹799/month (DineOpen) to ₹3,000-8,000/month for solutions like Gofrugal or Zoho. Many cafes start on DineOpen at ₹799/month and add outlets as they grow.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -5288,7 +5288,7 @@ export const blogPostContent = {
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Pricing Transparency</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ ₹899/month</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">✅ ₹799/month</td>
                   <td style="padding: 12px; text-align: center; color: #6b7280;">₹12,000 + taxes (Base plan)</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
@@ -5453,7 +5453,7 @@ export const blogPostContent = {
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #ef4444;">
               <strong style="color: #1f2937;">💵 Transparent Pricing</strong>
-              <p style="margin: 8px 0 0 0; color: #6b7280;">₹899/month starting price - no hidden costs, no sales calls needed</p>
+              <p style="margin: 8px 0 0 0; color: #6b7280;">₹799/month starting price - no hidden costs, no sales calls needed</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #8b5cf6;">
               <strong style="color: #1f2937;">🎁 7-Day Free Trial</strong>
@@ -5499,7 +5499,7 @@ export const blogPostContent = {
           <li>✅ Intelligent low stock notifications</li>
           <li>✅ AI voice ordering (unique in the market)</li>
           <li>✅ Zero transaction fees (save ₹5-6 lakhs annually)</li>
-          <li>✅ Transparent pricing (₹899/month starting)</li>
+          <li>✅ Transparent pricing (₹799/month starting)</li>
           <li>✅ 7 days free trial (longest in the market)</li>
           <li>✅ Modern, intuitive interface</li>
         </ul>
@@ -5755,7 +5755,7 @@ export const blogPostContent = {
                 </tr>
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                   <td style="padding: 12px; font-weight: 600;">Monthly Pricing</td>
-                  <td style="padding: 12px; text-align: center; color: #10b981;">₹899/month</td>
+                  <td style="padding: 12px; text-align: center; color: #10b981;">₹799/month</td>
                   <td style="padding: 12px; text-align: center; color: #6b7280;">₹12,000 + taxes (Base plan)</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">$60-120/month</td>
                   <td style="padding: 12px; text-align: center; color: #10b981;">$165-300/month</td>
@@ -5870,7 +5870,7 @@ export const blogPostContent = {
           <h3 style="color: white; margin-bottom: 24px; font-size: 28px;">Annual Cost Comparison (Based on ₹50 Lakhs Monthly Sales)</h3>
           <div style="display: grid; gap: 16px;">
             <div style="padding: 20px; background: rgba(255,255,255,0.1); border-radius: 8px; backdrop-filter: blur(10px);">
-              <strong style="font-size: 18px;">DineOpen:</strong> ₹10,788/year (₹899/month) + ₹0 transaction fees = ₹10,788 total
+              <strong style="font-size: 18px;">DineOpen:</strong> ₹10,788/year (₹799/month) + ₹0 transaction fees = ₹10,788 total
             </div>
             <div style="padding: 20px; background: rgba(255,255,255,0.1); border-radius: 8px; backdrop-filter: blur(10px);">
               <strong style="font-size: 18px;">Square:</strong> ₹72,000-1,44,000/year + ₹15.6 Lakhs transaction fees = ₹16.3-17.1 Lakhs total
@@ -5906,7 +5906,7 @@ export const blogPostContent = {
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #ef4444;">
               <strong style="color: #1f2937;">💵 Transparent Pricing</strong>
-              <p style="margin: 8px 0 0 0; color: #6b7280;">₹899/month starting price—no hidden costs, no sales calls needed.</p>
+              <p style="margin: 8px 0 0 0; color: #6b7280;">₹799/month starting price—no hidden costs, no sales calls needed.</p>
             </div>
             <div style="padding: 16px; background: white; border-radius: 8px; border-left: 4px solid #8b5cf6;">
               <strong style="color: #1f2937;">🎁 7-Day Free Trial</strong>
@@ -5989,7 +5989,7 @@ export const blogPostContent = {
           <li>✅ Waiter performance tracking and rewards</li>
           <li>✅ AI voice ordering (unique in the market)</li>
           <li>✅ Zero transaction fees (save ₹15-21 lakhs annually)</li>
-          <li>✅ Transparent pricing (₹899/month starting)</li>
+          <li>✅ Transparent pricing (₹799/month starting)</li>
           <li>✅ 7 days free trial (longest in the market)</li>
         </ul>
 
@@ -7719,7 +7719,7 @@ export const blogPostContent = {
 
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How much does an ice cream shop POS cost in India?</h4>
-            <p style="color: #4b5563; margin: 0;">Ice cream shop POS systems in India range from ₹899/month (DineOpen) to ₹2,000-5,000/month for feature-rich solutions. DineOpen is an affordable option with ₹899/month, including all features like QR ordering, inventory tracking, and analytics.</p>
+            <p style="color: #4b5563; margin: 0;">Ice cream shop POS systems in India range from ₹799/month (DineOpen) to ₹2,000-5,000/month for feature-rich solutions. DineOpen is an affordable option with ₹799/month, including all features like QR ordering, inventory tracking, and analytics.</p>
           </div>
 
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -8752,7 +8752,7 @@ export const blogPostContent = {
               <tr style="background: #f0fdf4;">
                 <td style="padding: 14px 20px; font-weight: 700; color: #166534; font-size: 16px;">DineOpen</td>
                 <td style="padding: 14px 20px; color: #166534; font-weight: 700; font-size: 16px;">0% (Zero)</td>
-                <td style="padding: 14px 20px; color: #166534; font-weight: 700;">₹899/mo or $9.99/mo</td>
+                <td style="padding: 14px 20px; color: #166534; font-weight: 700;">₹799/mo or $20/mo</td>
                 <td style="padding: 14px 20px; color: #166534; font-weight: 700; font-size: 16px;">₹0 in fees</td>
                 <td style="padding: 14px 20px; color: #166534; font-weight: 700; font-size: 16px;">$0 in fees</td>
               </tr>
@@ -8778,7 +8778,7 @@ export const blogPostContent = {
                 <p style="font-size: 24px; color: #dc2626; margin: 0; font-weight: 800;">₹20,000/year lost</p>
               </div>
               <div style="background: #dcfce7; padding: 16px 20px; border-radius: 10px; flex: 1; min-width: 200px;">
-                <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0; font-weight: 600;">With DineOpen (₹899/mo)</p>
+                <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0; font-weight: 600;">With DineOpen (₹799/mo)</p>
                 <p style="font-size: 24px; color: #16a34a; margin: 0; font-weight: 800;">₹0 in fees</p>
               </div>
             </div>
@@ -8794,7 +8794,7 @@ export const blogPostContent = {
                 <p style="font-size: 24px; color: #dc2626; margin: 0; font-weight: 800;">₹60,000/year lost</p>
               </div>
               <div style="background: #dcfce7; padding: 16px 20px; border-radius: 10px; flex: 1; min-width: 200px;">
-                <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0; font-weight: 600;">With DineOpen (₹899/mo)</p>
+                <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0; font-weight: 600;">With DineOpen (₹799/mo)</p>
                 <p style="font-size: 24px; color: #16a34a; margin: 0; font-weight: 800;">₹0 in fees</p>
               </div>
             </div>
@@ -8810,7 +8810,7 @@ export const blogPostContent = {
                 <p style="font-size: 24px; color: #dc2626; margin: 0; font-weight: 800;">₹1.5–₹2 lakhs/year lost</p>
               </div>
               <div style="background: #dcfce7; padding: 16px 20px; border-radius: 10px; flex: 1; min-width: 200px;">
-                <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0; font-weight: 600;">With DineOpen (₹899/mo x 5)</p>
+                <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0; font-weight: 600;">With DineOpen (₹799/mo x 5)</p>
                 <p style="font-size: 24px; color: #16a34a; margin: 0; font-weight: 800;">₹0 in fees</p>
               </div>
             </div>
@@ -8829,14 +8829,14 @@ export const blogPostContent = {
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 30px 0;">
           <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 28px; text-align: center;">
             <p style="font-size: 16px; color: #166534; margin-bottom: 8px; font-weight: 600;">India Pricing</p>
-            <p style="font-size: 42px; font-weight: 800; color: #16a34a; margin: 0;">₹899<span style="font-size: 18px; font-weight: 500;">/month</span></p>
+            <p style="font-size: 42px; font-weight: 800; color: #16a34a; margin: 0;">₹799<span style="font-size: 18px; font-weight: 500;">/month</span></p>
             <p style="font-size: 15px; color: #166534; margin-top: 8px;">= ₹10,788/year total</p>
             <p style="font-size: 14px; color: #166534; margin-top: 4px; font-weight: 600;">Zero transaction fees. Period.</p>
           </div>
           <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 28px; text-align: center;">
             <p style="font-size: 16px; color: #166534; margin-bottom: 8px; font-weight: 600;">International Pricing</p>
-            <p style="font-size: 42px; font-weight: 800; color: #16a34a; margin: 0;">$9.99<span style="font-size: 18px; font-weight: 500;">/month</span></p>
-            <p style="font-size: 15px; color: #166534; margin-top: 8px;">= $119.88/year total</p>
+            <p style="font-size: 42px; font-weight: 800; color: #16a34a; margin: 0;">From $20<span style="font-size: 18px; font-weight: 500;">/month</span></p>
+            <p style="font-size: 15px; color: #166534; margin-top: 8px;">= $240/year (Starter)</p>
             <p style="font-size: 14px; color: #166534; margin-top: 4px; font-weight: 600;">Zero transaction fees. Period.</p>
           </div>
         </div>
@@ -8856,7 +8856,7 @@ export const blogPostContent = {
           <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: 16px; padding: 28px;">
             <h4 style="color: #16a34a; margin-bottom: 16px; font-size: 18px;">What You Pay with DineOpen</h4>
             <ul style="list-style: none; padding: 0; margin: 0; font-size: 16px; color: #166534;">
-              <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">Subscription: ₹899/mo</li>
+              <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">Subscription: ₹799/mo</li>
               <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">+ Transaction fee: 0%</li>
               <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">+ Hidden charges: None</li>
               <li style="padding: 8px 0; font-weight: 700; font-size: 18px;">Total: ₹10,788/year</li>
@@ -8910,7 +8910,7 @@ export const blogPostContent = {
 
         <h2 style="font-size: 28px; font-weight: 800; color: #1f2937; margin-top: 50px; margin-bottom: 20px;">But Will Not a Cheap POS Lack Features?</h2>
 
-        <p style="font-size: 18px; line-height: 1.8; color: #374151;">This is the most common objection we hear: "If DineOpen is so affordable, it must be missing features." The reality is exactly the opposite. DineOpen at ₹899/month (or $9.99/month) includes <strong>more features</strong> than systems costing 5–10x as much.</p>
+        <p style="font-size: 18px; line-height: 1.8; color: #374151;">This is the most common objection we hear: "If DineOpen is so affordable, it must be missing features." The reality is exactly the opposite. DineOpen at ₹799/month (or $20/month) includes <strong>more features</strong> than systems costing 5–10x as much.</p>
 
         <p style="font-size: 18px; line-height: 1.8; color: #374151;">Here is a head-to-head feature comparison:</p>
 
@@ -8919,7 +8919,7 @@ export const blogPostContent = {
             <thead>
               <tr style="background: linear-gradient(135deg, #1f2937, #374151);">
                 <th style="padding: 14px 18px; text-align: left; color: white; font-weight: 700;">Feature</th>
-                <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">DineOpen<br/><span style="font-weight: 400; font-size: 12px;">₹899/mo + 0% fees</span></th>
+                <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">DineOpen<br/><span style="font-weight: 400; font-size: 12px;">₹799/mo + 0% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Toast<br/><span style="font-weight: 400; font-size: 12px;">$69/mo + 2.49% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Square<br/><span style="font-weight: 400; font-size: 12px;">$60/mo + 2.6% fees</span></th>
                 <th style="padding: 14px 18px; text-align: center; color: white; font-weight: 700;">Petpooja<br/><span style="font-weight: 400; font-size: 12px;">₹12,000 + taxes (Base), no per-order fee listed</span></th>
@@ -9202,7 +9202,7 @@ export const blogPostContent = {
         </table>
 
         <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 5px solid #22c55e; padding: 24px 28px; border-radius: 12px; margin: 30px 0;">
-          <p style="font-size: 17px; color: #166534; margin: 0; font-weight: 600;">DineOpen gives you ALL of this in one platform at ₹899/month (India) or $9.99/month (international). Most cloud kitchen owners spend ₹3,000-5,000/month on separate tools. With DineOpen, you get everything integrated.</p>
+          <p style="font-size: 17px; color: #166534; margin: 0; font-weight: 600;">DineOpen gives you ALL of this in one platform at ₹799/month (India) or $20/month (international). Most cloud kitchen owners spend ₹3,000-5,000/month on separate tools. With DineOpen, you get everything integrated.</p>
         </div>
 
         <h2 style="font-size: 28px; font-weight: 800; color: #111827; margin-top: 50px; margin-bottom: 20px;">Cloud Kitchen Financial Model</h2>
@@ -9245,7 +9245,7 @@ export const blogPostContent = {
             </tr>
             <tr>
               <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Technology (POS, etc.)</td>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹899</td>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₹799</td>
               <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">DineOpen plan</td>
             </tr>
             <tr style="background: #f9fafb;">
@@ -9481,7 +9481,7 @@ export const blogPostContent = {
 
         <div style="background: linear-gradient(135deg, #111827, #374151); border-radius: 20px; padding: 48px 32px; text-align: center; margin: 50px 0; color: white;">
           <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Launch Your Cloud Kitchen with DineOpen</h2>
-          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">Get POS, KDS, delivery integration, inventory, and multi-brand management — all in one platform at ₹899/month. Free 7-day trial.</p>
+          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">Get POS, KDS, delivery integration, inventory, and multi-brand management — all in one platform at ₹799/month. Free 7-day trial.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <a href="https://dineopen.com/login" style="display: inline-block; padding: 16px 32px; background: #ef4444; color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free Trial →</a>
             <a href="/for/cloud-kitchens" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.15); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid rgba(255,255,255,0.3);">Cloud Kitchen POS →</a>
@@ -9800,8 +9800,8 @@ export const blogPostContent = {
         <p style="font-size: 17px; line-height: 1.8; color: #374151;">In 2026, running a restaurant without technology is like driving without GPS — possible, but you will waste time, money, and energy. At minimum, you need a POS (Point of Sale) system for billing and order management. But the best restaurants go further with kitchen display systems, online ordering, inventory management, and analytics.</p>
 
         <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 28px; margin: 30px 0;">
-          <h3 style="color: #166534; margin-bottom: 12px; font-size: 20px;">DineOpen: Everything You Need at ₹899/month</h3>
-          <p style="font-size: 16px; color: #166534; line-height: 1.7;">DineOpen gives you a complete restaurant technology stack — POS, KDS, online ordering, inventory, analytics, staff management, and AI-powered insights — all for just ₹899/month with zero transaction fees. No hidden charges. No per-order commissions. Just one flat subscription.</p>
+          <h3 style="color: #166534; margin-bottom: 12px; font-size: 20px;">DineOpen: Everything You Need at ₹799/month</h3>
+          <p style="font-size: 16px; color: #166534; line-height: 1.7;">DineOpen gives you a complete restaurant technology stack — POS, KDS, online ordering, inventory, analytics, staff management, and AI-powered insights — all for just ₹799/month with zero transaction fees. No hidden charges. No per-order commissions. Just one flat subscription.</p>
         </div>
 
         <p style="font-size: 17px; line-height: 1.8; color: #374151;">Essential technology for your restaurant:</p>
@@ -9912,7 +9912,7 @@ export const blogPostContent = {
           </div>
           <div style="background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; padding: 20px;">
             <h4 style="color: #991b1b; margin-bottom: 8px; font-size: 17px;">4. Ignoring Technology</h4>
-            <p style="font-size: 16px; color: #374151; margin: 0;">Manual billing, paper-based inventory, and no analytics — this approach cannot scale. Invest in a good POS system from day one. At ₹899/month, DineOpen costs less than a single day's food waste.</p>
+            <p style="font-size: 16px; color: #374151; margin: 0;">Manual billing, paper-based inventory, and no analytics — this approach cannot scale. Invest in a good POS system from day one. At ₹799/month, DineOpen costs less than a single day's food waste.</p>
           </div>
           <div style="background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; padding: 20px;">
             <h4 style="color: #991b1b; margin-bottom: 8px; font-size: 17px;">5. No Soft Launch</h4>
@@ -9922,7 +9922,7 @@ export const blogPostContent = {
 
         <div style="background: linear-gradient(135deg, #111827, #374151); border-radius: 20px; padding: 48px 32px; text-align: center; margin: 50px 0; color: white;">
           <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Ready to Open Your Restaurant?</h2>
-          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">DineOpen gives you everything you need to run your restaurant — POS, KDS, online ordering, inventory, analytics, and AI insights — all at ₹899/month. Start your journey with the right technology from day one.</p>
+          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">DineOpen gives you everything you need to run your restaurant — POS, KDS, online ordering, inventory, analytics, and AI insights — all at ₹799/month. Start your journey with the right technology from day one.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <a href="https://dineopen.com/login" style="display: inline-block; padding: 16px 32px; background: #ef4444; color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free Trial →</a>
             <a href="/products/pos-software" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.15); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid rgba(255,255,255,0.3);">Explore POS Features →</a>
@@ -10101,7 +10101,7 @@ export const blogPostContent = {
 
         <h2 style="font-size: 28px; font-weight: 800; color: #1f2937; margin-top: 50px; margin-bottom: 20px;">DineOpen: Billing + POS + AI in One Platform</h2>
 
-        <p style="font-size: 17px; line-height: 1.8; color: #374151;">DineOpen is built for exactly this reality. It is not just billing software. It is not just a POS. It is a complete restaurant operating system powered by AI — and it costs just ₹899/month with zero transaction fees.</p>
+        <p style="font-size: 17px; line-height: 1.8; color: #374151;">DineOpen is built for exactly this reality. It is not just billing software. It is not just a POS. It is a complete restaurant operating system powered by AI — and it costs just ₹799/month with zero transaction fees.</p>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 30px 0;">
           <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 24px;">
@@ -10124,7 +10124,7 @@ export const blogPostContent = {
 
         <div style="background: linear-gradient(135deg, #111827, #374151); border-radius: 20px; padding: 48px 32px; text-align: center; margin: 50px 0; color: white;">
           <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Stop Choosing Between Billing & POS</h2>
-          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">DineOpen gives you both — plus inventory, KDS, online ordering, AI analytics, and more — all for ₹899/month. No transaction fees. No hidden charges. No compromises.</p>
+          <p style="font-size: 18px; margin-bottom: 32px; opacity: 0.95;">DineOpen gives you both — plus inventory, KDS, online ordering, AI analytics, and more — all for ₹799/month. No transaction fees. No hidden charges. No compromises.</p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <a href="https://dineopen.com/login" style="display: inline-block; padding: 16px 32px; background: #ef4444; color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px;">Start Free Trial →</a>
             <a href="/products/pos-software" style="display: inline-block; padding: 16px 32px; background: rgba(255,255,255,0.15); color: white; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 18px; border: 2px solid rgba(255,255,255,0.3);">Compare Features →</a>
@@ -10227,7 +10227,7 @@ export const blogPostContent = {
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">QR ordering for queues</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Yes</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Loyalty / birthday club</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Built-in</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Marketing Manager plan</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Square Loyalty</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">No</td></tr>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Transaction fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; color: #10b981; font-weight: 600;">0%</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">None listed</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">2.6% + 15c</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
-              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Starting price</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600;">$9.99/mo</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes (Base plan)</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">$0 + fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
+              <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Starting price</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600;">$20/mo</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes (Base plan)</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">$0 + fees</td><td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e5e7eb;">Varies</td></tr>
             </tbody>
           </table>
         </div>
@@ -10387,7 +10387,7 @@ export const blogPostContent = {
           <div style="background: white; padding: 24px; border-radius: 12px; border: 2px solid #ef4444;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
               <h4 style="color: #1f2937; margin: 0;">DineOpen</h4>
-              <span style="background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">From ₹899/month</span>
+              <span style="background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;">From ₹799/month</span>
             </div>
             <p style="color: #6b7280; margin: 12px 0 0 0; line-height: 1.7;">Cloud-based, AI-powered POS with all features in one plan, a 7-day free trial and no per-transaction fee from DineOpen. Voice ordering in Hindi, Tamil, Marathi. Runs on Android, iPhone/iPad, Windows and the browser. No automatic Swiggy/Zomato sync yet. Best for single outlets and small chains.</p>
             <p style="margin: 8px 0 0 0;"><a href="/alternatives/petpooja" style="color: #ef4444; font-weight: 600; text-decoration: none;">See DineOpen vs Petpooja comparison →</a></p>
@@ -10548,7 +10548,7 @@ export const blogPostContent = {
               </tr>
             </thead>
             <tbody>
-              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">DineOpen</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">All restaurant types</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹899/month</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">AI-powered, all features included, zero transaction fees</td></tr>
+              <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">DineOpen</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">All restaurant types</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹799/month</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">AI-powered, all features included, zero transaction fees</td></tr>
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Petpooja</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Delivery-heavy restaurants</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹12,000 + taxes (Base plan)</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Strong delivery aggregator integration</td></tr>
               <tr><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">POSist</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Large chains</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Custom quote</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Enterprise features, multi-location</td></tr>
               <tr style="background: #f9fafb;"><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Marg ERP</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">GST-focused billing</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">₹4,500/year</td><td style="padding: 10px 16px; border-bottom: 1px solid #e5e7eb;">Strong accounting and GST compliance</td></tr>
@@ -10602,7 +10602,7 @@ export const blogPostContent = {
         <div style="display: grid; gap: 16px; margin: 30px 0;">
           <div style="background: #fef2f2; padding: 20px; border-radius: 12px; border-left: 4px solid #ef4444;">
             <h4 style="color: #991b1b; margin-bottom: 8px;">Choosing free apps with hidden costs</h4>
-            <p style="color: #6b7280; margin: 0;">Some "free" billing apps charge per-transaction fees (1-3% per order). On monthly revenue of ₹5 lakh, that's ₹5,000-₹15,000/month — far more expensive than a ₹899/month paid app with zero transaction fees.</p>
+            <p style="color: #6b7280; margin: 0;">Some "free" billing apps charge per-transaction fees (1-3% per order). On monthly revenue of ₹5 lakh, that's ₹5,000-₹15,000/month — far more expensive than a ₹799/month paid app with zero transaction fees.</p>
           </div>
           <div style="background: #fef2f2; padding: 20px; border-radius: 12px; border-left: 4px solid #ef4444;">
             <h4 style="color: #991b1b; margin-bottom: 8px;">Ignoring offline capability</h4>
@@ -10644,7 +10644,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How much does a restaurant billing app cost in India?</h4>
-            <p style="color: #4b5563; margin: 0;">Restaurant billing apps in India range from free (basic features) to ₹2,000-5,000/month for premium solutions. DineOpen keeps pricing simple: plans from ₹899/month with unlimited orders. Most Indian restaurants spend ₹500-1,500/month on billing software.</p>
+            <p style="color: #4b5563; margin: 0;">Restaurant billing apps in India range from free (basic features) to ₹2,000-5,000/month for premium solutions. DineOpen keeps pricing simple: plans from ₹799/month with unlimited orders. Most Indian restaurants spend ₹500-1,500/month on billing software.</p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
@@ -10686,7 +10686,7 @@ export const blogPostContent = {
 
         <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:20px;border-radius:8px;margin:24px 0;">
           <p style="margin:0;font-size:16px;line-height:1.7;color:#78350f;">
-            <strong>Quick answer:</strong> DineOpen's inventory management software helps restaurants track stock in real time, auto-deduct ingredients on every order, manage suppliers, create purchase orders, scan barcodes, track expiry dates, and get AI-powered reorder suggestions — all from one dashboard. Plans start at ₹899/month ($9.99). <a href="/login?ref=inventory-blog" style="color:#92400e;font-weight:700;">Start your free trial →</a>
+            <strong>Quick answer:</strong> DineOpen's inventory management software helps restaurants track stock in real time, auto-deduct ingredients on every order, manage suppliers, create purchase orders, scan barcodes, track expiry dates, and get AI-powered reorder suggestions — all from one dashboard. Plans start at ₹799/month ($20). <a href="/login?ref=inventory-blog" style="color:#92400e;font-weight:700;">Start your free trial →</a>
           </p>
         </div>
 
@@ -11196,7 +11196,7 @@ export const blogPostContent = {
           <div style="padding: 28px; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center;">
             <h3 style="font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">Starter</h3>
             <div style="font-size: 36px; font-weight: 800; color: #ef4444; margin-bottom: 4px;">$20<span style="font-size: 16px; color: #6b7280; font-weight: 500;">/mo</span></div>
-            <div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">From ₹899/mo in India</div>
+            <div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">From ₹799/mo in India</div>
             <ul style="list-style: none; padding: 0; text-align: left;">
               <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Stock tracking</li>
               <li style="padding: 6px 0; font-size: 14px; color: #374151;">✓ Item management</li>
@@ -11260,7 +11260,7 @@ export const blogPostContent = {
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">
             <h4 style="color: #1f2937; margin-bottom: 8px;">How much does DineOpen Inventory cost?</h4>
-            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen Inventory is included with all plans. Plans start at $20/month (₹899/month in India) with basic stock tracking. The Pro plan at $99/month includes advanced features like recipe costing, purchase orders, invoice OCR, AI suggestions, and multi-location support. All plans come with a free 7-day trial. <a href="/pricing" style="color: #ef4444;">See full pricing →</a></p>
+            <p style="color: #4b5563; margin: 0; line-height: 1.7;">DineOpen Inventory is included with all plans. Plans start at $20/month (₹799/month in India) with basic stock tracking. The Pro plan at $99/month includes advanced features like recipe costing, purchase orders, invoice OCR, AI suggestions, and multi-location support. All plans come with a free 7-day trial. <a href="/pricing" style="color: #ef4444;">See full pricing →</a></p>
           </div>
 
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 12px;">

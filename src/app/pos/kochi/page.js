@@ -25,7 +25,7 @@ export default function KochiPOSPage() {
     state: 'Kerala',
     country: 'India',
     currency: '₹',
-    price: '899',
+    price: '799',
     highlights: [
       'Malayalam & English voice ordering',
       'GST-compliant billing for Kerala',
@@ -50,7 +50,7 @@ export default function KochiPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "899",
+      "price": "799",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

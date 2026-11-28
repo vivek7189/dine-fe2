@@ -6,7 +6,7 @@ import Footer from '../../../components/Footer';
 import InternalLinks from '../../../components/InternalLinks';
 
 const comparisonData = [
-  { feature: 'Published starting price', dineopen: '₹899/month (India)', petpooja: '₹12,000 + taxes, Base plan (billing period not stated)', winner: 'tie' },
+  { feature: 'Published starting price', dineopen: '₹799/month (India)', petpooja: '₹12,000 + taxes, Base plan (billing period not stated)', winner: 'tie' },
   { feature: 'Per-transaction fee charged by the POS', dineopen: 'None', petpooja: 'None listed on pricing page', winner: 'tie' },
   { feature: 'Online payment charges', dineopen: 'Payment gateway\'s own fee', petpooja: 'Payment gateway\'s own fee', winner: 'tie' },
   { feature: 'Zomato/Swiggy Integration', dineopen: '✗ (Not yet)', petpooja: '✓ Direct', winner: 'petpooja' },
@@ -98,7 +98,7 @@ export default function CompareClient() {
               <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb', marginBottom: '16px' }}>DineOpen</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  'From ₹899/month in India',
+                  'From ₹799/month in India',
                   'AI-powered (voice ordering, chat, menu extraction)',
                   'No per-transaction fee from DineOpen',
                   'Available in 20+ countries',
@@ -207,7 +207,7 @@ export default function CompareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
             {[
               { title: 'AI Features', desc: 'Voice ordering, chat assistant, and menu extraction that automate operations and reduce staff workload.' },
-              { title: 'Price You Can See', desc: 'From ₹899/month in India with captain app, KDS, inventory and loyalty included. No add-ons to price out.' },
+              { title: 'Price You Can See', desc: 'From ₹799/month in India with captain app, KDS, inventory and loyalty included. No add-ons to price out.' },
               { title: 'Try It First', desc: '7-day free trial with no card. Set it up yourself on the phone, tablet or laptop you already have.' },
               { title: 'Works Abroad Too', desc: 'Runs in 20+ countries with local currency and tax settings, if you plan to open outside India.' },
             ].map((card, i) => (
@@ -268,7 +268,7 @@ export default function CompareClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div style={{ backgroundColor: '#eff6ff', borderRadius: '12px', padding: '24px', border: '1px solid #bfdbfe' }}>
               <p style={{ fontSize: '16px', color: '#1d4ed8', marginBottom: '12px', fontWeight: '700' }}>DineOpen (dineopen.com/pricing)</p>
-              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>From ₹899/month in India</p>
+              <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>From ₹799/month in India</p>
               <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>Billing, KOT, inventory, captain app, KDS, QR ordering and loyalty included</p>
               <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>7-day free trial, no card needed</p>
               <p style={{ fontSize: '14px', color: '#374151', margin: '6px 0' }}>No per-transaction fee from DineOpen</p>
@@ -409,7 +409,7 @@ export default function CompareClient() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
               {[
-                { label: 'Published price', dineopen: '₹899/month', petpooja: '₹12,000 + taxes (Base)' },
+                { label: 'Published price', dineopen: '₹799/month', petpooja: '₹12,000 + taxes (Base)' },
                 { label: 'Captain app / KDS', dineopen: 'Included', petpooja: 'Operations Manager plan' },
                 { label: 'Swiggy/Zomato sync', dineopen: 'No', petpooja: 'Yes, direct' },
                 { label: 'Free trial', dineopen: '7 days, no card', petpooja: 'Free demo' },

@@ -25,7 +25,7 @@ export default function AhmedabadPOSPage() {
     state: 'Gujarat',
     country: 'India',
     currency: '₹',
-    price: '899',
+    price: '799',
     highlights: [
       'Gujarati language voice ordering support',
       'GST-compliant billing for Gujarat',
@@ -50,7 +50,7 @@ export default function AhmedabadPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "899",
+      "price": "799",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

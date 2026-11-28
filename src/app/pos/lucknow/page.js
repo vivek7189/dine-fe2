@@ -25,7 +25,7 @@ export default function LucknowPOSPage() {
     state: 'Uttar Pradesh',
     country: 'India',
     currency: '₹',
-    price: '899',
+    price: '799',
     highlights: [
       'Hindi & Urdu voice ordering support',
       'GST-compliant billing for Uttar Pradesh',
@@ -50,7 +50,7 @@ export default function LucknowPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "899",
+      "price": "799",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

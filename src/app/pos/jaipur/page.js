@@ -25,7 +25,7 @@ export default function JaipurPOSPage() {
     state: 'Rajasthan',
     country: 'India',
     currency: '₹',
-    price: '899',
+    price: '799',
     highlights: [
       'Hindi & Rajasthani language voice ordering',
       'GST-compliant billing for Rajasthan',
@@ -50,7 +50,7 @@ export default function JaipurPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "899",
+      "price": "799",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

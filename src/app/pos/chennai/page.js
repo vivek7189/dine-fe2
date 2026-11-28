@@ -25,7 +25,7 @@ export default function ChennaiPOSPage() {
     state: 'Tamil Nadu',
     country: 'India',
     currency: '₹',
-    price: '899',
+    price: '799',
     highlights: [
       'Tamil language support for voice ordering',
       'GST-compliant billing for Tamil Nadu',
@@ -50,7 +50,7 @@ export default function ChennaiPOSPage() {
     "operatingSystem": "Web, iOS, Android",
     "offers": {
       "@type": "Offer",
-      "price": "899",
+      "price": "799",
       "priceCurrency": "INR",
       "priceValidUntil": "2026-12-31"
     },

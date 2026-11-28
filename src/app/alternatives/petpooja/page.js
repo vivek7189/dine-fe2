@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Petpooja Alternative 2026 | Free Trial, Published Prices | DineOpen',
-  description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering and all features included from $20/mo (from ₹899/month in India). Petpooja prices sourced from its pricing page. 7-day free trial.',
+  description: 'Looking for a Petpooja alternative? Honest comparison of features & pricing. DineOpen: AI voice ordering and all features included from $20/mo (from ₹799/month in India). Petpooja prices sourced from its pricing page. 7-day free trial.',
   keywords: 'Petpooja alternative, Petpooja alternative free, Petpooja similar software, Petpooja competitor, top competitors to Petpooja, Petpooja app review, Petpooja POS review, restaurant POS India, GST billing software, Petpooja vs DineOpen, affordable restaurant POS India',
   openGraph: {
     title: 'DineOpen vs Petpooja — Honest Comparison 2026',
@@ -34,7 +34,7 @@ const faqSchema = {
       "name": "Is DineOpen better than Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen is better for small-to-medium restaurants that want affordable pricing ($20/month, or from ₹899/month in India, vs Petpooja's Base plan listed at ₹12,000 + taxes, with higher plans from ₹20,000), AI features like voice ordering, and all features in one plan. Petpooja is better for restaurants that rely heavily on Zomato/Swiggy delivery integration. Both offer GST billing and cloud-based POS."
+        "text": "DineOpen is better for small-to-medium restaurants that want affordable pricing ($20/month, or from ₹799/month in India, vs Petpooja's Base plan listed at ₹12,000 + taxes, with higher plans from ₹20,000), AI features like voice ordering, and all features in one plan. Petpooja is better for restaurants that rely heavily on Zomato/Swiggy delivery integration. Both offer GST billing and cloud-based POS."
       }
     },
     {
@@ -42,7 +42,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs Petpooja?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen Starter plan starts at $20/month (from ₹899/month in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja's pricing page (checked 21 October 2026) lists the Base plan at ₹12,000 + taxes without stating the billing period, Operations Manager plans at ₹20,000 or ₹30,000 and Marketing Manager plans at ₹20,000 to ₹40,000, each including Base. Neither lists a per-order fee; card and UPI payments carry your payment gateway's own charges whichever POS you use. Ask Petpooja what period its price covers to compare like for like."
+        "text": "DineOpen Starter plan starts at $20/month (from ₹799/month in India) with ALL features included — inventory, loyalty, analytics, QR ordering. Petpooja's pricing page (checked 21 October 2026) lists the Base plan at ₹12,000 + taxes without stating the billing period, Operations Manager plans at ₹20,000 or ₹30,000 and Marketing Manager plans at ₹20,000 to ₹40,000, each including Base. Neither lists a per-order fee; card and UPI payments carry your payment gateway's own charges whichever POS you use. Ask Petpooja what period its price covers to compare like for like."
       }
     },
     {
@@ -82,7 +82,7 @@ const faqSchema = {
       "name": "Is there a free Petpooja alternative?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers a 7-day free trial with all features included — no credit card required. After the trial, the Starter plan starts at $20/month (from ₹899/month in India), with no per-transaction fee from DineOpen. This makes it one of the most affordable Petpooja alternatives available in India."
+        "text": "DineOpen offers a 7-day free trial with all features included — no credit card required. After the trial, the Starter plan starts at $20/month (from ₹799/month in India), with no per-transaction fee from DineOpen. This makes it one of the most affordable Petpooja alternatives available in India."
       }
     }
   ]

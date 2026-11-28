@@ -5,7 +5,7 @@ export const revalidate = false;
 
 export const metadata = {
   title: 'Best POSist Alternative 2026 | DineOpen - Published Pricing',
-  description: 'Looking for a POSist alternative in India? DineOpen offers AI voice ordering, published pricing from ₹899/month and no setup fee. Free 7-day trial.',
+  description: 'Looking for a POSist alternative in India? DineOpen offers AI voice ordering, published pricing from ₹799/month and no setup fee. Free 7-day trial.',
   keywords: 'POSist alternative, POSist POS alternative, better than POSist, POSist competitor India, affordable restaurant POS India, POSist replacement, restaurant billing software India',
   openGraph: {
     title: 'Best POSist Alternative | DineOpen - AI-Powered Restaurant POS India',
@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "Is DineOpen better than POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen offers AI voice ordering, AI chat assistant, and menu extraction at just $20/month (from ₹899/month in India) compared to POSist's quote-based pricing (not published). DineOpen also has zero setup fees and instant onboarding."
+        "text": "DineOpen offers AI voice ordering, AI chat assistant, and menu extraction at just $20/month (from ₹799/month in India) compared to POSist's quote-based pricing (not published). DineOpen also has zero setup fees and instant onboarding."
       }
     },
     {
@@ -41,7 +41,7 @@ const faqSchema = {
       "name": "How much cheaper is DineOpen vs POSist?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "DineOpen starts at $20/month (from ₹899/month in India) versus POSist's quote-based pricing (not published). DineOpen offers instant setup compared to POSist's lengthy onboarding process, saving both time and money."
+        "text": "DineOpen starts at $20/month (from ₹799/month in India) versus POSist's quote-based pricing (not published). DineOpen offers instant setup compared to POSist's lengthy onboarding process, saving both time and money."
       }
     },
     {

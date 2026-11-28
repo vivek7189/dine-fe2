@@ -27,7 +27,7 @@ export default function HousekeepingPage() {
     "description": "Housekeeping management software for hotels with maintenance scheduling, room status tracking, and cleaning management.",
     "applicationCategory": "BusinessApplication",
     "url": "https://www.dineopen.com/products/hotel/housekeeping",
-    "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" },
+    "offers": { "@type": "Offer", "price": "20", "priceCurrency": "USD" },
   };
 
   const faqSchema = {

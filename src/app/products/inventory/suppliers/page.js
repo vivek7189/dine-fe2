@@ -17,7 +17,7 @@ export const metadata = {
 
 export default function SuppliersPage() {
   const schemas = [
-    { "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DineOpen Supplier Management", "applicationCategory": "BusinessApplication", "description": "Restaurant supplier management with performance tracking, price comparison, and delivery reliability scoring.", "url": "https://www.dineopen.com/products/inventory/suppliers", "offers": [{ "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }] },
+    { "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DineOpen Supplier Management", "applicationCategory": "BusinessApplication", "description": "Restaurant supplier management with performance tracking, price comparison, and delivery reliability scoring.", "url": "https://www.dineopen.com/products/inventory/suppliers", "offers": [{ "@type": "Offer", "price": "20", "priceCurrency": "USD" }] },
     { "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
       { "@type": "Question", "name": "How does supplier performance tracking work?", "acceptedAnswer": { "@type": "Answer", "text": "DineOpen tracks delivery reliability (on-time percentage), price consistency, quality scores (based on returns/rejections), and order fulfillment rate. Suppliers are scored and ranked so you can identify your best and worst performers." } },
       { "@type": "Question", "name": "Can I compare prices across suppliers?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. When creating a purchase order, DineOpen shows the same item's price from all linked suppliers. Compare prices, delivery times, and quality scores to choose the best supplier for each order." } },
