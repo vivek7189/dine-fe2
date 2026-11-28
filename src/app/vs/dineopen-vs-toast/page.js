@@ -16,16 +16,16 @@ export const revalidate = false;
 //   Hooks, screenshots, FAQ, internal links, author box, schema
 // =============================================================================
 
-const TITLE = 'DineOpen vs Toast 2026: Honest Comparison for US Restaurants';
+const TITLE = 'DineOpen vs Toast 2026: Pricing, Card Fees and Features Compared';
 const DESCRIPTION =
-  'We built DineOpen after running our own restaurant. Here is exactly what we do, what it costs ($20/mo flat), and where Toast still wins. No fluff.';
+  'Toast: $0 Starter Kit or $69/month Point of Sale at 2.49% + 15¢ in person, Toast Payments and hardware required. DineOpen: $20 or $50/month, your own processor and devices. Sourced comparison.';
 const URL = 'https://www.dineopen.com/vs/dineopen-vs-toast';
 
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords:
-    'dineopen vs toast, toast pos alternative, toast vs dineopen, restaurant pos comparison usa, cheap toast alternative, toast pricing 2026, free toast alternative, restaurant pos under $20',
+    'dineopen vs toast, toast pos alternative, toast vs dineopen, restaurant pos comparison usa, toast pricing 2026, toast alternative',
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
@@ -43,68 +43,36 @@ export const metadata = {
   alternates: { canonical: URL },
 };
 
+// Toast figures from Toast's own pages (pos.toasttab.com/shop/pricing-plan, /shop/starter-kit, Toast support
+// country article), same sources as /alternatives/toast, checked 22 Nov 2026.
+// DineOpen figures must match src/app/pricing/PricingClient.js (USD Starter $20, Growth $50, Pro $99 for 2 outlets, 3+ custom).
+const FAQ = [
+  ['How much does Toast cost?', 'Toast has a $0/month Starter Kit (1–2 terminals, one location, higher card rate) and a $69/month Point of Sale plan where in-person card payments cost 2.49% + 15¢. Larger setups are quoted. Toast Payments and Toast hardware are part of the package.'],
+  ['Is DineOpen cheaper than Toast?', 'On software, yes: DineOpen Starter is $20/month ($240 a year) and Growth is $50/month ($600 a year), against $828 a year for Toast Point of Sale. DineOpen adds no percentage to card payments; you pay only your own processor’s rate. Toast card rates are set by Toast Payments.'],
+  ['What is in each DineOpen plan?', 'Starter ($20): billing, KOT printing, table layout, QR menu and QR ordering, basic inventory, unlimited staff accounts. Growth ($50): adds Kitchen Display System, an online ordering website, WhatsApp ordering, loyalty and credit ledger, recipe-based inventory, a captain app and AI voice ordering. Pro ($99): 2 outlets with central menu, stock and reports. 3 or more outlets: custom quote.'],
+  ['Can I use my own iPads or tablets?', 'Yes. DineOpen runs in the browser on iPads, Android tablets, Windows PCs and Macs, and prints to ordinary thermal printers. Toast sells its own hardware.'],
+  ['Where does Toast still win?', 'Toast gives you payments, hardware, payroll and lending from one company, with a large US sales and support team. If you want all of that from one vendor, Toast is a strong choice.'],
+  ['Which countries does Toast sell in?', 'Toast says it is available in the US, Canada, the UK, Ireland and Australia. DineOpen works worldwide with local currency and tax.'],
+  ['Is there a contract or free trial?', 'DineOpen is month to month with a 7-day free trial and self sign-up. Toast terms depend on the plan and quote.'],
+];
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Is DineOpen really cheaper than Toast for a small restaurant?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. DineOpen Starter is $20/month flat with zero per-transaction fees. Toast Starter starts at $0/month but charges 2.49% + $0.15 on every card swipe, and the Essentials plan that most full-service restaurants need is $69/month. A restaurant doing $40,000/month in card volume pays Toast roughly $1,065/month all-in. The same restaurant pays DineOpen $20 plus whatever its own payment processor charges. Most operators save $800-$1,200 per month.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What can DineOpen actually do? Be specific.',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'DineOpen runs cloud POS in any browser, an iOS/Android waiter app, a Kitchen Display System (KDS), an Android KOT printer app, AI voice ordering in English and Spanish, AI menu extraction from a photo, QR code dine-in ordering, WhatsApp ordering, real-time table management, inventory with recipe-level deduction, multi-tier pricing (AC/Non-AC/Takeaway), split bills, partial payments, GST/VAT/sales tax, loyalty programs, customer khata/credit, and a full analytics dashboard. All of that is included on the $20 plan, no add-ons.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Can I use my existing Toast hardware with DineOpen?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'DineOpen is hardware-agnostic. It runs in any modern web browser on any iPad, Android tablet, Windows laptop, or Mac. It also has native Android apps for waiter terminals and KOT printers. Toast hardware is locked to Toast software, so you would re-purpose your iPads but not the Toast Flex terminals. Most restaurants switching to DineOpen save the hardware cost entirely by using devices they already own.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Where does Toast still win?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Toast has been around since 2012 and has a much bigger US sales and onsite-installation team, deeper integrations with US payroll providers (Toast Payroll, Gusto, ADP), and an in-house lending product (Toast Capital). If you want a vendor that will physically come to your restaurant to install hardware and train staff, Toast still has the edge. DineOpen is self-serve: you set it up yourself in about 15 minutes, with live chat support included.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Does DineOpen work in the United States?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. DineOpen serves restaurants in 20+ countries including the United States, with USD pricing, sales-tax handling, English-language support, and integrations with global payment processors. The product is the same worldwide; only currency and tax labels change per locale.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How long does it take to switch from Toast to DineOpen?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Most operators are live on DineOpen in under an hour. You upload a photo of your existing menu, AI extraction creates the digital menu in 2-3 minutes, you confirm prices and tax rates, connect a payment processor, and start taking orders. There is no contract, no installation fee, and a 7-day free trial with full features.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Does DineOpen lock you into a contract?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'No. DineOpen is month-to-month. You can cancel anytime from the dashboard, no cancellation fee, no early-termination penalty. Toast historically required 2-3 year contracts for hardware-financed deals, though their newer plans are more flexible.',
-      },
-    },
-  ],
+  mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
 };
+
+const CELL = { padding: '10px 12px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' };
+const ROWS = [
+  ['Software, per month', 'Starter $20 · Growth $50 · Pro $99 (2 outlets)', 'Starter Kit $0 · Point of Sale $69 · larger setups quoted'],
+  ['Card payments', 'Your own processor; DineOpen adds 0%', 'Toast Payments; 2.49% + 15¢ in person on Point of Sale, higher on Starter Kit'],
+  ['Hardware', 'iPads, Android tablets, PCs you already own', 'Toast hardware'],
+  ['Kitchen display (KDS)', 'Growth plan', 'Available'],
+  ['Online ordering', 'Growth plan, 0% commission', 'Available'],
+  ['AI voice ordering', 'Growth plan', 'Check with Toast'],
+  ['Payroll, lending', 'Not offered', 'Toast Payroll, Toast Capital'],
+  ['Countries', 'Worldwide, local tax and currency', 'US, Canada, UK, Ireland, Australia'],
+  ['Contract / trial', 'Month to month, 7-day free trial', 'Depends on plan and quote'],
+];
 
 const softwareSchemas = [
   {
@@ -119,14 +87,14 @@ const softwareSchemas = [
       priceCurrency: 'USD',
       priceValidUntil: '2027-12-31',
     },
-    description: 'AI-powered cloud restaurant POS with voice ordering, QR menus, KDS, and zero per-transaction fees. Used in 20+ countries.',
+    description: 'Cloud restaurant POS. Starter $20/month; Growth $50/month adds KDS, online ordering and AI voice ordering. No percentage added to card payments.',
   },
 ];
 
 const articleSchema = {
   '@context': 'https://schema.org',
   '@type': 'Article',
-  headline: 'DineOpen vs Toast — I Built One of These, So Here is the Honest Comparison',
+  headline: 'DineOpen vs Toast 2026: Pricing, Card Fees and Features Compared',
   description: DESCRIPTION,
   author: {
     '@type': 'Person',
@@ -140,7 +108,7 @@ const articleSchema = {
     logo: { '@type': 'ImageObject', url: 'https://www.dineopen.com/favicon.png' },
   },
   datePublished: '2026-04-07',
-  dateModified: '2026-04-07',
+  dateModified: '2026-11-28',
   mainEntityOfPage: URL,
   image: 'https://www.dineopen.com/billing-app-screenshot.png',
 };
@@ -167,200 +135,111 @@ export default function DineOpenVsToastPage() {
         <header style={{ background: 'linear-gradient(135deg,#fff7ed 0%,#fef2f2 100%)', padding: '64px 20px 48px', borderBottom: '1px solid #fde68a' }}>
           <div style={wrap}>
             <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: 700, letterSpacing: '.02em' }}>
-              HONEST COMPARISON · UPDATED APRIL 2026
+              COMPARISON · UPDATED 28 NOV 2026
             </div>
             <h1 style={{ fontSize: '44px', lineHeight: '1.1', fontWeight: '900', margin: '20px 0 16px', letterSpacing: '-0.02em' }}>
-              DineOpen vs Toast — I Built One of These, So Here&rsquo;s the Honest Comparison
+              DineOpen vs Toast: what you pay and what you get
             </h1>
             <p style={{ fontSize: '19px', lineHeight: '1.6', color: '#475569', margin: '0 0 28px' }}>
-              If you&rsquo;re an independent US restaurant owner staring at a Toast quote and wondering &ldquo;is this really $1,000+ a month forever?&rdquo; — this page is for you. I run DineOpen. I&rsquo;ll show you exactly what we do, what we charge, and where Toast still beats us.
+              Toast is a strong all-in-one platform with its own payments and hardware. DineOpen is software only, on devices you already have, with the card processor you choose. Here are the prices from both companies&rsquo; own pages, and when Toast is still the better pick.
             </p>
 
-            {/* QUICK ANSWER BOX — AEO section, first 100 words */}
+            {/* QUICK ANSWER BOX */}
             <div style={{ background: '#fff', border: '2px solid #f59e0b', borderRadius: '14px', padding: '22px 24px', boxShadow: '0 4px 14px rgba(245,158,11,.12)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', letterSpacing: '.08em', marginBottom: '8px' }}>THE SHORT ANSWER</div>
               <p style={{ ...p, margin: 0, fontSize: '17px' }}>
-                <strong>DineOpen</strong> is better for independent and small-chain restaurants that want a flat <strong>$20/month</strong> price, no per-transaction cut, and modern features like AI voice ordering and QR menus out of the box. <strong>Toast</strong> is better if you want a US sales rep on-site for installation, in-house payroll, and Toast Capital lending. The single biggest difference: Toast takes <strong>2.49% + $0.15</strong> of every card swipe forever; DineOpen takes <strong>zero</strong>.
+                <strong>Toast</strong> is $0/month (Starter Kit, higher card rate) or <strong>$69/month</strong> (Point of Sale, <strong>2.49% + 15¢</strong> per in-person card payment), with Toast Payments and Toast hardware. <strong>DineOpen</strong> is <strong>$20/month</strong> (Starter) or <strong>$50/month</strong> (Growth, with KDS, online ordering and AI voice ordering), runs on your own devices, and adds nothing to your card payments. Choose Toast if you want payments, hardware, payroll and lending from one company.
               </p>
             </div>
           </div>
         </header>
 
-        {/* ============ INTRO ============ */}
-        <section style={{ padding: '40px 0 0' }}>
-          <div style={wrap}>
-            <p style={p}>
-              You&rsquo;ve probably already wasted an afternoon reading &ldquo;best POS&rdquo; listicles where every system gets 4.5 stars and the recommendation is whoever&rsquo;s paying the affiliate the most. I&rsquo;ve been on both sides of this — I ran a restaurant before I built DineOpen, and the Toast quote I got in 2022 is what made me write the first line of code.
-            </p>
-            <p style={p}>
-              This page covers three things only: <strong>(1)</strong> what DineOpen actually does, with screenshots and real numbers; <strong>(2)</strong> how the pricing works out over 12 months on a real restaurant; and <strong>(3)</strong> the cases where I&rsquo;ll honestly tell you to stay on Toast.
-            </p>
-            <p style={p}>
-              One thing most comparison pages won&rsquo;t tell you: <strong>Toast&rsquo;s &ldquo;$0/month Starter plan&rdquo; isn&rsquo;t free.</strong> It just moves the cost into the swipe fee. A restaurant doing $40k/month in card volume pays Toast around $1,000/month even on the &ldquo;free&rdquo; plan. We&rsquo;ll do the math below.
-            </p>
-          </div>
-        </section>
-
-        {/* ============ H2: What DineOpen Actually Does ============ */}
         <section>
           <div style={wrap}>
-            <h2 style={h2}>What DineOpen actually does (the real feature list)</h2>
-            <p style={p}>
-              I&rsquo;m not going to put a 40-row table here pretending we have everything. Here&rsquo;s the honest list of what ships on the $20 Starter plan, today:
-            </p>
-
-            <h3 style={h3}>1. Cloud POS that runs in any browser</h3>
-            <p style={p}>
-              Open Chrome on an iPad, a Windows laptop, or a $90 Android tablet — log in, take orders. No installer, no &ldquo;Toast Flex&rdquo; terminal at $799. The full POS, table layout, menu, modifiers, and payment screen all load in under <strong>2 seconds</strong> on a 4G connection. You can run dine-in on a tablet at the host stand and a second device at the bar at the same time, on the same plan, no extra license fee.
-            </p>
-            <figure style={{ margin: '24px 0' }}>
-              <Image src="/billing-app-screenshot.png" alt="DineOpen cloud POS billing screen showing live order, items, taxes, and payment split" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
-              <figcaption style={small}>The live billing screen — same UI on iPad, Android, and desktop. No app install required.</figcaption>
-            </figure>
-
-            <h3 style={h3}>2. AI voice ordering in English &amp; Spanish</h3>
-            <p style={p}>
-              Press a button, say &ldquo;two cheeseburgers no pickle, one large fries, a Coke&rdquo; — DineOpen parses it against your menu, fills the cart, and shows you the total. We built this on top of GPT-4o for accuracy and it works with bilingual staff and customers, which matters in a lot of US kitchens. <strong>Average order entry time drops from 47 seconds to 11 seconds</strong> in our internal tests.
-            </p>
-
-            <h3 style={h3}>3. AI menu extraction from a photo</h3>
-            <p style={p}>
-              Take a picture of your existing printed menu. DineOpen reads it, structures every item with categories, prices, and modifiers, and creates the digital menu in <strong>about 2 minutes</strong>. This is the single biggest reason new restaurants finish onboarding the same day they sign up. No more typing 80 items by hand.
-            </p>
-
-            <h3 style={h3}>4. QR code dine-in ordering (real, not a static PDF)</h3>
-            <p style={p}>
-              Each table gets its own QR code. Guests scan, see your live menu, order from their phone, and the order lands on your KDS instantly. Payments happen in-app or at the counter — your call. We&rsquo;ve seen this cut server load by ~30% during peak lunch in casual dining.
-            </p>
-
-            <h3 style={h3}>5. Kitchen Display System + Android KOT printer app</h3>
-            <p style={p}>
-              KDS runs in a browser on any monitor. We also ship a <strong>native Android KOT printer app</strong> that connects to USB and Bluetooth thermal printers, supports auto-print on order or on bill, custom font scale, and works offline with local print queueing. Orders fire from POS to printer in under <strong>2 seconds</strong> via Pusher real-time, with FCM push as a backup so even if the device sleeps, the print still happens.
-            </p>
-
-            <h3 style={h3}>6. Inventory with recipe-level deduction</h3>
-            <p style={p}>
-              Define a burger as &ldquo;1 patty + 1 bun + 25g cheese + 30ml sauce&rdquo; once. Every burger sold deducts those exact quantities from raw stock. Bar pour tracking, batch production for bakeries, low-stock alerts, supplier purchase orders — all in the base plan, no inventory add-on fee.
-            </p>
-
-            <h3 style={h3}>7. Multi-tier pricing (AC / Non-AC / Takeaway / Delivery)</h3>
-            <p style={p}>
-              Same item, four different prices based on dining area or order type. Toast handles this through &ldquo;Service Areas&rdquo; with manual rule setup; DineOpen does it as a first-class field on the menu item. Useful for restaurants that charge a premium for AC seating (common globally) or want delivery prices to absorb the aggregator commission.
-            </p>
-
-            <h3 style={h3}>8. Billing &amp; payment features that actually exist</h3>
-            <p style={p}>
-              Split bills by item, by guest, or by amount. Partial payments. Cash tendering with change calculation. Customer khata/credit. Tips by % or flat. Round-off. Service charge. Discounts (offer / manual / loyalty). Multiple tax rates per item. Refunds and voids with audit log. <Link href="/pricing" style={linkStyle}>All on the $20 plan</Link>.
-            </p>
-
-            <h3 style={h3}>9. Loyalty + WhatsApp ordering</h3>
-            <p style={p}>
-              Built-in points, tiers, and birthday rewards — no third-party loyalty app. WhatsApp ordering lets customers order via chat, which is huge in immigrant-owned restaurants where WhatsApp is the default channel.
-            </p>
-
-            <h3 style={h3}>10. Analytics dashboard with the metrics that matter</h3>
-            <p style={p}>
-              Daily revenue, top items, peak hours, server performance, void/comp rates, food cost vs theoretical, and a labor-cost view. Not 200 charts you&rsquo;ll never look at — the 8 numbers a GM actually checks every morning.
-            </p>
-          </div>
-        </section>
-
-        {/* ============ H2: PRICING — the real math ============ */}
-        <section>
-          <div style={wrap}>
-            <h2 style={h2}>The real pricing — let&rsquo;s do the 12-month math</h2>
-            <p style={p}>
-              Toast publishes &ldquo;starting at $0/month.&rdquo; That&rsquo;s the headline. The actual bill on a typical small US restaurant looks very different. Here&rsquo;s a comparison on a real scenario:
-            </p>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px', margin: '20px 0' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '6px', letterSpacing: '.04em' }}>SCENARIO</div>
-              <div style={{ fontSize: '17px', color: '#0f172a', marginBottom: '20px' }}>
-                Independent casual dining, 1 location, ~$40,000/month in card sales (~$480k/year revenue), 2 POS terminals, 1 KDS screen.
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ background: '#fff', border: '2px solid #2563eb', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>DINEOPEN</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0', color: '#0f172a' }}>$20<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Starter plan, all features</li>
-                    <li>Unlimited devices on 1 location</li>
-                    <li>0% transaction fee from us</li>
-                    <li>Pay your own processor (Stripe ~2.7%)</li>
-                  </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#eff6ff', borderRadius: '8px', fontSize: '13px', color: '#1e40af' }}>
-                    12-month software cost: <strong>$119.88</strong>
-                  </div>
-                </div>
-
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#dc2626' }}>TOAST (Essentials)</div>
-                  <div style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0', color: '#0f172a' }}>$69<span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}> /mo</span></div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: '#334155', lineHeight: 1.7 }}>
-                    <li>Essentials plan</li>
-                    <li>+ 2.49% + $0.15 per card swipe</li>
-                    <li>+ Hardware financing ~$75/mo</li>
-                    <li>+ Add-ons (loyalty, online, etc.)</li>
-                  </ul>
-                  <div style={{ marginTop: '14px', padding: '10px 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#991b1b' }}>
-                    12-month all-in: <strong>~$13,800</strong>
-                  </div>
-                </div>
-              </div>
-
-              <p style={{ ...small, marginTop: '20px', textAlign: 'center' }}>
-                Math: Toast Essentials $69 × 12 = $828. Card fees ($40k × 2.49% + 800 swipes × $0.15) × 12 = ~$13,392. Hardware ~$900/yr if financed. Toast pricing per <a href="https://pos.toasttab.com/pricing" rel="nofollow noopener" target="_blank" style={linkStyle}>pos.toasttab.com/pricing</a> as of April 2026.
-              </p>
+            <h2 style={h2}>Side by side</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px', minWidth: '560px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                    <th style={CELL}>&nbsp;</th><th style={CELL}>DineOpen</th><th style={CELL}>Toast</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ROWS.map((r) => (
+                    <tr key={r[0]}><td style={{ ...CELL, fontWeight: 600 }}>{r[0]}</td><td style={CELL}>{r[1]}</td><td style={CELL}>{r[2]}</td></tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            <p style={p}>
-              The honest reading: even if we&rsquo;re generous to Toast and assume your existing Stripe processing fees match Toast&rsquo;s rates exactly, you still save <strong>~$948 per year on software alone</strong>. Most restaurants save closer to <strong>$10,000+/year</strong> when you account for hardware and add-on fees Toast charges separately for things DineOpen ships standard.
-            </p>
-
-            <h3 style={h3}>What about Pro ($99/month)?</h3>
-            <p style={p}>
-              If you run more than 3 locations or want centralized menu management across a chain, the <Link href="/pricing" style={linkStyle}>DineOpen Pro plan</Link> is $99/month flat for unlimited locations — and it covers your entire chain, not a single terminal. If you&rsquo;re a 5-location group, Toast wants $69 × 5 = $345/month plus card fees. Pro is $99 total.
+            <p style={small}>
+              Toast: <a href="https://pos.toasttab.com/shop/pricing-plan" rel="nofollow noopener" target="_blank" style={linkStyle}>pricing plans</a>, <a href="https://pos.toasttab.com/shop/starter-kit" rel="nofollow noopener" target="_blank" style={linkStyle}>Starter Kit</a>, <a href="https://support.toasttab.com/en/article/Toast-Product-Availability-in-Australia-Canada-Ireland-and-the-United-Kingdom" rel="nofollow noopener" target="_blank" style={linkStyle}>country availability</a>, checked 22 Nov 2026. DineOpen: <Link href="/pricing" style={linkStyle}>dineopen.com/pricing</Link>. Prices change; confirm before you sign.
             </p>
           </div>
         </section>
 
-        {/* ============ H2: Where Toast still wins ============ */}
         <section>
           <div style={wrap}>
-            <h2 style={h2}>Where Toast still wins (I&rsquo;m not going to pretend otherwise)</h2>
-            <p style={p}>
-              I want this page to be useful, not promotional. There are real cases where I&rsquo;d tell you to stay on Toast:
-            </p>
+            <h2 style={h2}>12-month software cost, one restaurant</h2>
             <ul style={{ ...p, paddingLeft: '20px' }}>
-              <li><strong>You want a sales rep to physically install hardware.</strong> Toast has a US-wide field team. We&rsquo;re self-serve with live chat. If you&rsquo;d rather pay $1,000/month than Google &ldquo;how to connect a thermal printer,&rdquo; Toast is your answer.</li>
-              <li><strong>You need integrated US payroll.</strong> Toast Payroll is genuinely good and tightly integrated. We don&rsquo;t do payroll — we hand off to Gusto / ADP via export.</li>
-              <li><strong>You need restaurant lending built in.</strong> Toast Capital can advance you money against future card sales. We don&rsquo;t do this.</li>
-              <li><strong>You need 100+ third-party integrations on day one.</strong> Toast&rsquo;s marketplace is bigger. We have the core ones (Stripe, Razorpay, payment gateways, accounting export) and add ~2 per month based on customer requests.</li>
+              <li><strong>Toast Point of Sale:</strong> $69 × 12 = <strong>$828</strong>, plus Toast hardware.</li>
+              <li><strong>DineOpen Starter:</strong> $20 × 12 = <strong>$240</strong>.</li>
+              <li><strong>DineOpen Growth:</strong> $50 × 12 = <strong>$600</strong>, with KDS, online ordering, WhatsApp ordering, loyalty and AI voice ordering.</li>
             </ul>
             <p style={p}>
-              If none of those four apply to you — and they don&rsquo;t for most independent restaurants under $2M revenue — DineOpen is the better deal.
+              <strong>Card fees come on top with both.</strong> With Toast, the rate is set by Toast Payments (2.49% + 15¢ in person on Point of Sale). With DineOpen you keep whichever processor gives you the best rate, and DineOpen adds no percentage to it. At $40,000 a month in card sales, every 0.1% you save on your rate is $40 a month.
+            </p>
+            <h3 style={h3}>Two or more outlets</h3>
+            <p style={p}>
+              DineOpen Pro is $99/month for 2 outlets, with central menu, stock, staff and outlet-wise profit and loss. For 3 or more outlets, DineOpen gives a custom quote; Toast quotes larger setups too.
             </p>
           </div>
         </section>
 
-        {/* ============ H2: Who should choose DineOpen ============ */}
+        <section>
+          <div style={wrap}>
+            <h2 style={h2}>What DineOpen includes</h2>
+            <h3 style={h3}>Starter, $20/month</h3>
+            <p style={p}>
+              Billing with split bills, tips, service charge, discounts and multi-rate sales tax; refunds and voids; KOT printing to ordinary USB, network or Bluetooth thermal printers; table layout; QR menu and QR ordering from the table; basic inventory; unlimited staff accounts. It runs in the browser on iPads, Android tablets, Windows PCs and Macs.
+            </p>
+            <figure style={{ margin: '24px 0' }}>
+              <Image src="/billing-app-screenshot.png" alt="DineOpen billing screen with items, taxes and split payment" width={1200} height={750} style={{ width: '100%', height: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+              <figcaption style={small}>The DineOpen billing screen.</figcaption>
+            </figure>
+            <h3 style={h3}>Growth, $50/month</h3>
+            <p style={p}>
+              Everything in Starter plus a Kitchen Display System, a branded online ordering website (no commission), WhatsApp ordering, customer loyalty and credit ledger, recipe-based inventory with vendors and stock alerts, a captain app for waiters, and AI voice ordering, where a waiter speaks the order and it fills the cart.
+            </p>
+            <h3 style={h3}>Quick setup</h3>
+            <p style={p}>
+              Upload your menu as a photo, PDF or spreadsheet and DineOpen builds the digital menu for you to check. Sign up yourself and try it free for 7 days.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <div style={wrap}>
+            <h2 style={h2}>Where Toast still wins</h2>
+            <ul style={{ ...p, paddingLeft: '20px' }}>
+              <li><strong>One company for everything.</strong> Payments, hardware, payroll (Toast Payroll) and lending (Toast Capital). DineOpen does not offer payroll processing or lending.</li>
+              <li><strong>On-site help.</strong> Toast has a large US sales and installation team. DineOpen is self sign-up with chat support.</li>
+              <li><strong>Integrations.</strong> Toast has a large partner marketplace. DineOpen covers the core: payments, delivery-app sync for some platforms, and report exports.</li>
+            </ul>
+          </div>
+        </section>
+
         <section>
           <div style={wrap}>
             <h2 style={h2}>Who should choose DineOpen</h2>
-            <p style={p}>
-              You&rsquo;re a fit if you check most of these boxes:
-            </p>
             <ul style={{ ...p, paddingLeft: '20px' }}>
-              <li>Independent restaurant or small group (1–10 locations)</li>
-              <li>Already have iPads or Android tablets you&rsquo;d rather not throw away</li>
-              <li>Sick of paying 2.5%+ on every card swipe to a software vendor</li>
-              <li>Want AI features (voice, menu extraction, chat) without paying extra</li>
-              <li>OK with self-serve setup + live chat instead of an onsite rep</li>
-              <li>Want a month-to-month contract you can actually cancel</li>
+              <li>One or two outlets, or a small group happy with a custom quote</li>
+              <li>You already have iPads, Android tablets or PCs</li>
+              <li>You want to choose your own card processor</li>
+              <li>You want KDS and online ordering for $50 a month</li>
+              <li>You&rsquo;re fine with self sign-up and chat support</li>
             </ul>
             <p style={p}>
-              If that sounds like you, the next step is either <Link href="/pricing" style={linkStyle}>see the full pricing page</Link> or <Link href="/pos/usa" style={linkStyle}>check the US-specific feature page</Link> for sales tax, tipping, and processor details.
+              Next: <Link href="/pricing" style={linkStyle}>see full pricing</Link>, read <Link href="/alternatives/toast" style={linkStyle}>Toast pricing explained</Link>, or see the <Link href="/pos/usa" style={linkStyle}>US page</Link> for sales tax and tipping.
             </p>
           </div>
         </section>
@@ -383,9 +262,9 @@ export default function DineOpenVsToastPage() {
           <div style={{ ...wrap, textAlign: 'center' }}>
             <h2 style={{ ...h2, color: '#fff', margin: '0 0 12px' }}>Try DineOpen free for 7 days</h2>
             <p style={{ ...p, color: '#dbeafe', fontSize: '18px' }}>
-              No credit card. No contract. Full features. Most restaurants are taking real orders within an hour of signup.
+              7-day free trial. No contract. Use the devices you already have.
             </p>
-            <Link href="https://app.dineopen.com/signup" style={{
+            <Link href="/login?utm_source=dineopen&utm_medium=vs&utm_campaign=toast" style={{
               display: 'inline-block', background: '#fff', color: '#1e40af', padding: '16px 36px',
               borderRadius: '999px', fontSize: '17px', fontWeight: 800, textDecoration: 'none', marginTop: '12px',
               boxShadow: '0 8px 24px rgba(0,0,0,.18)'
@@ -403,10 +282,10 @@ export default function DineOpenVsToastPage() {
               <div>
                 <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>Vivek Sharma</div>
                 <div style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>
-                  Founder of DineOpen. Built DineOpen after running a small restaurant and getting quoted $1,200/month for Toast. 4 years building restaurant software, 50+ live deployments across India and the US.
+                  Founder of DineOpen.
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>
-                  Published April 7, 2026 · Last updated April 7, 2026
+                  Published April 7, 2026 · Last updated 28 Nov 2026
                 </div>
               </div>
             </div>
