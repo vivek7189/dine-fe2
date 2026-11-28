@@ -5,7 +5,7 @@ export default function Image() {
   return makeVsImage({
     competitor: 'DotPe',
     color: '#60a5fa',
-    dineCost: '₹10,788',
+    dineCost: '₹9,588',
     theirCost: 'On request',
     hook: 'QR ordering, payments and who each one suits.',
   });

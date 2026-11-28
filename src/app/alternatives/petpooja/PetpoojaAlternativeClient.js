@@ -61,7 +61,7 @@ export default function PetpoojaAlternativeClient() {
     },
     {
       q: 'Does DineOpen work for large restaurant chains?',
-      a: 'Yes. The Pro plan at $99/month (₹1,799/month) supports unlimited locations with centralized menu control, inter-branch stock transfers, location-wise analytics, and role-based staff access. You manage everything from one dashboard.'
+      a: 'Yes. The Pro plan ($99/month outside India) covers 2 outlets, and 3 or more outlets get a custom quote, with centralized menu control, inter-branch stock transfers, location-wise analytics, and role-based staff access. You manage everything from one dashboard.'
     },
     {
       q: 'Is DineOpen good for delivery-heavy restaurants?',
@@ -407,7 +407,7 @@ export default function PetpoojaAlternativeClient() {
               {
                 icon: '💰',
                 title: 'Lower Cost, All-in-One',
-                desc: 'DineOpen Growth is ₹7,999/year (or ₹799/month) with captain app, KDS and QR ordering included. On Petpooja, those features come in the Operations Manager Growth plan (₹20,000 + taxes, Base included).'
+                desc: 'DineOpen is from ₹799/month (₹7,999/year) with captain app, KDS and QR ordering included. On Petpooja, those features come in the Operations Manager Growth plan (₹20,000 + taxes, Base included).'
               },
               {
                 icon: '🤖',

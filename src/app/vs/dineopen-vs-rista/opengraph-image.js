@@ -5,7 +5,7 @@ export default function Image() {
   return makeVsImage({
     competitor: 'Rista',
     color: '#14b8a6',
-    dineCost: '₹10,788',
+    dineCost: '₹9,588',
     theirCost: 'On request',
     hook: 'Price, Swiggy/Zomato sync and multi-brand kitchens.',
   });

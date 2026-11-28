@@ -5870,7 +5870,7 @@ export const blogPostContent = {
           <h3 style="color: white; margin-bottom: 24px; font-size: 28px;">Annual Cost Comparison (Based on ₹50 Lakhs Monthly Sales)</h3>
           <div style="display: grid; gap: 16px;">
             <div style="padding: 20px; background: rgba(255,255,255,0.1); border-radius: 8px; backdrop-filter: blur(10px);">
-              <strong style="font-size: 18px;">DineOpen:</strong> ₹10,788/year (₹799/month) + ₹0 transaction fees = ₹10,788 total
+              <strong style="font-size: 18px;">DineOpen:</strong> ₹9,588/year (₹799/month) + ₹0 transaction fees = ₹9,588 total
             </div>
             <div style="padding: 20px; background: rgba(255,255,255,0.1); border-radius: 8px; backdrop-filter: blur(10px);">
               <strong style="font-size: 18px;">Square:</strong> ₹72,000-1,44,000/year + ₹15.6 Lakhs transaction fees = ₹16.3-17.1 Lakhs total
@@ -8782,7 +8782,7 @@ export const blogPostContent = {
                 <p style="font-size: 24px; color: #16a34a; margin: 0; font-weight: 800;">₹0 in fees</p>
               </div>
             </div>
-            <p style="font-size: 15px; color: #dc2626; font-weight: 600; margin-top: 12px; margin-bottom: 0;">You save: ₹9,212/year (after DineOpen subscription of ₹10,788)</p>
+            <p style="font-size: 15px; color: #dc2626; font-weight: 600; margin-top: 12px; margin-bottom: 0;">You save: ₹10,412/year (after DineOpen subscription of ₹9,588)</p>
           </div>
 
           <div style="background: linear-gradient(135deg, #fef2f2, #fce7f3); border: 2px solid #fca5a5; border-radius: 16px; padding: 28px;">
@@ -8798,7 +8798,7 @@ export const blogPostContent = {
                 <p style="font-size: 24px; color: #16a34a; margin: 0; font-weight: 800;">₹0 in fees</p>
               </div>
             </div>
-            <p style="font-size: 15px; color: #dc2626; font-weight: 600; margin-top: 12px; margin-bottom: 0;">You save: ₹49,212/year (after DineOpen subscription of ₹10,788)</p>
+            <p style="font-size: 15px; color: #dc2626; font-weight: 600; margin-top: 12px; margin-bottom: 0;">You save: ₹50,412/year (after DineOpen subscription of ₹9,588)</p>
           </div>
 
           <div style="background: linear-gradient(135deg, #fef2f2, #fce7f3); border: 2px solid #fca5a5; border-radius: 16px; padding: 28px;">
@@ -8830,7 +8830,7 @@ export const blogPostContent = {
           <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 28px; text-align: center;">
             <p style="font-size: 16px; color: #166534; margin-bottom: 8px; font-weight: 600;">India Pricing</p>
             <p style="font-size: 42px; font-weight: 800; color: #16a34a; margin: 0;">₹799<span style="font-size: 18px; font-weight: 500;">/month</span></p>
-            <p style="font-size: 15px; color: #166534; margin-top: 8px;">= ₹10,788/year total</p>
+            <p style="font-size: 15px; color: #166534; margin-top: 8px;">= ₹9,588/year total</p>
             <p style="font-size: 14px; color: #166534; margin-top: 4px; font-weight: 600;">Zero transaction fees. Period.</p>
           </div>
           <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #86efac; border-radius: 16px; padding: 28px; text-align: center;">
@@ -8859,7 +8859,7 @@ export const blogPostContent = {
               <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">Subscription: ₹799/mo</li>
               <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">+ Transaction fee: 0%</li>
               <li style="padding: 8px 0; border-bottom: 1px solid #bbf7d0;">+ Hidden charges: None</li>
-              <li style="padding: 8px 0; font-weight: 700; font-size: 18px;">Total: ₹10,788/year</li>
+              <li style="padding: 8px 0; font-weight: 700; font-size: 18px;">Total: ₹9,588/year</li>
             </ul>
           </div>
         </div>
@@ -8984,7 +8984,7 @@ export const blogPostContent = {
               </tr>
               <tr style="background: #fef2f2;">
                 <td style="padding: 14px 18px; font-weight: 700; font-size: 16px; color: #1f2937;">Annual Cost (on ₹30L revenue)</td>
-                <td style="padding: 14px 18px; text-align: center; color: #16a34a; font-weight: 800; font-size: 17px;">₹10,788</td>
+                <td style="padding: 14px 18px; text-align: center; color: #16a34a; font-weight: 800; font-size: 17px;">₹9,588</td>
                 <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 17px;">₹1.4L+</td>
                 <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 17px;">₹1.3L+</td>
                 <td style="padding: 14px 18px; text-align: center; color: #dc2626; font-weight: 800; font-size: 14px; color: #374151;">₹12,000 + taxes (Base plan, period not stated)</td>
@@ -9871,8 +9871,8 @@ export const blogPostContent = {
               </tr>
               <tr style="background: #ffffff;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #1f2937;">Technology (POS, KDS, etc.)</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #374151;">₹10,788/year (DineOpen)</td>
-                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #374151;">₹10,788/year (DineOpen)</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #374151;">₹9,588/year (DineOpen)</td>
+                <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; color: #374151;">₹9,588/year (DineOpen)</td>
               </tr>
               <tr style="background: #f9fafb;">
                 <td style="padding: 14px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #1f2937;">Marketing & Launch</td>

@@ -5,7 +5,7 @@ export default function Image() {
   return makeVsImage({
     competitor: 'Gofrugal',
     color: '#f59e0b',
-    dineCost: '₹10,788',
+    dineCost: '₹9,588',
     theirCost: 'On request',
     hook: 'ERP-style inventory vs a simpler restaurant app.',
   });

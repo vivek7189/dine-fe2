@@ -70,7 +70,7 @@ export default function LoyaltyPage() {
         "name": "How much does DineOpen Loyalty cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "All loyalty features are included in DineOpen plans. The Starter Plan starts at $20/month (or from ₹799/month in India) and the Pro Plan is $99/month (or ₹1,799/month in India). There are zero transaction fees on any plan. Unlike standalone loyalty apps that charge separately, DineOpen includes CRM, rewards, WhatsApp marketing, and more at no extra cost."
+          "text": "All loyalty features are included in DineOpen plans. The Starter Plan starts at $20/month (or from ₹799/month in India) and the Pro Plan is $99/month. There are zero transaction fees on any plan. Unlike standalone loyalty apps that charge separately, DineOpen includes CRM, rewards, WhatsApp marketing, and more at no extra cost."
         }
       },
       {

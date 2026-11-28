@@ -210,7 +210,7 @@ export default function CompareClient() {
               <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', fontStyle: 'italic' }}>Best for: Small-to-medium restaurants, 1-5 outlets</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  '$20/month Starter plan (₹799 in India) | $99/month Pro plan',
+                  '$20/month Starter plan (India from ₹799) | $99/month Pro plan',
                   'AI voice ordering, chat assistant, menu extraction',
                   'No per-transaction fee from DineOpen',
                   '15-minute self-setup, works on any device',

@@ -209,7 +209,7 @@ export default function PosLandingClient() {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '32px' }}>
               {[
                 { plan: 'Starter', price: '$20', inr: '', period: '/mo', desc: 'Everything a single-location restaurant needs to get started.', items: ['Full POS with all order types', 'Multi-payment support', 'Receipt printing', 'Tax calculations', 'Demo mode'] },
-                { plan: 'Pro', price: '$99', inr: '₹1,799', period: '/mo', desc: 'For growing restaurants and multi-location businesses.', items: ['Everything in Starter', 'Multi-location management', 'Real-time Pusher updates', 'Saved orders queue', 'Priority support'], highlight: true },
+                { plan: 'Pro', price: '$99', inr: '', period: '/mo', desc: 'For growing restaurants and multi-location businesses.', items: ['Everything in Starter', 'Multi-location management', 'Real-time Pusher updates', 'Saved orders queue', 'Priority support'], highlight: true },
               ].map((p, i) => (
                 <div key={i} style={{ background: 'white', padding: '40px 32px', borderRadius: '16px', border: p.highlight ? '2px solid #ef4444' : '1px solid #e5e7eb', position: 'relative' }}>
                   {p.highlight && <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#ef4444', color: 'white', padding: '4px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: '700' }}>Most Popular</div>}

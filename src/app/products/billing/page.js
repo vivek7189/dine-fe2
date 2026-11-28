@@ -76,7 +76,7 @@ export default function BillingPage() {
         "name": "How much does DineOpen Billing cost?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "DineOpen Billing starts at $20/month (from ₹799/month in India) on the Starter plan. The Pro plan at $99/month (Rs.1,799 in India) includes advanced features. Zero transaction fees on all plans."
+          "text": "DineOpen Billing starts at $20/month (from ₹799/month in India) on the Starter plan. The Pro plan at $99/month includes advanced features. Zero transaction fees on all plans."
         }
       },
       {

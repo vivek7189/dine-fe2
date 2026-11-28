@@ -47,7 +47,7 @@ export default function AiPage() {
         "name": "Pro",
         "price": "99",
         "priceCurrency": "USD",
-        "description": "$99/mo or ₹1,799/mo in India"
+        "description": "$99/mo or India: from ₹799/mo"
       }
     ],
     "featureList": [

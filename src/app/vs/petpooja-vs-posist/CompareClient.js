@@ -423,7 +423,7 @@ export default function CompareClient() {
               ))}
             </div>
             <p style={{ fontSize: '15px', color: '#4b5563', lineHeight: '1.7', margin: '0 0 20px 0' }}>
-              DineOpen is especially worth considering if you want AI voice ordering and WhatsApp ordering without a big software bill: both are in the Growth plan, which starts at ₹799/month in India, with no per-transaction fee from DineOpen. If Swiggy and Zomato orders are a big part of your sales, note that DineOpen does not sync them automatically yet.
+              DineOpen is especially worth considering if you want AI voice ordering and WhatsApp ordering without a big software bill: both are included in DineOpen plans, which start at ₹799/month in India, with no per-transaction fee from DineOpen. If Swiggy and Zomato orders are a big part of your sales, note that DineOpen does not sync them automatically yet.
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <Link href="/alternatives/petpooja" style={{

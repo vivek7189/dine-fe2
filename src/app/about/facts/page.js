@@ -21,7 +21,7 @@ export const metadata = {
 };
 
 const PRICES = [
-  ['India', 'Growth ₹799/month (₹7,999/year) · Pro ₹1,799/month (₹17,988/year) · multi-outlet on request'],
+  ['India', 'From ₹799/month (₹7,999/year) · multi-outlet on request'],
   ['USA & other countries', 'Starter $20 · Growth $50 · Pro $99 per month'],
   ['United Kingdom', 'Starter £16 · Growth £40 · Pro £79 per month'],
   ['UAE', 'Starter AED 75 · Growth AED 185 · Pro AED 365 per month'],

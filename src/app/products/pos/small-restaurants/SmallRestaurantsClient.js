@@ -18,7 +18,7 @@ export default function SmallRestaurantsClient() {
   }, []);
 
   const whySmall = [
-    { icon: <FaRupeeSign size={28} />, title: 'Starts at $20/mo', description: 'The Starter plan gives you a complete POS for just $20/mo ($99/mo for Pro). In India, plans start at ₹799/mo (Pro ₹1,799/mo). Zero transaction fees means you keep every rupee.' },
+    { icon: <FaRupeeSign size={28} />, title: 'Starts at $20/mo', description: 'The Starter plan gives you a complete POS for just $20/mo ($99/mo for Pro). In India, plans start at ₹799/mo. Zero transaction fees means you keep every rupee.' },
     { icon: <FaMobileAlt size={28} />, title: 'No Hardware Needed', description: 'Use your existing phone or tablet. No need to buy expensive POS terminals, printers, or tablets. Open a browser, log in, and start taking orders. That is it.' },
     { icon: <FaClock size={28} />, title: 'Set Up in 30 Minutes', description: 'Sign up, add your menu items, set your tables, and start taking orders. No IT person needed. No installation. No configuration headaches. Demo mode lets you explore first.' },
     { icon: <FaShoppingCart size={28} />, title: 'All Order Types Included', description: 'Dine-in with table selection, takeaway, delivery, and room service - all included in the base plan. You do not pay extra for different order types.' },

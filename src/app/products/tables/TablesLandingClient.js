@@ -180,7 +180,7 @@ export default function TablesLandingClient() {
                 <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', padding: '4px 16px', backgroundColor: '#ef4444', color: 'white', borderRadius: '12px', fontSize: '12px', fontWeight: '700' }}>POPULAR</div>
                 <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Pro</h3>
                 <div style={{ fontSize: '36px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>$99<span style={{ fontSize: '16px', color: '#6b7280', fontWeight: '500' }}>/mo</span></div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Rs.1,799/mo in India</div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>India: from ₹799/mo</div>
                 {['Everything in Starter', 'Online booking page', 'WhatsApp confirmations', 'Availability analytics', 'Multi-floor support'].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '8px', justifyContent: 'center' }}>
                     <FaCheckCircle style={{ color: '#22c55e', flexShrink: 0 }} /> {f}
